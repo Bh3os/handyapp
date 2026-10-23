@@ -382,7 +382,12 @@ export async function termsForApproval(db: Reader, pinned: string | null): Promi
 const PAYMENT_TERM_TEXT: Record<string, CustomerKey> = { due_on_receipt: 'estimatePdf.paymentTerm.due_on_receipt' }
 
 /** The access a session came through, read again at the moment of the write (HH-ID-07). */
-async function accessStillValid(tx: Tx, session: CustomerSession, projectId: string, now: Date): Promise<boolean> {
+export async function accessStillValid(
+  tx: Tx,
+  session: CustomerSession,
+  projectId: string,
+  now: Date,
+): Promise<boolean> {
   if (!session.projectIds.includes(projectId)) return false
   if (session.via === 'grant' && !session.grantId) return false
   // The guest grant before the session: TSK-0046's access recheck locks grants, then sessions.
@@ -418,7 +423,7 @@ async function accessStillValid(tx: Tx, session: CustomerSession, projectId: str
 }
 
 /** Fresh enough by the database clock, read again inside the transaction (the policy checked it at the request). */
-async function stillFresh(tx: Tx, sessionId: string, now: Date): Promise<boolean> {
+export async function stillFresh(tx: Tx, sessionId: string, now: Date): Promise<boolean> {
   const row = await tx
     .selectFrom('identity.customer_sessions')
     .select('fresh_until')

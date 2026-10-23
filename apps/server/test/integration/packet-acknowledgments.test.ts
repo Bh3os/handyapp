@@ -21,6 +21,7 @@ import { hashPassword } from '../../src/modules/identity/passwords.js'
 import { packetAcknowledgment, refreshJobPacket } from '../../src/modules/packets/index.js'
 import { recordPolicyVersion } from '../../src/platform/config/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
+import { insertChangeOrderSnapshot } from '../fixtures/change-order-snapshot.js'
 import { verifyCountyOf } from '../fixtures/county.js'
 import { testConfig } from '../fixtures/env.js'
 import { verifyPropertyZone } from '../fixtures/zones.js'
@@ -330,35 +331,31 @@ async function scopeChange(jobId: string) {
     .where('job_id', '=', jobId)
     .orderBy('version', 'desc')
     .executeTakeFirstOrThrow()
-  await t.db
-    .insertInto('work.job_scope_snapshots')
-    .values({
-      job_id: jobId,
-      version: v1.version + 1,
-      source: 'change_order',
-      lines: JSON.stringify([
-        ...(v1.lines as unknown[]),
-        {
-          position: 2,
-          kind: 'base',
-          description: 'Synthetic: prime the patch',
-          quantity: '1',
-          unit: 'coat',
-          unitPriceCents: 500,
-          amountCents: 500,
-        },
-      ]),
-      texts: JSON.stringify(v1.texts),
-      exclusions: v1.exclusions,
-      selected_options: v1.selected_options,
-      subtotal_cents: '1750',
-      discount_cents: '0',
-      total_cents: '1750',
-      terms_document_id: v1.terms_document_id,
-      terms_sha256: v1.terms_sha256,
-      content_sha256: 'a'.repeat(64),
-    })
-    .execute()
+  await insertChangeOrderSnapshot(t.db, {
+    job_id: jobId,
+    version: v1.version + 1,
+    lines: JSON.stringify([
+      ...(v1.lines as unknown[]),
+      {
+        position: 2,
+        kind: 'base',
+        description: 'Synthetic: prime the patch',
+        quantity: '1',
+        unit: 'coat',
+        unitPriceCents: 500,
+        amountCents: 500,
+      },
+    ]),
+    texts: JSON.stringify(v1.texts),
+    exclusions: v1.exclusions,
+    selected_options: v1.selected_options,
+    subtotal_cents: '1750',
+    discount_cents: '0',
+    total_cents: '1750',
+    terms_document_id: v1.terms_document_id,
+    terms_sha256: v1.terms_sha256,
+    content_sha256: 'a'.repeat(64),
+  })
 }
 
 /** A hazard hold on the request, as the hazard report of TSK-0077 will write it. */

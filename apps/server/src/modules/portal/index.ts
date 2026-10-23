@@ -10,6 +10,8 @@
 //   GET/POST /customer/session/verification[/codes]   fresh verification inside the session (TSK-0057, HH-ID-07)
 //   POST /customer/projects/:reference/window-offers/:number/(select|other-times)  the customer's answer to offered
 //                                                windows (TSK-0063; HH-SCH-11, HH-LEAD-07)
+//   GET/POST /customer/projects/:reference/change-orders[/:number/versions/:version/(approve|reject)]  the change
+//                                                orders sent to the customer and their decision (TSK-0082)
 // The Overview is authorized by the policy (ROLE-MATRIX "View intake queue and original requests": Customer "V (own)")
 // and scoped by the session (TSK-0037): another project, an unknown or a malformed reference is the same NOT_FOUND.
 // The list names no record, so like GET /customer/access/session it starts from the session itself; each project
@@ -34,6 +36,7 @@ import {
 } from '../records/index.js'
 import { projectOverview, projectSummaries, refreshSeconds } from './overview.js'
 import { portalAppointmentRoutes, type PortalAppointmentDeps } from './appointments.js'
+import { portalChangeOrderRoutes } from './change-orders.js'
 import { portalEstimateRoutes, type PortalEstimateDeps } from './estimates.js'
 import { sessionVerificationRoutes, type SessionVerificationDeps } from './verification.js'
 import { projectTab, type WorkspaceTab } from './tabs.js'
@@ -223,6 +226,15 @@ export function portalModule(
   })
   return {
     name: 'portal',
-    routes: [list, overview, ...tabs, ...portalEstimateRoutes(deps), ...portalAppointmentRoutes(deps), ...verification],
+    routes: [
+      list,
+      overview,
+      ...tabs,
+      ...portalEstimateRoutes(deps),
+      ...portalAppointmentRoutes(deps),
+      ...verification,
+      // TSK-0082: the change orders sent to the customer, and their approval or rejection.
+      ...portalChangeOrderRoutes(deps),
+    ],
   }
 }

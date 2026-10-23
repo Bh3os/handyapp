@@ -33,6 +33,7 @@ import {
 import { packetView } from '../../src/modules/packets/view.js'
 import { recordPolicyVersion } from '../../src/platform/config/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
+import { insertChangeOrderSnapshot } from '../fixtures/change-order-snapshot.js'
 import { pdfText } from '../fixtures/documents.js'
 import { verifyCountyOf } from '../fixtures/county.js'
 import { testConfig } from '../fixtures/env.js'
@@ -463,24 +464,20 @@ async function scopeChange(jobId: string) {
       amountCents: 500,
     },
   ]
-  await t.db
-    .insertInto('work.job_scope_snapshots')
-    .values({
-      job_id: jobId,
-      version: 2,
-      source: 'change_order',
-      lines: JSON.stringify(lines),
-      texts: JSON.stringify(v1.texts),
-      exclusions: v1.exclusions,
-      selected_options: v1.selected_options,
-      subtotal_cents: '1750',
-      discount_cents: '0',
-      total_cents: '1750',
-      terms_document_id: v1.terms_document_id,
-      terms_sha256: v1.terms_sha256,
-      content_sha256: 'a'.repeat(64),
-    })
-    .execute()
+  await insertChangeOrderSnapshot(t.db, {
+    job_id: jobId,
+    version: 2,
+    lines: JSON.stringify(lines),
+    texts: JSON.stringify(v1.texts),
+    exclusions: v1.exclusions,
+    selected_options: v1.selected_options,
+    subtotal_cents: '1750',
+    discount_cents: '0',
+    total_cents: '1750',
+    terms_document_id: v1.terms_document_id,
+    terms_sha256: v1.terms_sha256,
+    content_sha256: 'a'.repeat(64),
+  })
 }
 
 describe('[HH-PKT-01][HH-PKT-02][HH-PKT-07] the versioned job packet', () => {

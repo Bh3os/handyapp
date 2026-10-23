@@ -37,6 +37,7 @@ import { createWorker } from '../../src/platform/jobs.js'
 import { createProviders } from '../../src/providers/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { readProviderSettings } from '../../src/providers/settings.js'
+import { insertChangeOrderSnapshot } from '../fixtures/change-order-snapshot.js'
 import { verifyCountyOf } from '../fixtures/county.js'
 import { testConfig } from '../fixtures/env.js'
 import { reviewOutcome, standInQualityReview } from '../fixtures/quality-review.js'
@@ -480,24 +481,20 @@ describe('[HH-FIN-05][HH-FIN-04][T58] the draft is prepared automatically from t
     const draft = await finalOf(job.jobId)
     // TSK-0082 appends approved change orders as scope snapshots; this one (a synthetic record) credits $150.00.
     const addScope = (version: number, lines: object[], subtotal: number) =>
-      t.db
-        .insertInto('work.job_scope_snapshots')
-        .values({
-          job_id: job.jobId,
-          version,
-          source: 'change_order',
-          lines: JSON.stringify(lines),
-          texts: '{}',
-          exclusions: [],
-          selected_options: [],
-          subtotal_cents: subtotal,
-          discount_cents: 0,
-          total_cents: subtotal,
-          terms_document_id: ESTIMATE_TERMS.documentId,
-          terms_sha256: ESTIMATE_TERMS.contentSha256,
-          content_sha256: createHash('sha256').update(randomUUID()).digest('hex'),
-        })
-        .execute()
+      insertChangeOrderSnapshot(t.db, {
+        job_id: job.jobId,
+        version,
+        lines: JSON.stringify(lines),
+        texts: '{}',
+        exclusions: [],
+        selected_options: [],
+        subtotal_cents: subtotal,
+        discount_cents: 0,
+        total_cents: subtotal,
+        terms_document_id: ESTIMATE_TERMS.documentId,
+        terms_sha256: ESTIMATE_TERMS.contentSha256,
+        content_sha256: createHash('sha256').update(randomUUID()).digest('hex'),
+      })
     const base = { position: 1, kind: 'base', serviceCode: null, description: 'Synthetic base', quantity: '1' }
     await addScope(
       2,

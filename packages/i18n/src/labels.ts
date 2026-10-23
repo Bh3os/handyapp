@@ -1275,7 +1275,15 @@ export const LABEL_FAMILIES = {
   /** Where a job scope snapshot version comes from (ENT-JobScopeSnapshot). */
   scopeSource: ['approval', 'change_order'],
   /** The customer-facing lists of an accepted scope, as a packet shows them (TSK-0069). */
-  scopeText: ['assumptions', 'exclusions', 'customerResponsibilities', 'dependencies', 'scheduleAssumptions'],
+  scopeText: [
+    'assumptions',
+    'exclusions',
+    'customerResponsibilities',
+    'dependencies',
+    'scheduleAssumptions',
+    'changeOrderScope',
+    'changeOrderHazards',
+  ],
   /** The sections of a job packet (TSK-0069, HH-PKT-01; @handyhub/domain PACKET_SECTIONS). */
   packetSection: [
     'identity',

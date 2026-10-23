@@ -5,7 +5,7 @@ import { apply, CHANGE_ORDER_MACHINE, effectiveChangeOrderState, eventsFrom, wai
 
 const now = new Date('2026-10-23T15:00:00Z')
 const ctx = (facts: object, expectedVersion = 1) => ({ actor: 'staff' as const, expectedVersion, now, facts })
-const version = (state: 'draft' | 'reviewed' | 'issued' | 'withdrawn') =>
+const version = (state: 'draft' | 'reviewed' | 'issued' | 'withdrawn' | 'approved' | 'rejected' | 'expired') =>
   ({ machine: 'change_order.lifecycle', state, version: 1 }) as const
 
 describe('change-order versions (TSK-0081, HH-CHG-01)', () => {
@@ -67,5 +67,44 @@ describe('change-order versions (TSK-0081, HH-CHG-01)', () => {
     expect(effectiveChangeOrderState('issued', new Date('2026-10-23T14:00:00Z'), now)).toBe('expired')
     expect(effectiveChangeOrderState('issued', new Date('2026-10-24T00:00:00Z'), now)).toBe('issued')
     expect(effectiveChangeOrderState('draft', null, now)).toBe('draft')
+  })
+
+  it('[HH-CHG-02][HH-CHG-03] only the customer approves or rejects an issued version, before it expires', () => {
+    const later = new Date('2026-10-24T00:00:00Z')
+    const earlier = new Date('2026-10-23T14:00:00Z')
+    const customer = (facts: object) => ({ actor: 'customer' as const, expectedVersion: 1, now, facts })
+    expect(apply(version('issued'), 'approve', customer({ validUntil: later, baseCurrent: true }))).toMatchObject({
+      ok: true,
+      to: 'approved',
+    })
+    expect(apply(version('issued'), 'approve', customer({ validUntil: earlier, baseCurrent: true }))).toMatchObject({
+      ok: false,
+      problems: [{ code: 'EXPIRED' }],
+    })
+    // Another change was approved since this one was priced: it is revised first, never approved on a stale total.
+    expect(apply(version('issued'), 'approve', customer({ validUntil: later, baseCurrent: false }))).toMatchObject({
+      ok: false,
+      problems: [{ code: 'APPROVED_SCOPE_CHANGED' }],
+    })
+    expect(apply(version('issued'), 'reject', customer({ validUntil: later }))).toMatchObject({
+      ok: true,
+      to: 'rejected',
+    })
+    // Staff never approve for the customer; a final version is never approved.
+    expect(apply(version('issued'), 'approve', ctx({ validUntil: later, baseCurrent: true }))).toMatchObject({
+      ok: false,
+      code: 'ACTOR_NOT_ALLOWED',
+    })
+    for (const s of ['approved', 'rejected', 'expired', 'withdrawn'] as const)
+      expect(apply(version(s), 'approve', customer({ validUntil: later, baseCurrent: true }))).toMatchObject({
+        ok: false,
+        code: 'INVALID_TRANSITION',
+      })
+    // An approved or rejected change no longer holds the steps it named.
+    const steps = waitingSteps([
+      { state: 'approved', number: 1, affectedSteps: [{ workPackageId: 'wp', stepId: '3.2' }] },
+      { state: 'rejected', number: 2, affectedSteps: [{ workPackageId: 'wp', stepId: '3.3' }] },
+    ])
+    expect(steps.size).toBe(0)
   })
 })

@@ -72,7 +72,7 @@ export type DraftInput = {
 type Resource = Parameters<typeof decide>[2]
 const allowed = (
   actor: StaffActor,
-  permission: 'change_order.draft' | 'change_order.publish',
+  permission: 'change_order.draft' | 'change_order.publish' | 'change_order.capture_in_person_approval',
   resource: Resource = {},
 ) => decide(actor, permission, resource, { now: new Date(), online: true }).effect === 'allow'
 /** An Estimator or the Owner: drafts any change order, reviews, reopens and withdraws (change_order.publish). */
@@ -155,6 +155,7 @@ export type VersionRow = {
   validity_reason: string | null
   superseded_at: Date | null
   expired_at: Date | null
+  decided_at: Date | null
   row_version: number
 }
 
@@ -554,6 +555,49 @@ export async function changeOrdersView(db: Reader, actor: StaffActor, jobId: str
       latest: { approvalId: string; state: string; rowVersion: number; comment: string | null } | null
     }
   >()
+  // TSK-0082 part 2: the customer's decisions, and what an in-person approval of an open version needs.
+  const { inPersonApproval } = await import('./approve.js')
+  const decisions = await db
+    .selectFrom('work.change_order_decisions as d')
+    .leftJoin('identity.staff_users as u', 'u.id', 'd.captured_by')
+    .leftJoin('work.job_scope_snapshots as s', 's.id', 'd.scope_snapshot_id')
+    .select([
+      'd.version_id',
+      'd.decision',
+      'd.method',
+      'd.full_name',
+      'd.reason',
+      'd.code_channel',
+      'd.created_at',
+      'd.captured_by',
+      'u.display_name',
+      's.version as scope_version',
+    ])
+    .where('d.job_id', '=', jobId)
+    .execute()
+  const decisionOf = new Map(
+    decisions.map((d) => [
+      d.version_id,
+      {
+        kind: d.decision as 'approved' | 'rejected',
+        method: d.method as 'portal' | 'in_person_code',
+        fullName: d.full_name,
+        reason: d.reason,
+        codeChannel: d.code_channel as 'email' | 'sms' | null,
+        capturedBy: d.captured_by ? { id: d.captured_by, name: d.display_name } : null,
+        scopeVersion: d.scope_version ?? null,
+        at: d.created_at.toISOString(),
+      },
+    ]),
+  )
+  const capture = open && allowed(actor, 'change_order.capture_in_person_approval', resource)
+  const inPerson = new Map<string, Awaited<ReturnType<typeof inPersonApproval>>>()
+  for (const o of orders) {
+    const vs = versions.filter((v) => v.change_order_id === o.id)
+    const current = vs[vs.length - 1] as VersionRow
+    if (capture && issuedNow(current))
+      inPerson.set(current.id, await inPersonApproval(db, current, jobId, job.project_id))
+  }
   for (const o of orders) {
     const vs = versions.filter((v) => v.change_order_id === o.id)
     const current = vs[vs.length - 1] as VersionRow
@@ -630,6 +674,8 @@ export async function changeOrdersView(db: Reader, actor: StaffActor, jobId: str
         validityReason: v.validity_reason,
         supersededAt: iso(v.superseded_at),
         expiredAt: iso(v.expired_at),
+        decidedAt: iso(v.decided_at),
+        customerDecision: decisionOf.get(v.id) ?? null,
         rowVersion: v.row_version,
       })
       return {
@@ -640,6 +686,7 @@ export async function changeOrdersView(db: Reader, actor: StaffActor, jobId: str
         createdAt: iso(o.created_at) as string,
         current: { ...view(current), state: effectiveChangeOrderState(current.state, current.valid_until, now) },
         ownerApproval: publication.get(current.id) ?? null,
+        inPersonApproval: inPerson.get(current.id) ?? null,
         history: vs.slice(0, -1).map((v) => ({ version: v.version, state: v.state, updatedAt: iso(v.updated_at) })),
         actions: {
           edit: open && draft && (publisher || mine),
@@ -662,6 +709,7 @@ export async function changeOrdersView(db: Reader, actor: StaffActor, jobId: str
             ),
           decideOwnerApproval:
             mayApprove(actor, job.project_id) && publication.get(current.id)?.latest?.state === 'pending',
+          captureInPersonApproval: (inPerson.get(current.id) ?? null) !== null,
         },
       }
     }),

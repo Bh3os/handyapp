@@ -3119,6 +3119,995 @@
         }
       }
     },
+    "/api/v1/customer/projects/{reference}/change-orders": {
+      "get": {
+        "operationId": "getCustomerChangeOrders",
+        "summary": "The project’s change orders as the customer received them",
+        "description": "For a project the caller’s session opens (HH-PORT-05, OWN-DEC-169): the accepted estimate’s total, the current authorized total (the original plus every approved change order) and each change order that was sent to the customer (its latest sent version): reason, scope, schedule impact, the charge and credit lines and totals in integer cents, when it was sent and until when it is valid, its status (issued, approved, rejected, expired, withdrawn, superseded) and the decision. While one is open: whether it can be decided now (blockedBy APPROVED_SCOPE_CHANGED when another change was approved since it was priced), the digest of its content and the estimate terms an approval names. Drafts and reviews never appear. Any other project and a malformed reference are NOT_FOUND (T19).",
+        "tags": [
+          "portal"
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reference",
+                    "original",
+                    "currentTotalCents",
+                    "changeOrders",
+                    "refreshedAt",
+                    "refreshSeconds"
+                  ],
+                  "properties": {
+                    "reference": {
+                      "type": "string"
+                    },
+                    "original": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "estimateNumber",
+                            "version",
+                            "totalCents"
+                          ],
+                          "properties": {
+                            "estimateNumber": {
+                              "type": "string"
+                            },
+                            "version": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "totalCents": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "currentTotalCents": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "changeOrders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "reference",
+                          "number",
+                          "version",
+                          "status",
+                          "reason",
+                          "scope",
+                          "scheduleImpact",
+                          "lines",
+                          "approvedTotalCents",
+                          "chargesCents",
+                          "creditsCents",
+                          "revisedTotalCents",
+                          "sentAt",
+                          "validUntil",
+                          "decidedAt",
+                          "decision",
+                          "approval"
+                        ],
+                        "properties": {
+                          "reference": {
+                            "type": "string"
+                          },
+                          "number": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "version": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "issued",
+                              "approved",
+                              "rejected",
+                              "expired",
+                              "withdrawn",
+                              "superseded"
+                            ]
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "scope": {
+                            "type": "string"
+                          },
+                          "scheduleImpact": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "lines": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "position",
+                                "kind",
+                                "description",
+                                "quantity",
+                                "unit",
+                                "unitPriceCents",
+                                "amountCents"
+                              ],
+                              "properties": {
+                                "position": {
+                                  "type": "integer",
+                                  "minimum": 1
+                                },
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "charge",
+                                    "credit"
+                                  ]
+                                },
+                                "description": {
+                                  "type": "string"
+                                },
+                                "quantity": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "unit": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "unitPriceCents": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "amountCents": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "approvedTotalCents": {
+                            "type": "integer"
+                          },
+                          "chargesCents": {
+                            "type": "integer"
+                          },
+                          "creditsCents": {
+                            "type": "integer"
+                          },
+                          "revisedTotalCents": {
+                            "type": "integer"
+                          },
+                          "sentAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "validUntil": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "decidedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "decision": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "kind",
+                                  "method",
+                                  "at"
+                                ],
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "approved",
+                                      "rejected"
+                                    ]
+                                  },
+                                  "method": {
+                                    "type": "string",
+                                    "enum": [
+                                      "portal",
+                                      "in_person_code"
+                                    ]
+                                  },
+                                  "at": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "approval": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "canDecide",
+                                  "blockedBy",
+                                  "contentDigest",
+                                  "termsDocumentId",
+                                  "termsSha256"
+                                ],
+                                "properties": {
+                                  "canDecide": {
+                                    "type": "boolean"
+                                  },
+                                  "blockedBy": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "APPROVED_SCOPE_CHANGED"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "contentDigest": {
+                                    "type": "string",
+                                    "pattern": "^[0-9a-f]{64}$"
+                                  },
+                                  "termsDocumentId": {
+                                    "type": "string"
+                                  },
+                                  "termsSha256": {
+                                    "type": "string",
+                                    "pattern": "^[0-9a-f]{64}$"
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "refreshedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "refreshSeconds": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "request.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/change-orders.test.ts",
+          "projection": "change_orders.customer"
+        }
+      }
+    },
+    "/api/v1/customer/projects/{reference}/change-orders/{number}/versions/{version}/approve": {
+      "post": {
+        "operationId": "approveChangeOrder",
+        "summary": "Approve this exact change-order version",
+        "description": "The verified customer approves the exact change-order version they viewed (HH-CHG-02, HH-CHG-03). The body names the digest of the content viewed (approval.contentDigest), the revised total shown in integer cents, the estimate terms the job was accepted under (document ID and content hash), the ticked box (unchecked by default) and the typed full name. Needs a fresh verification of the session (change_order.approve: Customer \"V (fresh verification)\"): an older one is FRESH_VERIFICATION_REQUIRED and nothing is written. In one transaction under the job lock the server checks the version is issued and not past its valid-until time (else CONFLICT VERSION_EXPIRED, _WITHDRAWN, _SUPERSEDED, _REJECTED), that it was priced against the current approved scope (else APPROVED_SCOPE_CHANGED), the digest and the terms (else CONTENT_MISMATCH, TERMS_NOT_SHOWN), the total (else TOTAL_MISMATCH, nothing written) and the session’s access; then it records the approval, moves the version to approved, adds the job’s next scope snapshot (the change added; the original estimate and earlier snapshots unchanged) and publishes one new packet version, a critical change the assigned workers acknowledge again. The steps the change named stop waiting. A retry with the same key returns the first answer; the same customer approving again for the same total gets the same approval (200); anything else on an approved version is CONFLICT. Any other project, change order or version is NOT_FOUND (T19).",
+        "tags": [
+          "portal"
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          },
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,3}$"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,3}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "contentDigest",
+                  "totalCents",
+                  "termsDocumentId",
+                  "termsSha256",
+                  "acceptTerms",
+                  "fullName"
+                ],
+                "properties": {
+                  "contentDigest": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "totalCents": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "termsDocumentId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60
+                  },
+                  "termsSha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "acceptTerms": {
+                    "type": "boolean"
+                  },
+                  "fullName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reference",
+                    "changeOrder",
+                    "version",
+                    "status",
+                    "at",
+                    "revisedTotalCents"
+                  ],
+                  "properties": {
+                    "reference": {
+                      "type": "string"
+                    },
+                    "changeOrder": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "approved",
+                        "rejected"
+                      ]
+                    },
+                    "at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "revisedTotalCents": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reference",
+                    "changeOrder",
+                    "version",
+                    "status",
+                    "at",
+                    "revisedTotalCents"
+                  ],
+                  "properties": {
+                    "reference": {
+                      "type": "string"
+                    },
+                    "changeOrder": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "approved",
+                        "rejected"
+                      ]
+                    },
+                    "at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "revisedTotalCents": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "change_order.approve",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "customer-change-order-decision",
+            "limit": 30,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "change_order.approve",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/change-orders.test.ts",
+          "projection": "change_order_decision.customer"
+        }
+      }
+    },
+    "/api/v1/customer/projects/{reference}/change-orders/{number}/versions/{version}/reject": {
+      "post": {
+        "operationId": "rejectChangeOrder",
+        "summary": "Decline this exact change-order version",
+        "description": "The verified customer declines the exact change-order version they viewed, with an optional reason (at most 2000 characters). Needs a fresh verification of the session, like approving. The version must be issued and not past its valid-until time (else CONFLICT naming its status) and the digest must match (else CONTENT_MISMATCH). Records the decision and moves the version to rejected: the change is never authorized, the approved scope and totals stay as they are and the steps it named stop waiting; staff may revise it into a new version. A repeat by the same customer answers with the first decision (200). Any other project, change order or version is NOT_FOUND (T19).",
+        "tags": [
+          "portal"
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          },
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,3}$"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,3}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "contentDigest"
+                ],
+                "properties": {
+                  "contentDigest": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reference",
+                    "changeOrder",
+                    "version",
+                    "status",
+                    "at",
+                    "revisedTotalCents"
+                  ],
+                  "properties": {
+                    "reference": {
+                      "type": "string"
+                    },
+                    "changeOrder": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "approved",
+                        "rejected"
+                      ]
+                    },
+                    "at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "revisedTotalCents": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reference",
+                    "changeOrder",
+                    "version",
+                    "status",
+                    "at",
+                    "revisedTotalCents"
+                  ],
+                  "properties": {
+                    "reference": {
+                      "type": "string"
+                    },
+                    "changeOrder": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "approved",
+                        "rejected"
+                      ]
+                    },
+                    "at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "revisedTotalCents": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "change_order.approve",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "customer-change-order-decision",
+            "limit": 30,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "change_order.reject",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/change-orders.test.ts",
+          "projection": "change_order_decision.customer"
+        }
+      }
+    },
     "/api/v1/customer/projects/{reference}/documents": {
       "get": {
         "operationId": "getCustomerProjectDocuments",
@@ -29749,6 +30738,564 @@
           "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "change_order.update",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/change-orders.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/change-orders/{changeOrderId}/in-person/approve": {
+      "post": {
+        "operationId": "captureChangeOrderApproval",
+        "summary": "Record the customer’s in-person approval of a change order",
+        "description": "An assigned worker records the customer’s approval of the exact open version on the worker’s phone: the one-time code the customer received on their verified contact (the channel it went to), the digest of the content shown, the revised total, the estimate terms the job was accepted under, the ticked box and the customer’s typed full name. Every check of the approval is made first (CONFLICT VERSION_EXPIRED, APPROVED_SCOPE_CHANGED, CONTENT_MISMATCH, TERMS_NOT_SHOWN; VALIDATION_FAILED TOTAL_MISMATCH), so nothing is spent when one fails; then the code: a wrong, used or expired code is VALIDATION_FAILED invalid_code with the attempt counted. A right one approves in the same transaction as the portal does: the job’s next scope snapshot, one new packet version and the waiting steps released; the worker is recorded as who captured it. A signature alone is never accepted (there is no field for it). Online only (HH-OFF-04).",
+        "tags": [
+          "change-orders"
+        ],
+        "parameters": [
+          {
+            "name": "changeOrderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "version",
+                  "channel",
+                  "code",
+                  "contentDigest",
+                  "totalCents",
+                  "termsDocumentId",
+                  "termsSha256",
+                  "acceptTerms",
+                  "fullName"
+                ],
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "email",
+                      "sms"
+                    ]
+                  },
+                  "code": {
+                    "type": "string",
+                    "pattern": "^[0-9]{4,10}$"
+                  },
+                  "contentDigest": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "totalCents": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "termsDocumentId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60
+                  },
+                  "termsSha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "acceptTerms": {
+                    "type": "boolean"
+                  },
+                  "fullName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "changeOrderId",
+                    "versionId",
+                    "reference",
+                    "version",
+                    "decision",
+                    "created",
+                    "at",
+                    "revisedTotalCents",
+                    "scopeVersion",
+                    "packetVersion"
+                  ],
+                  "properties": {
+                    "changeOrderId": {
+                      "type": "string"
+                    },
+                    "versionId": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "decision": {
+                      "type": "string",
+                      "enum": [
+                        "approved",
+                        "rejected"
+                      ]
+                    },
+                    "created": {
+                      "type": "boolean"
+                    },
+                    "at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "revisedTotalCents": {
+                      "type": "integer"
+                    },
+                    "scopeVersion": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "packetVersion": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "changeOrderId",
+                    "versionId",
+                    "reference",
+                    "version",
+                    "decision",
+                    "created",
+                    "at",
+                    "revisedTotalCents",
+                    "scopeVersion",
+                    "packetVersion"
+                  ],
+                  "properties": {
+                    "changeOrderId": {
+                      "type": "string"
+                    },
+                    "versionId": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "decision": {
+                      "type": "string",
+                      "enum": [
+                        "approved",
+                        "rejected"
+                      ]
+                    },
+                    "created": {
+                      "type": "boolean"
+                    },
+                    "at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "revisedTotalCents": {
+                      "type": "integer"
+                    },
+                    "scopeVersion": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "packetVersion": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "change_order.capture_in_person_approval",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "change_order.approve",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/change-orders.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/change-orders/{changeOrderId}/in-person/code": {
+      "post": {
+        "operationId": "sendChangeOrderApprovalCode",
+        "summary": "Send the customer a code to approve a change order in person",
+        "description": "An assigned worker (change_order.capture_in_person_approval, limited to customer identification) with the customer on site: sends a one-time code for the change order’s open version to the customer contact’s verified email, or verified phone with the SMS opt-in (CONTACT_NOT_VERIFIED otherwise), as the automatic code message. The version must be issued and still valid (CONFLICT naming its status). The code limits, lifetime and resend cooldown are the configured ones (RATE_LIMITED, NOT_CONFIGURED). Never approves anything by itself; a drawn signature is never identification (HH-CHG-02).",
+        "tags": [
+          "change-orders"
+        ],
+        "parameters": [
+          {
+            "name": "changeOrderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "version",
+                  "channel"
+                ],
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "email",
+                      "sms"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "versionId",
+                    "channel",
+                    "sentTo",
+                    "expiresAt"
+                  ],
+                  "properties": {
+                    "versionId": {
+                      "type": "string"
+                    },
+                    "channel": {
+                      "type": "string",
+                      "enum": [
+                        "email",
+                        "sms"
+                      ]
+                    },
+                    "sentTo": {
+                      "type": "string"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "change_order.capture_in_person_approval",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "change_order.send_approval_code",
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/change-orders.test.ts"
@@ -74769,6 +76316,7 @@
                           "createdAt",
                           "current",
                           "ownerApproval",
+                          "inPersonApproval",
                           "history",
                           "actions"
                         ],
@@ -74829,6 +76377,8 @@
                               "validityReason",
                               "supersededAt",
                               "expiredAt",
+                              "decidedAt",
+                              "customerDecision",
                               "rowVersion"
                             ],
                             "properties": {
@@ -75161,6 +76711,112 @@
                                 ],
                                 "format": "date-time"
                               },
+                              "decidedAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              },
+                              "customerDecision": {
+                                "anyOf": [
+                                  {
+                                    "type": "null"
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "kind",
+                                      "method",
+                                      "fullName",
+                                      "reason",
+                                      "codeChannel",
+                                      "capturedBy",
+                                      "scopeVersion",
+                                      "at"
+                                    ],
+                                    "properties": {
+                                      "kind": {
+                                        "type": "string",
+                                        "enum": [
+                                          "approved",
+                                          "rejected"
+                                        ]
+                                      },
+                                      "method": {
+                                        "type": "string",
+                                        "enum": [
+                                          "portal",
+                                          "in_person_code"
+                                        ]
+                                      },
+                                      "fullName": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "reason": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "codeChannel": {
+                                        "anyOf": [
+                                          {
+                                            "type": "null"
+                                          },
+                                          {
+                                            "type": "string",
+                                            "enum": [
+                                              "email",
+                                              "sms"
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "capturedBy": {
+                                        "anyOf": [
+                                          {
+                                            "type": "null"
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "id",
+                                              "name"
+                                            ],
+                                            "properties": {
+                                              "id": {
+                                                "type": "string"
+                                              },
+                                              "name": {
+                                                "type": [
+                                                  "string",
+                                                  "null"
+                                                ]
+                                              }
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      "scopeVersion": {
+                                        "type": [
+                                          "integer",
+                                          "null"
+                                        ]
+                                      },
+                                      "at": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
                               "rowVersion": {
                                 "type": "integer"
                               }
@@ -75234,6 +76890,77 @@
                               }
                             ]
                           },
+                          "inPersonApproval": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "contentDigest",
+                                  "totalCents",
+                                  "termsDocumentId",
+                                  "termsSha256",
+                                  "blockedBy",
+                                  "channels"
+                                ],
+                                "properties": {
+                                  "contentDigest": {
+                                    "type": "string",
+                                    "pattern": "^[0-9a-f]{64}$"
+                                  },
+                                  "totalCents": {
+                                    "type": "integer"
+                                  },
+                                  "termsDocumentId": {
+                                    "type": "string"
+                                  },
+                                  "termsSha256": {
+                                    "type": "string",
+                                    "pattern": "^[0-9a-f]{64}$"
+                                  },
+                                  "blockedBy": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "APPROVED_SCOPE_CHANGED"
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  "channels": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "channel",
+                                        "sentTo"
+                                      ],
+                                      "properties": {
+                                        "channel": {
+                                          "type": "string",
+                                          "enum": [
+                                            "email",
+                                            "sms"
+                                          ]
+                                        },
+                                        "sentTo": {
+                                          "type": "string"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            ]
+                          },
                           "history": {
                             "type": "array",
                             "items": {
@@ -75282,7 +77009,8 @@
                               "issue",
                               "requestOwnerApproval",
                               "revise",
-                              "decideOwnerApproval"
+                              "decideOwnerApproval",
+                              "captureInPersonApproval"
                             ],
                             "properties": {
                               "edit": {
@@ -75307,6 +77035,9 @@
                                 "type": "boolean"
                               },
                               "decideOwnerApproval": {
+                                "type": "boolean"
+                              },
+                              "captureInPersonApproval": {
                                 "type": "boolean"
                               }
                             }
@@ -87697,7 +89428,9 @@
                             "exclusions",
                             "customerResponsibilities",
                             "dependencies",
-                            "scheduleAssumptions"
+                            "scheduleAssumptions",
+                            "changeOrderScope",
+                            "changeOrderHazards"
                           ],
                           "properties": {
                             "assumptions": {
@@ -87725,6 +89458,18 @@
                               }
                             },
                             "scheduleAssumptions": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "changeOrderScope": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "changeOrderHazards": {
                               "type": "array",
                               "items": {
                                 "type": "string"

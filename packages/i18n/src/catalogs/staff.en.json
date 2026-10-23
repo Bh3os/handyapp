@@ -2613,6 +2613,8 @@
   "enum.scopeText.customerResponsibilities": "Customer responsibilities",
   "enum.scopeText.dependencies": "Dependencies",
   "enum.scopeText.scheduleAssumptions": "Schedule assumptions",
+  "enum.scopeText.changeOrderScope": "Approved change orders",
+  "enum.scopeText.changeOrderHazards": "Change-order hazards",
   "enum.packetSection.identity": "Job",
   "enum.packetSection.schedule": "Schedule",
   "enum.packetSection.assignment": "Assignment",

@@ -87,6 +87,8 @@ type SnapshotLine = {
   unit: string | null
   unitPriceCents: number | null
   amountCents: number | null
+  /** TSK-0082: the change order a line came from (`<reference>-C<n>`); absent on an estimate line. */
+  changeOrder?: string
 }
 
 type DraftLine = {
@@ -182,7 +184,8 @@ async function finalDraftContent(db: Reader, jobId: string): Promise<DraftConten
     lines.push({
       position: i + 1,
       kind: credit ? 'credit' : 'charge',
-      source: snap.source === 'change_order' ? 'change_order' : 'estimate_line',
+      // TSK-0082: a change-order snapshot carries the estimate lines forward; only the change's own lines name it.
+      source: l.changeOrder ? 'change_order' : 'estimate_line',
       sourcePosition: l.position ?? null,
       lineKind: l.kind === 'base' || l.kind === 'alternate' || l.kind === 'add_on' ? l.kind : null,
       serviceCode: l.serviceCode ?? null,

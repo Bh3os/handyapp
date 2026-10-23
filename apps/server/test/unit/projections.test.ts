@@ -114,6 +114,10 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
         'getCustomerProjectPhoto',
         // TSK-0085: the issued invoice PDF's short-lived link.
         'getCustomerInvoiceDownload',
+        // TSK-0082: the change orders sent to the customer and their approval or rejection.
+        'getCustomerChangeOrders',
+        'approveChangeOrder',
+        'rejectChangeOrder',
       ].sort(),
     )
     for (const r of customerRoutes) {
