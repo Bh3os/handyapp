@@ -987,6 +987,14 @@ export const TABLES = {
     classes: ['request_details'],
     categories: [J, S],
   },
+  // TSK-0080 (0090): the field events phones uploaded (the sync queue), kept as received, and the Owner's review.
+  'work.field_events': {
+    holds:
+      "Field events uploaded from staff phones: the phone's event UUID, who recorded and uploaded it, the visit, the " +
+      "phone's time and the server's, what the server did with it and the Owner's review note",
+    classes: ['scheduling', 'staff_account'],
+    categories: [J],
+  },
   'work.time_stamps': {
     holds:
       "Each assigned worker's Arrived and Finished time per visit (server time; device time when sent); no pay data",

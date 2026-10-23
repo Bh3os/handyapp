@@ -1958,6 +1958,28 @@ export interface WorkEquipmentTable {
   retired_by: string | null
 }
 
+export interface WorkFieldEventsTable {
+  client_id: string
+  actor_id: string
+  uploaded_by: string
+  type: string
+  visit_id: string
+  project_id: string
+  job_id: string | null
+  base_version: number | null
+  device_recorded_at: Timestamp
+  received_at: ColumnType<Date, Date | string | undefined, Date | string>
+  payload: ColumnType<JsonValue, string | undefined, string>
+  attachment_refs: ColumnType<JsonValue, string | undefined, string>
+  attempts: Generated<number>
+  state: string
+  outcome: string
+  detail: string | null
+  reviewed_by: string | null
+  reviewed_at: Timestamp | null
+  review_note: string | null
+}
+
 export interface WorkFieldPhotosTable {
   id: Generated<string>
   job_id: string
@@ -2710,6 +2732,7 @@ export interface Database {
   'work.checklist_step_events': WorkChecklistStepEventsTable
   'work.checklist_steps': WorkChecklistStepsTable
   'work.equipment': WorkEquipmentTable
+  'work.field_events': WorkFieldEventsTable
   'work.field_photos': WorkFieldPhotosTable
   'work.gate_exceptions': WorkGateExceptionsTable
   'work.holds': WorkHoldsTable

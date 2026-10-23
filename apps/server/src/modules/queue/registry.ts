@@ -49,6 +49,8 @@ export const QUEUE_ACTIONS = [
   'review_punch_items',
   // TSK-0078: follow up a recorded visit outcome (reschedule, cancel or contact the customer).
   'follow_up_visit',
+  // TSK-0080: review a field event a phone uploaded that was not applied (a conflict, an assignment, a recovery).
+  'review_field_event',
 ] as const
 export type QueueAction = (typeof QUEUE_ACTIONS)[number]
 
@@ -369,6 +371,21 @@ export const QUEUE_ITEM_TYPES = [
     action: 'follow_up_visit',
     screen: 'schedule',
     path: 'visit-outcomes',
+  },
+  // TSK-0080 (HH-OFF-06, T27, T51): a field event a phone uploaded that the server did not apply: it conflicts with the
+  // server's newer state, its worker is not (or was not) assigned to the visit, or the Owner uploaded it from another
+  // account's phone. One item per event, opened when it is received and resolved by the Owner's review. Seen by the
+  // Owner (visit.correct_timestamps: the one who corrects the timestamps an event could not record), PROPOSED.
+  {
+    id: 'field_event_review',
+    section: 'queue',
+    subject: 'field_event',
+    band: 'time_sensitive',
+    view: 'visit.correct_timestamps',
+    reasons: ['sync_conflict', 'sync_not_assigned', 'sync_recovered'],
+    action: 'review_field_event',
+    screen: 'schedule',
+    path: 'field-events',
   },
   // TSK-0071 (HH-PKT-06): a critical loadout shortage blocks Start Work on its work package until the Owner provides the
   // item or approves a substitute. One item per job while any of its task blocks blocks, opened in the same

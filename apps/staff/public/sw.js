@@ -17,8 +17,14 @@ async function precache() {
   await Promise.all(assets.map((a) => cache.add(a).catch(() => undefined)))
 }
 
+// TSK-0080 (HH-OFF-07, T52): the first version takes over at once; a new version waits until the person chooses to
+// update (the app warns first when work is not uploaded yet, then sends SKIP_WAITING).
 self.addEventListener('install', (event) => {
-  event.waitUntil(precache().then(() => self.skipWaiting()))
+  event.waitUntil(precache().then(() => (self.registration.active ? undefined : self.skipWaiting())))
+})
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') void self.skipWaiting()
 })
 
 self.addEventListener('activate', (event) => {

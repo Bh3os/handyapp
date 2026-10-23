@@ -475,7 +475,25 @@ test.describe('My Day: On my way, Arrived and Finished (TSK-0070)', () => {
       await axe(page)
 
       // Arrived: the visit has arrived; only Finished is offered (no check-in between, OWN-DEC-149).
+      // TSK-0080 (HH-OFF-03, HH-OFF-05, HH-OFF-07, T50, T51): tapped without a connection, Arrived is saved on this
+      // phone and shown as not uploaded; once the connection returns it uploads by itself, once, and shows Synced.
+      await w.context().setOffline(true)
       await arrived.click()
+      await expect(card.getByTestId('myday-drafts')).toContainText('Saved on this phone')
+      await expect(w.getByTestId('sync-waiting')).toContainText('1 item not uploaded yet')
+      await w.context().setOffline(false)
+      await w.evaluate(() => window.dispatchEvent(new Event('online')))
+      await expect(card.getByTestId('myday-drafts')).toContainText('Synced')
+      await expect(w.getByTestId('sync-status')).toHaveCount(0)
+      expect(
+        await withDb((db) =>
+          db
+            .selectFrom('work.field_events')
+            .select(['type', 'state', 'outcome'])
+            .where('visit_id', '=', visitId)
+            .execute(),
+        ),
+      ).toEqual([{ type: 'tap_arrived', state: 'synchronized', outcome: 'applied' }])
       const finished = card.getByRole('button', { name: 'Finished' })
       await expect(finished).toBeVisible()
       await expect(card.getByTestId('myday-actions').getByRole('button')).toHaveCount(1)

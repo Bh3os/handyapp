@@ -24,7 +24,10 @@ import { MyDay } from './MyDay'
 import { QualityReviewPage } from './QualityReview'
 import { ChangeOrdersPage, ChangeOrderVersionLink } from './ChangeOrders'
 import { VisitOutcomePage } from './VisitOutcomes'
+import { FieldEventPage } from './FieldEvents'
 import { offlineStore } from './offline/store'
+import { SignOutWarning, SyncStatus, UpdateBanner, draftCounts } from './offline/SyncStatus'
+import { isUnsynced, setSignedInStaff } from './offline/sync'
 import { ChecklistPage } from './Checklist'
 import { QueueHome } from './Queue'
 import { MergeReview, RelinkRequest } from './RecordLinks'
@@ -181,6 +184,8 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
   const needsSession = signedInPage(route)
   const [session, setSessionState] = useState<Session | null | undefined>(needsSession ? undefined : null)
   const [signingOut, setSigningOut] = useState(false)
+  // TSK-0080 (HH-OFF-07, T52): sign-out with unsynced work asks first.
+  const [signOutAsked, setSignOutAsked] = useState(false)
   // Every session response carries the session's CSRF token for unsafe requests (TSK-0015).
   const setSession = (s: Session | null | undefined) => {
     setCsrfToken(s?.csrfToken ?? null)
@@ -231,14 +236,33 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
     return () => window.removeEventListener('online', flush)
   }, [session])
 
+  // TSK-0080: drafts saved now belong to the signed-in staff member.
+  useEffect(() => {
+    setSignedInStaff(session?.staffUserId ?? null)
+  }, [session?.staffUserId])
+
+  /** Sign-out: with unsynced work on this phone, the warning first (T52); otherwise at once. */
+  async function requestSignOut() {
+    if (!session) return
+    const c = await draftCounts(session.staffUserId)
+    if (c.waiting + c.failed > 0) return setSignOutAsked(true)
+    await signOut()
+  }
+
   async function signOut() {
+    setSignOutAsked(false)
     setSigningOut(true)
     await call(doFetch, '/staff/auth/sign-out', { method: 'POST' })
-    // TSK-0079 (HH-OFF-02): nothing of this person's offline copies or drafts stays on the device after sign-out.
+    // TSK-0079 (HH-OFF-02): the offline copies never stay on the device after sign-out. TSK-0080 (HH-OFF-07): drafts
+    // the server has are cleared too; unsynced ones stay on this phone, only after the warning said so.
     rememberSession(null)
-    await offlineStore()
-      .clear()
-      .catch(() => undefined)
+    const store = offlineStore()
+    try {
+      for (const p of await store.listPackets()) await store.deletePacket(p.jobId)
+      for (const d of await store.listDrafts()) if (!isUnsynced(d)) await store.deleteDraft(d.id)
+    } catch {
+      // Storage unavailable: nothing more to clear.
+    }
     setSigningOut(false)
     setSession(null)
     go('/sign-in')
@@ -284,6 +308,8 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
                 route.screen === 'visit-times' ||
                   // TSK-0078: a recorded visit outcome's follow-up, from the staff queue.
                   route.screen === 'visit-outcomes' ||
+                  // TSK-0080: a phone update kept for the Owner's review, from the staff queue.
+                  route.screen === 'field-events' ||
                   route.screen === 'start-review' ||
                   route.screen === 'safety-holds' ||
                   route.screen === 'quality-reviews'
@@ -304,9 +330,26 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
           go={go}
           href={href}
           onLocale={changeLocale}
-          onSignOut={() => void signOut()}
+          onSignOut={() => void requestSignOut()}
           signingOut={signingOut}
         >
+          {/* TSK-0080 (HH-OFF-05, HH-OFF-07, T52): the sync bar, the sign-out warning and the app update. */}
+          {signOutAsked ? (
+            <SignOutWarning
+              t={t}
+              fetchImpl={doFetch}
+              staffUserId={session.staffUserId}
+              onSignOut={() => void signOut()}
+              onCancel={() => setSignOutAsked(false)}
+            />
+          ) : null}
+          <UpdateBanner t={t} fetchImpl={doFetch} staffUserId={session.staffUserId} />
+          <SyncStatus
+            t={t}
+            fetchImpl={doFetch}
+            staffUserId={session.staffUserId}
+            isOwner={session.roles.includes('owner')}
+          />
           {route.page === 'account' ? (
             <Account
               t={t}
@@ -421,6 +464,9 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
           ) : route.page === 'record' && route.screen === 'visit-outcomes' ? (
             // TSK-0078: one visit outcome and its follow-up (the Owner and Office).
             <VisitOutcomePage key={route.id} t={t} fetchImpl={doFetch} outcomeId={route.id} />
+          ) : route.page === 'record' && route.screen === 'field-events' ? (
+            // TSK-0080: a phone update the server kept for the Owner's review.
+            <FieldEventPage key={route.id} t={t} fetchImpl={doFetch} clientId={route.id} href={href} />
           ) : route.page === 'record' && route.screen === 'change-order-versions' ? (
             // TSK-0082: an Owner Decisions item names the change-order version; open its job's change orders.
             <ChangeOrderVersionLink key={route.id} t={t} fetchImpl={doFetch} versionId={route.id} href={href} />
