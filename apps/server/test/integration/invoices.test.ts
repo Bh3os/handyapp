@@ -1392,10 +1392,16 @@ describe('[HH-FIN-11][OWN-DEC-152][FACT-AUTOMATIC-MESSAGES] a receipt for each c
     // The Payments tab names each receipt and says when a payment was partial.
     const tab = await paymentsTab(job.reference, job.customerCookie)
     expect(tab.payments.map((p) => [p.method, p.receipt])).toEqual([
-      ['cash', { number: `${R}-R1`, paymentNumber: `${R}-P1`, partial: false, balanceAfterCents: 0 }],
-      ['cash', { number: `${R}-R2`, paymentNumber: `${R}-P2`, partial: true, balanceAfterCents: 60_000 }],
-      ['check', { number: `${R}-R3`, paymentNumber: `${R}-P3`, partial: true, balanceAfterCents: 40_000 }],
-      ['zelle', { number: `${R}-R4`, paymentNumber: `${R}-P4`, partial: false, balanceAfterCents: 0 }],
+      ['cash', { number: `${R}-R1`, paymentNumber: `${R}-P1`, partial: false, balanceAfterCents: 0, voided: false }],
+      [
+        'cash',
+        { number: `${R}-R2`, paymentNumber: `${R}-P2`, partial: true, balanceAfterCents: 60_000, voided: false },
+      ],
+      [
+        'check',
+        { number: `${R}-R3`, paymentNumber: `${R}-P3`, partial: true, balanceAfterCents: 40_000, voided: false },
+      ],
+      ['zelle', { number: `${R}-R4`, paymentNumber: `${R}-P4`, partial: false, balanceAfterCents: 0, voided: false }],
     ])
 
     // A receipt is issued once and never changes.
@@ -1679,5 +1685,332 @@ describe('[HH-FIN-11][T62][OWN-DEC-200] on-site collection by the collector, fro
         reason: 'Trained',
       })
       .execute()
+  })
+})
+
+describe('[HH-FIN-13][HH-FIN-14][T63] returned checks, failed and disputed payments, corrections keep evidence (TSK-0089)', () => {
+  type Adjustable = { id: string; state: string; adjustable: string[]; disputeOpen: boolean }
+  const payment = (id: string) =>
+    t.db.selectFrom('finance.payments').selectAll().where('id', '=', id).executeTakeFirstOrThrow()
+  const adjustments = (id: string) =>
+    t.db
+      .selectFrom('finance.payment_adjustments')
+      .select(['kind', 'from_state', 'to_state', 'reason', 'evidence', 'recorded_by', 'staff_session_id'])
+      .where('payment_id', '=', id)
+      .orderBy('created_at')
+      .execute()
+  const allocations = (id: string) =>
+    t.db
+      .selectFrom('finance.payment_allocations')
+      .select(['id', 'deposit_requirement_id', 'invoice_id', 'amount_cents', 'reverses_allocation_id', 'adjustment_id'])
+      .where('payment_id', '=', id)
+      .orderBy('created_at')
+      .execute()
+  const item = (type: string, jobId: string) =>
+    t.db
+      .selectFrom('ops.queue_items')
+      .select(['reason', 'resolved_at', 'resolution'])
+      .where('type', '=', type)
+      .where('subject_id', '=', jobId)
+      // The open one if any (a reopened item keeps its first opening time), else the latest resolved.
+      .orderBy(sql`resolved_at DESC NULLS FIRST`)
+      .executeTakeFirst()
+  const audit = (action: string, id: string) =>
+    t.db
+      .selectFrom('platform.audit_events')
+      .select(['actor_id', 'reason', 'summary', 'step_up_used'])
+      .where('action', '=', action)
+      .where('target_id', '=', id)
+      .execute()
+  const depositState = async (jobId: string) =>
+    (
+      await t.db
+        .selectFrom('finance.deposit_requirements')
+        .select('state')
+        .where('job_id', '=', jobId)
+        .executeTakeFirstOrThrow()
+    ).state
+  /** The Owner has just re-entered their password (the fresh sign-in the Owner-only actions ask for). */
+  const ownerSignedInNow = () =>
+    sql`UPDATE identity.staff_sessions SET authenticated_at = now() WHERE staff_user_id = ${ids.owner}
+          AND revoked_at IS NULL`.execute(t.db)
+  const ownerSignedInLongAgo = () =>
+    sql`UPDATE identity.staff_sessions SET authenticated_at = now() - interval '30 minutes'
+         WHERE staff_user_id = ${ids.owner} AND revoked_at IS NULL`.execute(t.db)
+  const returned = (who: Person, id: string, body: Record<string, unknown>) =>
+    staffWrite(who, 'POST', `/staff/payments/${id}/returned`, body)
+  const adjust = (who: Person, id: string, body: Record<string, unknown>) =>
+    staffWrite(who, 'POST', `/staff/payments/${id}/adjustments`, body)
+  const correct = (who: Person, id: string, body: Record<string, unknown>) =>
+    staffWrite(who, 'POST', `/staff/payments/${id}/correction`, body)
+
+  it('[HH-FIN-13][T63] a cleared deposit check returned: appended, reversed, the deposit reverts, the receipt shows voided', async () => {
+    await ownerSignedInNow()
+    const job = await scopedJob()
+    await drain()
+    const check = await payDeposit('office', job.jobId, {
+      method: 'check',
+      amountCents: 22_500,
+      reference: ref('check'),
+      payerName: 'Synthetic Payer',
+    })
+    expect(check.statusCode, check.body).toBe(201)
+    const id = (check.json<{ payments: { id: string }[] }>().payments[0] as { id: string }).id
+    expect((await staffWrite('owner', 'POST', `/staff/payments/${id}/clear`, {})).statusCode).toBe(200)
+    expect(await depositState(job.jobId)).toBe('satisfied')
+    const view = (await staffGet('office', `/staff/jobs/${job.jobId}/deposit`)).json<{ payments: Adjustable[] }>()
+    expect(view.payments[0]).toMatchObject({ state: 'cleared', adjustable: ['returned'], disputeOpen: false })
+    const before = await payment(id)
+
+    // Only the Owner or Office, with a reason.
+    for (const who of ['estimator', 'worker'] as const)
+      expect((await returned(who, id, { reason: 'Synthetic: bank notice' })).statusCode, who).toBe(403)
+    expect((await returned('office', id, { reason: '  ' })).statusCode).toBe(400)
+    const res = await returned('office', id, {
+      reason: ' Synthetic: returned for insufficient funds ',
+      evidence: 'Synthetic bank notice 0001',
+    })
+    expect(res.statusCode, res.body).toBe(200)
+    expect(res.json<{ state: string; payments: Adjustable[] }>()).toMatchObject({
+      state: 'required',
+      payments: [{ id, state: 'returned', adjustable: [] }],
+    })
+
+    // Nothing edited or deleted: the payment keeps its amount, reference and clearing; the adjustment is appended.
+    const after = await payment(id)
+    expect(after).toMatchObject({
+      ...before,
+      state: 'returned',
+      version: before.version + 1,
+    })
+    expect(await adjustments(id)).toEqual([
+      {
+        kind: 'returned',
+        from_state: 'cleared',
+        to_state: 'returned',
+        reason: 'Synthetic: returned for insufficient funds',
+        evidence: 'Synthetic bank notice 0001',
+        recorded_by: ids.office,
+        staff_session_id: null,
+      },
+    ])
+    // A reversing allocation mirrors the deposit allocation, linked to the adjustment.
+    const [original, reversal] = await allocations(id)
+    expect(reversal).toMatchObject({
+      deposit_requirement_id: original?.deposit_requirement_id,
+      amount_cents: original?.amount_cents,
+      reverses_allocation_id: original?.id,
+    })
+    expect(reversal?.adjustment_id).toBeTruthy()
+    // The deposit reverts to required, back in the queue; the receipt is kept and shows voided to the customer.
+    expect(await depositState(job.jobId)).toBe('required')
+    expect(await item('deposit_due', job.jobId)).toMatchObject({ resolved_at: null })
+    const tab = await paymentsTab(job.reference, job.customerCookie)
+    expect(tab.deposit).toMatchObject({ state: 'deposit_due' })
+    expect(tab.payments).toEqual([
+      expect.objectContaining({
+        method: 'check',
+        amountCents: 22_500,
+        state: 'returned',
+        receipt: expect.objectContaining({ number: `${job.projectReference}-R1`, voided: true }),
+      }),
+    ])
+    expect(tab.confirmedCents).toBe(0)
+    // Audited with the reason; a second return is a conflict.
+    expect(await audit('check.mark_returned', id)).toEqual([
+      expect.objectContaining({ actor_id: ids.office, reason: 'Synthetic: returned for insufficient funds' }),
+    ])
+    expect(codes(await returned('office', id, { reason: 'Synthetic: again' }))).toContain('PAYMENT_RETURNED')
+
+    // The database keeps it true whatever path writes: no move without its adjustment, nothing changed or deleted.
+    const cash = await payDeposit('office', job.jobId, { method: 'cash', amountCents: 1_000 })
+    const cashId = (cash.json<{ payments: { id: string }[] }>().payments.at(-1) as { id: string }).id
+    await expect(
+      sql`UPDATE finance.payments SET state = 'returned', version = version + 1 WHERE id = ${cashId}`.execute(t.db),
+    ).rejects.toThrow(/only with its adjustment/)
+    await expect(sql`DELETE FROM finance.payment_adjustments WHERE payment_id = ${id}`.execute(t.db)).rejects.toThrow(
+      /never changed or deleted/,
+    )
+    await expect(
+      sql`UPDATE finance.payment_allocations SET amount_cents = 1 WHERE id = ${reversal?.id as string}`.execute(t.db),
+    ).rejects.toThrow(/append-only/)
+    // An Office user never records what only the Owner may (a failed payment), even straight in the database.
+    await expect(
+      sql`INSERT INTO finance.payment_adjustments (payment_id, project_id, job_id, kind, from_state, to_state, reason,
+            recorded_by, staff_session_id, authenticated_at)
+          SELECT p.id, p.project_id, p.job_id, 'failed', p.state, 'returned', 'x', ${ids.office},
+                 (SELECT id FROM identity.staff_sessions WHERE staff_user_id = ${ids.office} LIMIT 1), now()
+            FROM finance.payments p WHERE p.id = ${cashId}`.execute(t.db),
+    ).rejects.toThrow(/only the Owner/)
+  })
+
+  it('[HH-FIN-13][T63] a deposit already credited to the final invoice: its return reopens the final invoice', async () => {
+    await ownerSignedInNow()
+    const job = await scopedJob()
+    await drain()
+    const check = await payDeposit('office', job.jobId, {
+      method: 'check',
+      amountCents: 22_500,
+      reference: ref('check'),
+      payerName: 'Synthetic Payer',
+    })
+    const id = (check.json<{ payments: { id: string }[] }>().payments[0] as { id: string }).id
+    expect((await staffWrite('owner', 'POST', `/staff/payments/${id}/clear`, {})).statusCode).toBe(200)
+    await reviewOutcome(t.db, job.jobId, 'passed')
+    const f = (await issue('office', await finalOf(job.jobId))).json<JobInvoices>().final as Invoice
+    expect(f.money).toMatchObject({ creditsCents: 22_500, remainingCents: 90_000 })
+    expect((await payInvoice('office', f.id, { method: 'cash', amountCents: 90_000 })).statusCode).toBe(201)
+    expect((await finalOf(job.jobId)).state).toBe('paid')
+
+    expect((await returned('owner', id, { reason: 'Synthetic: returned by the bank' })).statusCode).toBe(200)
+    // The deposit stays applied (it was credited); the final invoice's credit follows its money: the balance reopens.
+    expect(await depositState(job.jobId)).toBe('applied')
+    const reopened = await finalOf(job.jobId)
+    expect(reopened.state).toBe('partially_paid')
+    expect(reopened.money).toMatchObject({
+      depositCreditCents: 22_500,
+      creditsCents: 0,
+      confirmedCents: 90_000,
+      remainingCents: 22_500,
+    })
+    const tab = await paymentsTab(job.reference, job.customerCookie)
+    expect(tab.balanceCents).toBe(22_500)
+    expect(tab.invoices[0]).toMatchObject({ state: 'partially_paid', balanceCents: 22_500 })
+  })
+
+  it('[HH-FIN-13][HH-FIN-14][T63][T64] a card payment disputed: the Owner only, fresh sign-in; routed to the Owner; won or lost', async () => {
+    await ownerSignedInNow()
+    const job = await approvedJob([{ kind: 'base', cents: 50_000 }])
+    await drain()
+    await reviewOutcome(t.db, job.jobId, 'passed')
+    const f = (await issue('office', await finalOf(job.jobId))).json<JobInvoices>().final as Invoice
+    const card = await payInvoice('office', f.id, {
+      method: 'square_tap_to_pay',
+      amountCents: 50_000,
+      reference: ref('sq'),
+    })
+    expect(card.statusCode, card.body).toBe(201)
+    const id = ((card.json<JobInvoices>().final as Invoice).payments[0] as { id: string }).id
+    expect((await finalOf(job.jobId)).state).toBe('paid')
+    const owners = (await finalOf(job.jobId, 'owner')).payments[0] as unknown as Adjustable
+    expect(owners.adjustable).toEqual(['failed', 'dispute_opened', 'voided'])
+    expect(((await finalOf(job.jobId, 'office')).payments[0] as unknown as Adjustable).adjustable).toEqual([])
+
+    const open = { kind: 'dispute_opened', reason: 'Synthetic: customer disputed the charge', evidence: 'SYNTH-DP-1' }
+    // Office, the Estimator and a Worker are refused; the Owner without a fresh sign-in too; a check is returned instead.
+    for (const who of ['office', 'estimator', 'worker'] as const)
+      expect((await adjust(who, id, open)).statusCode, who).toBe(403)
+    await ownerSignedInLongAgo()
+    const stale = await adjust('owner', id, open)
+    expect(stale.statusCode).toBe(403)
+    expect(stale.json()).toMatchObject({ error: { code: 'FRESH_AUTH_REQUIRED' } })
+    await ownerSignedInNow()
+    expect((await adjust('owner', id, { ...open, reason: '' })).statusCode).toBe(400)
+
+    const opened = await adjust('owner', id, open)
+    expect(opened.statusCode, opened.body).toBe(200)
+    // The money still counts until the outcome (PROPOSED); the Owner Decisions item is open; the payment waits.
+    expect((await finalOf(job.jobId)).state).toBe('paid')
+    expect(await item('payment_dispute', job.jobId)).toMatchObject({ reason: 'payment_disputed', resolved_at: null })
+    expect(((await finalOf(job.jobId, 'owner')).payments[0] as unknown as Adjustable).adjustable).toEqual([
+      'dispute_won',
+      'dispute_lost',
+    ])
+    expect(codes(await staffWrite('owner', 'POST', `/staff/payments/${id}/reconcile`, {}))).toContain('DISPUTE_OPEN')
+    expect(codes(await correct('owner', id, { reason: 'Synthetic: not now' }))).toContain('DISPUTE_OPEN')
+    let tab = await paymentsTab(job.reference, job.customerCookie)
+    expect(tab.payments[0]).toMatchObject({ state: 'disputed' })
+    expect(tab.confirmedCents).toBe(50_000)
+    expect(await audit('payment.adjust', id)).toEqual([
+      expect.objectContaining({ actor_id: ids.owner, step_up_used: true, reason: open.reason }),
+    ])
+
+    // Lost: the payment is returned, the invoice reopens, the item resolves, the receipt shows voided.
+    const lost = await adjust('owner', id, { kind: 'dispute_lost', reason: 'Synthetic: Square ruled for the customer' })
+    expect(lost.statusCode, lost.body).toBe(200)
+    expect((await payment(id)).state).toBe('returned')
+    const reopened = await finalOf(job.jobId)
+    expect(reopened).toMatchObject({ state: 'issued', money: { confirmedCents: 0, remainingCents: 50_000 } })
+    expect(await item('payment_dispute', job.jobId)).toMatchObject({ resolution: 'decided' })
+    tab = await paymentsTab(job.reference, job.customerCookie)
+    expect(tab.payments[0]).toMatchObject({ state: 'returned', receipt: expect.objectContaining({ voided: true }) })
+    expect((await adjustments(id)).map((a) => [a.kind, a.from_state, a.to_state])).toEqual([
+      ['dispute_opened', 'recorded', 'recorded'],
+      ['dispute_lost', 'recorded', 'returned'],
+    ])
+
+    // Paid again, disputed again, and this time won: nothing changes but the record and the item.
+    const again = await payInvoice('office', f.id, {
+      method: 'square_payment_link',
+      amountCents: 50_000,
+      reference: ref('sq'),
+    })
+    const id2 = (again.json<JobInvoices>().final as Invoice).payments.at(-1)?.id as string
+    expect((await adjust('owner', id2, open)).statusCode).toBe(200)
+    const won = await adjust('owner', id2, { kind: 'dispute_won', reason: 'Synthetic: Square ruled for us' })
+    expect(won.statusCode, won.body).toBe(200)
+    expect((await payment(id2)).state).toBe('recorded')
+    expect((await finalOf(job.jobId)).state).toBe('paid')
+    expect(await item('payment_dispute', job.jobId)).toMatchObject({ resolution: 'decided' })
+    expect(codes(await adjust('owner', id2, { kind: 'dispute_lost', reason: 'x' }))).toContain('NO_OPEN_DISPUTE')
+  })
+
+  it('[HH-FIN-13][HH-FIN-14][T63] a wrong amount corrected: voided with a reason, the right payment recorded naming it', async () => {
+    await ownerSignedInNow()
+    const job = await approvedJob([{ kind: 'base', cents: 50_000 }])
+    await drain()
+    await reviewOutcome(t.db, job.jobId, 'passed')
+    const f = (await issue('office', await finalOf(job.jobId))).json<JobInvoices>().final as Invoice
+    const sq = ref('sq')
+    // Office typed $50.00 for a $500.00 card payment.
+    const wrong = await payInvoice('office', f.id, { method: 'square_tap_to_pay', amountCents: 5_000, reference: sq })
+    expect(wrong.statusCode, wrong.body).toBe(201)
+    const id = ((wrong.json<JobInvoices>().final as Invoice).payments[0] as { id: string }).id
+    const body = { reason: 'Synthetic: amount typed wrongly', replacement: { amountCents: 50_000 } }
+    expect((await correct('office', id, body)).statusCode).toBe(403)
+    // The same reference is refused while the wrong payment stands.
+    expect(
+      codes(await payInvoice('owner', f.id, { method: 'square_tap_to_pay', amountCents: 50_000, reference: sq })),
+    ).toContain('DUPLICATE_PAYMENT')
+
+    const fixed = await correct('owner', id, body)
+    expect(fixed.statusCode, fixed.body).toBe(200)
+    const old = await payment(id)
+    expect(old).toMatchObject({ state: 'voided', amount_cents: '5000', reference: sq })
+    expect((await adjustments(id)).map((a) => [a.kind, a.from_state, a.to_state, a.recorded_by])).toEqual([
+      ['voided', 'recorded', 'voided', ids.owner],
+    ])
+    const replacement = await t.db
+      .selectFrom('finance.payments')
+      .selectAll()
+      .where('corrects_payment_id', '=', id)
+      .executeTakeFirstOrThrow()
+    // The right payment keeps the voided one's method, reference, date and collector; it gets its own receipt.
+    expect(replacement).toMatchObject({
+      method: 'square_tap_to_pay',
+      amount_cents: '50000',
+      reference: sq,
+      collector_staff_id: ids.office,
+      recorded_by: ids.owner,
+      state: 'recorded',
+    })
+    expect((await finalOf(job.jobId)).state).toBe('paid')
+    const tab = await paymentsTab(job.reference, job.customerCookie)
+    expect(
+      tab.payments.map((p) => [p.amountCents, p.state, (p.receipt as { voided?: boolean } | null)?.voided]),
+    ).toEqual([
+      [5_000, 'voided', true],
+      [50_000, 'confirmed', false],
+    ])
+    expect(await audit('payment.correct', id)).toEqual([
+      expect.objectContaining({
+        actor_id: ids.owner,
+        step_up_used: true,
+        reason: 'Synthetic: amount typed wrongly',
+        summary: expect.objectContaining({ kind: 'voided', replacementId: replacement.id, replacementCents: 50_000 }),
+      }),
+    ])
+    // A voided payment is never voided twice, and a correction names a voided payment of its own job only.
+    expect(codes(await correct('owner', id, { reason: 'Synthetic: again' }))).toContain('PAYMENT_VOIDED')
   })
 })

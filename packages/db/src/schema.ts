@@ -734,6 +734,22 @@ export interface FinanceInvoicesTable {
   version: Generated<number>
 }
 
+export interface FinancePaymentAdjustmentsTable {
+  id: Generated<string>
+  payment_id: string
+  project_id: string
+  job_id: string
+  kind: string
+  from_state: string
+  to_state: string
+  reason: string
+  evidence: string | null
+  recorded_by: string
+  staff_session_id: string | null
+  authenticated_at: Timestamp | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface FinancePaymentAllocationsTable {
   id: Generated<string>
   payment_id: string
@@ -742,6 +758,8 @@ export interface FinancePaymentAllocationsTable {
   allocated_by: string
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   invoice_id: string | null
+  reverses_allocation_id: string | null
+  adjustment_id: string | null
 }
 
 export interface FinancePaymentReceiptsTable {
@@ -782,6 +800,7 @@ export interface FinancePaymentsTable {
   deposited_at: Timestamp | null
   reconciled_by: string | null
   reconciled_at: Timestamp | null
+  corrects_payment_id: string | null
 }
 
 export interface FinancePayoutsTable {
@@ -2679,6 +2698,7 @@ export interface Database {
   'finance.invoice_lines': FinanceInvoiceLinesTable
   'finance.invoice_payment_links': FinanceInvoicePaymentLinksTable
   'finance.invoices': FinanceInvoicesTable
+  'finance.payment_adjustments': FinancePaymentAdjustmentsTable
   'finance.payment_allocations': FinancePaymentAllocationsTable
   'finance.payment_receipts': FinancePaymentReceiptsTable
   'finance.payments': FinancePaymentsTable

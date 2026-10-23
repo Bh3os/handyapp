@@ -163,6 +163,8 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       'start_work_exception',
       // TSK-0086: a job's unallocated money (an overpayment) for the Owner's credit or refund decision.
       'unallocated_credit',
+      // TSK-0089: a job whose payment has an open dispute (payment.correct).
+      'payment_dispute',
       'refund_request',
       'cancellation_outcome',
       'deletion_request',

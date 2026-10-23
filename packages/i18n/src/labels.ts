@@ -105,6 +105,8 @@ export const LABEL_FAMILIES = {
     'start_work_exception',
     // TSK-0086: a job's unallocated money (an overpayment) for the Owner's credit or refund decision.
     'unallocated_credit',
+    // TSK-0089: a job whose payment has an open dispute, for the Owner.
+    'payment_dispute',
     'refund_request',
     'cancellation_outcome',
     'deletion_request',
@@ -138,6 +140,8 @@ export const LABEL_FAMILIES = {
     'start_work_exception_requested',
     'refund_requested',
     'overpayment',
+    // TSK-0089: a payment with an open dispute.
+    'payment_disputed',
     'cancellation_outcome_requested',
     'deletion_requested',
     'overdue_owner_decision',
@@ -1217,6 +1221,8 @@ export const LABEL_FAMILIES = {
   paymentMethod: ['square_payment_link', 'square_tap_to_pay', 'cash', 'check', 'zelle', 'cash_app', 'chime'],
   /** Payment states (ENT-Payment): cash and digital recorded -> reconciled; checks received -> deposited -> cleared. */
   paymentState: ['recorded', 'reconciled', 'received', 'deposited', 'cleared', 'returned', 'voided'],
+  /** What happened to a recorded payment afterwards (TSK-0089, HH-FIN-13; apps/server finance/exceptions.ts). */
+  paymentAdjustment: ['returned', 'failed', 'dispute_opened', 'dispute_won', 'dispute_lost', 'voided'],
   /** Invoice states (TSK-0085, ENT-Invoice): draft -> issued -> partially_paid / paid; voided (TSK-0089). */
   invoiceState: ['draft', 'issued', 'partially_paid', 'paid', 'voided'],
   /** The stored PDF of an issued invoice (TSK-0085). */
@@ -1289,6 +1295,12 @@ export const LABEL_FAMILIES = {
     'CHECK_DEPOSITED',
     'CHECK_CLEARS_INSTEAD',
     'PAYMENT_RECONCILED',
+    // TSK-0089: returned, failed, disputed and corrected payments.
+    'PAYMENT_RETURNED',
+    'PAYMENT_VOIDED',
+    'DISPUTE_OPEN',
+    'NO_OPEN_DISPUTE',
+    'NOTHING_TO_APPLY',
   ],
   /** The six ordered checklist stages of an SOP version (TSK-0068, HH-WORK-11, OWN-DEC-108). */
   sopStage: ['site_preparation', 'setup_checks', 'work_steps', 'quality_checks', 'cleanup_waste', 'final_checks'],

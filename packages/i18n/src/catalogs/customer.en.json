@@ -1151,6 +1151,8 @@
   "portal.payments.state.confirmed": "Confirmed",
   "portal.payments.state.pending": "Pending until cleared",
   "portal.payments.state.returned": "Returned",
+  "portal.payments.state.voided": "Voided",
+  "portal.payments.state.disputed": "Disputed",
   "portal.payments.method.square_payment_link": "Card (Square payment link)",
   "portal.payments.method.square_tap_to_pay": "Card in person (Square Tap to Pay)",
   "portal.payments.method.cash": "Cash",
@@ -1170,5 +1172,6 @@
   "portal.payments.handleMissing": "Not available yet",
   "portal.payments.verifiedOnly": "A payment shows as paid only after HandyHub verifies and records it. Returning from the card payment page does not mark anything paid.",
   "portal.payments.receipt": "Receipt {number} (payment {payment}).",
-  "portal.payments.receiptPartial": "Receipt {number} (payment {payment}). Partial payment: {balance} still due after it."
+  "portal.payments.receiptPartial": "Receipt {number} (payment {payment}). Partial payment: {balance} still due after it.",
+  "portal.payments.receiptVoided": "Receipt {number} (payment {payment}): voided."
 }

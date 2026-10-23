@@ -685,7 +685,13 @@ type PaymentsRecord = {
     method: string
     amountCents: number
     state: string
-    receipt: { number: string; paymentNumber: string; partial: boolean; balanceAfterCents: number } | null
+    receipt: {
+      number: string
+      paymentNumber: string
+      partial: boolean
+      balanceAfterCents: number
+      voided: boolean
+    } | null
   }[]
   confirmedCents: number
   pendingCents: number
@@ -733,11 +739,17 @@ const paymentsView = customerView(
         receivedOn: STRING,
         method: PAYMENT_METHOD,
         amountCents: CENTS,
-        state: enumOf(['confirmed', 'pending', 'returned']),
+        state: enumOf(['confirmed', 'pending', 'returned', 'voided', 'disputed']),
         receipt: {
           anyOf: [
             { type: 'null' },
-            object({ number: STRING, paymentNumber: STRING, partial: { type: 'boolean' }, balanceAfterCents: CENTS }),
+            object({
+              number: STRING,
+              paymentNumber: STRING,
+              partial: { type: 'boolean' },
+              balanceAfterCents: CENTS,
+              voided: { type: 'boolean' },
+            }),
           ],
         },
       }),
@@ -795,6 +807,7 @@ const paymentsView = customerView(
               paymentNumber: p.receipt.paymentNumber,
               partial: p.receipt.partial,
               balanceAfterCents: p.receipt.balanceAfterCents,
+              voided: p.receipt.voided,
             }
           : null,
       })),

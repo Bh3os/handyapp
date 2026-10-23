@@ -9,6 +9,7 @@
 //   (received, or deposited and waiting to clear), resolved when the last one clears.
 import type { Tx } from '@handyhub/db'
 import type { StaffActor } from '@handyhub/policy'
+import { sql } from 'kysely'
 import { ApiError, type FieldError } from '../../api/errors.js'
 import { openQueueItem, resolveQueueItem } from '../queue/items.js'
 
@@ -80,6 +81,9 @@ export async function reconcilePayment(tx: Tx, actor: StaffActor, paymentId: str
   if (p.method === 'check') throw conflict('CHECK_CLEARS_INSTEAD')
   if (p.state !== 'recorded') throw conflict(`PAYMENT_${p.state.toUpperCase()}`)
   if (p.collector_staff_id === actor.userId) throw new ApiError('FORBIDDEN')
+  // TSK-0089: a disputed payment waits for the dispute's outcome.
+  const disputed = await sql<{ open: boolean }>`SELECT finance.payment_dispute_open(${p.id}) AS open`.execute(tx)
+  if (disputed.rows[0]?.open === true) throw conflict('DISPUTE_OPEN')
   const next = await tx
     .updateTable('finance.payments')
     .set({ state: 'reconciled', reconciled_by: actor.userId, reconciled_at: new Date(), version: p.version + 1 })

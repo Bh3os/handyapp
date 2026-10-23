@@ -22,6 +22,13 @@ import { ApiError, type FieldError } from '../../api/errors.js'
 import { loadConfig } from '../../platform/config/index.js'
 import { checkPaymentInput, type PaymentMethod, type PaymentState, type RecordPaymentInput } from './deposits.js'
 import { announcePaidInvoices, syncUnallocatedItem } from './money-events.js'
+import {
+  adjustmentsOf,
+  availableAdjustments,
+  disputeOpen,
+  type AdjustmentKind,
+  type AdjustmentView,
+} from './exceptions.js'
 import { syncCheckItem } from './payment-states.js'
 import { issuePaymentReceipt } from './receipts.js'
 
@@ -97,6 +104,11 @@ export type InvoicePaymentView = {
   reconciledAt: string | null
   canMarkDeposited: boolean
   canReconcile: boolean
+  /** TSK-0089 (HH-FIN-13): what happened to it afterwards, an open dispute, and what this caller may record now. */
+  adjustments: AdjustmentView[]
+  disputeOpen: boolean
+  adjustable: AdjustmentKind[]
+  correctsPaymentId: string | null
 }
 
 function dateText(d: Date | string): string {
@@ -136,7 +148,9 @@ export async function invoicePayments(db: Reader, actor: StaffActor, invoiceId: 
       'p.reconciled_at',
       'rc.number as receipt_number',
       'a.amount_cents as applied_cents',
+      'p.corrects_payment_id',
     ])
+    .where('a.reverses_allocation_id', 'is', null)
     .where((eb) =>
       i.kind === 'deposit' && i.deposit_requirement_id
         ? eb('a.deposit_requirement_id', '=', i.deposit_requirement_id)
@@ -145,6 +159,10 @@ export async function invoicePayments(db: Reader, actor: StaffActor, invoiceId: 
     .orderBy('p.created_at')
     .orderBy('p.id')
     .execute()
+  const adjustments = await adjustmentsOf(
+    db,
+    rows.map((p) => p.id),
+  )
   return rows.map((p) => ({
     id: p.id,
     method: p.method as PaymentMethod,
@@ -173,7 +191,14 @@ export async function invoicePayments(db: Reader, actor: StaffActor, invoiceId: 
     canMarkDeposited:
       p.method === 'check' && p.state === 'received' && mayReconcile(actor, i.project_id, p.collector_staff_id),
     canReconcile:
-      p.method !== 'check' && p.state === 'recorded' && mayReconcile(actor, i.project_id, p.collector_staff_id),
+      p.method !== 'check' &&
+      p.state === 'recorded' &&
+      !disputeOpen(adjustments.get(p.id)) &&
+      mayReconcile(actor, i.project_id, p.collector_staff_id),
+    adjustments: adjustments.get(p.id) ?? [],
+    disputeOpen: disputeOpen(adjustments.get(p.id)),
+    adjustable: availableAdjustments(actor, { projectId: i.project_id }, p, disputeOpen(adjustments.get(p.id))),
+    correctsPaymentId: p.corrects_payment_id,
   }))
 }
 
@@ -227,6 +252,7 @@ export async function recordInvoicePayment(
       memo: checked.memo,
       state: checked.method === 'check' ? 'received' : 'recorded',
       created_at: checked.now,
+      corrects_payment_id: checked.correctsPaymentId,
     })
     .returning(['id', 'state'])
     .executeTakeFirstOrThrow()

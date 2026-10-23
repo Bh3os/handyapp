@@ -16,6 +16,7 @@ import { call, idempotencyKey, setCsrfToken, type ApiErrorBody, type Fetch } fro
 import { JobInvoices } from './JobInvoices'
 import { codeLabel } from './Requests'
 import { useOnline } from './Shell'
+import { PaymentExceptions, type PaymentExceptionFields } from './PaymentExceptions'
 import { PaymentSteps, type PaymentStepFields } from './PaymentSteps'
 
 type T = (key: StaffKey, values?: Record<string, string | number | Date>) => string
@@ -61,7 +62,8 @@ export type Deposit = {
     clearedBy: StaffRef | null
     clearedAt: string | null
     canMarkCleared: boolean
-  } & PaymentStepFields)[]
+  } & PaymentStepFields &
+    PaymentExceptionFields)[]
   version: number
   actions: { enterPaymentLink: boolean; recordPayment: boolean; waive: boolean }
 }
@@ -338,6 +340,8 @@ export function JobDeposit({
                   void send(action, path, 'POST', {}).then((ok) => ok && setDone(t(doneKey)))
                 }
               />
+              {/* TSK-0089: a check returned, a payment failed or disputed, a correction. */}
+              <PaymentExceptions t={t} fetchImpl={fetchImpl} p={p} onChanged={(d: Deposit) => setDeposit(d)} />
               {p.canMarkCleared ? (
                 <div className="hh-button-row">
                   <Button variant="secondary" pending={pending === `clear-${p.id}`} onClick={() => void clear(p.id)}>

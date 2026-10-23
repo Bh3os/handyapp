@@ -18,6 +18,7 @@ import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
 import { depositRefusal, PAYMENT_METHODS } from './JobDeposit'
 import { codeLabel } from './Requests'
 import { useOnline } from './Shell'
+import { PaymentExceptions, type PaymentExceptionFields } from './PaymentExceptions'
 import { PaymentSteps, type PaymentStepFields } from './PaymentSteps'
 
 type T = (key: StaffKey, values?: Record<string, string | number | Date>) => string
@@ -67,7 +68,8 @@ export type Invoice = {
     verified: boolean
     collector: { id: string; name: string | null }
     canMarkCleared: boolean
-  } & PaymentStepFields)[]
+  } & PaymentStepFields &
+    PaymentExceptionFields)[]
   exceptions: { code: string; blocking: boolean }[]
   document: 'none' | 'preparing' | 'issued'
   version: number
@@ -164,7 +166,15 @@ export function JobInvoices({ t, fetchImpl, jobId }: { t: T; fetchImpl: Fetch; j
         </p>
       ) : null}
       {data.deposit ? (
-        <InvoicePanel t={t} invoice={data.deposit} pending={pending} send={send} setDone={setDone} />
+        <InvoicePanel
+          t={t}
+          fetchImpl={fetchImpl}
+          reload={load}
+          invoice={data.deposit}
+          pending={pending}
+          send={send}
+          setDone={setDone}
+        />
       ) : null}
       {data.actions.prepareDeposit && !data.deposit ? (
         <div className="hh-button-row">
@@ -182,7 +192,15 @@ export function JobInvoices({ t, fetchImpl, jobId }: { t: T; fetchImpl: Fetch; j
         </div>
       ) : null}
       {data.final ? (
-        <InvoicePanel t={t} invoice={data.final} pending={pending} send={send} setDone={setDone} />
+        <InvoicePanel
+          t={t}
+          fetchImpl={fetchImpl}
+          reload={load}
+          invoice={data.final}
+          pending={pending}
+          send={send}
+          setDone={setDone}
+        />
       ) : (
         <p className="staff-request__hint">{t('invoice.noDraft')}</p>
       )}
@@ -210,12 +228,17 @@ export function JobInvoices({ t, fetchImpl, jobId }: { t: T; fetchImpl: Fetch; j
 
 function InvoicePanel({
   t,
+  fetchImpl,
+  reload,
   invoice: i,
   pending,
   send,
   setDone,
 }: {
   t: T
+  fetchImpl: Fetch
+  /** TSK-0089: reads the job's invoices again after a payment exception. */
+  reload: () => Promise<unknown>
   invoice: Invoice
   pending: string | null
   send: (action: string, path: string, body: unknown, ifMatch?: number, method?: 'POST' | 'PUT') => Promise<boolean>
@@ -418,6 +441,8 @@ function InvoicePanel({
                 pending={pending}
                 run={(action, path, doneKey) => void send(action, path, {}).then((ok) => ok && setDone(t(doneKey)))}
               />
+              {/* TSK-0089: a check returned, a payment failed or disputed, a correction. */}
+              <PaymentExceptions t={t} fetchImpl={fetchImpl} p={p} onChanged={async () => void (await reload())} />
               {p.canMarkCleared ? (
                 <div className="hh-button-row">
                   <Button

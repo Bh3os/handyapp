@@ -427,9 +427,19 @@ export type PaymentsData = {
     receivedOn: string
     method: PaymentMethod
     amountCents: number
-    state: 'confirmed' | 'pending' | 'returned'
-    /** TSK-0087 part 2: a confirmed payment's receipt; partial when it left a balance. */
-    receipt: { number: string; paymentNumber: string; partial: boolean; balanceAfterCents: number } | null
+    /** TSK-0089: returned (a check returned, a payment failed), voided (recorded wrongly) or disputed. */
+    state: 'confirmed' | 'pending' | 'returned' | 'voided' | 'disputed'
+    /**
+     * TSK-0087 part 2: a confirmed payment's receipt; partial when it left a balance. TSK-0089: voided once the
+     * payment is returned or voided.
+     */
+    receipt: {
+      number: string
+      paymentNumber: string
+      partial: boolean
+      balanceAfterCents: number
+      voided: boolean
+    } | null
   }[]
   confirmedCents: number
   pendingCents: number
@@ -601,7 +611,7 @@ function parsePayments(v: Record<string, unknown>): PaymentsData | null {
       !oneOf(PAYMENT_METHODS)(p['method']) ||
       !isInt(p['amountCents']) ||
       p['amountCents'] <= 0 ||
-      !oneOf(['confirmed', 'pending', 'returned'] as const)(p['state'])
+      !oneOf(['confirmed', 'pending', 'returned', 'voided', 'disputed'] as const)(p['state'])
     )
       return null
     const r = p['receipt']
@@ -614,12 +624,15 @@ function parsePayments(v: Record<string, unknown>): PaymentsData | null {
             isStr(r['paymentNumber']) &&
             typeof r['partial'] === 'boolean' &&
             isInt(r['balanceAfterCents']) &&
-            r['balanceAfterCents'] >= 0
+            r['balanceAfterCents'] >= 0 &&
+            (r['voided'] === undefined || typeof r['voided'] === 'boolean')
           ? {
               number: r['number'],
               paymentNumber: r['paymentNumber'],
               partial: r['partial'],
               balanceAfterCents: r['balanceAfterCents'],
+              // An older server sends no flag: not voided.
+              voided: r['voided'] === true,
             }
           : undefined
     if (receipt === undefined) return null

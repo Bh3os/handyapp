@@ -7805,7 +7805,7 @@
       "get": {
         "operationId": "getCustomerProjectPayments",
         "summary": "The project Payments tab",
-        "description": "The Payments tab (TSK-0087, HH-PORT-12). state \"listed\": the approved total (the current approved scope), the deposit (due with what is verified and pending and its Pay by Card link, received, or none), each issued invoice with its total, credits, confirmed, pending (a check until cleared) and balance in integer cents and its Pay by Card link (only while a balance remains and staff pasted a Square link), the recorded payments (date, method, amount, confirmed, pending or returned; never who recorded them), the totals, and the payment instructions from configuration with their placeholder flag (a placeholder is never a payment destination). Nothing here, and no return from a Square link, marks anything paid: staff record verified payments. state \"none\": no approved total, deposit, invoice or recorded payment exists yet. With the server time of the read and the refresh interval (portal.refresh; 0 while NOT CONFIGURED). Any other project, an unknown or a malformed reference is the same NOT_FOUND (T19).",
+        "description": "The Payments tab (TSK-0087, HH-PORT-12). state \"listed\": the approved total (the current approved scope), the deposit (due with what is verified and pending and its Pay by Card link, received, or none), each issued invoice with its total, credits, confirmed, pending (a check until cleared) and balance in integer cents and its Pay by Card link (only while a balance remains and staff pasted a Square link), the recorded payments (date, method, amount, confirmed, pending, returned, voided or disputed, with the receipt shown voided once the payment no longer counts; never who recorded them), the totals, and the payment instructions from configuration with their placeholder flag (a placeholder is never a payment destination). Nothing here, and no return from a Square link, marks anything paid: staff record verified payments. state \"none\": no approved total, deposit, invoice or recorded payment exists yet. With the server time of the read and the refresh interval (portal.refresh; 0 while NOT CONFIGURED). Any other project, an unknown or a malformed reference is the same NOT_FOUND (T19).",
         "tags": [
           "portal"
         ],
@@ -8000,7 +8000,9 @@
                             "enum": [
                               "confirmed",
                               "pending",
-                              "returned"
+                              "returned",
+                              "voided",
+                              "disputed"
                             ]
                           },
                           "receipt": {
@@ -8015,7 +8017,8 @@
                                   "number",
                                   "paymentNumber",
                                   "partial",
-                                  "balanceAfterCents"
+                                  "balanceAfterCents",
+                                  "voided"
                                 ],
                                 "properties": {
                                   "number": {
@@ -8029,6 +8032,9 @@
                                   },
                                   "balanceAfterCents": {
                                     "type": "integer"
+                                  },
+                                  "voided": {
+                                    "type": "boolean"
                                   }
                                 }
                               }
@@ -73987,7 +73993,11 @@
                                   "depositedAt",
                                   "reconciledAt",
                                   "canMarkDeposited",
-                                  "canReconcile"
+                                  "canReconcile",
+                                  "adjustments",
+                                  "disputeOpen",
+                                  "adjustable",
+                                  "correctsPaymentId"
                                 ],
                                 "properties": {
                                   "id": {
@@ -74106,6 +74116,96 @@
                                   },
                                   "canReconcile": {
                                     "type": "boolean"
+                                  },
+                                  "adjustments": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "kind",
+                                        "from",
+                                        "to",
+                                        "reason",
+                                        "evidence",
+                                        "by",
+                                        "at"
+                                      ],
+                                      "properties": {
+                                        "kind": {
+                                          "type": "string",
+                                          "enum": [
+                                            "returned",
+                                            "failed",
+                                            "dispute_opened",
+                                            "dispute_won",
+                                            "dispute_lost",
+                                            "voided"
+                                          ]
+                                        },
+                                        "from": {
+                                          "type": "string"
+                                        },
+                                        "to": {
+                                          "type": "string"
+                                        },
+                                        "reason": {
+                                          "type": "string"
+                                        },
+                                        "evidence": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "by": {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "id",
+                                            "name"
+                                          ],
+                                          "properties": {
+                                            "id": {
+                                              "type": "string"
+                                            },
+                                            "name": {
+                                              "type": [
+                                                "string",
+                                                "null"
+                                              ]
+                                            }
+                                          }
+                                        },
+                                        "at": {
+                                          "type": "string",
+                                          "format": "date-time"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "disputeOpen": {
+                                    "type": "boolean"
+                                  },
+                                  "adjustable": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "enum": [
+                                        "returned",
+                                        "failed",
+                                        "dispute_opened",
+                                        "dispute_won",
+                                        "dispute_lost",
+                                        "voided"
+                                      ]
+                                    }
+                                  },
+                                  "correctsPaymentId": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
                                   }
                                 }
                               }
@@ -74575,7 +74675,11 @@
                                   "depositedAt",
                                   "reconciledAt",
                                   "canMarkDeposited",
-                                  "canReconcile"
+                                  "canReconcile",
+                                  "adjustments",
+                                  "disputeOpen",
+                                  "adjustable",
+                                  "correctsPaymentId"
                                 ],
                                 "properties": {
                                   "id": {
@@ -74694,6 +74798,96 @@
                                   },
                                   "canReconcile": {
                                     "type": "boolean"
+                                  },
+                                  "adjustments": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "kind",
+                                        "from",
+                                        "to",
+                                        "reason",
+                                        "evidence",
+                                        "by",
+                                        "at"
+                                      ],
+                                      "properties": {
+                                        "kind": {
+                                          "type": "string",
+                                          "enum": [
+                                            "returned",
+                                            "failed",
+                                            "dispute_opened",
+                                            "dispute_won",
+                                            "dispute_lost",
+                                            "voided"
+                                          ]
+                                        },
+                                        "from": {
+                                          "type": "string"
+                                        },
+                                        "to": {
+                                          "type": "string"
+                                        },
+                                        "reason": {
+                                          "type": "string"
+                                        },
+                                        "evidence": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "by": {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "id",
+                                            "name"
+                                          ],
+                                          "properties": {
+                                            "id": {
+                                              "type": "string"
+                                            },
+                                            "name": {
+                                              "type": [
+                                                "string",
+                                                "null"
+                                              ]
+                                            }
+                                          }
+                                        },
+                                        "at": {
+                                          "type": "string",
+                                          "format": "date-time"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "disputeOpen": {
+                                    "type": "boolean"
+                                  },
+                                  "adjustable": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "enum": [
+                                        "returned",
+                                        "failed",
+                                        "dispute_opened",
+                                        "dispute_won",
+                                        "dispute_lost",
+                                        "voided"
+                                      ]
+                                    }
+                                  },
+                                  "correctsPaymentId": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
                                   }
                                 }
                               }
@@ -75385,7 +75579,11 @@
                                   "depositedAt",
                                   "reconciledAt",
                                   "canMarkDeposited",
-                                  "canReconcile"
+                                  "canReconcile",
+                                  "adjustments",
+                                  "disputeOpen",
+                                  "adjustable",
+                                  "correctsPaymentId"
                                 ],
                                 "properties": {
                                   "id": {
@@ -75504,6 +75702,96 @@
                                   },
                                   "canReconcile": {
                                     "type": "boolean"
+                                  },
+                                  "adjustments": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "kind",
+                                        "from",
+                                        "to",
+                                        "reason",
+                                        "evidence",
+                                        "by",
+                                        "at"
+                                      ],
+                                      "properties": {
+                                        "kind": {
+                                          "type": "string",
+                                          "enum": [
+                                            "returned",
+                                            "failed",
+                                            "dispute_opened",
+                                            "dispute_won",
+                                            "dispute_lost",
+                                            "voided"
+                                          ]
+                                        },
+                                        "from": {
+                                          "type": "string"
+                                        },
+                                        "to": {
+                                          "type": "string"
+                                        },
+                                        "reason": {
+                                          "type": "string"
+                                        },
+                                        "evidence": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "by": {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "id",
+                                            "name"
+                                          ],
+                                          "properties": {
+                                            "id": {
+                                              "type": "string"
+                                            },
+                                            "name": {
+                                              "type": [
+                                                "string",
+                                                "null"
+                                              ]
+                                            }
+                                          }
+                                        },
+                                        "at": {
+                                          "type": "string",
+                                          "format": "date-time"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "disputeOpen": {
+                                    "type": "boolean"
+                                  },
+                                  "adjustable": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "enum": [
+                                        "returned",
+                                        "failed",
+                                        "dispute_opened",
+                                        "dispute_won",
+                                        "dispute_lost",
+                                        "voided"
+                                      ]
+                                    }
+                                  },
+                                  "correctsPaymentId": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
                                   }
                                 }
                               }
@@ -75973,7 +76261,11 @@
                                   "depositedAt",
                                   "reconciledAt",
                                   "canMarkDeposited",
-                                  "canReconcile"
+                                  "canReconcile",
+                                  "adjustments",
+                                  "disputeOpen",
+                                  "adjustable",
+                                  "correctsPaymentId"
                                 ],
                                 "properties": {
                                   "id": {
@@ -76092,6 +76384,96 @@
                                   },
                                   "canReconcile": {
                                     "type": "boolean"
+                                  },
+                                  "adjustments": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "kind",
+                                        "from",
+                                        "to",
+                                        "reason",
+                                        "evidence",
+                                        "by",
+                                        "at"
+                                      ],
+                                      "properties": {
+                                        "kind": {
+                                          "type": "string",
+                                          "enum": [
+                                            "returned",
+                                            "failed",
+                                            "dispute_opened",
+                                            "dispute_won",
+                                            "dispute_lost",
+                                            "voided"
+                                          ]
+                                        },
+                                        "from": {
+                                          "type": "string"
+                                        },
+                                        "to": {
+                                          "type": "string"
+                                        },
+                                        "reason": {
+                                          "type": "string"
+                                        },
+                                        "evidence": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "by": {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "id",
+                                            "name"
+                                          ],
+                                          "properties": {
+                                            "id": {
+                                              "type": "string"
+                                            },
+                                            "name": {
+                                              "type": [
+                                                "string",
+                                                "null"
+                                              ]
+                                            }
+                                          }
+                                        },
+                                        "at": {
+                                          "type": "string",
+                                          "format": "date-time"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "disputeOpen": {
+                                    "type": "boolean"
+                                  },
+                                  "adjustable": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "enum": [
+                                        "returned",
+                                        "failed",
+                                        "dispute_opened",
+                                        "dispute_won",
+                                        "dispute_lost",
+                                        "voided"
+                                      ]
+                                    }
+                                  },
+                                  "correctsPaymentId": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
                                   }
                                 }
                               }
@@ -76823,7 +77205,11 @@
                                   "depositedAt",
                                   "reconciledAt",
                                   "canMarkDeposited",
-                                  "canReconcile"
+                                  "canReconcile",
+                                  "adjustments",
+                                  "disputeOpen",
+                                  "adjustable",
+                                  "correctsPaymentId"
                                 ],
                                 "properties": {
                                   "id": {
@@ -76942,6 +77328,96 @@
                                   },
                                   "canReconcile": {
                                     "type": "boolean"
+                                  },
+                                  "adjustments": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "kind",
+                                        "from",
+                                        "to",
+                                        "reason",
+                                        "evidence",
+                                        "by",
+                                        "at"
+                                      ],
+                                      "properties": {
+                                        "kind": {
+                                          "type": "string",
+                                          "enum": [
+                                            "returned",
+                                            "failed",
+                                            "dispute_opened",
+                                            "dispute_won",
+                                            "dispute_lost",
+                                            "voided"
+                                          ]
+                                        },
+                                        "from": {
+                                          "type": "string"
+                                        },
+                                        "to": {
+                                          "type": "string"
+                                        },
+                                        "reason": {
+                                          "type": "string"
+                                        },
+                                        "evidence": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "by": {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "id",
+                                            "name"
+                                          ],
+                                          "properties": {
+                                            "id": {
+                                              "type": "string"
+                                            },
+                                            "name": {
+                                              "type": [
+                                                "string",
+                                                "null"
+                                              ]
+                                            }
+                                          }
+                                        },
+                                        "at": {
+                                          "type": "string",
+                                          "format": "date-time"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "disputeOpen": {
+                                    "type": "boolean"
+                                  },
+                                  "adjustable": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "enum": [
+                                        "returned",
+                                        "failed",
+                                        "dispute_opened",
+                                        "dispute_won",
+                                        "dispute_lost",
+                                        "voided"
+                                      ]
+                                    }
+                                  },
+                                  "correctsPaymentId": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
                                   }
                                 }
                               }
@@ -77411,7 +77887,11 @@
                                   "depositedAt",
                                   "reconciledAt",
                                   "canMarkDeposited",
-                                  "canReconcile"
+                                  "canReconcile",
+                                  "adjustments",
+                                  "disputeOpen",
+                                  "adjustable",
+                                  "correctsPaymentId"
                                 ],
                                 "properties": {
                                   "id": {
@@ -77530,6 +78010,96 @@
                                   },
                                   "canReconcile": {
                                     "type": "boolean"
+                                  },
+                                  "adjustments": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "kind",
+                                        "from",
+                                        "to",
+                                        "reason",
+                                        "evidence",
+                                        "by",
+                                        "at"
+                                      ],
+                                      "properties": {
+                                        "kind": {
+                                          "type": "string",
+                                          "enum": [
+                                            "returned",
+                                            "failed",
+                                            "dispute_opened",
+                                            "dispute_won",
+                                            "dispute_lost",
+                                            "voided"
+                                          ]
+                                        },
+                                        "from": {
+                                          "type": "string"
+                                        },
+                                        "to": {
+                                          "type": "string"
+                                        },
+                                        "reason": {
+                                          "type": "string"
+                                        },
+                                        "evidence": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "by": {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "id",
+                                            "name"
+                                          ],
+                                          "properties": {
+                                            "id": {
+                                              "type": "string"
+                                            },
+                                            "name": {
+                                              "type": [
+                                                "string",
+                                                "null"
+                                              ]
+                                            }
+                                          }
+                                        },
+                                        "at": {
+                                          "type": "string",
+                                          "format": "date-time"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "disputeOpen": {
+                                    "type": "boolean"
+                                  },
+                                  "adjustable": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "enum": [
+                                        "returned",
+                                        "failed",
+                                        "dispute_opened",
+                                        "dispute_won",
+                                        "dispute_lost",
+                                        "voided"
+                                      ]
+                                    }
+                                  },
+                                  "correctsPaymentId": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
                                   }
                                 }
                               }
@@ -84032,7 +84602,11 @@
                           "depositedAt",
                           "reconciledAt",
                           "canMarkDeposited",
-                          "canReconcile"
+                          "canReconcile",
+                          "adjustments",
+                          "disputeOpen",
+                          "adjustable",
+                          "correctsPaymentId"
                         ],
                         "properties": {
                           "id": {
@@ -84210,6 +84784,96 @@
                           },
                           "canReconcile": {
                             "type": "boolean"
+                          },
+                          "adjustments": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "from",
+                                "to",
+                                "reason",
+                                "evidence",
+                                "by",
+                                "at"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "returned",
+                                    "failed",
+                                    "dispute_opened",
+                                    "dispute_won",
+                                    "dispute_lost",
+                                    "voided"
+                                  ]
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "to": {
+                                  "type": "string"
+                                },
+                                "reason": {
+                                  "type": "string"
+                                },
+                                "evidence": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "by": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "disputeOpen": {
+                            "type": "boolean"
+                          },
+                          "adjustable": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "returned",
+                                "failed",
+                                "dispute_opened",
+                                "dispute_won",
+                                "dispute_lost",
+                                "voided"
+                              ]
+                            }
+                          },
+                          "correctsPaymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
                           }
                         }
                       }
@@ -84586,7 +85250,11 @@
                           "depositedAt",
                           "reconciledAt",
                           "canMarkDeposited",
-                          "canReconcile"
+                          "canReconcile",
+                          "adjustments",
+                          "disputeOpen",
+                          "adjustable",
+                          "correctsPaymentId"
                         ],
                         "properties": {
                           "id": {
@@ -84764,6 +85432,96 @@
                           },
                           "canReconcile": {
                             "type": "boolean"
+                          },
+                          "adjustments": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "from",
+                                "to",
+                                "reason",
+                                "evidence",
+                                "by",
+                                "at"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "returned",
+                                    "failed",
+                                    "dispute_opened",
+                                    "dispute_won",
+                                    "dispute_lost",
+                                    "voided"
+                                  ]
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "to": {
+                                  "type": "string"
+                                },
+                                "reason": {
+                                  "type": "string"
+                                },
+                                "evidence": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "by": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "disputeOpen": {
+                            "type": "boolean"
+                          },
+                          "adjustable": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "returned",
+                                "failed",
+                                "dispute_opened",
+                                "dispute_won",
+                                "dispute_lost",
+                                "voided"
+                              ]
+                            }
+                          },
+                          "correctsPaymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
                           }
                         }
                       }
@@ -85221,7 +85979,11 @@
                           "depositedAt",
                           "reconciledAt",
                           "canMarkDeposited",
-                          "canReconcile"
+                          "canReconcile",
+                          "adjustments",
+                          "disputeOpen",
+                          "adjustable",
+                          "correctsPaymentId"
                         ],
                         "properties": {
                           "id": {
@@ -85399,6 +86161,96 @@
                           },
                           "canReconcile": {
                             "type": "boolean"
+                          },
+                          "adjustments": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "from",
+                                "to",
+                                "reason",
+                                "evidence",
+                                "by",
+                                "at"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "returned",
+                                    "failed",
+                                    "dispute_opened",
+                                    "dispute_won",
+                                    "dispute_lost",
+                                    "voided"
+                                  ]
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "to": {
+                                  "type": "string"
+                                },
+                                "reason": {
+                                  "type": "string"
+                                },
+                                "evidence": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "by": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "disputeOpen": {
+                            "type": "boolean"
+                          },
+                          "adjustable": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "returned",
+                                "failed",
+                                "dispute_opened",
+                                "dispute_won",
+                                "dispute_lost",
+                                "voided"
+                              ]
+                            }
+                          },
+                          "correctsPaymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
                           }
                         }
                       }
@@ -85796,7 +86648,11 @@
                           "depositedAt",
                           "reconciledAt",
                           "canMarkDeposited",
-                          "canReconcile"
+                          "canReconcile",
+                          "adjustments",
+                          "disputeOpen",
+                          "adjustable",
+                          "correctsPaymentId"
                         ],
                         "properties": {
                           "id": {
@@ -85974,6 +86830,96 @@
                           },
                           "canReconcile": {
                             "type": "boolean"
+                          },
+                          "adjustments": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "from",
+                                "to",
+                                "reason",
+                                "evidence",
+                                "by",
+                                "at"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "returned",
+                                    "failed",
+                                    "dispute_opened",
+                                    "dispute_won",
+                                    "dispute_lost",
+                                    "voided"
+                                  ]
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "to": {
+                                  "type": "string"
+                                },
+                                "reason": {
+                                  "type": "string"
+                                },
+                                "evidence": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "by": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "disputeOpen": {
+                            "type": "boolean"
+                          },
+                          "adjustable": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "returned",
+                                "failed",
+                                "dispute_opened",
+                                "dispute_won",
+                                "dispute_lost",
+                                "voided"
+                              ]
+                            }
+                          },
+                          "correctsPaymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
                           }
                         }
                       }
@@ -87294,7 +88240,11 @@
                                   "depositedAt",
                                   "reconciledAt",
                                   "canMarkDeposited",
-                                  "canReconcile"
+                                  "canReconcile",
+                                  "adjustments",
+                                  "disputeOpen",
+                                  "adjustable",
+                                  "correctsPaymentId"
                                 ],
                                 "properties": {
                                   "id": {
@@ -87413,6 +88363,96 @@
                                   },
                                   "canReconcile": {
                                     "type": "boolean"
+                                  },
+                                  "adjustments": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "kind",
+                                        "from",
+                                        "to",
+                                        "reason",
+                                        "evidence",
+                                        "by",
+                                        "at"
+                                      ],
+                                      "properties": {
+                                        "kind": {
+                                          "type": "string",
+                                          "enum": [
+                                            "returned",
+                                            "failed",
+                                            "dispute_opened",
+                                            "dispute_won",
+                                            "dispute_lost",
+                                            "voided"
+                                          ]
+                                        },
+                                        "from": {
+                                          "type": "string"
+                                        },
+                                        "to": {
+                                          "type": "string"
+                                        },
+                                        "reason": {
+                                          "type": "string"
+                                        },
+                                        "evidence": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "by": {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "id",
+                                            "name"
+                                          ],
+                                          "properties": {
+                                            "id": {
+                                              "type": "string"
+                                            },
+                                            "name": {
+                                              "type": [
+                                                "string",
+                                                "null"
+                                              ]
+                                            }
+                                          }
+                                        },
+                                        "at": {
+                                          "type": "string",
+                                          "format": "date-time"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "disputeOpen": {
+                                    "type": "boolean"
+                                  },
+                                  "adjustable": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "enum": [
+                                        "returned",
+                                        "failed",
+                                        "dispute_opened",
+                                        "dispute_won",
+                                        "dispute_lost",
+                                        "voided"
+                                      ]
+                                    }
+                                  },
+                                  "correctsPaymentId": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
                                   }
                                 }
                               }
@@ -87882,7 +88922,11 @@
                                   "depositedAt",
                                   "reconciledAt",
                                   "canMarkDeposited",
-                                  "canReconcile"
+                                  "canReconcile",
+                                  "adjustments",
+                                  "disputeOpen",
+                                  "adjustable",
+                                  "correctsPaymentId"
                                 ],
                                 "properties": {
                                   "id": {
@@ -88001,6 +89045,96 @@
                                   },
                                   "canReconcile": {
                                     "type": "boolean"
+                                  },
+                                  "adjustments": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "kind",
+                                        "from",
+                                        "to",
+                                        "reason",
+                                        "evidence",
+                                        "by",
+                                        "at"
+                                      ],
+                                      "properties": {
+                                        "kind": {
+                                          "type": "string",
+                                          "enum": [
+                                            "returned",
+                                            "failed",
+                                            "dispute_opened",
+                                            "dispute_won",
+                                            "dispute_lost",
+                                            "voided"
+                                          ]
+                                        },
+                                        "from": {
+                                          "type": "string"
+                                        },
+                                        "to": {
+                                          "type": "string"
+                                        },
+                                        "reason": {
+                                          "type": "string"
+                                        },
+                                        "evidence": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "by": {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "id",
+                                            "name"
+                                          ],
+                                          "properties": {
+                                            "id": {
+                                              "type": "string"
+                                            },
+                                            "name": {
+                                              "type": [
+                                                "string",
+                                                "null"
+                                              ]
+                                            }
+                                          }
+                                        },
+                                        "at": {
+                                          "type": "string",
+                                          "format": "date-time"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "disputeOpen": {
+                                    "type": "boolean"
+                                  },
+                                  "adjustable": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "enum": [
+                                        "returned",
+                                        "failed",
+                                        "dispute_opened",
+                                        "dispute_won",
+                                        "dispute_lost",
+                                        "voided"
+                                      ]
+                                    }
+                                  },
+                                  "correctsPaymentId": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
                                   }
                                 }
                               }
@@ -88643,7 +89777,11 @@
                                   "depositedAt",
                                   "reconciledAt",
                                   "canMarkDeposited",
-                                  "canReconcile"
+                                  "canReconcile",
+                                  "adjustments",
+                                  "disputeOpen",
+                                  "adjustable",
+                                  "correctsPaymentId"
                                 ],
                                 "properties": {
                                   "id": {
@@ -88762,6 +89900,96 @@
                                   },
                                   "canReconcile": {
                                     "type": "boolean"
+                                  },
+                                  "adjustments": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "kind",
+                                        "from",
+                                        "to",
+                                        "reason",
+                                        "evidence",
+                                        "by",
+                                        "at"
+                                      ],
+                                      "properties": {
+                                        "kind": {
+                                          "type": "string",
+                                          "enum": [
+                                            "returned",
+                                            "failed",
+                                            "dispute_opened",
+                                            "dispute_won",
+                                            "dispute_lost",
+                                            "voided"
+                                          ]
+                                        },
+                                        "from": {
+                                          "type": "string"
+                                        },
+                                        "to": {
+                                          "type": "string"
+                                        },
+                                        "reason": {
+                                          "type": "string"
+                                        },
+                                        "evidence": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "by": {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "id",
+                                            "name"
+                                          ],
+                                          "properties": {
+                                            "id": {
+                                              "type": "string"
+                                            },
+                                            "name": {
+                                              "type": [
+                                                "string",
+                                                "null"
+                                              ]
+                                            }
+                                          }
+                                        },
+                                        "at": {
+                                          "type": "string",
+                                          "format": "date-time"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "disputeOpen": {
+                                    "type": "boolean"
+                                  },
+                                  "adjustable": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "enum": [
+                                        "returned",
+                                        "failed",
+                                        "dispute_opened",
+                                        "dispute_won",
+                                        "dispute_lost",
+                                        "voided"
+                                      ]
+                                    }
+                                  },
+                                  "correctsPaymentId": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
                                   }
                                 }
                               }
@@ -89231,7 +90459,11 @@
                                   "depositedAt",
                                   "reconciledAt",
                                   "canMarkDeposited",
-                                  "canReconcile"
+                                  "canReconcile",
+                                  "adjustments",
+                                  "disputeOpen",
+                                  "adjustable",
+                                  "correctsPaymentId"
                                 ],
                                 "properties": {
                                   "id": {
@@ -89350,6 +90582,96 @@
                                   },
                                   "canReconcile": {
                                     "type": "boolean"
+                                  },
+                                  "adjustments": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "kind",
+                                        "from",
+                                        "to",
+                                        "reason",
+                                        "evidence",
+                                        "by",
+                                        "at"
+                                      ],
+                                      "properties": {
+                                        "kind": {
+                                          "type": "string",
+                                          "enum": [
+                                            "returned",
+                                            "failed",
+                                            "dispute_opened",
+                                            "dispute_won",
+                                            "dispute_lost",
+                                            "voided"
+                                          ]
+                                        },
+                                        "from": {
+                                          "type": "string"
+                                        },
+                                        "to": {
+                                          "type": "string"
+                                        },
+                                        "reason": {
+                                          "type": "string"
+                                        },
+                                        "evidence": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "by": {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "id",
+                                            "name"
+                                          ],
+                                          "properties": {
+                                            "id": {
+                                              "type": "string"
+                                            },
+                                            "name": {
+                                              "type": [
+                                                "string",
+                                                "null"
+                                              ]
+                                            }
+                                          }
+                                        },
+                                        "at": {
+                                          "type": "string",
+                                          "format": "date-time"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "disputeOpen": {
+                                    "type": "boolean"
+                                  },
+                                  "adjustable": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "enum": [
+                                        "returned",
+                                        "failed",
+                                        "dispute_opened",
+                                        "dispute_won",
+                                        "dispute_lost",
+                                        "voided"
+                                      ]
+                                    }
+                                  },
+                                  "correctsPaymentId": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
                                   }
                                 }
                               }
@@ -90022,7 +91344,11 @@
                                   "depositedAt",
                                   "reconciledAt",
                                   "canMarkDeposited",
-                                  "canReconcile"
+                                  "canReconcile",
+                                  "adjustments",
+                                  "disputeOpen",
+                                  "adjustable",
+                                  "correctsPaymentId"
                                 ],
                                 "properties": {
                                   "id": {
@@ -90141,6 +91467,96 @@
                                   },
                                   "canReconcile": {
                                     "type": "boolean"
+                                  },
+                                  "adjustments": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "kind",
+                                        "from",
+                                        "to",
+                                        "reason",
+                                        "evidence",
+                                        "by",
+                                        "at"
+                                      ],
+                                      "properties": {
+                                        "kind": {
+                                          "type": "string",
+                                          "enum": [
+                                            "returned",
+                                            "failed",
+                                            "dispute_opened",
+                                            "dispute_won",
+                                            "dispute_lost",
+                                            "voided"
+                                          ]
+                                        },
+                                        "from": {
+                                          "type": "string"
+                                        },
+                                        "to": {
+                                          "type": "string"
+                                        },
+                                        "reason": {
+                                          "type": "string"
+                                        },
+                                        "evidence": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "by": {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "id",
+                                            "name"
+                                          ],
+                                          "properties": {
+                                            "id": {
+                                              "type": "string"
+                                            },
+                                            "name": {
+                                              "type": [
+                                                "string",
+                                                "null"
+                                              ]
+                                            }
+                                          }
+                                        },
+                                        "at": {
+                                          "type": "string",
+                                          "format": "date-time"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "disputeOpen": {
+                                    "type": "boolean"
+                                  },
+                                  "adjustable": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "enum": [
+                                        "returned",
+                                        "failed",
+                                        "dispute_opened",
+                                        "dispute_won",
+                                        "dispute_lost",
+                                        "voided"
+                                      ]
+                                    }
+                                  },
+                                  "correctsPaymentId": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
                                   }
                                 }
                               }
@@ -90610,7 +92026,11 @@
                                   "depositedAt",
                                   "reconciledAt",
                                   "canMarkDeposited",
-                                  "canReconcile"
+                                  "canReconcile",
+                                  "adjustments",
+                                  "disputeOpen",
+                                  "adjustable",
+                                  "correctsPaymentId"
                                 ],
                                 "properties": {
                                   "id": {
@@ -90729,6 +92149,96 @@
                                   },
                                   "canReconcile": {
                                     "type": "boolean"
+                                  },
+                                  "adjustments": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "kind",
+                                        "from",
+                                        "to",
+                                        "reason",
+                                        "evidence",
+                                        "by",
+                                        "at"
+                                      ],
+                                      "properties": {
+                                        "kind": {
+                                          "type": "string",
+                                          "enum": [
+                                            "returned",
+                                            "failed",
+                                            "dispute_opened",
+                                            "dispute_won",
+                                            "dispute_lost",
+                                            "voided"
+                                          ]
+                                        },
+                                        "from": {
+                                          "type": "string"
+                                        },
+                                        "to": {
+                                          "type": "string"
+                                        },
+                                        "reason": {
+                                          "type": "string"
+                                        },
+                                        "evidence": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "by": {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "id",
+                                            "name"
+                                          ],
+                                          "properties": {
+                                            "id": {
+                                              "type": "string"
+                                            },
+                                            "name": {
+                                              "type": [
+                                                "string",
+                                                "null"
+                                              ]
+                                            }
+                                          }
+                                        },
+                                        "at": {
+                                          "type": "string",
+                                          "format": "date-time"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "disputeOpen": {
+                                    "type": "boolean"
+                                  },
+                                  "adjustable": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "enum": [
+                                        "returned",
+                                        "failed",
+                                        "dispute_opened",
+                                        "dispute_won",
+                                        "dispute_lost",
+                                        "voided"
+                                      ]
+                                    }
+                                  },
+                                  "correctsPaymentId": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
                                   }
                                 }
                               }
@@ -106292,6 +107802,692 @@
         }
       }
     },
+    "/api/v1/staff/payments/{paymentId}/adjustments": {
+      "post": {
+        "operationId": "adjustPayment",
+        "summary": "Record a failed payment or a dispute and its outcome (Owner only)",
+        "description": "The Owner only (payment.correct): a fresh sign-in (password or authenticator code within 5 minutes, read again at the write), a reason and optional evidence (the Square dispute ID). failed: a card or digital payment that did not go through returns it (the balance reopens, its receipt shows voided). dispute_opened: the money still counts until the outcome (PROPOSED); the payment waits (no reconcile, void or failure) and the Owner Decisions item payment_dispute stays open; dispute_won closes it with no money change; dispute_lost returns the payment. Appended, never an edit. Returns the deposit view.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2100
+                  },
+                  "evidence": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 600
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "failed",
+                      "dispute_opened",
+                      "dispute_won",
+                      "dispute_lost"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "required",
+                    "state",
+                    "amountCents",
+                    "baseTotalCents",
+                    "ruleVersion",
+                    "verifiedCents",
+                    "pendingCents",
+                    "remainingCents",
+                    "workScheduling",
+                    "paymentLink",
+                    "waiver",
+                    "payments",
+                    "version",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "not_required",
+                        "required",
+                        "partly_satisfied",
+                        "satisfied",
+                        "applied",
+                        "waived"
+                      ]
+                    },
+                    "amountCents": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "baseTotalCents": {
+                      "type": "integer"
+                    },
+                    "ruleVersion": {
+                      "type": "integer"
+                    },
+                    "verifiedCents": {
+                      "type": "integer"
+                    },
+                    "pendingCents": {
+                      "type": "integer"
+                    },
+                    "remainingCents": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "workScheduling": {
+                      "type": "string",
+                      "enum": [
+                        "open",
+                        "blocked"
+                      ]
+                    },
+                    "paymentLink": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "url",
+                            "setBy",
+                            "setAt"
+                          ],
+                          "properties": {
+                            "url": {
+                              "type": "string"
+                            },
+                            "setBy": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "setAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "waiver": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "by",
+                            "at",
+                            "reason"
+                          ],
+                          "properties": {
+                            "by": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            },
+                            "at": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "reason": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "payments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "method",
+                          "amountCents",
+                          "appliedCents",
+                          "unappliedCents",
+                          "receivedOn",
+                          "reference",
+                          "payerName",
+                          "state",
+                          "verified",
+                          "collector",
+                          "recordedBy",
+                          "recordedAt",
+                          "clearedBy",
+                          "clearedAt",
+                          "canMarkCleared",
+                          "memo",
+                          "receiptNumber",
+                          "depositedAt",
+                          "reconciledAt",
+                          "canMarkDeposited",
+                          "canReconcile",
+                          "adjustments",
+                          "disputeOpen",
+                          "adjustable",
+                          "correctsPaymentId"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string",
+                            "enum": [
+                              "square_payment_link",
+                              "square_tap_to_pay",
+                              "cash",
+                              "check",
+                              "zelle",
+                              "cash_app",
+                              "chime"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": "integer"
+                          },
+                          "appliedCents": {
+                            "type": "integer"
+                          },
+                          "unappliedCents": {
+                            "type": "integer"
+                          },
+                          "receivedOn": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "payerName": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "recorded",
+                              "reconciled",
+                              "received",
+                              "deposited",
+                              "cleared",
+                              "returned",
+                              "voided"
+                            ]
+                          },
+                          "verified": {
+                            "type": "boolean"
+                          },
+                          "collector": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "clearedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "clearedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "canMarkCleared": {
+                            "type": "boolean"
+                          },
+                          "memo": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "receiptNumber": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "depositedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "reconciledAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "canMarkDeposited": {
+                            "type": "boolean"
+                          },
+                          "canReconcile": {
+                            "type": "boolean"
+                          },
+                          "adjustments": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "from",
+                                "to",
+                                "reason",
+                                "evidence",
+                                "by",
+                                "at"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "returned",
+                                    "failed",
+                                    "dispute_opened",
+                                    "dispute_won",
+                                    "dispute_lost",
+                                    "voided"
+                                  ]
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "to": {
+                                  "type": "string"
+                                },
+                                "reason": {
+                                  "type": "string"
+                                },
+                                "evidence": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "by": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "disputeOpen": {
+                            "type": "boolean"
+                          },
+                          "adjustable": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "returned",
+                                "failed",
+                                "dispute_opened",
+                                "dispute_won",
+                                "dispute_lost",
+                                "voided"
+                              ]
+                            }
+                          },
+                          "correctsPaymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "enterPaymentLink",
+                        "recordPayment",
+                        "waive"
+                      ],
+                      "properties": {
+                        "enterPaymentLink": {
+                          "type": "boolean"
+                        },
+                        "recordPayment": {
+                          "type": "boolean"
+                        },
+                        "waive": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "payment.correct",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": 5,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "payment.adjust",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/deposits.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/payments/{paymentId}/clear": {
       "post": {
         "operationId": "markCheckCleared",
@@ -106528,7 +108724,11 @@
                           "depositedAt",
                           "reconciledAt",
                           "canMarkDeposited",
-                          "canReconcile"
+                          "canReconcile",
+                          "adjustments",
+                          "disputeOpen",
+                          "adjustable",
+                          "correctsPaymentId"
                         ],
                         "properties": {
                           "id": {
@@ -106706,6 +108906,96 @@
                           },
                           "canReconcile": {
                             "type": "boolean"
+                          },
+                          "adjustments": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "from",
+                                "to",
+                                "reason",
+                                "evidence",
+                                "by",
+                                "at"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "returned",
+                                    "failed",
+                                    "dispute_opened",
+                                    "dispute_won",
+                                    "dispute_lost",
+                                    "voided"
+                                  ]
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "to": {
+                                  "type": "string"
+                                },
+                                "reason": {
+                                  "type": "string"
+                                },
+                                "evidence": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "by": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "disputeOpen": {
+                            "type": "boolean"
+                          },
+                          "adjustable": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "returned",
+                                "failed",
+                                "dispute_opened",
+                                "dispute_won",
+                                "dispute_lost",
+                                "voided"
+                              ]
+                            }
+                          },
+                          "correctsPaymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
                           }
                         }
                       }
@@ -106852,6 +109142,739 @@
           "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "check.mark_cleared",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/deposits.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/payments/{paymentId}/correction": {
+      "post": {
+        "operationId": "correctPayment",
+        "summary": "Void a payment recorded wrongly and record the right one (Owner only)",
+        "description": "The Owner only (payment.correct): a fresh sign-in, a reason and optional evidence. The wrong payment is voided (never edited or deleted: its allocations are reversed, its receipt shows voided) and, when a replacement is given, the right payment is recorded in the same transaction naming the one it corrects, toward the deposit while it is still due or else the issued final invoice; what the replacement leaves out is the voided payment’s own (method, date, reference, payer, memo, collector). The replacement is validated like any recorded payment and gets its own receipt. A payment with an open dispute waits for its outcome (DISPUTE_OPEN). Returns the deposit view.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2100
+                  },
+                  "evidence": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 600
+                  },
+                  "replacement": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "amountCents"
+                        ],
+                        "properties": {
+                          "method": {
+                            "type": "string",
+                            "enum": [
+                              "square_payment_link",
+                              "square_tap_to_pay",
+                              "cash",
+                              "check",
+                              "zelle",
+                              "cash_app",
+                              "chime"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "receivedOn": {
+                            "type": "string",
+                            "maxLength": 10
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 170
+                          },
+                          "payerName": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 250
+                          },
+                          "memo": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "maxLength": 550
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "required",
+                    "state",
+                    "amountCents",
+                    "baseTotalCents",
+                    "ruleVersion",
+                    "verifiedCents",
+                    "pendingCents",
+                    "remainingCents",
+                    "workScheduling",
+                    "paymentLink",
+                    "waiver",
+                    "payments",
+                    "version",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "not_required",
+                        "required",
+                        "partly_satisfied",
+                        "satisfied",
+                        "applied",
+                        "waived"
+                      ]
+                    },
+                    "amountCents": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "baseTotalCents": {
+                      "type": "integer"
+                    },
+                    "ruleVersion": {
+                      "type": "integer"
+                    },
+                    "verifiedCents": {
+                      "type": "integer"
+                    },
+                    "pendingCents": {
+                      "type": "integer"
+                    },
+                    "remainingCents": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "workScheduling": {
+                      "type": "string",
+                      "enum": [
+                        "open",
+                        "blocked"
+                      ]
+                    },
+                    "paymentLink": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "url",
+                            "setBy",
+                            "setAt"
+                          ],
+                          "properties": {
+                            "url": {
+                              "type": "string"
+                            },
+                            "setBy": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "setAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "waiver": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "by",
+                            "at",
+                            "reason"
+                          ],
+                          "properties": {
+                            "by": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            },
+                            "at": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "reason": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "payments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "method",
+                          "amountCents",
+                          "appliedCents",
+                          "unappliedCents",
+                          "receivedOn",
+                          "reference",
+                          "payerName",
+                          "state",
+                          "verified",
+                          "collector",
+                          "recordedBy",
+                          "recordedAt",
+                          "clearedBy",
+                          "clearedAt",
+                          "canMarkCleared",
+                          "memo",
+                          "receiptNumber",
+                          "depositedAt",
+                          "reconciledAt",
+                          "canMarkDeposited",
+                          "canReconcile",
+                          "adjustments",
+                          "disputeOpen",
+                          "adjustable",
+                          "correctsPaymentId"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string",
+                            "enum": [
+                              "square_payment_link",
+                              "square_tap_to_pay",
+                              "cash",
+                              "check",
+                              "zelle",
+                              "cash_app",
+                              "chime"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": "integer"
+                          },
+                          "appliedCents": {
+                            "type": "integer"
+                          },
+                          "unappliedCents": {
+                            "type": "integer"
+                          },
+                          "receivedOn": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "payerName": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "recorded",
+                              "reconciled",
+                              "received",
+                              "deposited",
+                              "cleared",
+                              "returned",
+                              "voided"
+                            ]
+                          },
+                          "verified": {
+                            "type": "boolean"
+                          },
+                          "collector": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "clearedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "clearedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "canMarkCleared": {
+                            "type": "boolean"
+                          },
+                          "memo": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "receiptNumber": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "depositedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "reconciledAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "canMarkDeposited": {
+                            "type": "boolean"
+                          },
+                          "canReconcile": {
+                            "type": "boolean"
+                          },
+                          "adjustments": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "from",
+                                "to",
+                                "reason",
+                                "evidence",
+                                "by",
+                                "at"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "returned",
+                                    "failed",
+                                    "dispute_opened",
+                                    "dispute_won",
+                                    "dispute_lost",
+                                    "voided"
+                                  ]
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "to": {
+                                  "type": "string"
+                                },
+                                "reason": {
+                                  "type": "string"
+                                },
+                                "evidence": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "by": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "disputeOpen": {
+                            "type": "boolean"
+                          },
+                          "adjustable": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "returned",
+                                "failed",
+                                "dispute_opened",
+                                "dispute_won",
+                                "dispute_lost",
+                                "voided"
+                              ]
+                            }
+                          },
+                          "correctsPaymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "enterPaymentLink",
+                        "recordPayment",
+                        "waive"
+                      ],
+                      "properties": {
+                        "enterPaymentLink": {
+                          "type": "boolean"
+                        },
+                        "recordPayment": {
+                          "type": "boolean"
+                        },
+                        "waive": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "payment.correct",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": 5,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "payment.correct",
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/deposits.test.ts"
@@ -107094,7 +110117,11 @@
                           "depositedAt",
                           "reconciledAt",
                           "canMarkDeposited",
-                          "canReconcile"
+                          "canReconcile",
+                          "adjustments",
+                          "disputeOpen",
+                          "adjustable",
+                          "correctsPaymentId"
                         ],
                         "properties": {
                           "id": {
@@ -107272,6 +110299,96 @@
                           },
                           "canReconcile": {
                             "type": "boolean"
+                          },
+                          "adjustments": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "from",
+                                "to",
+                                "reason",
+                                "evidence",
+                                "by",
+                                "at"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "returned",
+                                    "failed",
+                                    "dispute_opened",
+                                    "dispute_won",
+                                    "dispute_lost",
+                                    "voided"
+                                  ]
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "to": {
+                                  "type": "string"
+                                },
+                                "reason": {
+                                  "type": "string"
+                                },
+                                "evidence": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "by": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "disputeOpen": {
+                            "type": "boolean"
+                          },
+                          "adjustable": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "returned",
+                                "failed",
+                                "dispute_opened",
+                                "dispute_won",
+                                "dispute_lost",
+                                "voided"
+                              ]
+                            }
+                          },
+                          "correctsPaymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
                           }
                         }
                       }
@@ -107660,7 +110777,11 @@
                           "depositedAt",
                           "reconciledAt",
                           "canMarkDeposited",
-                          "canReconcile"
+                          "canReconcile",
+                          "adjustments",
+                          "disputeOpen",
+                          "adjustable",
+                          "correctsPaymentId"
                         ],
                         "properties": {
                           "id": {
@@ -107838,6 +110959,96 @@
                           },
                           "canReconcile": {
                             "type": "boolean"
+                          },
+                          "adjustments": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "from",
+                                "to",
+                                "reason",
+                                "evidence",
+                                "by",
+                                "at"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "returned",
+                                    "failed",
+                                    "dispute_opened",
+                                    "dispute_won",
+                                    "dispute_lost",
+                                    "voided"
+                                  ]
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "to": {
+                                  "type": "string"
+                                },
+                                "reason": {
+                                  "type": "string"
+                                },
+                                "evidence": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "by": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "disputeOpen": {
+                            "type": "boolean"
+                          },
+                          "adjustable": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "returned",
+                                "failed",
+                                "dispute_opened",
+                                "dispute_won",
+                                "dispute_lost",
+                                "voided"
+                              ]
+                            }
+                          },
+                          "correctsPaymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
                           }
                         }
                       }
@@ -107984,6 +111195,682 @@
           "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "payment.reconcile",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/deposits.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/payments/{paymentId}/returned": {
+      "post": {
+        "operationId": "markCheckReturned",
+        "summary": "Record a check returned by the bank",
+        "description": "The Owner or Office (check.mark_returned), with a reason and optional evidence (the bank notice). A received, deposited or cleared check becomes returned; nothing is edited or deleted: the adjustment and a reversing allocation for each of its allocations are appended, the balance reopens, a deposit it satisfied reverts to required (a deposit already credited reopens the final invoice), its receipt shows voided. Anything else is a CONFLICT (NOT_A_CHECK, PAYMENT_RETURNED, PAYMENT_VOIDED). Returns the deposit view of the payment’s job.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2100
+                  },
+                  "evidence": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 600
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "required",
+                    "state",
+                    "amountCents",
+                    "baseTotalCents",
+                    "ruleVersion",
+                    "verifiedCents",
+                    "pendingCents",
+                    "remainingCents",
+                    "workScheduling",
+                    "paymentLink",
+                    "waiver",
+                    "payments",
+                    "version",
+                    "actions"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "not_required",
+                        "required",
+                        "partly_satisfied",
+                        "satisfied",
+                        "applied",
+                        "waived"
+                      ]
+                    },
+                    "amountCents": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "baseTotalCents": {
+                      "type": "integer"
+                    },
+                    "ruleVersion": {
+                      "type": "integer"
+                    },
+                    "verifiedCents": {
+                      "type": "integer"
+                    },
+                    "pendingCents": {
+                      "type": "integer"
+                    },
+                    "remainingCents": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "workScheduling": {
+                      "type": "string",
+                      "enum": [
+                        "open",
+                        "blocked"
+                      ]
+                    },
+                    "paymentLink": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "url",
+                            "setBy",
+                            "setAt"
+                          ],
+                          "properties": {
+                            "url": {
+                              "type": "string"
+                            },
+                            "setBy": {
+                              "anyOf": [
+                                {
+                                  "type": "null"
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "setAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "waiver": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "by",
+                            "at",
+                            "reason"
+                          ],
+                          "properties": {
+                            "by": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            },
+                            "at": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "reason": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "payments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "method",
+                          "amountCents",
+                          "appliedCents",
+                          "unappliedCents",
+                          "receivedOn",
+                          "reference",
+                          "payerName",
+                          "state",
+                          "verified",
+                          "collector",
+                          "recordedBy",
+                          "recordedAt",
+                          "clearedBy",
+                          "clearedAt",
+                          "canMarkCleared",
+                          "memo",
+                          "receiptNumber",
+                          "depositedAt",
+                          "reconciledAt",
+                          "canMarkDeposited",
+                          "canReconcile",
+                          "adjustments",
+                          "disputeOpen",
+                          "adjustable",
+                          "correctsPaymentId"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "method": {
+                            "type": "string",
+                            "enum": [
+                              "square_payment_link",
+                              "square_tap_to_pay",
+                              "cash",
+                              "check",
+                              "zelle",
+                              "cash_app",
+                              "chime"
+                            ]
+                          },
+                          "amountCents": {
+                            "type": "integer"
+                          },
+                          "appliedCents": {
+                            "type": "integer"
+                          },
+                          "unappliedCents": {
+                            "type": "integer"
+                          },
+                          "receivedOn": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "payerName": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "recorded",
+                              "reconciled",
+                              "received",
+                              "deposited",
+                              "cleared",
+                              "returned",
+                              "voided"
+                            ]
+                          },
+                          "verified": {
+                            "type": "boolean"
+                          },
+                          "collector": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "clearedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "clearedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "canMarkCleared": {
+                            "type": "boolean"
+                          },
+                          "memo": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "receiptNumber": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "depositedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "reconciledAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "canMarkDeposited": {
+                            "type": "boolean"
+                          },
+                          "canReconcile": {
+                            "type": "boolean"
+                          },
+                          "adjustments": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "from",
+                                "to",
+                                "reason",
+                                "evidence",
+                                "by",
+                                "at"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "returned",
+                                    "failed",
+                                    "dispute_opened",
+                                    "dispute_won",
+                                    "dispute_lost",
+                                    "voided"
+                                  ]
+                                },
+                                "from": {
+                                  "type": "string"
+                                },
+                                "to": {
+                                  "type": "string"
+                                },
+                                "reason": {
+                                  "type": "string"
+                                },
+                                "evidence": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "by": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "disputeOpen": {
+                            "type": "boolean"
+                          },
+                          "adjustable": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "returned",
+                                "failed",
+                                "dispute_opened",
+                                "dispute_won",
+                                "dispute_lost",
+                                "voided"
+                              ]
+                            }
+                          },
+                          "correctsPaymentId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "enterPaymentLink",
+                        "recordPayment",
+                        "waive"
+                      ],
+                      "properties": {
+                        "enterPaymentLink": {
+                          "type": "boolean"
+                        },
+                        "recordPayment": {
+                          "type": "boolean"
+                        },
+                        "waive": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "check.mark_returned",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "check.mark_returned",
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/deposits.test.ts"
@@ -122750,6 +126637,7 @@
                 "quality_review",
                 "start_work_exception",
                 "unallocated_credit",
+                "payment_dispute",
                 "refund_request",
                 "cancellation_outcome",
                 "deletion_request",
@@ -122890,6 +126778,7 @@
                               "quality_review",
                               "start_work_exception",
                               "unallocated_credit",
+                              "payment_dispute",
                               "refund_request",
                               "cancellation_outcome",
                               "deletion_request",
@@ -123186,6 +127075,7 @@
                           "quality_review",
                           "start_work_exception",
                           "unallocated_credit",
+                          "payment_dispute",
                           "refund_request",
                           "cancellation_outcome",
                           "deletion_request",
@@ -123346,6 +127236,7 @@
                 "quality_review",
                 "start_work_exception",
                 "unallocated_credit",
+                "payment_dispute",
                 "refund_request",
                 "cancellation_outcome",
                 "deletion_request",
@@ -123486,6 +127377,7 @@
                               "quality_review",
                               "start_work_exception",
                               "unallocated_credit",
+                              "payment_dispute",
                               "refund_request",
                               "cancellation_outcome",
                               "deletion_request",
@@ -123782,6 +127674,7 @@
                           "quality_review",
                           "start_work_exception",
                           "unallocated_credit",
+                          "payment_dispute",
                           "refund_request",
                           "cancellation_outcome",
                           "deletion_request",
