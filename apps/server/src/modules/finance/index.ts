@@ -5,6 +5,8 @@
 //   PUT  /staff/jobs/:jobId/deposit/payment-link    the deposit request's Square link (invoice.enter_payment_link)
 //   POST /staff/jobs/:jobId/deposit/payments        record a verified deposit payment (payment.record)
 //   POST /staff/payments/:paymentId/clear           the Owner marks a check cleared (check.mark_cleared)
+//   GET  /staff/jobs/:jobId/collection              TSK-0088: what may be collected on site (payment.record, own)
+//   POST /staff/jobs/:jobId/collection              TSK-0088: the collector's own on-site collection
 //   POST /staff/payments/:paymentId/deposited       TSK-0088: a check deposited, still pending (payment.reconcile)
 //   POST /staff/payments/:paymentId/reconcile       TSK-0088: a recorded payment reconciled (payment.reconcile)
 //   POST /staff/jobs/:jobId/deposit/waiver          the Owner's waiver: fresh sign-in and a reason (deposit.waive)
@@ -47,6 +49,8 @@ export {
   issueInvoiceDocument,
 } from './invoice-automations.js'
 import { markCheckDeposited, reconcilePayment } from './payment-states.js'
+import { collectionView, collectOnSite, ON_SITE_METHODS, type CollectInput } from './collection.js'
+import { jobAssignments } from '../packets/assignments.js'
 export { customerInvoiceList, issueInvoice, jobInvoices, prepareDraft, qualityGate } from './invoices.js'
 export { INVOICE_PAID_EVENT } from './money-events.js'
 export { issuePaymentReceipt, paymentReceiptAutomation, RECEIPT_ISSUED_EVENT } from './receipts.js'
@@ -229,6 +233,65 @@ const paymentRecordFacts: NonNullable<RouteDef['resource']> = async ({ req, acto
   return { projectId, assignments: [], ...(collector ? { collectedByStaffId: collector } : {}) }
 }
 
+/** The collector's facts: the job's project, its assignments, and the caller as the collector (own collection). */
+const collectorFacts: NonNullable<RouteDef['resource']> = async ({ req, actor, db }) => {
+  const { jobId } = req.params as { jobId: string }
+  const projectId = await projectOfJob(db, jobId)
+  if (!projectId) return null
+  return {
+    projectId,
+    assignments: await jobAssignments(db, jobId),
+    ...(actor.kind === 'staff' ? { collectedByStaffId: actor.userId } : {}),
+  }
+}
+const COLLECTION_AMOUNT = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['remainingCents', 'pendingCents'],
+  properties: { remainingCents: { type: 'integer' }, pendingCents: { type: 'integer' } },
+} as const
+const COLLECTION_VIEW = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['jobId', 'reference', 'deposit', 'invoice', 'methods', 'mine'],
+  properties: {
+    jobId: { type: 'string' },
+    reference: { type: 'string' },
+    deposit: { anyOf: [{ type: 'null' }, COLLECTION_AMOUNT] },
+    invoice: {
+      anyOf: [
+        { type: 'null' },
+        {
+          type: 'object',
+          additionalProperties: false,
+          required: ['number', 'remainingCents', 'pendingCents'],
+          properties: {
+            number: { type: 'string' },
+            remainingCents: { type: 'integer' },
+            pendingCents: { type: 'integer' },
+          },
+        },
+      ],
+    },
+    methods: { type: 'array', items: { type: 'string', enum: [...ON_SITE_METHODS] } },
+    mine: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['method', 'amountCents', 'receivedOn', 'state', 'receiptNumber'],
+        properties: {
+          method: { type: 'string' },
+          amountCents: { type: 'integer' },
+          receivedOn: { type: 'string' },
+          state: { type: 'string' },
+          receiptNumber: NULLABLE_STRING,
+        },
+      },
+    },
+  },
+} as const
+
 const paymentOf: NonNullable<RouteDef['resource']> = async ({ req, db }) => {
   const { paymentId } = req.params as { paymentId: string }
   return paymentFacts(db, paymentId)
@@ -312,6 +375,81 @@ const routes: RouteDef[] = [
       })
       const view = await viewOrThrow(ctx, tx, jobId)
       return { body: view, version: view.version }
+    },
+  },
+  // TSK-0088 part 2 (HH-FIN-11, T62, OWN-DEC-200): the collector's own on-site collection, from the job packet.
+  {
+    ...common,
+    method: 'GET',
+    kind: 'read',
+    idempotency: 'none',
+    expectedVersion: 'none',
+    audit: 'none',
+    path: '/staff/jobs/:jobId/collection',
+    operationId: 'getOnSiteCollection',
+    summary: 'What may be collected on site for this job',
+    description:
+      'Staff with payment.record for their own collection: the Owner, Office, or a Worker with the Owner’s collect ' +
+      'grant on a job they are assigned to inside its access window (anyone else: FORBIDDEN). Only what the ' +
+      'collector needs: the deposit still due and pending, the issued final invoice’s balance and pending, the ' +
+      'methods taken in person (cash, check, Square Tap to Pay; PROPOSED) and the caller’s own collections on the ' +
+      'job with their receipt numbers. Never other payments, references, collectors or invoice lines.',
+    permission: 'payment.record',
+    resource: collectorFacts,
+    schema: { params: JOB_PARAMS, response: { 200: COLLECTION_VIEW } },
+    handler: async (ctx) => {
+      const { jobId } = ctx.req.params as { jobId: string }
+      const view = await collectionView(ctx.db, staffActor(ctx), jobId)
+      if (!view) throw new ApiError('NOT_FOUND')
+      return { body: view, headers: { 'cache-control': 'no-store' } }
+    },
+  },
+  {
+    ...write,
+    method: 'POST',
+    path: '/staff/jobs/:jobId/collection',
+    operationId: 'collectOnSite',
+    summary: 'Record money collected on site, as the collector',
+    description:
+      'The same staff as the read, always as the collector themselves. Cash, a check (its number and payer; pending ' +
+      'until the Owner clears it) or Square Tap to Pay (its Square payment ID), toward the deposit while it is due ' +
+      'or the issued final invoice (NO_INVOICE_TO_PAY otherwise), dated the business day of the recording, with an ' +
+      'optional memo. Recorded through the office’s own transactions: the same method and reference twice is ' +
+      'refused; the receipt goes at once for cash and card; Paid and any overpayment follow. Returns the view.',
+    permission: 'payment.record',
+    expectedVersion: 'none',
+    audit: 'payment.record',
+    resource: collectorFacts,
+    schema: {
+      params: JOB_PARAMS,
+      body: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['target', 'method', 'amountCents'],
+        properties: {
+          target: { type: 'string', enum: ['deposit', 'invoice'] },
+          method: { type: 'string', enum: [...ON_SITE_METHODS] },
+          amountCents: { type: 'integer', minimum: 1, maximum: 100_000_000_00 },
+          reference: { type: ['string', 'null'], maxLength: DEPOSIT_LIMITS.reference + 20 },
+          payerName: { type: ['string', 'null'], maxLength: DEPOSIT_LIMITS.payerName + 20 },
+          memo: { type: ['string', 'null'], maxLength: DEPOSIT_LIMITS.memo + 20 },
+        },
+      },
+      response: { 201: COLLECTION_VIEW },
+    },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const actor = staffActor(ctx)
+      const { jobId } = ctx.req.params as { jobId: string }
+      const body = ctx.req.body as CollectInput
+      const out = await collectOnSite(tx, actor, jobId, body)
+      await ctx.audit({
+        target: { type: 'payment', id: out.paymentId },
+        summary: { jobId, target: body.target, method: body.method, amountCents: body.amountCents, state: out.state },
+      })
+      const view = await collectionView(tx, actor, jobId)
+      if (!view) throw new ApiError('NOT_FOUND')
+      return { status: 201, body: view }
     },
   },
   {

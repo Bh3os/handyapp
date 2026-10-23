@@ -4583,5 +4583,19 @@
   "payment.reconciled": "Payment marked reconciled.",
   "enum.depositRefusal.CHECK_DEPOSITED": "This check is already marked deposited.",
   "enum.depositRefusal.CHECK_CLEARS_INSTEAD": "A check is not reconciled: it is deposited, then the Owner clears it.",
-  "enum.depositRefusal.PAYMENT_RECONCILED": "This payment is already reconciled."
+  "enum.depositRefusal.PAYMENT_RECONCILED": "This payment is already reconciled.",
+  "collect.title": "Collect a payment on site",
+  "collect.hint": "Record money you took yourself, right away. A check stays pending until the Owner clears it. Nothing is recorded offline.",
+  "collect.depositDue": "Deposit still due: {amount}.",
+  "collect.invoiceDue": "Invoice {number}: {amount} still due.",
+  "collect.pending": "Pending: {amount}.",
+  "collect.target": "Toward",
+  "collect.targetDeposit": "The deposit",
+  "collect.targetInvoice": "Invoice {number}",
+  "collect.checkNumber": "Check number",
+  "collect.squareId": "Square payment ID",
+  "collect.record": "Record the payment",
+  "collect.done": "Recorded. The customer's receipt goes out now.",
+  "collect.doneCheck": "Check recorded. It stays pending until the Owner clears it.",
+  "collect.mine": "Your collections on this job"
 }
