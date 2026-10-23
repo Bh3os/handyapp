@@ -189,7 +189,9 @@ export async function adjustPayment(
     .select(['deposit_requirement_id', 'invoice_id'])
     .where('payment_id', '=', paymentId)
     .execute()
-  const requirements = [...new Set(targets.flatMap((a) => (a.deposit_requirement_id ? [a.deposit_requirement_id] : [])))]
+  const requirements = [
+    ...new Set(targets.flatMap((a) => (a.deposit_requirement_id ? [a.deposit_requirement_id] : []))),
+  ]
   if (requirements.length)
     await tx
       .selectFrom('finance.deposit_requirements')
@@ -443,8 +445,8 @@ export function availableAdjustments(
   disputed: boolean,
 ): AdjustmentKind[] {
   const may = (action: 'check.mark_returned' | 'payment.correct') =>
-    decide({ ...actor, freshAuth: true }, action, resource, { now: new Date(), online: true, reason: 'shown' }).effect ===
-    'allow'
+    decide({ ...actor, freshAuth: true }, action, resource, { now: new Date(), online: true, reason: 'shown' })
+      .effect === 'allow'
   return ADJUSTMENT_KINDS.filter(
     (k) => unavailable(k, p, disputed) === null && may(k === 'returned' ? 'check.mark_returned' : 'payment.correct'),
   )

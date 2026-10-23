@@ -383,7 +383,8 @@ export const TABLES = {
   },
   // TSK-0089 (0094): what happened to a recorded payment afterwards (returned, failed, disputed, voided).
   'finance.payment_adjustments': {
-    holds: "A payment's returned, failed, disputed or voided record: the reason, the evidence, who recorded it and when",
+    holds:
+      "A payment's returned, failed, disputed or voided record: the reason, the evidence, who recorded it and when",
     classes: ['payment_reference'],
     categories: [F],
     protectedEvidence: true,
