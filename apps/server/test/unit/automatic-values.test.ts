@@ -150,12 +150,7 @@ describe('[HH-COM-06][FACT-AUTOMATIC-MESSAGES] which messages are wired', () => 
     }
     // No event exists yet for these (TSK-0084, TSK-0087, TSK-0092; the estimate question answer has no record of its
     // own).
-    for (const key of [
-      'estimate.question_answered',
-      'job.complete',
-      'payment.receipt',
-      'reminder.satisfaction_check',
-    ])
+    for (const key of ['estimate.question_answered', 'job.complete', 'payment.receipt', 'reminder.satisfaction_check'])
       expect(suppliedVariables(MESSAGE_TYPES.get(key) as never), key).toEqual([])
     // Work paused is released by the Owner only and never automatic.
     expect(MESSAGE_TYPES.get('job.paused')).toMatchObject({ ownerApproval: true, triggerEvents: [] })
