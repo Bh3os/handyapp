@@ -1251,15 +1251,7 @@ export const LABEL_FAMILIES = {
   ],
   /** The reconciliation queue (TSK-0090): where an item was seen, how it was resolved, the records it lists. */
   reconciliationSource: ['customer', 'square', 'bank', 'staff'],
-  reconciliationResolution: [
-    'matched',
-    'recorded',
-    'not_received',
-    'duplicate',
-    'corrected',
-    'refunded',
-    'no_action',
-  ],
+  reconciliationResolution: ['matched', 'recorded', 'not_received', 'duplicate', 'corrected', 'refunded', 'no_action'],
   reconciliationRecord: ['pending_check', 'returned_payment', 'open_dispute', 'refund_uncertain'],
   /** What the Owner records of a Square refund (TSK-0089). */
   refundOutcome: ['processing', 'succeeded', 'failed', 'needs_review'],
