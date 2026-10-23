@@ -17,6 +17,7 @@ import { MyJobPackets } from './JobPacket'
 import { codeLabel } from './Requests'
 import { StopWorkPanel } from './StopWork'
 import { VisitOutcomeForm, type RecordedOutcome } from './VisitOutcomes'
+import { offlineStore, type StoredDraft } from './offline/store'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
 
@@ -194,6 +195,17 @@ function VisitCard({
   const [problem, setProblem] = useState<StaffKey | null>(null)
   const key = useRef<{ tap: Tap; key: string } | null>(null)
   const zone = v.window.timeZone
+  // TSK-0079 (HH-OFF-03, T50): taps saved on this phone while the server could not be reached.
+  const [drafts, setDrafts] = useState<StoredDraft[]>([])
+  const loadDrafts = useCallback(async () => {
+    const all = await offlineStore()
+      .listDrafts()
+      .catch(() => [] as StoredDraft[])
+    setDrafts(all.filter((d) => d.kind === 'tap' && d.visitId === v.visitId))
+  }, [v.visitId])
+  useEffect(() => {
+    void loadDrafts()
+  }, [loadDrafts])
   async function tap(what: Tap) {
     setPending(what)
     setProblem(null)
@@ -209,9 +221,30 @@ function VisitCard({
       },
     )
     setPending(null)
-    if (r.ok || r.status > 0) key.current = null
-    if (r.ok) return onChanged(r.data.visit)
-    if (r.status === 0) return setProblem('myday.notRecordedOffline')
+    if (r.ok) {
+      key.current = null
+      return onChanged(r.data.visit)
+    }
+    if (r.status === 0) {
+      // No connection: the tap is saved on this phone with the device's time and its request key, never shown as
+      // recorded; the office is not told until it is synchronized (TSK-0080).
+      const saved = await offlineStore()
+        .putDraft({
+          id: key.current.key,
+          kind: 'tap',
+          jobId: v.jobId,
+          visitId: v.visitId,
+          deviceRecordedAt: new Date().toISOString(),
+          payload: { tap: what },
+          state: 'saved_on_phone',
+        })
+        .then(() => true)
+        .catch(() => false)
+      key.current = null
+      if (!saved) return setProblem('myday.notRecordedOffline')
+      return void loadDrafts()
+    }
+    key.current = null
     const code = r.error.fieldErrors[0]?.code
     const refused = code ? REFUSAL[code] : undefined
     if (refused) {
@@ -393,6 +426,22 @@ function VisitCard({
               outcomes={v.outcomes ?? []}
               onRecorded={(next) => (next ? onChanged(next) : onStale())}
             />
+          ) : null}
+          {drafts.length > 0 ? (
+            <div data-testid="myday-drafts">
+              <ul>
+                {drafts.map((d) => (
+                  <li key={d.id}>
+                    {t('myday.draft', {
+                      tap: t(TAP_LABEL[d.payload['tap'] as Tap] ?? 'myday.tap.arrived'),
+                      time: timeIn(d.deviceRecordedAt, zone, locale),
+                    })}{' '}
+                    <StatusBadge tone="warning">{t('offline.savedOnPhone')}</StatusBadge>
+                  </li>
+                ))}
+              </ul>
+              <p role="status">{t('offline.notSynced')}</p>
+            </div>
           ) : null}
           {problem ? (
             <p role="alert" className="hh-field__error" data-testid="myday-problem">

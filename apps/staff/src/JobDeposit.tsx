@@ -15,6 +15,7 @@ import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { call, idempotencyKey, setCsrfToken, type ApiErrorBody, type Fetch } from './api'
 import { JobInvoices } from './JobInvoices'
 import { codeLabel } from './Requests'
+import { useOnline } from './Shell'
 
 type T = (key: StaffKey, values?: Record<string, string | number | Date>) => string
 type StaffRef = { id: string; name: string | null }
@@ -119,6 +120,8 @@ export function JobDeposit({
   jobId: string
   page?: boolean
 }) {
+  // TSK-0079 (HH-OFF-04): this action needs the server; offline it is refused, never queued.
+  const online = useOnline()
   const ids = useId()
   const [deposit, setDeposit] = useState<Deposit | null | undefined>(undefined)
   const [error, setError] = useState<string | null>(null)
@@ -405,7 +408,11 @@ export function JobDeposit({
               required
             />
           ) : null}
-          <Button type="submit" pending={pending === 'record'}>
+          <Button
+            type="submit"
+            pending={pending === 'record'}
+            {...(!online ? { disabledReason: t('offline.needsConnection') } : {})}
+          >
             {t('deposit.record')}
           </Button>
         </form>

@@ -15,6 +15,7 @@ import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useState, type FormEvent } from 'react'
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
 import { codeLabel } from './Requests'
+import { useOnline } from './Shell'
 
 type T = (key: StaffKey, values?: Record<string, string | number | Date>) => string
 type StaffRef = { id: string; name: string | null }
@@ -526,6 +527,8 @@ function InPerson({
   approval: InPersonApproval
   onDone: () => Promise<void>
 }) {
+  // TSK-0079 (HH-OFF-04): no offline change-order approval; the code and the approval need the server.
+  const online = useOnline()
   const ids = useId()
   const [channel, setChannel] = useState<'email' | 'sms' | null>(approval.channels[0]?.channel ?? null)
   const [sentTo, setSentTo] = useState<string | null>(null)
@@ -579,15 +582,17 @@ function InPerson({
     setProblem(null)
     await onDone()
   }
-  const blocked = !sentTo
-    ? t('changeOrders.inPerson.sendFirst')
-    : !/^[0-9]{4,10}$/.test(code.trim())
-      ? t('changeOrders.inPerson.needsCode')
-      : !accept
-        ? t('changeOrders.inPerson.needsBox')
-        : !name.trim()
-          ? t('changeOrders.inPerson.needsName')
-          : undefined
+  const blocked = !online
+    ? t('offline.needsConnection')
+    : !sentTo
+      ? t('changeOrders.inPerson.sendFirst')
+      : !/^[0-9]{4,10}$/.test(code.trim())
+        ? t('changeOrders.inPerson.needsCode')
+        : !accept
+          ? t('changeOrders.inPerson.needsBox')
+          : !name.trim()
+            ? t('changeOrders.inPerson.needsName')
+            : undefined
   return (
     <fieldset className="staff-request__section" data-testid="change-order-in-person" aria-labelledby={`${ids}-ip`}>
       <legend id={`${ids}-ip`}>{t('changeOrders.inPerson.title')}</legend>
@@ -599,7 +604,12 @@ function InPerson({
         </label>
       ))}
       <div className="hh-button-row">
-        <Button variant="secondary" pending={pending === 'code'} onClick={() => void sendCode()}>
+        <Button
+          variant="secondary"
+          pending={pending === 'code'}
+          {...(!online ? { disabledReason: t('offline.needsConnection') } : {})}
+          onClick={() => void sendCode()}
+        >
           {sentTo ? t('changeOrders.inPerson.resend') : t('changeOrders.inPerson.send')}
         </Button>
       </div>

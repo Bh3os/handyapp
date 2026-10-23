@@ -541,6 +541,28 @@ test.describe('Start Work: the server-side gate and the job-level Hold (TSK-0073
       await w.context().setOffline(false)
       await expect(start).toBeEnabled()
 
+      // TSK-0079 (HH-OFF-01, HH-OFF-04, T49, T50): online, My Day keeps a verified copy of the assigned packet; with the
+      // network off the app opens on that copy, labelled with its version and last sync, and Start Work stays refused.
+      const startUrl = w.url()
+      await w.goto('/staff/my-day')
+      await expect(w.getByTestId('offline-ready')).toContainText('Ready for offline use')
+      await w.evaluate(async () => {
+        await navigator.serviceWorker.ready
+      })
+      await w.reload()
+      await expect(w.getByTestId('offline-ready')).toBeVisible()
+      await w.context().setOffline(true)
+      await w.goto(`/staff/packets/${jobId}`)
+      await expect(w.getByTestId('packet-offline-copy')).toContainText('last synchronized')
+      await expect(w.getByText(/^Not yet synchronized\. The office has not been notified/).first()).toBeVisible()
+      await expect(w.getByRole('button', { name: /^Print/ })).toHaveCount(0)
+      await w.goto(startUrl)
+      await expect(w.getByTestId('start-offline')).toContainText('Start Work needs an online check')
+      await expect(w.getByRole('button', { name: 'Start Work' })).toHaveCount(0)
+      await w.context().setOffline(false)
+      await w.goto(startUrl)
+      await expect(start).toBeEnabled()
+
       // Office puts the job on Hold after the check: the press is refused and the page names the Hold.
       await office.write('POST', `/api/v1/staff/jobs/${jobId}/job-holds`, {
         category: 'permit_licensing',

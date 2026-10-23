@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { setCsrfToken } from '../src/api'
 import { MyDay, type MyDayVisit } from '../src/MyDay'
+import { memoryStore, setOfflineStore } from '../src/offline/store'
 import { VisitTimesPage, type VisitTimesView } from '../src/VisitTimes'
 
 afterEach(cleanup)
@@ -196,7 +197,7 @@ describe('My Day (TSK-0070)', () => {
     expect(screen.getByText('Arrived does not start work: Start Work runs its own online checks.')).toBeTruthy()
   })
 
-  it('[HH-SCH-08] a refused tap says why and reloads the day; a tap without a connection says it was not recorded', async () => {
+  it('[HH-SCH-08][HH-OFF-03][T50] a refused tap says why and reloads the day; a tap without a connection is saved on this phone, not yet synchronized', async () => {
     const { t } = staffTranslator('en')
     let loads = 0
     const fetchImpl = api({
@@ -217,11 +218,23 @@ describe('My Day (TSK-0070)', () => {
       const path = String(url).replace('/api/v1', '')
       return path === '/staff/my/day' ? json(200, day([visit()])) : json(200, { packets: [] })
     })
+    const store = memoryStore()
+    setOfflineStore(store)
     render(<MyDay t={t} locale="en" fetchImpl={offline as unknown as typeof fetch} href={href} />)
     fireEvent.click(await screen.findByRole('button', { name: 'On my way' }))
-    expect((await screen.findByRole('alert')).textContent).toBe(
-      'Not recorded: no connection. Nothing is saved on this phone. Tap again when you are online.',
+    const drafts = await screen.findByTestId('myday-drafts')
+    expect(drafts.textContent).toContain('On my way at')
+    expect(drafts.textContent).toContain('Saved on this phone')
+    expect(within(drafts).getByRole('status').textContent).toBe(
+      'Not yet synchronized. The office has not been notified of anything done on this phone. In an emergency call 911, then call the Owner.',
     )
+    // Never shown as recorded: the visit is still waiting for On my way, and nothing claims the office knows.
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.getByRole('button', { name: 'On my way' })).toBeTruthy()
+    const [draft] = await store.listDrafts()
+    expect(draft).toMatchObject({ kind: 'tap', visitId: VISIT, payload: { tap: 'on-my-way' }, state: 'saved_on_phone' })
+    expect(Number.isNaN(Date.parse(draft?.deviceRecordedAt ?? ''))).toBe(false)
+    setOfflineStore(null)
   })
 
   it('[HH-OFF-09] a tentative hold shows no address and nothing to record; early On my way says when it opens; Spanish labels', async () => {

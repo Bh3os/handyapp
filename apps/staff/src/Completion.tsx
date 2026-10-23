@@ -8,6 +8,7 @@ import { Button, Field, StateView } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useState, type FormEvent } from 'react'
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
 import { codeLabel } from './Requests'
+import { useOnline } from './Shell'
 
 type T = (key: StaffKey, values?: Record<string, string | number | Date>) => string
 
@@ -43,6 +44,8 @@ function completionError(t: T, e: ApiErrorBody): string {
 }
 
 export function CompletionPanel({ t, fetchImpl, jobId }: { t: T; fetchImpl: Fetch; jobId: string }) {
+  // TSK-0079 (HH-OFF-04): this action needs the server; offline it is refused, never queued.
+  const online = useOnline()
   const ids = useId()
   const [data, setData] = useState<CompletionData | null>(null)
   const [outcome, setOutcome] = useState<Outcome>('accepted')
@@ -186,7 +189,11 @@ export function CompletionPanel({ t, fetchImpl, jobId }: { t: T; fetchImpl: Fetc
                   {problem}
                 </p>
               ) : null}
-              <Button type="submit" pending={pending}>
+              <Button
+                type="submit"
+                pending={pending}
+                {...(!online ? { disabledReason: t('offline.needsConnection') } : {})}
+              >
                 {t('completion.submit')}
               </Button>
             </form>
