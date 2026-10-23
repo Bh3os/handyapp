@@ -20,6 +20,7 @@ import { call, idempotencyKey, setCsrfToken, upload, type ApiErrorBody, type Fet
 import { ReauthForm, useOwnerWrite } from './OwnerWrite'
 import { codeLabel } from './Requests'
 import { EmergencyCall, holdNoteText, JobSafety } from './StopWork'
+import { useOnline } from './Shell'
 
 // TSK-0077: Call 911 lives with Stop Work (StopWork.tsx); the briefing still shows it first.
 export { EmergencyCall }
@@ -373,14 +374,15 @@ export function StartWorkPage({
   href: (to: string) => string
 }) {
   const [gate, setGate] = useState<StartGateView | null>(null)
-  const [state, setState] = useState<'loading' | 'ready' | 'unavailable'>('loading')
+  const [state, setState] = useState<'loading' | 'ready' | 'unavailable' | 'offline'>('loading')
   const [refusal, setRefusal] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const [isOnline, setOnline] = useState(online())
   const key = useRef<string | null>(null)
   const load = useCallback(async () => {
     const r = await call<StartGateView>(fetchImpl, `/staff/visits/${encodeURIComponent(visitId)}/start-gate`)
-    if (!r.ok) return setState('unavailable')
+    // TSK-0079 (HH-OFF-04): without a connection there is no gate to read and no start: said so, never assumed.
+    if (!r.ok) return setState(r.status === 0 ? 'offline' : 'unavailable')
     setGate(r.data)
     setState('ready')
   }, [fetchImpl, visitId])
@@ -431,6 +433,11 @@ export function StartWorkPage({
       </h1>
       {state === 'loading' ? <StateView kind="loading" title={t('start.loading')} /> : null}
       {state === 'unavailable' ? <StateView kind="error" title={t('start.unavailable')} /> : null}
+      {state === 'offline' ? (
+        <div data-testid="start-offline">
+          <StateView kind="offline" title={t('start.offline')} />
+        </div>
+      ) : null}
       {gate ? (
         <>
           <p>
@@ -581,6 +588,8 @@ export type StartReviewView = {
 }
 
 function HoldActions({ t, fetchImpl, hold, onDone }: { t: T; fetchImpl: Fetch; hold: ReviewHold; onDone: () => void }) {
+  // TSK-0079 (HH-OFF-04): this action needs the server; offline it is refused, never queued.
+  const connected = useOnline()
   const w = useOwnerWrite(fetchImpl, (s) => setCsrfToken(s.csrfToken))
   const [note, setNote] = useState('')
   const [evidence, setEvidence] = useState('')
@@ -622,7 +631,11 @@ function HoldActions({ t, fetchImpl, hold, onDone }: { t: T; fetchImpl: Fetch; h
             value={note}
             onChange={(e) => setNote(e.target.value)}
           />
-          <Button type="submit" pending={w.pending}>
+          <Button
+            type="submit"
+            pending={w.pending}
+            {...(!connected ? { disabledReason: t('offline.needsConnection') } : {})}
+          >
             {t('start.review.setReady')}
           </Button>
         </form>

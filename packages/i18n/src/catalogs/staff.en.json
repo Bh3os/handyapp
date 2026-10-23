@@ -4488,5 +4488,16 @@
   "enum.queueReason.weather": "Weather stopped the visit",
   "enum.queueReason.missing_resources": "Materials or tools were missing",
   "enum.queueReason.readiness_issue": "The job was not ready to work",
-  "enum.queueAction.follow_up_visit": "Follow up the visit"
+  "enum.queueAction.follow_up_visit": "Follow up the visit",
+  "offline.copyTitle": "Offline copy on this phone",
+  "offline.copyBody": "Version {version}, last synchronized {at}. It may be out of date: check again when you are online.",
+  "offline.notSynced": "Not yet synchronized. The office has not been notified of anything done on this phone. In an emergency call 911, then call the Owner.",
+  "offline.ready": "Ready for offline use (version {version})",
+  "offline.failed": "Not saved for offline use",
+  "offline.notStored": "No visit today or later: not kept offline",
+  "offline.noCopies": "No job packets are saved on this phone.",
+  "offline.lastSync": "last synchronized {at}",
+  "offline.savedOnPhone": "Saved on this phone",
+  "offline.needsConnection": "This needs a connection to the office: it cannot be done offline.",
+  "myday.draft": "{tap} at {time}"
 }

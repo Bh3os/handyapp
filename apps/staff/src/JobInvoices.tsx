@@ -17,6 +17,7 @@ import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
 import { depositRefusal, PAYMENT_METHODS } from './JobDeposit'
 import { codeLabel } from './Requests'
+import { useOnline } from './Shell'
 
 type T = (key: StaffKey, values?: Record<string, string | number | Date>) => string
 
@@ -211,6 +212,8 @@ function InvoicePanel({
   send: (action: string, path: string, body: unknown, ifMatch?: number) => Promise<boolean>
   setDone: (s: string | null) => void
 }) {
+  // TSK-0079 (HH-OFF-04): this action needs the server; offline it is refused, never queued.
+  const online = useOnline()
   const ids = useId()
   const [method, setMethod] = useState<string>('cash')
   const [amount, setAmount] = useState('')
@@ -452,7 +455,11 @@ function InvoicePanel({
               required
             />
           ) : null}
-          <Button type="submit" pending={pending === `pay-${i.id}`}>
+          <Button
+            type="submit"
+            pending={pending === `pay-${i.id}`}
+            {...(!online ? { disabledReason: t('offline.needsConnection') } : {})}
+          >
             {t('deposit.record')}
           </Button>
         </form>

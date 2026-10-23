@@ -20,6 +20,8 @@ import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { Button, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { call, type Fetch } from './api'
+import { purgeOfflineCopies, readOfflineCopy, storeOfflineCopy, type OfflineState } from './offline/packet'
+import { offlineStore, type StoredPacket } from './offline/store'
 import { JobIncidents } from './Cases'
 import { RevealedValue, type Revealed } from './Property'
 import { codeLabel } from './Requests'
@@ -520,22 +522,30 @@ export function JobPacketPage({
   const [printError, setPrintError] = useState(false)
   const [printing, setPrinting] = useState(false)
   const recorded = useRef<number | null>(null)
+  // TSK-0079 (HH-OFF-01, T49): without a connection, the copy this phone holds, labelled as such.
+  const [copy, setCopy] = useState<StoredPacket | null>(null)
   const load = useCallback(async () => {
     const r = await call<JobPacketView>(fetchImpl, `/staff/jobs/${encodeURIComponent(jobId)}/packet`)
-    setView(r.ok ? r.data : null)
+    if (r.ok) {
+      setCopy(null)
+      return setView(r.data)
+    }
+    const stored = r.status === 0 ? await readOfflineCopy(offlineStore(), jobId) : null
+    setCopy(stored)
+    setView(stored ? (stored.view as JobPacketView) : null)
   }, [fetchImpl, jobId])
   useEffect(() => {
     void load()
   }, [load])
   // Opening a version records that this person viewed it (the next "since you reviewed" starts there).
   useEffect(() => {
-    if (!view || recorded.current === view.packet.version) return
+    if (!view || copy || recorded.current === view.packet.version) return
     recorded.current = view.packet.version
     void call(fetchImpl, `/staff/jobs/${encodeURIComponent(jobId)}/packet/views`, {
       method: 'POST',
       body: { version: view.packet.version },
     })
-  }, [view, fetchImpl, jobId])
+  }, [view, copy, fetchImpl, jobId])
   useEffect(() => {
     if (printedAt) window.print()
   }, [printedAt])
@@ -577,6 +587,14 @@ export function JobPacketPage({
       <h1 id={`${ids}-title`} className="hh-h3">
         {t('packet.title', { reference: v.job.projectReference })}
       </h1>
+      {copy ? (
+        <StateView kind="offline" title={t('offline.copyTitle')}>
+          <p data-testid="packet-offline-copy">
+            {t('offline.copyBody', { version: copy.version, at: when(copy.savedAt) })}
+          </p>
+          <p>{t('offline.notSynced')}</p>
+        </StateView>
+      ) : null}
       <dl className="staff-system__fields" data-testid="packet-freshness">
         <div>
           <dt>{t('packet.field.version')}</dt>
@@ -606,16 +624,20 @@ export function JobPacketPage({
         <Button variant="secondary" onClick={() => void load()}>
           {t('packet.refresh')}
         </Button>
-        <Button variant="secondary" pending={printing} onClick={() => void print()}>
-          {t('packet.print.button')}
-        </Button>
-        <a
-          className="hh-button hh-button--secondary"
-          href={`/api/v1/staff/jobs/${encodeURIComponent(jobId)}/packet/pdf?version=${v.packet.version}`}
-          download
-        >
-          {t('packet.pdf.button')}
-        </a>
+        {copy ? null : (
+          <>
+            <Button variant="secondary" pending={printing} onClick={() => void print()}>
+              {t('packet.print.button')}
+            </Button>
+            <a
+              className="hh-button hh-button--secondary"
+              href={`/api/v1/staff/jobs/${encodeURIComponent(jobId)}/packet/pdf?version=${v.packet.version}`}
+              download
+            >
+              {t('packet.pdf.button')}
+            </a>
+          </>
+        )}
       </div>
       {printError ? <StateView kind="error" title={t('packet.print.failed')} /> : null}
       {printedAt ? (
@@ -649,7 +671,8 @@ export function JobPacketPage({
         )}
       </section>
 
-      <Review t={t} fetchImpl={fetchImpl} view={v} when={when} onChanged={load} />
+      {/* An acknowledgment needs the server: never recorded from an offline copy. */}
+      {copy ? null : <Review t={t} fetchImpl={fetchImpl} view={v} when={when} onChanged={load} />}
 
       <Section id={section('identity')} title={t('packet.section.identity')}>
         <dl className="staff-system__fields">
@@ -860,6 +883,7 @@ export function JobPacketPage({
                   fetchImpl={fetchImpl}
                   workPackageId={p.workPackageId}
                   when={when}
+                  offlineCopy={copy?.sops[p.workPackageId]}
                 />
               </div>
             </li>
@@ -1008,10 +1032,28 @@ export function JobPacketPage({
         <StateView kind="empty" title={t('packet.careNotesNone')} />
       </Section>
       {/* TSK-0093 (HH-INC-01): report an incident quickly from the job, and the caller's own reports on it. */}
-      <div className="staff-packet__screen-only">
-        <JobIncidents t={t} locale={locale} fetchImpl={fetchImpl} jobId={jobId} href={href} />
-      </div>
+      {copy ? null : (
+        <div className="staff-packet__screen-only">
+          <JobIncidents t={t} locale={locale} fetchImpl={fetchImpl} jobId={jobId} href={href} />
+        </div>
+      )}
     </article>
+  )
+}
+
+/** Whether this phone holds a verified offline copy of the packet (TSK-0079). */
+function OfflineBadge({ t, state }: { t: T; state: OfflineState | undefined }) {
+  if (!state) return null
+  if (state.state === 'ready')
+    return (
+      <span data-testid="offline-ready">
+        <StatusBadge tone="success">{t('offline.ready', { version: state.version })}</StatusBadge>
+      </span>
+    )
+  return (
+    <span data-testid="offline-not-ready">
+      <StatusBadge>{t(state.state === 'failed' ? 'offline.failed' : 'offline.notStored')}</StatusBadge>
+    </span>
   )
 }
 
@@ -1034,16 +1076,88 @@ type MyPacket = {
   }[]
 }
 
-/** The caller's own assigned jobs with their packets, below the visits of My Day (TSK-0070). */
+/**
+ * The caller's own assigned jobs with their packets, below the visits of My Day (TSK-0070). TSK-0079 (HH-OFF-01, T49):
+ * online, each packet with a visit today or later is copied to this phone and said "Ready for offline use" only once
+ * the copy was read back unchanged; copies of jobs no longer assigned, or past their service day, are removed. Offline,
+ * the copies still on the phone are listed with their version and when they were taken.
+ */
 export function MyJobPackets({ t, fetchImpl, href }: { t: T; fetchImpl: Fetch; href: (to: string) => string }) {
   const ids = useId()
   const [packets, setPackets] = useState<MyPacket[] | null | undefined>(undefined)
+  const [offline, setOffline] = useState<Record<string, OfflineState>>({})
+  const [stored, setStored] = useState<StoredPacket[] | null>(null)
   useEffect(() => {
+    let live = true
     void (async () => {
       const r = await call<{ packets: MyPacket[] }>(fetchImpl, '/staff/my/job-packets')
-      setPackets(r.ok ? r.data.packets : null)
+      if (!live) return
+      const store = offlineStore()
+      if (!r.ok) {
+        setPackets(null)
+        // No connection: the copies this phone still holds (expired ones are purged as they are read).
+        if (r.status === 0) {
+          const now = new Date()
+          const all = await store.listPackets().catch(() => [] as StoredPacket[])
+          const valid = all.filter((p) => new Date(p.expiresAt).getTime() > now.getTime())
+          await Promise.all(all.filter((p) => !valid.includes(p)).map((p) => store.deletePacket(p.jobId)))
+          if (live) setStored(valid)
+        }
+        return
+      }
+      setPackets(r.data.packets)
+      await purgeOfflineCopies(
+        store,
+        r.data.packets.map((p) => p.jobId),
+      ).catch(() => 0)
+      for (const p of r.data.packets) {
+        const full = await call<JobPacketView>(fetchImpl, `/staff/jobs/${encodeURIComponent(p.jobId)}/packet`)
+        let state: OfflineState = { state: 'failed' }
+        if (full.ok) {
+          // The SOP checklist of each pinned work package goes with the copy; a missing one leaves it not ready.
+          const sops: Record<string, unknown> = {}
+          let complete = true
+          for (const pkg of (full.data.sop?.packages ?? []).filter((x) => x.state === 'pinned')) {
+            const sop = await call<unknown>(
+              fetchImpl,
+              `/staff/work-packages/${encodeURIComponent(pkg.workPackageId)}/sop`,
+            )
+            if (sop.ok) sops[pkg.workPackageId] = sop.data
+            else complete = false
+          }
+          state = complete ? await storeOfflineCopy(store, full.data, p.visits, sops) : { state: 'failed' }
+        }
+        if (live) setOffline((o) => ({ ...o, [p.jobId]: state }))
+      }
     })()
+    return () => {
+      live = false
+    }
   }, [fetchImpl])
+  if (packets === null && stored)
+    return (
+      <section className="staff-request__section" aria-labelledby={`${ids}-title`} data-testid="my-job-packets">
+        <h2 id={`${ids}-title`} className="staff-queue__heading">
+          {t('packet.mine.title')}
+        </h2>
+        <p role="status" data-testid="offline-not-synced">
+          {t('offline.notSynced')}
+        </p>
+        {stored.length === 0 ? (
+          <StateView kind="empty" title={t('offline.noCopies')} />
+        ) : (
+          <ul className="staff-request__list" data-testid="offline-copies">
+            {stored.map((p) => (
+              <li key={p.jobId}>
+                <a href={href(`/packets/${p.jobId}`)}>{t('packet.title', { reference: p.projectReference })}</a>{' '}
+                <StatusBadge>{t('packet.versionValue', { version: p.version })}</StatusBadge>{' '}
+                {t('offline.lastSync', { at: new Date(p.savedAt).toLocaleString() })}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    )
   return (
     <section className="staff-request__section" aria-labelledby={`${ids}-title`} data-testid="my-job-packets">
       <h2 id={`${ids}-title`} className="staff-queue__heading">
@@ -1070,7 +1184,8 @@ export function MyJobPackets({ t, fetchImpl, href }: { t: T; fetchImpl: Fetch; h
               ) : null}{' '}
               <StatusBadge tone={ACK_TONE[p.acknowledgment]}>
                 {codeLabel(t, 'acknowledgmentState', p.acknowledgment)}
-              </StatusBadge>
+              </StatusBadge>{' '}
+              <OfflineBadge t={t} state={offline[p.jobId]} />
               <ul>
                 {p.visits.map((x) => (
                   <li key={x.visitId}>

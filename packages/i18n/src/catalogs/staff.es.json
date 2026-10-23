@@ -4488,5 +4488,16 @@
   "enum.queueReason.weather": "El clima detuvo la visita",
   "enum.queueReason.missing_resources": "Faltaban materiales o herramientas",
   "enum.queueReason.readiness_issue": "El trabajo no estaba listo",
-  "enum.queueAction.follow_up_visit": "Dar seguimiento a la visita"
+  "enum.queueAction.follow_up_visit": "Dar seguimiento a la visita",
+  "offline.copyTitle": "Copia sin conexión en este teléfono",
+  "offline.copyBody": "Versión {version}, sincronizada por última vez {at}. Puede estar desactualizada: revise de nuevo cuando tenga conexión.",
+  "offline.notSynced": "Aún no sincronizado. La oficina no ha recibido nada de lo hecho en este teléfono. En una emergencia llame al 911 y luego al Dueño.",
+  "offline.ready": "Lista para usar sin conexión (versión {version})",
+  "offline.failed": "No se guardó para usar sin conexión",
+  "offline.notStored": "Sin visita hoy ni después: no se guarda sin conexión",
+  "offline.noCopies": "No hay paquetes de trabajo guardados en este teléfono.",
+  "offline.lastSync": "sincronizado por última vez {at}",
+  "offline.savedOnPhone": "Guardado en este teléfono",
+  "offline.needsConnection": "Esto necesita conexión con la oficina: no se puede hacer sin conexión.",
+  "myday.draft": "{tap} a las {time}"
 }

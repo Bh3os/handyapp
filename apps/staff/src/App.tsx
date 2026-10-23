@@ -24,6 +24,7 @@ import { MyDay } from './MyDay'
 import { QualityReviewPage } from './QualityReview'
 import { ChangeOrdersPage, ChangeOrderVersionLink } from './ChangeOrders'
 import { VisitOutcomePage } from './VisitOutcomes'
+import { offlineStore } from './offline/store'
 import { ChecklistPage } from './Checklist'
 import { QueueHome } from './Queue'
 import { MergeReview, RelinkRequest } from './RecordLinks'
@@ -52,6 +53,31 @@ type Session = {
   csrfToken: string
   /** The menu for these roles, decided on the server from the permission matrix (TSK-0040). */
   navigation?: Navigation
+}
+
+/**
+ * TSK-0079 (HH-OFF-01): the last session's non-secret details (name, roles, language, menu; never the CSRF token, and
+ * the session cookie stays HttpOnly), kept on this device so the app can open its offline copies when the server
+ * cannot be reached. The server still decides everything; this is only what the screen shows. Removed at sign-out.
+ */
+const OFFLINE_SESSION_KEY = 'hh.staff.offlineSession'
+function rememberSession(s: Session | null): void {
+  try {
+    if (!s) return window.localStorage.removeItem(OFFLINE_SESSION_KEY)
+    const shown: Partial<Session> = { ...s }
+    delete shown.csrfToken
+    window.localStorage.setItem(OFFLINE_SESSION_KEY, JSON.stringify(shown))
+  } catch {
+    // Storage unavailable: offline the app shows the sign-in page, as before.
+  }
+}
+function rememberedSession(): Session | null {
+  try {
+    const raw = window.localStorage.getItem(OFFLINE_SESSION_KEY)
+    return raw ? ({ ...(JSON.parse(raw) as Omit<Session, 'csrfToken'>), csrfToken: '' } as Session) : null
+  } catch {
+    return null
+  }
 }
 
 /** PROPOSED password minimum (apps/server/src/modules/identity/passwords.ts PASSWORD_MIN_LENGTH). */
@@ -180,11 +206,15 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
     let live = true
     void call<Session>(doFetch, '/staff/auth/session').then((r) => {
       if (!live) return
-      if (r.ok) setSession(r.data)
-      else {
-        setSession(null)
-        go('/sign-in')
+      if (r.ok) {
+        rememberSession(r.data)
+        return setSession(r.data)
       }
+      // No connection: the remembered details open the app on its offline copies; every write still needs the server.
+      const remembered = r.status === 0 ? rememberedSession() : null
+      if (remembered) return setSession(remembered)
+      setSession(null)
+      go('/sign-in')
     })
     return () => {
       live = false
@@ -204,6 +234,11 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
   async function signOut() {
     setSigningOut(true)
     await call(doFetch, '/staff/auth/sign-out', { method: 'POST' })
+    // TSK-0079 (HH-OFF-02): nothing of this person's offline copies or drafts stays on the device after sign-out.
+    rememberSession(null)
+    await offlineStore()
+      .clear()
+      .catch(() => undefined)
     setSigningOut(false)
     setSession(null)
     go('/sign-in')

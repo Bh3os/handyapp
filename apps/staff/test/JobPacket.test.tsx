@@ -3,7 +3,10 @@
 import { staffTranslator } from '@handyhub/i18n'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { localDateOf } from '@handyhub/domain'
 import { changeText, JobPacketPage, MyJobPackets, type JobPacketView } from '../src/JobPacket'
+import { storeOfflineCopy } from '../src/offline/packet'
+import { memoryStore, setOfflineStore } from '../src/offline/store'
 
 afterEach(() => {
   cleanup()
@@ -513,5 +516,70 @@ describe('your review of the packet (TSK-0072)', () => {
     )
     expect(within(office).queryByRole('button', { name: /Acknowledge/ })).toBeNull()
     expect(screen.getByTestId('packet-review-team').textContent).toContain('Synthetic Ann: Review again')
+  })
+})
+
+describe('the offline packet (TSK-0079)', () => {
+  const ZONE = 'America/Kentucky/Louisville'
+  const today = localDateOf(new Date(), ZONE)
+
+  it('[HH-OFF-01][T49] online, My Day keeps a verified copy of each assigned packet and says it is ready for offline use', async () => {
+    const store = memoryStore()
+    setOfflineStore(store)
+    const fetchImpl = api(view(), (url) =>
+      url === '/api/v1/staff/my/job-packets'
+        ? json(200, {
+            packets: [
+              {
+                jobId: JOB,
+                projectReference: 'HH-SYNTH-69',
+                version: 3,
+                lastViewedVersion: 3,
+                changedSinceViewed: false,
+                criticalSinceViewed: false,
+                acknowledgment: 'acknowledged',
+                acknowledgedVersion: 3,
+                visits: [
+                  {
+                    visitId: 'v1',
+                    number: 1,
+                    localDate: today,
+                    windowStart: '08:00',
+                    windowEnd: '10:00',
+                    timeZone: ZONE,
+                  },
+                ],
+              },
+            ],
+          })
+        : url.endsWith('/sop')
+          ? json(200, { synthetic: 'checklist' })
+          : undefined,
+    )
+    const { t } = staffTranslator('en')
+    render(<MyJobPackets t={t} fetchImpl={fetchImpl as unknown as typeof fetch} href={(to) => to} />)
+    expect((await screen.findByTestId('offline-ready')).textContent).toBe('Ready for offline use (version 3)')
+    const stored = await store.getPacket(JOB)
+    expect(stored).toMatchObject({ version: 3 })
+    // The copy holds no access-code entry and no photo link (T28, HH-OFF-02).
+    expect(JSON.stringify(stored)).not.toContain('Back door')
+    setOfflineStore(null)
+  })
+
+  it('[HH-OFF-01][HH-OFF-04][T49] offline, the packet is the stored copy, labelled with its version and last sync; nothing is acknowledged or printed', async () => {
+    const store = memoryStore()
+    setOfflineStore(store)
+    await storeOfflineCopy(store, view(), [{ localDate: today, timeZone: ZONE }])
+    const fetchImpl = vi.fn(async (_url: string): Promise<Response> => {
+      throw new TypeError('network down')
+    })
+    renderPacket(fetchImpl)
+    expect((await screen.findByTestId('packet-offline-copy')).textContent).toContain('Version 3, last synchronized')
+    expect(screen.getByText(/Not yet synchronized\. The office has not been notified/)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Print/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /I reviewed|Acknowledge/ })).toBeNull()
+    // No view was recorded from the copy (only the failed load was attempted).
+    expect(fetchImpl.mock.calls.every(([url]) => !String(url).endsWith('/views'))).toBe(true)
+    setOfflineStore(null)
   })
 })

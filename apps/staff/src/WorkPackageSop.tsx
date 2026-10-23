@@ -427,12 +427,15 @@ export function WorkPackageSop({
   fetchImpl,
   workPackageId,
   when,
+  offlineCopy,
 }: {
   t: T
   locale: StaffLocale
   fetchImpl: Fetch
   workPackageId: string
   when: (iso: string) => string
+  /** TSK-0079: the checklist this phone stored with the offline packet, shown when the server cannot be reached. */
+  offlineCopy?: unknown
 }) {
   const [view, setView] = useState<WorkPackageSopView | null>(null)
   const [error, setError] = useState(false)
@@ -443,6 +446,7 @@ export function WorkPackageSop({
     const r = await call<WorkPackageSopView>(fetchImpl, `/staff/work-packages/${encodeURIComponent(workPackageId)}/sop`)
     setLoading(false)
     if (r.ok) setView(r.data)
+    else if (r.status === 0 && offlineCopy) setView(offlineCopy as WorkPackageSopView)
     else setError(true)
   }
   if (!view)
