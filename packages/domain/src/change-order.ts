@@ -9,10 +9,13 @@
 //   issued   -> superseded  supersede: a revised version replaces it (system, in the revising transaction)
 //   issued   -> expired     expire: its validity ended (system job), never extended (OWN-DEC-168)
 //   issued   -> withdrawn   withdraw, with a reason
+//   issued   -> approved    approve: the identified customer approves the exact version before it expires, against the
+//                           job's current approved scope (TSK-0082 part 2); the job's next scope snapshot follows
+//   issued   -> rejected    reject: the identified customer declines it (an optional reason)
 //
-// The customer's approval and rejection are TSK-0082 part 2. A draft, reviewed or issued version binds nothing: no
-// scope, price, packet or total changes until the identified customer approves the exact issued version. Prices are
-// computed by @handyhub/money (priceChangeOrder).
+// A draft, reviewed or issued version binds nothing: no scope, price, packet or total changes until the identified
+// customer approves the exact issued version. Rejecting, expiring or withdrawing never authorizes the change (HH-CHG-03).
+// Prices are computed by @handyhub/money (priceChangeOrder).
 import { defineMachine, type Guard } from './engine.js'
 import { reasonGiven } from './guards.js'
 
@@ -53,7 +56,7 @@ export type ChangeOrderFacts = {
   readonly reason?: string
   /** Issue: the version is still priced against the job's current approved scope. */
   readonly baseCurrent?: boolean
-  /** Expire: the version's valid-until time. */
+  /** Expire, approve and reject: the version's valid-until time. */
   readonly validUntil?: Date
 }
 
@@ -78,13 +81,19 @@ const validityEnded: G = (f, now) => {
     : { code: 'NOT_DUE', message: 'The change order is still valid.' }
 }
 
+const stillValid: G = (f, now) => {
+  if (!f.validUntil) return { code: 'FACTS_MISSING', message: 'The server must check: the valid-until time.' }
+  return now.getTime() < f.validUntil.getTime()
+    ? null
+    : { code: 'EXPIRED', message: 'The change order expired; ask for a new version.' }
+}
+
 export const CHANGE_ORDER_MACHINE = defineMachine({
   entity: 'change_order',
   dimension: 'lifecycle',
-  // The states written so far; TSK-0082 part 2 adds approved and rejected with the customer's events.
-  states: ['draft', 'reviewed', 'issued', 'superseded', 'expired', 'withdrawn'] as const,
+  states: ['draft', 'reviewed', 'issued', 'approved', 'rejected', 'superseded', 'expired', 'withdrawn'] as const,
   initial: 'draft',
-  final: ['superseded', 'expired', 'withdrawn'],
+  final: ['approved', 'rejected', 'superseded', 'expired', 'withdrawn'],
   proposed: true,
   transitions: [
     { event: 'review', from: ['draft'], to: 'reviewed', actors: ['staff'], guards: [priced] },
@@ -93,6 +102,8 @@ export const CHANGE_ORDER_MACHINE = defineMachine({
     { event: 'supersede', from: ['issued'], to: 'superseded', actors: ['system'] },
     { event: 'expire', from: ['issued'], to: 'expired', actors: ['system'], guards: [validityEnded] },
     { event: 'withdraw', from: ['draft', 'reviewed', 'issued'], to: 'withdrawn', actors: ['staff'], guards: [reason] },
+    { event: 'approve', from: ['issued'], to: 'approved', actors: ['customer'], guards: [stillValid, baseCurrent] },
+    { event: 'reject', from: ['issued'], to: 'rejected', actors: ['customer'], guards: [stillValid] },
   ],
 })
 export type ChangeOrderEvent = (typeof CHANGE_ORDER_MACHINE.transitions)[number]['event']

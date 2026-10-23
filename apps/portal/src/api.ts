@@ -1000,6 +1000,204 @@ async function verify(fetchImpl: Fetch, channel: Channel, code: string): Promise
   return { ok: false, failure: failureOf(r.status, r.json) }
 }
 
+// Change orders (TSK-0082; HH-CHG-02, HH-PORT-05, OWN-DEC-169): the customer view change_orders.customer and the
+// customer's decision on one exact version (POST, JSON body, one idempotency key per attempt, kept for its retries).
+export const CHANGE_ORDER_STATUSES = ['issued', 'approved', 'rejected', 'expired', 'withdrawn', 'superseded'] as const
+export type ChangeOrderStatus = (typeof CHANGE_ORDER_STATUSES)[number]
+export type ChangeOrderLine = {
+  position: number
+  kind: 'charge' | 'credit'
+  description: string
+  quantity: string | null
+  unit: string | null
+  unitPriceCents: number | null
+  amountCents: number | null
+}
+export type ChangeOrder = {
+  reference: string
+  number: number
+  version: number
+  status: ChangeOrderStatus
+  reason: string
+  scope: string
+  scheduleImpact: string | null
+  lines: ChangeOrderLine[]
+  approvedTotalCents: number
+  chargesCents: number
+  creditsCents: number
+  revisedTotalCents: number
+  sentAt: string
+  validUntil: string
+  decidedAt: string | null
+  decision: { kind: 'approved' | 'rejected'; method: 'portal' | 'in_person_code'; at: string } | null
+  approval: {
+    canDecide: boolean
+    blockedBy: 'APPROVED_SCOPE_CHANGED' | null
+    contentDigest: string
+    termsDocumentId: string
+    termsSha256: string
+  } | null
+}
+export type ChangeOrders = {
+  reference: string
+  original: { estimateNumber: string; version: number; totalCents: number } | null
+  currentTotalCents: number | null
+  changeOrders: ChangeOrder[]
+  refreshedAt: string
+  refreshSeconds: number
+}
+const isIntOrNull = (v: unknown): v is number | null => v === null || isInt(v)
+const isStrOrNull = (v: unknown): v is string | null => v === null || isStr(v)
+function parseChangeOrderLine(v: unknown): ChangeOrderLine | null {
+  if (
+    !isObj(v) ||
+    !isInt(v['position']) ||
+    !oneOf(['charge', 'credit'] as const)(v['kind']) ||
+    !isStr(v['description']) ||
+    !isStrOrNull(v['quantity']) ||
+    !isStrOrNull(v['unit']) ||
+    !isIntOrNull(v['unitPriceCents']) ||
+    !isIntOrNull(v['amountCents'])
+  )
+    return null
+  return {
+    position: v['position'],
+    kind: v['kind'],
+    description: v['description'],
+    quantity: v['quantity'],
+    unit: v['unit'],
+    unitPriceCents: v['unitPriceCents'],
+    amountCents: v['amountCents'],
+  }
+}
+function parseChangeOrder(v: unknown): ChangeOrder | null {
+  if (
+    !isObj(v) ||
+    !isStr(v['reference']) ||
+    !isInt(v['number']) ||
+    !isInt(v['version']) ||
+    !oneOf(CHANGE_ORDER_STATUSES)(v['status']) ||
+    !isStr(v['reason']) ||
+    !isStr(v['scope']) ||
+    !isStrOrNull(v['scheduleImpact']) ||
+    !Array.isArray(v['lines']) ||
+    !isInt(v['approvedTotalCents']) ||
+    !isInt(v['chargesCents']) ||
+    !isInt(v['creditsCents']) ||
+    !isInt(v['revisedTotalCents']) ||
+    !isDate(v['sentAt']) ||
+    !isDate(v['validUntil']) ||
+    !(v['decidedAt'] === null || isDate(v['decidedAt']))
+  )
+    return null
+  const lines = v['lines'].map(parseChangeOrderLine)
+  if (lines.some((l) => l === null)) return null
+  const d = v['decision']
+  const decision =
+    d === null
+      ? null
+      : isObj(d) &&
+          oneOf(['approved', 'rejected'] as const)(d['kind']) &&
+          oneOf(['portal', 'in_person_code'] as const)(d['method']) &&
+          isDate(d['at'])
+        ? { kind: d['kind'], method: d['method'], at: d['at'] }
+        : undefined
+  const a = v['approval']
+  const approval =
+    a === null
+      ? null
+      : isObj(a) &&
+          typeof a['canDecide'] === 'boolean' &&
+          (a['blockedBy'] === null || a['blockedBy'] === 'APPROVED_SCOPE_CHANGED') &&
+          isStr(a['contentDigest']) &&
+          isStr(a['termsDocumentId']) &&
+          isStr(a['termsSha256'])
+        ? {
+            canDecide: a['canDecide'],
+            blockedBy: a['blockedBy'] === null ? null : ('APPROVED_SCOPE_CHANGED' as const),
+            contentDigest: a['contentDigest'],
+            termsDocumentId: a['termsDocumentId'],
+            termsSha256: a['termsSha256'],
+          }
+        : undefined
+  if (decision === undefined || approval === undefined) return null
+  return {
+    reference: v['reference'],
+    number: v['number'],
+    version: v['version'],
+    status: v['status'],
+    reason: v['reason'],
+    scope: v['scope'],
+    scheduleImpact: v['scheduleImpact'],
+    lines: lines as ChangeOrderLine[],
+    approvedTotalCents: v['approvedTotalCents'],
+    chargesCents: v['chargesCents'],
+    creditsCents: v['creditsCents'],
+    revisedTotalCents: v['revisedTotalCents'],
+    sentAt: v['sentAt'],
+    validUntil: v['validUntil'],
+    decidedAt: v['decidedAt'],
+    decision,
+    approval,
+  }
+}
+export function parseChangeOrders(v: unknown): ChangeOrders | null {
+  if (
+    !isObj(v) ||
+    !isStr(v['reference']) ||
+    !isIntOrNull(v['currentTotalCents']) ||
+    !Array.isArray(v['changeOrders']) ||
+    !isDate(v['refreshedAt']) ||
+    !isSeconds(v['refreshSeconds'])
+  )
+    return null
+  const o = v['original']
+  const original =
+    o === null
+      ? null
+      : isObj(o) && isStr(o['estimateNumber']) && isInt(o['version']) && isInt(o['totalCents'])
+        ? { estimateNumber: o['estimateNumber'], version: o['version'], totalCents: o['totalCents'] }
+        : undefined
+  const changeOrders = v['changeOrders'].map(parseChangeOrder)
+  if (original === undefined || changeOrders.some((c) => c === null)) return null
+  return {
+    reference: v['reference'],
+    original,
+    currentTotalCents: v['currentTotalCents'],
+    changeOrders: changeOrders as ChangeOrder[],
+    refreshedAt: v['refreshedAt'],
+    refreshSeconds: v['refreshSeconds'],
+  }
+}
+
+/** Why a decision was not recorded: the version moved on (expired, withdrawn, replaced or decided), or the others. */
+export type DecisionFailure = WriteFailure | 'total_changed' | 'access_revoked' | 'scope_changed'
+export type DecisionResult = { ok: true; status: 'approved' | 'rejected' } | { ok: false; failure: DecisionFailure }
+async function decideChangeOrder(
+  fetchImpl: Fetch,
+  ref: { reference: string; number: number; version: number },
+  decision: 'approve' | 'reject',
+  body: Record<string, unknown>,
+  key: string,
+): Promise<DecisionResult> {
+  const path =
+    `/customer/projects/${encodeURIComponent(ref.reference)}/change-orders/${ref.number}/versions/${ref.version}/` +
+    decision
+  const r = await post(fetchImpl, path, body, key)
+  if (!r) return { ok: false, failure: 'failed' }
+  if (
+    (r.status === 200 || r.status === 201) &&
+    isObj(r.json) &&
+    (r.json['status'] === 'approved' || r.json['status'] === 'rejected')
+  )
+    return { ok: true, status: r.json['status'] }
+  const codes = fieldCodes(r.json)
+  if (r.status === 400 && codes.includes('TOTAL_MISMATCH')) return { ok: false, failure: 'total_changed' }
+  if (r.status === 403 && codes.includes('ACCESS_REVOKED')) return { ok: false, failure: 'access_revoked' }
+  if (r.status === 409 && codes.includes('APPROVED_SCOPE_CHANGED')) return { ok: false, failure: 'scope_changed' }
+  return { ok: false, failure: failureOf(r.status, r.json) }
+}
+
 async function read<T>(fetchImpl: Fetch, path: string, parse: (v: unknown) => T | null): Promise<Result<T>> {
   let res: Response
   try {
@@ -1431,4 +1629,26 @@ export const portalApi = {
     read(f, `/customer/projects/${encodeURIComponent(reference)}/privacy-requests`, parsePrivacyList),
   requestPrivacy,
   dataExport,
+  // TSK-0082: the change orders sent to the customer, and their decision on one.
+  changeOrders: (f: Fetch, reference: string) =>
+    read(f, `/customer/projects/${encodeURIComponent(reference)}/change-orders`, parseChangeOrders),
+  approveChangeOrder: (
+    f: Fetch,
+    ref: { reference: string; number: number; version: number },
+    body: {
+      contentDigest: string
+      totalCents: number
+      termsDocumentId: string
+      termsSha256: string
+      acceptTerms: boolean
+      fullName: string
+    },
+    key: string,
+  ) => decideChangeOrder(f, ref, 'approve', body, key),
+  rejectChangeOrder: (
+    f: Fetch,
+    ref: { reference: string; number: number; version: number },
+    body: { contentDigest: string; reason?: string },
+    key: string,
+  ) => decideChangeOrder(f, ref, 'reject', body, key),
 }

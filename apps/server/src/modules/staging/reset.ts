@@ -176,6 +176,8 @@ export const CLEARED_CATEGORIES = {
     'work.change_orders',
     'work.change_order_versions',
     'work.change_order_lines',
+    // TSK-0082 (0088): the customer's decisions on change orders.
+    'work.change_order_decisions',
   ],
   attachments: [
     'intake.photos',

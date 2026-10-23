@@ -37,8 +37,19 @@ const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is
 const textOrNull = (v: unknown): string | null =>
   typeof v === 'string' ? v : v === null || v === undefined ? null : String(v)
 
-/** The scope texts a packet carries, in this order (the accepted snapshot's customer-facing lists). */
-const SCOPE_TEXTS = ['assumptions', 'exclusions', 'customerResponsibilities', 'dependencies', 'scheduleAssumptions']
+/**
+ * The scope texts a packet carries, in this order (the accepted snapshot's customer-facing lists). TSK-0082: an
+ * approved change order adds its scope and its hazards, each named by the change order's reference.
+ */
+const SCOPE_TEXTS = [
+  'assumptions',
+  'exclusions',
+  'customerResponsibilities',
+  'dependencies',
+  'scheduleAssumptions',
+  'changeOrderScope',
+  'changeOrderHazards',
+]
 
 /** A stored scope line with its prices left out (a packet never carries money). */
 function packetLine(raw: unknown): PacketLine {

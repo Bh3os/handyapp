@@ -15,8 +15,13 @@ import type { ChangeOrderOrigin } from '@handyhub/domain'
 import type { StaffActor } from '@handyhub/policy'
 import { ApiError } from '../../api/errors.js'
 import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
+import { clientAddress } from '../../access-gate.js'
+import { readIdempotencyKey } from '../../api/idempotency.js'
 import { loadConfig } from '../../platform/config/index.js'
+import { currentContext } from '../../platform/request-context.js'
+import type { CodeKeySettings } from '../identity/index.js'
 import { jobAssignments } from '../packets/assignments.js'
+import { approveInPerson, sendInPersonCode } from './approve.js'
 import {
   changeOrderExpiryAutomation,
   issueChangeOrder,
@@ -28,7 +33,11 @@ import {
   CHANGE_ORDERS_VIEW,
   CREATE_BODY,
   CREATE_RESULT,
+  DECISION_RESULT,
   EVENT_BODY,
+  IN_PERSON_APPROVE_BODY,
+  IN_PERSON_CODE_BODY,
+  IN_PERSON_CODE_RESULT,
   ISSUE_BODY,
   ISSUE_RESULT,
   JOB_PARAMS,
@@ -111,7 +120,20 @@ const EVENT_TEXT: Readonly<Record<StaffEvent, string>> = {
     'named no longer wait; an issued change order can no longer be approved.',
 }
 
-export function changeOrdersModule(): ApiModule {
+export type ChangeOrderDeps = {
+  /** The one-time-code key of the in-person approval (TSK-0016); unset: NOT CONFIGURED. */
+  codeKey?: CodeKeySettings
+  /** Proxies in front of the service (TRUST_PROXY_HOPS): the client network the code limits count. */
+  trustProxyHops?: number
+  /** Outside production a decision carries the TEST mark (OWN-DEC-126); default true. */
+  testMark?: boolean
+}
+
+const NO_CODE_KEY: CodeKeySettings = { state: 'not_configured', missing: ['CODE_HASH_KEY'] }
+
+export function changeOrdersModule(deps: ChangeOrderDeps = {}): ApiModule {
+  const codeKey = deps.codeKey ?? NO_CODE_KEY
+  const clientOf = (ctx: ApiContext) => clientAddress(ctx.req.raw, deps.trustProxyHops ?? 0) ?? undefined
   const list: RouteDef = {
     method: 'GET',
     actors: ['staff'],
@@ -373,8 +395,153 @@ export function changeOrdersModule(): ApiModule {
     },
   }
 
+  // TSK-0082 part 2: the in-person approval on the assigned worker's phone, identified by a one-time code.
+  const inPersonCode: RouteDef = {
+    ...write,
+    method: 'POST',
+    expectedVersion: 'none',
+    path: '/staff/change-orders/:changeOrderId/in-person/code',
+    operationId: 'sendChangeOrderApprovalCode',
+    summary: 'Send the customer a code to approve a change order in person',
+    description:
+      'An assigned worker (change_order.capture_in_person_approval, limited to customer identification) with the ' +
+      'customer on site: sends a one-time code for the change order’s open version to the customer contact’s ' +
+      'verified email, or verified phone with the SMS opt-in (CONTACT_NOT_VERIFIED otherwise), as the automatic ' +
+      'code message. The version must be issued and still valid (CONFLICT naming its status). The code limits, ' +
+      'lifetime and resend cooldown are the configured ones (RATE_LIMITED, NOT_CONFIGURED). Never approves anything ' +
+      'by itself; a drawn signature is never identification (HH-CHG-02).',
+    permission: 'change_order.capture_in_person_approval',
+    audit: 'change_order.send_approval_code',
+    resource: orderFacts,
+    schema: { params: CHANGE_ORDER_PARAMS, body: IN_PERSON_CODE_BODY, response: { 202: IN_PERSON_CODE_RESULT } },
+    handler: async (ctx) => {
+      const { changeOrderId } = ctx.req.params as { changeOrderId: string }
+      const body = ctx.req.body as { version: number; channel: 'email' | 'sms' }
+      const client = clientOf(ctx)
+      const out = await sendInPersonCode(ctx.tx as Tx, codeKey, changeOrderId, {
+        ...body,
+        ...(client ? { clientIp: client } : {}),
+        requestId: currentContext()?.requestId ?? ctx.req.id,
+      })
+      await ctx.audit({
+        target: { type: 'change_order_version', id: out.versionId },
+        summary: { changeOrderId, version: body.version, channel: out.channel },
+      })
+      return { status: 202, body: { ...out, expiresAt: out.expiresAt.toISOString() } }
+    },
+  }
+
+  const inPersonApprove: RouteDef = {
+    ...write,
+    method: 'POST',
+    expectedVersion: 'none',
+    path: '/staff/change-orders/:changeOrderId/in-person/approve',
+    operationId: 'captureChangeOrderApproval',
+    summary: 'Record the customer’s in-person approval of a change order',
+    description:
+      'An assigned worker records the customer’s approval of the exact open version on the worker’s phone: the ' +
+      'one-time code the customer received on their verified contact (the channel it went to), the digest of the ' +
+      'content shown, the revised total, the estimate terms the job was accepted under, the ticked box and the ' +
+      'customer’s typed full name. Every check of the approval is made first (CONFLICT VERSION_EXPIRED, ' +
+      'APPROVED_SCOPE_CHANGED, CONTENT_MISMATCH, TERMS_NOT_SHOWN; VALIDATION_FAILED TOTAL_MISMATCH), so nothing is ' +
+      'spent when one fails; then the code: a wrong, used or expired code is VALIDATION_FAILED invalid_code with the ' +
+      'attempt counted. A right one approves in the same transaction as the portal does: the job’s next scope ' +
+      'snapshot, one new packet version and the waiting steps released; the worker is recorded as who captured it. A ' +
+      'signature alone is never accepted (there is no field for it). Online only (HH-OFF-04).',
+    permission: 'change_order.capture_in_person_approval',
+    audit: 'change_order.approve',
+    resource: orderFacts,
+    schema: {
+      params: CHANGE_ORDER_PARAMS,
+      body: IN_PERSON_APPROVE_BODY,
+      response: { 200: DECISION_RESULT, 201: DECISION_RESULT },
+    },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const actor = staff(ctx)
+      const { changeOrderId } = ctx.req.params as { changeOrderId: string }
+      const body = ctx.req.body as {
+        version: number
+        channel: 'email' | 'sms'
+        code: string
+        contentDigest: string
+        totalCents: number
+        termsDocumentId: string
+        termsSha256: string
+        acceptTerms: boolean
+        fullName: string
+      }
+      const agent = ctx.req.headers['user-agent']
+      const client = clientOf(ctx)
+      const out = await approveInPerson(
+        tx,
+        codeKey,
+        changeOrderId,
+        {
+          ...body,
+          idempotencyKey: readIdempotencyKey(ctx.req.headers['idempotency-key']),
+          testMark: deps.testMark ?? true,
+          ...(client ? { clientIp: client } : {}),
+        },
+        { userId: actor.userId },
+        { clientAddress: client ?? null, userAgent: typeof agent === 'string' && agent.trim() ? agent.trim() : null },
+      )
+      const target = { type: 'change_order', id: changeOrderId }
+      if (!out.ok) {
+        await ctx.audit({ target, summary: { version: body.version }, result: 'denied', reason: 'invalid_code' })
+        return {
+          body: null,
+          refusal: new ApiError('VALIDATION_FAILED', {
+            fieldErrors: [{ field: 'body.code', code: 'invalid_code', message: '' }],
+          }),
+        }
+      }
+      const r = out.result
+      await ctx.audit({
+        target: { type: 'change_order_version', id: r.versionId },
+        summary: {
+          changeOrder: r.reference,
+          version: r.version,
+          created: r.created,
+          decisionId: r.decisionId,
+          method: 'in_person_code',
+          channel: body.channel,
+          revisedTotalCents: r.revisedTotalCents,
+          scopeVersion: r.scopeVersion,
+          packetVersion: r.packetVersion,
+        },
+      })
+      return {
+        status: r.created ? 201 : 200,
+        body: {
+          changeOrderId: r.changeOrderId,
+          versionId: r.versionId,
+          reference: r.reference,
+          version: r.version,
+          decision: r.decision,
+          created: r.created,
+          at: r.at.toISOString(),
+          revisedTotalCents: r.revisedTotalCents,
+          scopeVersion: r.scopeVersion,
+          packetVersion: r.packetVersion,
+        },
+      }
+    },
+  }
+
   return {
     name: 'change-orders',
-    routes: [list, create, update, ...events, issue, requestOwnerApproval, revise, versionLookup],
+    routes: [
+      list,
+      create,
+      update,
+      ...events,
+      issue,
+      requestOwnerApproval,
+      revise,
+      versionLookup,
+      inPersonCode,
+      inPersonApprove,
+    ],
   }
 }

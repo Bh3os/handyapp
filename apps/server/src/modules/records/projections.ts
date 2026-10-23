@@ -50,6 +50,8 @@ export const ENTITIES = [
   'Question',
   // TSK-0100: the customer's own privacy requests and their data export.
   'PrivacyRequest',
+  // TSK-0082: the change orders sent to the customer and their decision on one.
+  'ChangeOrder',
 ] as const
 export type Entity = (typeof ENTITIES)[number]
 
@@ -1654,6 +1656,123 @@ export const PROJECT_CASES = customerView(
   }),
 )
 
+/**
+ * The project's change orders as the customer sees them (TSK-0082; HH-CHG-02, HH-PORT-05, OWN-DEC-169): the accepted
+ * estimate's total, the current authorized total (the original plus every approved change), and each change order
+ * that was sent (its latest sent version): reason, scope, schedule impact, lines and totals in integer cents, when it
+ * was sent and until when it is valid, its status and the customer's decision. While one is open: the digest of its
+ * content and the estimate terms an approval names. Never who drafted, reviewed or sent it, its hazards, resources,
+ * evidence, the steps it holds or any Owner approval.
+ */
+const CO_LINE = object({
+  position: { type: 'integer', minimum: 1 },
+  kind: enumOf(['charge', 'credit']),
+  description: STRING,
+  quantity: NULLABLE_STRING,
+  unit: NULLABLE_STRING,
+  unitPriceCents: NULLABLE_CENTS,
+  amountCents: NULLABLE_CENTS,
+})
+const CO_STATUSES = ['issued', 'approved', 'rejected', 'expired', 'withdrawn', 'superseded'] as const
+export const CUSTOMER_CHANGE_ORDERS = customerView(
+  'change_orders.customer',
+  'ChangeOrder',
+  {
+    reference: STRING,
+    original: {
+      anyOf: [
+        { type: 'null' },
+        object({ estimateNumber: STRING, version: { type: 'integer', minimum: 1 }, totalCents: CENTS }),
+      ],
+    },
+    currentTotalCents: NULLABLE_CENTS,
+    changeOrders: {
+      type: 'array',
+      items: object({
+        reference: STRING,
+        number: { type: 'integer', minimum: 1 },
+        version: { type: 'integer', minimum: 1 },
+        status: enumOf(CO_STATUSES),
+        reason: STRING,
+        scope: STRING,
+        scheduleImpact: NULLABLE_STRING,
+        lines: { type: 'array', items: CO_LINE },
+        approvedTotalCents: CENTS,
+        chargesCents: CENTS,
+        creditsCents: CENTS,
+        revisedTotalCents: CENTS,
+        sentAt: DATE,
+        validUntil: DATE,
+        decidedAt: NULLABLE_DATE,
+        decision: {
+          anyOf: [
+            { type: 'null' },
+            object({ kind: enumOf(['approved', 'rejected']), method: enumOf(['portal', 'in_person_code']), at: DATE }),
+          ],
+        },
+        approval: {
+          anyOf: [
+            { type: 'null' },
+            object({
+              canDecide: { type: 'boolean' },
+              blockedBy: { anyOf: [{ type: 'null' }, enumOf(['APPROVED_SCOPE_CHANGED'])] },
+              contentDigest: { type: 'string', pattern: '^[0-9a-f]{64}$' },
+              termsDocumentId: STRING,
+              termsSha256: { type: 'string', pattern: '^[0-9a-f]{64}$' },
+            }),
+          ],
+        },
+      }),
+    },
+    refreshedAt: DATE,
+    refreshSeconds: { type: 'integer', minimum: 0 },
+  },
+  (r: {
+    reference: string
+    original: { estimateNumber: string; version: number; totalCents: number } | null
+    currentTotalCents: number | null
+    changeOrders: readonly Record<string, unknown>[]
+    refreshedAt: Date
+    refreshSeconds: number
+  }) => ({
+    reference: r.reference,
+    original: r.original,
+    currentTotalCents: r.currentTotalCents,
+    changeOrders: r.changeOrders,
+    refreshedAt: r.refreshedAt.toISOString(),
+    refreshSeconds: r.refreshSeconds,
+  }),
+)
+
+/** The customer's decision on one change-order version (TSK-0082): what was decided, when, and the totals. */
+export const CUSTOMER_CHANGE_ORDER_DECISION = customerView(
+  'change_order_decision.customer',
+  'ChangeOrder',
+  {
+    reference: STRING,
+    changeOrder: STRING,
+    version: { type: 'integer', minimum: 1 },
+    status: enumOf(['approved', 'rejected']),
+    at: DATE,
+    revisedTotalCents: CENTS,
+  },
+  (r: {
+    reference: string
+    changeOrder: string
+    version: number
+    status: string
+    at: Date
+    revisedTotalCents: number
+  }) => ({
+    reference: r.reference,
+    changeOrder: r.changeOrder,
+    version: r.version,
+    status: r.status,
+    at: r.at.toISOString(),
+    revisedTotalCents: r.revisedTotalCents,
+  }),
+)
+
 /** Every customer view, by name. */
 export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
   [
@@ -1688,5 +1807,7 @@ export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
     PRIVACY_REQUESTS,
     PRIVACY_EXPORT,
     PROJECT_CASES,
+    CUSTOMER_CHANGE_ORDERS,
+    CUSTOMER_CHANGE_ORDER_DECISION,
   ].map((v) => [v.name, v as CustomerView<never>]),
 )

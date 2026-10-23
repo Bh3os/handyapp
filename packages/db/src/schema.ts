@@ -1799,6 +1799,42 @@ export interface StagingTestDataSeedingsTable {
   request_id: string
 }
 
+export interface WorkChangeOrderDecisionsTable {
+  id: Generated<string>
+  change_order_id: string
+  version_id: string
+  job_id: string
+  project_id: string
+  version: number
+  decision: string
+  content_sha256: string
+  base_snapshot_id: string
+  charges_cents: Int8
+  credits_cents: Int8
+  revised_total_cents: Int8
+  terms_document_id: string | null
+  terms_sha256: string | null
+  terms_accepted: boolean | null
+  full_name: string | null
+  scope_snapshot_id: string | null
+  reason: string | null
+  contact_ref: string
+  method: string
+  access_via: string | null
+  grant_id: string | null
+  account_id: string | null
+  customer_session_id: string | null
+  verified_at: Timestamp
+  verification_code_id: string | null
+  code_channel: string | null
+  captured_by: string | null
+  test_mark: boolean
+  client_address: string | null
+  user_agent: string | null
+  idempotency_key: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface WorkChangeOrderLinesTable {
   id: Generated<string>
   version_id: string
@@ -1851,6 +1887,7 @@ export interface WorkChangeOrderVersionsTable {
   validity_reason: string | null
   superseded_at: Timestamp | null
   expired_at: Timestamp | null
+  decided_at: Timestamp | null
 }
 
 export interface WorkChangeOrdersTable {
@@ -2134,6 +2171,7 @@ export interface WorkJobScopeSnapshotsTable {
   terms_sha256: string
   content_sha256: string
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  change_order_version_id: string | null
 }
 
 export interface WorkJobsTable {
@@ -2649,6 +2687,7 @@ export interface Database {
   'staging.reset_runs': StagingResetRunsTable
   'staging.reusable_test_accounts': StagingReusableTestAccountsTable
   'staging.test_data_seedings': StagingTestDataSeedingsTable
+  'work.change_order_decisions': WorkChangeOrderDecisionsTable
   'work.change_order_lines': WorkChangeOrderLinesTable
   'work.change_order_versions': WorkChangeOrderVersionsTable
   'work.change_orders': WorkChangeOrdersTable

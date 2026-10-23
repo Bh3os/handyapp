@@ -20,7 +20,13 @@ import { loadConfig, type Config } from '../../platform/config/index.js'
 import { outbox } from '../../platform/outbox.js'
 import { clientKey, codeDigest, deriveCode, digestsEqual, newNonce, type CodeKeySettings } from './keys.js'
 
-export const CODE_PURPOSES = ['contact_verification', 'project_access', 'account_sign_in'] as const
+export const CODE_PURPOSES = [
+  'contact_verification',
+  'project_access',
+  'account_sign_in',
+  // TSK-0082: the in-person approval of a change order, sent to the customer's verified contact.
+  'change_order_approval',
+] as const
 export type CodePurpose = (typeof CODE_PURPOSES)[number]
 export type CodeChannel = 'email' | 'sms'
 /** The trigger of the automatic message contact.verification_code (TSK-0047 message types). */

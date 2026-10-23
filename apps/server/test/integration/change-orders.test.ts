@@ -491,6 +491,14 @@ type Order = {
     reasons: string[]
     latest: { approvalId: string; state: string; rowVersion: number } | null
   } | null
+  inPersonApproval?: {
+    contentDigest: string
+    totalCents: number
+    termsDocumentId: string
+    termsSha256: string
+    blockedBy: string | null
+    channels: { channel: string; sentTo: string }[]
+  } | null
   actions: {
     edit: boolean
     review: boolean
@@ -500,6 +508,7 @@ type Order = {
     requestOwnerApproval?: boolean
     revise?: boolean
     decideOwnerApproval?: boolean
+    captureInPersonApproval?: boolean
   }
 }
 type View = {
@@ -1011,5 +1020,482 @@ describe('[HH-CHG-02][OWN-DEC-168][OWN-DEC-173] publishing a change order: Owner
             content_sha256 = ${'a'.repeat(64)}, valid_until = now() + interval '7 days',
             row_version = row_version + 1 WHERE id = ${v.id}`.execute(t.db),
     ).rejects.toThrow(/Owner's approval/)
+  })
+})
+
+describe('[HH-CHG-02][HH-CHG-03][T53][T44] the identified customer approves or rejects the exact version', () => {
+  let p: Project
+  let jobId: string
+  let wp: string
+  type CustomerCO = {
+    reference: string
+    number: number
+    version: number
+    status: string
+    revisedTotalCents: number
+    lines: { kind: string; description: string; amountCents: number | null }[]
+    decision: { kind: string; method: string } | null
+    approval: {
+      canDecide: boolean
+      blockedBy: string | null
+      contentDigest: string
+      termsDocumentId: string
+      termsSha256: string
+    } | null
+  }
+  type CustomerList = {
+    original: { estimateNumber: string; version: number; totalCents: number } | null
+    currentTotalCents: number | null
+    changeOrders: CustomerCO[]
+  }
+  const list = async (cookie = p.cookie) => {
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/v1/customer/projects/${p.reference}/change-orders`,
+      headers: { cookie },
+    })
+    expect(res.statusCode, res.body).toBe(200)
+    return res.json<CustomerList>()
+  }
+  const coOf = async (n: number) => (await list()).changeOrders.find((c) => c.number === n) as CustomerCO
+  const customerPost = (url: string, payload: unknown, cookie = p.cookie) =>
+    app.inject({
+      method: 'POST',
+      url,
+      payload: payload as object,
+      headers: { cookie, 'idempotency-key': key(), 'user-agent': 'SyntheticBrowser/1.0 (test)' },
+    })
+  const decideUrl = (n: number, version: number, what: 'approve' | 'reject') =>
+    `/api/v1/customer/projects/${p.reference}/change-orders/${n}/versions/${version}/${what}`
+  const approvalBody = (c: CustomerCO, extra: Record<string, unknown> = {}) => ({
+    contentDigest: c.approval?.contentDigest,
+    totalCents: c.revisedTotalCents,
+    termsDocumentId: c.approval?.termsDocumentId,
+    termsSha256: c.approval?.termsSha256,
+    acceptTerms: true,
+    fullName: 'Synthetic Start Customer',
+    ...extra,
+  })
+  /** A change order drafted, reviewed and issued by the estimator. */
+  const issued = async (lines: Line[], extra: Record<string, unknown> = {}) => {
+    const res = await staffWrite('estimator', `/api/v1/staff/jobs/${jobId}/change-orders`, {
+      ...draft(lines, extra),
+      origin: 'estimator',
+    })
+    expect(res.statusCode, res.body).toBe(201)
+    const { changeOrderId, rowVersion, number } = res.json<{
+      changeOrderId: string
+      rowVersion: number
+      number: number
+    }>()
+    expect((await event('estimator', changeOrderId, 'review', rowVersion)).statusCode).toBe(200)
+    const out = await staffWrite(
+      'estimator',
+      `/api/v1/staff/change-orders/${changeOrderId}/actions/issue`,
+      {},
+      rowVersion + 1,
+    )
+    expect(out.statusCode, out.body).toBe(200)
+    return { id: changeOrderId, number }
+  }
+  const decisions = async () =>
+    t.db
+      .selectFrom('work.change_order_decisions')
+      .selectAll()
+      .where('job_id', '=', jobId)
+      .orderBy('created_at')
+      .execute()
+  const staleCookie = async () => {
+    const config = await (await import('../../src/platform/config/index.js')).loadConfig(t.db)
+    const limits = config.get('verification.limits')
+    if (limits.state !== 'CONFIGURED') throw new Error('verification.limits is seeded')
+    const r = await t.db
+      .selectFrom('intake.requests as r')
+      .innerJoin('identity.project_access_grants as g', 'g.request_id', 'r.id')
+      .select(['r.contact_id', 'g.id as grant_id'])
+      .where('r.id', '=', p.requestId)
+      .executeTakeFirstOrThrow()
+    const s = await withTx(t.db, (tx) =>
+      startCustomerSession(tx, {
+        contactRef: r.contact_id,
+        via: 'grant',
+        projectIds: [p.projectId],
+        verifiedAt: new Date(Date.now() - (limits.value.freshVerificationMinutes + 1) * 60_000),
+        grantId: r.grant_id,
+      }),
+    )
+    return `__Host-hh_customer=${s.token}`
+  }
+
+  it('[HH-PORT-05][OWN-DEC-169] the customer sees what was sent, the original estimate and the current total', async () => {
+    p = await project()
+    jobId = await approve(p, 80_000)
+    const visitId = await fixtureVisit(p, jobId, ['ann'])
+    expect(visitId).toBeTruthy()
+    wp = (await view('estimator', jobId)).packages[0]?.id as string
+    const before = await list()
+    expect(before).toMatchObject({ original: { version: 1, totalCents: 80_000 }, currentTotalCents: 80_000 })
+    expect(before.changeOrders).toEqual([])
+    const co = await issued(
+      [{ kind: 'charge', description: 'Synthetic extra trim', quantity: '1', unit: 'ea', unitPriceCents: 9_000 }],
+      { affectedSteps: [{ workPackageId: wp, stepId: '1.2' }], hazards: 'Synthetic: ladder work above 6 ft' },
+    )
+    // A draft is never shown to the customer.
+    expect(
+      (
+        await staffWrite('estimator', `/api/v1/staff/jobs/${jobId}/change-orders`, {
+          ...draft([{ kind: 'charge', description: 'Synthetic draft only', quantity: '1', unitPriceCents: 100 }]),
+          origin: 'estimator',
+        })
+      ).statusCode,
+    ).toBe(201)
+    const after = await list()
+    expect(after.changeOrders.map((c) => c.number)).toEqual([co.number])
+    expect(after.changeOrders[0]).toMatchObject({
+      reference: `${p.reference}-C${co.number}`,
+      status: 'issued',
+      revisedTotalCents: 89_000,
+      decision: null,
+      approval: { canDecide: true, blockedBy: null, termsDocumentId: ESTIMATE_TERMS.documentId },
+    })
+    // Another project's customer never reaches it (T19).
+    const other = await project()
+    expect(
+      (
+        await app.inject({
+          method: 'GET',
+          url: `/api/v1/customer/projects/${p.reference}/change-orders`,
+          headers: { cookie: other.cookie },
+        })
+      ).statusCode,
+    ).toBe(404)
+  })
+
+  it('[T33][HH-ID-07] stale verification, altered total, other content, unticked box: refused, nothing written', async () => {
+    const c = await coOf(1)
+    const snaps = await snapshots(jobId)
+    const stale = await customerPost(decideUrl(1, c.version, 'approve'), approvalBody(c), await staleCookie())
+    expect(stale.statusCode).toBe(403)
+    expect(codesOf(stale)).toEqual(['FRESH_VERIFICATION_REQUIRED'])
+    const total = await customerPost(decideUrl(1, c.version, 'approve'), approvalBody(c, { totalCents: 80_000 }))
+    expect(total.statusCode).toBe(400)
+    expect(codesOf(total)).toEqual(['TOTAL_MISMATCH'])
+    const digest = await customerPost(
+      decideUrl(1, c.version, 'approve'),
+      approvalBody(c, { contentDigest: 'b'.repeat(64) }),
+    )
+    expect(digest.statusCode).toBe(409)
+    expect(codesOf(digest)).toEqual(['CONTENT_MISMATCH'])
+    const box = await customerPost(decideUrl(1, c.version, 'approve'), approvalBody(c, { acceptTerms: false }))
+    expect(box.statusCode).toBe(400)
+    // A version the customer never received is NOT_FOUND (the draft C2).
+    expect((await customerPost(decideUrl(2, 1, 'approve'), approvalBody(c))).statusCode).toBe(404)
+    expect(await decisions()).toEqual([])
+    expect(await snapshots(jobId)).toEqual(snaps)
+  })
+
+  it('[HH-CHG-03][T44][T53] approval adds one scope snapshot and one critical packet version; a retry applies once', async () => {
+    const ackVersion = await review('ann', jobId)
+    const snaps = await snapshots(jobId)
+    const { changeOrderWaitingSteps } = await import('../../src/modules/change-orders/index.js')
+    expect([...(await changeOrderWaitingSteps(t.db, jobId)).keys()]).toEqual([`${wp}:1.2`])
+    const c = await coOf(1)
+    // Two tabs at once: one approval, one snapshot, one packet version.
+    const [a, b] = await Promise.all([
+      customerPost(decideUrl(1, c.version, 'approve'), approvalBody(c)),
+      customerPost(decideUrl(1, c.version, 'approve'), approvalBody(c)),
+    ])
+    expect([a.statusCode, b.statusCode].sort()).toEqual([200, 201])
+    expect(a.json()).toMatchObject({ status: 'approved', changeOrder: `${p.reference}-C1`, revisedTotalCents: 89_000 })
+    expect(a.json<{ at: string }>().at).toBe(b.json<{ at: string }>().at)
+    const after = await snapshots(jobId)
+    expect(after).toHaveLength(snaps.length + 1)
+    // The original approval and every earlier snapshot are unchanged.
+    expect(after.slice(0, snaps.length)).toEqual(snaps)
+    const s2 = await t.db
+      .selectFrom('work.job_scope_snapshots')
+      .selectAll()
+      .where('id', '=', (after[after.length - 1] as { id: string }).id)
+      .executeTakeFirstOrThrow()
+    expect(s2).toMatchObject({ source: 'change_order', approval_id: null, total_cents: '89000', discount_cents: '0' })
+    expect(s2.lines).toEqual([
+      expect.objectContaining({ kind: 'base', description: 'Patch the synthetic wall' }),
+      expect.objectContaining({
+        kind: 'charge',
+        description: 'Synthetic extra trim',
+        amountCents: 9_000,
+        changeOrder: `${p.reference}-C1`,
+      }),
+    ])
+    expect((s2.texts as Record<string, string[]>)['changeOrderHazards']).toEqual([
+      `${p.reference}-C1: Synthetic: ladder work above 6 ft`,
+    ])
+    // One new packet version: a critical scope change, so the worker's acknowledgment no longer counts (T44).
+    const latest = await t.db
+      .selectFrom('work.job_packets')
+      .select(['version', 'critical', 'changes'])
+      .where('job_id', '=', jobId)
+      .orderBy('version', 'desc')
+      .executeTakeFirstOrThrow()
+    expect(latest.version).toBe(ackVersion + 1)
+    expect(latest.critical).toBe(true)
+    expect(JSON.stringify(latest.changes)).toContain('scope_version')
+    const pkt = (await staffGet('ann', `/api/v1/staff/jobs/${jobId}/packet`)).json<{
+      packet: { version: number; scope: { lines: { description: string }[] } }
+    }>()
+    expect(pkt.packet.version).toBe(latest.version)
+    // The step the change named no longer waits.
+    expect([...(await changeOrderWaitingSteps(t.db, jobId)).keys()]).toEqual([])
+    // The customer sees it approved; the original estimate stays, and the current total includes the change.
+    const view2 = await list()
+    expect(view2).toMatchObject({ original: { totalCents: 80_000 }, currentTotalCents: 89_000 })
+    expect(view2.changeOrders.find((x) => x.number === 1)).toMatchObject({
+      status: 'approved',
+      approval: null,
+      decision: { kind: 'approved', method: 'portal' },
+    })
+    // Staff see the customer's decision; nothing more can be done to an approved version.
+    const order = await orderOf('estimator', jobId, 1)
+    expect(order.current).toMatchObject({
+      state: 'approved',
+      customerDecision: { kind: 'approved', method: 'portal', fullName: 'Synthetic Start Customer', scopeVersion: 2 },
+    })
+    expect(order.actions).toMatchObject({ revise: false, withdraw: false, issue: false })
+    // A later retry by the same customer answers with the first approval; a different total is a conflict.
+    const again = await customerPost(decideUrl(1, c.version, 'approve'), approvalBody(c))
+    expect(again.statusCode).toBe(200)
+    expect(
+      codesOf(await customerPost(decideUrl(1, c.version, 'approve'), approvalBody(c, { totalCents: 90_000 }))),
+    ).toEqual(['VERSION_APPROVED'])
+    expect(await decisions()).toHaveLength(1)
+    expect(await snapshots(jobId)).toHaveLength(snaps.length + 1)
+  })
+
+  it('[HH-CHG-03] two change orders priced on the same scope: the first approval wins, the second is revised', async () => {
+    const x = await issued([{ kind: 'charge', description: 'Synthetic shelf', quantity: '1', unitPriceCents: 3_000 }])
+    const y = await issued([{ kind: 'charge', description: 'Synthetic hook', quantity: '1', unitPriceCents: 1_000 }])
+    const cx = await coOf(x.number)
+    const cy = await coOf(y.number)
+    const before = await snapshots(jobId)
+    const [rx, ry] = await Promise.all([
+      customerPost(decideUrl(x.number, cx.version, 'approve'), approvalBody(cx)),
+      customerPost(decideUrl(y.number, cy.version, 'approve'), approvalBody(cy)),
+    ])
+    expect([rx.statusCode, ry.statusCode].sort()).toEqual([201, 409])
+    const loser = rx.statusCode === 409 ? rx : ry
+    expect(codesOf(loser)).toEqual(['APPROVED_SCOPE_CHANGED'])
+    expect(await snapshots(jobId)).toHaveLength(before.length + 1)
+    const loserNumber = rx.statusCode === 409 ? x.number : y.number
+    expect(await coOf(loserNumber)).toMatchObject({
+      status: 'issued',
+      approval: { canDecide: false, blockedBy: 'APPROVED_SCOPE_CHANGED' },
+    })
+    // Staff revise it against the new approved scope.
+    const order = await orderOf('estimator', jobId, loserNumber)
+    expect(order.actions.revise).toBe(true)
+  })
+
+  it('[HH-CHG-03] rejecting records the decision and authorizes nothing; it is never approved afterwards', async () => {
+    const r = await issued([{ kind: 'charge', description: 'Synthetic fan', quantity: '1', unitPriceCents: 2_000 }])
+    const c = await coOf(r.number)
+    const snaps = await snapshots(jobId)
+    const stale = await customerPost(
+      decideUrl(r.number, c.version, 'reject'),
+      { contentDigest: c.approval?.contentDigest },
+      await staleCookie(),
+    )
+    expect(stale.statusCode).toBe(403)
+    const res = await customerPost(decideUrl(r.number, c.version, 'reject'), {
+      contentDigest: c.approval?.contentDigest,
+      reason: 'Synthetic: not this time',
+    })
+    expect(res.statusCode, res.body).toBe(201)
+    expect(res.json()).toMatchObject({ status: 'rejected' })
+    expect(await snapshots(jobId)).toEqual(snaps)
+    const refused = await customerPost(decideUrl(r.number, c.version, 'approve'), approvalBody(c))
+    expect(refused.statusCode).toBe(409)
+    expect(codesOf(refused)).toEqual(['VERSION_REJECTED'])
+    const order = await orderOf('estimator', jobId, r.number)
+    expect(order.current).toMatchObject({
+      state: 'rejected',
+      customerDecision: { kind: 'rejected', reason: 'Synthetic: not this time', fullName: null },
+    })
+    expect(order.actions.revise).toBe(true)
+  })
+
+  it('[OWN-DEC-168] an expired or withdrawn change order is never approved', async () => {
+    const e = await issued([{ kind: 'charge', description: 'Synthetic lamp', quantity: '1', unitPriceCents: 500 }])
+    const ce = await coOf(e.number)
+    const row = await t.db
+      .selectFrom('work.change_order_versions')
+      .select(['id', 'row_version'])
+      .where('change_order_id', '=', e.id)
+      .executeTakeFirstOrThrow()
+    await withTx(t.db, async (tx) => {
+      await sql`SET LOCAL session_replication_role = replica`.execute(tx)
+      await sql`UPDATE work.change_order_versions SET issued_at = now() - interval '9 days',
+                  valid_until = now() - interval '1 day' WHERE id = ${row.id}`.execute(tx)
+    })
+    const expired = await customerPost(decideUrl(e.number, ce.version, 'approve'), approvalBody(ce))
+    expect(expired.statusCode).toBe(409)
+    expect(codesOf(expired)).toEqual(['VERSION_EXPIRED'])
+    // The database refuses it too, whatever path writes.
+    await expect(
+      sql`UPDATE work.change_order_versions SET state = 'approved', decided_at = now(), row_version = row_version + 1
+            WHERE id = ${row.id}`.execute(t.db),
+    ).rejects.toThrow(/validity ended|current approved scope/)
+    const w = await issued([{ kind: 'charge', description: 'Synthetic rug', quantity: '1', unitPriceCents: 500 }])
+    const cw = await coOf(w.number)
+    const wr = await t.db
+      .selectFrom('work.change_order_versions')
+      .select(['row_version'])
+      .where('change_order_id', '=', w.id)
+      .executeTakeFirstOrThrow()
+    expect(
+      (await event('estimator', w.id, 'withdraw', wr.row_version, { reason: 'Synthetic: not needed' })).statusCode,
+    ).toBe(200)
+    expect(codesOf(await customerPost(decideUrl(w.number, cw.version, 'approve'), approvalBody(cw)))).toEqual([
+      'VERSION_WITHDRAWN',
+    ])
+  })
+
+  it('[T53][HH-CHG-02] in person: a code to the verified contact identifies the customer; a signature never does', async () => {
+    const ip1 = await issued([
+      { kind: 'charge', description: 'Synthetic outlet', quantity: '1', unitPriceCents: 4_000 },
+    ])
+    let order = await orderOf('ann', jobId, ip1.number)
+    // The contact's email is not verified yet: no code can go anywhere.
+    expect(order.inPersonApproval).toMatchObject({ channels: [] })
+    expect(order.actions.captureInPersonApproval).toBe(true)
+    const send = (who: Person, channel = 'email') =>
+      staffWrite(who, `/api/v1/staff/change-orders/${ip1.id}/in-person/code`, { version: 1, channel })
+    const unverified = await send('ann')
+    expect(unverified.statusCode).toBe(409)
+    expect(codesOf(unverified)).toEqual(['CONTACT_NOT_VERIFIED'])
+    await sql`UPDATE crm.contacts SET email_verification = 'verified', email_verified_value = lower(email),
+                version = version + 1
+               WHERE id = (SELECT contact_id FROM intake.requests WHERE id = ${p.requestId})`.execute(t.db)
+    order = await orderOf('ann', jobId, ip1.number)
+    expect(order.inPersonApproval?.channels).toEqual([
+      { channel: 'email', sentTo: expect.stringMatching(/^s\*\*\*@example\.test$/) },
+    ])
+    // Only the assigned worker captures it: never Office, an Estimator or an unassigned worker (the matrix).
+    expect((await send('office')).statusCode).toBe(403)
+    expect((await send('ben')).statusCode).toBe(403)
+    const sent = await send('ann')
+    expect(sent.statusCode, sent.body).toBe(202)
+    const ia = order.inPersonApproval as NonNullable<typeof order.inPersonApproval>
+    const body = {
+      version: 1,
+      channel: 'email',
+      contentDigest: ia.contentDigest,
+      totalCents: ia.totalCents,
+      termsDocumentId: ia.termsDocumentId,
+      termsSha256: ia.termsSha256,
+      acceptTerms: true,
+      fullName: 'Synthetic Start Customer',
+    }
+    const url = `/api/v1/staff/change-orders/${ip1.id}/in-person/approve`
+    // A drawn signature alone is not identification: refused.
+    const signature = await staffWrite('ann', url, { ...body, signature: 'data:image/png;base64,AAAA' })
+    expect(signature.statusCode).toBe(400)
+    const code = await t.db
+      .selectFrom('identity.verification_codes')
+      .select(['id', 'nonce', 'purpose', 'subject_ref'])
+      .where('purpose', '=', 'change_order_approval')
+      .orderBy('created_at', 'desc')
+      .executeTakeFirstOrThrow()
+    expect(code.subject_ref).toMatch(/^change_order_version:/)
+    const { loadConfig } = await import('../../src/platform/config/index.js')
+    const limits = (await loadConfig(t.db)).get('verification.limits')
+    if (limits.state !== 'CONFIGURED' || KEY.state !== 'configured') throw new Error('codes are configured')
+    const { deriveCode } = await import('../../src/modules/identity/keys.js')
+    const right = deriveCode(KEY.key, code.id, code.nonce, limits.value.codeDigits)
+    const wrong = right === '000000' ? '111111' : '000000'
+    const bad = await staffWrite('ann', url, { ...body, code: wrong })
+    expect(bad.statusCode).toBe(400)
+    expect(codesOf(bad)).toEqual(['invalid_code'])
+    expect(
+      (
+        await t.db
+          .selectFrom('identity.verification_codes')
+          .select('attempts')
+          .where('id', '=', code.id)
+          .executeTakeFirstOrThrow()
+      ).attempts,
+    ).toBe(1)
+    expect((await orderOf('ann', jobId, ip1.number)).current.state).toBe('issued')
+    const ok = await staffWrite('ann', url, { ...body, code: right })
+    expect(ok.statusCode, ok.body).toBe(201)
+    expect(ok.json()).toMatchObject({ decision: 'approved', created: true })
+    const d = (await decisions()).find((x) => x.change_order_id === ip1.id)
+    expect(d).toMatchObject({
+      method: 'in_person_code',
+      code_channel: 'email',
+      captured_by: ids.ann,
+      verification_code_id: code.id,
+      customer_session_id: null,
+      full_name: 'Synthetic Start Customer',
+    })
+    // The same code is never spent twice; the approval answers a repeat without one.
+    expect((await staffWrite('ann', url, { ...body, code: right })).statusCode).toBe(200)
+  })
+
+  it('the database keeps decisions append-only and snapshots only after an approval', async () => {
+    const d = (await decisions())[0] as { id: string }
+    await expect(
+      sql`UPDATE work.change_order_decisions SET reason = 'x' WHERE id = ${d.id}`.execute(t.db),
+    ).rejects.toThrow(/append-only/)
+    await expect(sql`DELETE FROM work.change_order_decisions WHERE id = ${d.id}`.execute(t.db)).rejects.toThrow(
+      /append-only/,
+    )
+    const open = await issued([{ kind: 'charge', description: 'Synthetic vent', quantity: '1', unitPriceCents: 700 }])
+    const v = await t.db
+      .selectFrom('work.change_order_versions')
+      .select('id')
+      .where('change_order_id', '=', open.id)
+      .executeTakeFirstOrThrow()
+    const last = (await snapshots(jobId)).at(-1) as { version: number }
+    await expect(
+      sql`INSERT INTO work.job_scope_snapshots (job_id, version, source, change_order_version_id, lines, texts,
+            exclusions, selected_options, subtotal_cents, discount_cents, total_cents, terms_document_id, terms_sha256,
+            content_sha256)
+          SELECT job_id, ${last.version + 1}, 'change_order', ${v.id}, lines, texts, exclusions, selected_options,
+                 subtotal_cents, discount_cents, total_cents, terms_document_id, terms_sha256, content_sha256
+            FROM work.job_scope_snapshots WHERE job_id = ${jobId} AND version = ${last.version}`.execute(t.db),
+    ).rejects.toThrow(/follows the approval/)
+  })
+})
+
+describe('[OWN-DEC-173][OWN-DEC-204] the Owner approval threshold at its boundary', () => {
+  it('[HH-EST-16] a revised project value of $2,500.01 needs the Owner; exactly $2,500.00 does not', async () => {
+    const p = await project()
+    const jobId = await approve(p, 80_000)
+    const reviewedCo = async (unitPriceCents: number) => {
+      const res = await staffWrite('estimator', `/api/v1/staff/jobs/${jobId}/change-orders`, {
+        ...draft([{ kind: 'charge', description: 'Synthetic: boundary work', quantity: '1', unitPriceCents }]),
+        origin: 'estimator',
+      })
+      expect(res.statusCode, res.body).toBe(201)
+      const { changeOrderId, rowVersion } = res.json<{ changeOrderId: string; rowVersion: number }>()
+      expect((await event('estimator', changeOrderId, 'review', rowVersion)).statusCode).toBe(200)
+      return { id: changeOrderId, rowVersion: rowVersion + 1 }
+    }
+    const issue = (id: string, version: number) =>
+      staffWrite('estimator', `/api/v1/staff/change-orders/${id}/actions/issue`, {}, version)
+    // $800.00 approved + $1,700.01 = $2,500.01: over the threshold.
+    const over = await reviewedCo(170_001)
+    const refused = await issue(over.id, over.rowVersion)
+    expect(refused.statusCode).toBe(409)
+    expect(codesOf(refused)).toContain('OWNER_APPROVAL_REQUIRED')
+    expect(
+      (await event('estimator', over.id, 'withdraw', over.rowVersion, { reason: 'Synthetic: boundary test' }))
+        .statusCode,
+    ).toBe(200)
+    // $800.00 + $1,700.00 = $2,500.00 exactly: no Owner approval.
+    const at = await reviewedCo(170_000)
+    const issued = await issue(at.id, at.rowVersion)
+    expect(issued.statusCode, issued.body).toBe(200)
+    expect(issued.json()).toMatchObject({ state: 'issued', ownerApproval: null })
   })
 })

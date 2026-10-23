@@ -127,8 +127,24 @@ const VERSION = obj({
   validityReason: STR_OR_NULL,
   supersededAt: TIME_OR_NULL,
   expiredAt: TIME_OR_NULL,
+  decidedAt: TIME_OR_NULL,
+  // TSK-0082: the identified customer's decision, and how they were identified.
+  customerDecision: nullable(
+    obj({
+      kind: en(['approved', 'rejected']),
+      method: en(['portal', 'in_person_code']),
+      fullName: STR_OR_NULL,
+      reason: STR_OR_NULL,
+      codeChannel: nullable(en(['email', 'sms'])),
+      capturedBy: nullable(STAFF_REF),
+      scopeVersion: INT_OR_NULL,
+      at: TIME,
+    }),
+  ),
   rowVersion: INT,
 })
+const SHA256 = { type: 'string', pattern: '^[0-9a-f]{64}$' } as const
+const CODE_CHANNEL = en(['email', 'sms'])
 
 export const CHANGE_ORDERS_VIEW = obj({
   jobId: STR,
@@ -154,6 +170,17 @@ export const CHANGE_ORDERS_VIEW = obj({
           latest: nullable(obj({ approvalId: STR, state: STR, rowVersion: INT, comment: STR_OR_NULL })),
         }),
       ),
+      // TSK-0082: what an in-person approval of the open version names, and where its code can go (masked).
+      inPersonApproval: nullable(
+        obj({
+          contentDigest: SHA256,
+          totalCents: INT,
+          termsDocumentId: STR,
+          termsSha256: SHA256,
+          blockedBy: nullable(en(['APPROVED_SCOPE_CHANGED'])),
+          channels: arr(obj({ channel: CODE_CHANNEL, sentTo: STR })),
+        }),
+      ),
       history: arr(obj({ version: INT, state: en(CHANGE_ORDER_STATES), updatedAt: TIME_OR_NULL })),
       actions: obj({
         edit: BOOL,
@@ -164,6 +191,7 @@ export const CHANGE_ORDERS_VIEW = obj({
         requestOwnerApproval: BOOL,
         revise: BOOL,
         decideOwnerApproval: BOOL,
+        captureInPersonApproval: BOOL,
       }),
     }),
   ),
@@ -198,4 +226,31 @@ export const REVISE_RESULT = obj({
   state: en(CHANGE_ORDER_STATES),
   rowVersion: INT,
   version: INT,
+})
+
+// TSK-0082 part 2: the in-person approval on the worker's phone.
+export const IN_PERSON_CODE_BODY = input({ version: { type: 'integer', minimum: 1 }, channel: CODE_CHANNEL })
+export const IN_PERSON_CODE_RESULT = obj({ versionId: STR, channel: CODE_CHANNEL, sentTo: STR, expiresAt: TIME })
+export const IN_PERSON_APPROVE_BODY = input({
+  version: { type: 'integer', minimum: 1 },
+  channel: CODE_CHANNEL,
+  code: { type: 'string', pattern: '^[0-9]{4,10}$' },
+  contentDigest: SHA256,
+  totalCents: { type: 'integer', minimum: 1 },
+  termsDocumentId: { type: 'string', minLength: 1, maxLength: 60 },
+  termsSha256: SHA256,
+  acceptTerms: BOOL,
+  fullName: { type: 'string', minLength: 1, maxLength: 200 },
+})
+export const DECISION_RESULT = obj({
+  changeOrderId: STR,
+  versionId: STR,
+  reference: STR,
+  version: INT,
+  decision: en(['approved', 'rejected']),
+  created: BOOL,
+  at: TIME,
+  revisedTotalCents: INT,
+  scopeVersion: INT_OR_NULL,
+  packetVersion: INT_OR_NULL,
 })

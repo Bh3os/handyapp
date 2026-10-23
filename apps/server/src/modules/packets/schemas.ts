@@ -159,6 +159,9 @@ export const PACKET_VIEW = obj({
       customerResponsibilities: STRINGS,
       dependencies: STRINGS,
       scheduleAssumptions: STRINGS,
+      // TSK-0082: the scope and hazards of each approved change order.
+      changeOrderScope: STRINGS,
+      changeOrderHazards: STRINGS,
     }),
     selectedOptions: arr(INT),
     history: arr(obj({ version: INT, source: STR, createdAt: STR })),

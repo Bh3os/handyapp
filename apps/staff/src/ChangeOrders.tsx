@@ -61,7 +61,28 @@ export type ChangeOrderVersion = {
   validityReason: string | null
   supersededAt: string | null
   expiredAt: string | null
+  /** TSK-0082: the identified customer's decision, and how they were identified. */
+  decidedAt?: string | null
+  customerDecision?: {
+    kind: 'approved' | 'rejected'
+    method: 'portal' | 'in_person_code'
+    fullName: string | null
+    reason: string | null
+    codeChannel: 'email' | 'sms' | null
+    capturedBy: StaffRef | null
+    scopeVersion: number | null
+    at: string
+  } | null
   rowVersion: number
+}
+/** TSK-0082: what an in-person approval of the open version names, and where its code can go (masked). */
+export type InPersonApproval = {
+  contentDigest: string
+  totalCents: number
+  termsDocumentId: string
+  termsSha256: string
+  blockedBy: 'APPROVED_SCOPE_CHANGED' | null
+  channels: { channel: 'email' | 'sms'; sentTo: string }[]
 }
 export type ChangeOrder = {
   changeOrderId: string
@@ -78,6 +99,7 @@ export type ChangeOrder = {
     flags: string[]
     latest: { approvalId: string; state: string; rowVersion: number; comment: string | null } | null
   } | null
+  inPersonApproval?: InPersonApproval | null
   actions: {
     edit: boolean
     review: boolean
@@ -87,6 +109,7 @@ export type ChangeOrder = {
     requestOwnerApproval: boolean
     revise: boolean
     decideOwnerApproval: boolean
+    captureInPersonApproval?: boolean
   }
 }
 export type ChangeOrdersData = {
@@ -485,6 +508,142 @@ function Totals({ t, v }: { t: T; v: ChangeOrderVersion }) {
   )
 }
 
+/**
+ * The customer's approval in person on the worker's phone (TSK-0082, HH-CHG-02): a one-time code goes to the
+ * customer's verified email or phone; the customer reads the change, gives the code, ticks the box and types their
+ * name. A signature is never asked for: it does not identify the customer. Online only.
+ */
+function InPerson({
+  t,
+  fetchImpl,
+  order,
+  approval,
+  onDone,
+}: {
+  t: T
+  fetchImpl: Fetch
+  order: ChangeOrder
+  approval: InPersonApproval
+  onDone: () => Promise<void>
+}) {
+  const ids = useId()
+  const [channel, setChannel] = useState<'email' | 'sms' | null>(approval.channels[0]?.channel ?? null)
+  const [sentTo, setSentTo] = useState<string | null>(null)
+  const [code, setCode] = useState('')
+  const [name, setName] = useState('')
+  const [accept, setAccept] = useState(false)
+  const [pending, setPending] = useState<'code' | 'approve' | null>(null)
+  const [problem, setProblem] = useState<string | null>(null)
+  const base = `/staff/change-orders/${encodeURIComponent(order.changeOrderId)}/in-person`
+  if (approval.blockedBy)
+    return <p className="staff-request__hint">{codeLabel(t, 'changeOrderRefusal', approval.blockedBy)}</p>
+  if (!approval.channels.length)
+    return (
+      <p className="staff-request__hint" data-testid="change-order-in-person-none">
+        {t('changeOrders.inPerson.noContact')}
+      </p>
+    )
+  async function sendCode() {
+    if (!channel) return
+    setPending('code')
+    const r = await call<{ sentTo: string }>(fetchImpl, `${base}/code`, {
+      method: 'POST',
+      body: { version: order.current.version, channel },
+      headers: { 'idempotency-key': idempotencyKey() },
+    })
+    setPending(null)
+    if (!r.ok) return setProblem(changeOrderError(t, r.error))
+    setProblem(null)
+    setSentTo(r.data.sentTo)
+  }
+  async function approve() {
+    if (!channel) return
+    setPending('approve')
+    const r = await call<{ decision: string }>(fetchImpl, `${base}/approve`, {
+      method: 'POST',
+      body: {
+        version: order.current.version,
+        channel,
+        code: code.trim(),
+        contentDigest: approval.contentDigest,
+        totalCents: approval.totalCents,
+        termsDocumentId: approval.termsDocumentId,
+        termsSha256: approval.termsSha256,
+        acceptTerms: accept,
+        fullName: name.trim(),
+      },
+      headers: { 'idempotency-key': idempotencyKey() },
+    })
+    setPending(null)
+    if (!r.ok) return setProblem(changeOrderError(t, r.error))
+    setProblem(null)
+    await onDone()
+  }
+  const blocked = !sentTo
+    ? t('changeOrders.inPerson.sendFirst')
+    : !/^[0-9]{4,10}$/.test(code.trim())
+      ? t('changeOrders.inPerson.needsCode')
+      : !accept
+        ? t('changeOrders.inPerson.needsBox')
+        : !name.trim()
+          ? t('changeOrders.inPerson.needsName')
+          : undefined
+  return (
+    <fieldset className="staff-request__section" data-testid="change-order-in-person" aria-labelledby={`${ids}-ip`}>
+      <legend id={`${ids}-ip`}>{t('changeOrders.inPerson.title')}</legend>
+      <p className="staff-request__hint">{t('changeOrders.inPerson.intro', { total: usd(approval.totalCents) })}</p>
+      {approval.channels.map((c) => (
+        <label key={c.channel} className="staff-loadout__choice">
+          <input type="radio" checked={channel === c.channel} onChange={() => setChannel(c.channel)} />{' '}
+          {t(c.channel === 'email' ? 'changeOrders.inPerson.email' : 'changeOrders.inPerson.sms', { to: c.sentTo })}
+        </label>
+      ))}
+      <div className="hh-button-row">
+        <Button variant="secondary" pending={pending === 'code'} onClick={() => void sendCode()}>
+          {sentTo ? t('changeOrders.inPerson.resend') : t('changeOrders.inPerson.send')}
+        </Button>
+      </div>
+      {sentTo ? (
+        <>
+          <p role="status">{t('changeOrders.inPerson.sent', { to: sentTo })}</p>
+          <Field
+            label={t('changeOrders.inPerson.code')}
+            name="inPersonCode"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={10}
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+          />
+          <label className="staff-loadout__choice">
+            <input type="checkbox" checked={accept} onChange={(e) => setAccept(e.currentTarget.checked)} />{' '}
+            {t('changeOrders.inPerson.accept', { reference: order.reference })}
+          </label>
+          <Field
+            label={t('changeOrders.inPerson.fullName')}
+            name="inPersonName"
+            maxLength={200}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <Button
+            pending={pending === 'approve'}
+            {...(blocked ? { disabledReason: blocked } : {})}
+            onClick={() => void approve()}
+          >
+            {t('changeOrders.inPerson.record')}
+          </Button>
+        </>
+      ) : null}
+      {problem ? (
+        <p role="alert" className="hh-field__error">
+          {problem}
+        </p>
+      ) : null}
+    </fieldset>
+  )
+}
+
 function Order({
   t,
   fetchImpl,
@@ -555,11 +714,14 @@ function Order({
       />
     )
   const tone =
-    v.state === 'withdrawn' || v.state === 'superseded' || v.state === 'expired'
-      ? 'neutral'
-      : v.state === 'reviewed' || v.state === 'issued'
-        ? 'info'
-        : 'warning'
+    v.state === 'approved'
+      ? 'success'
+      : v.state === 'withdrawn' || v.state === 'superseded' || v.state === 'expired' || v.state === 'rejected'
+        ? 'neutral'
+        : v.state === 'reviewed' || v.state === 'issued'
+          ? 'info'
+          : 'warning'
+  const d = v.customerDecision
   return (
     <section className="staff-request__section" data-testid="change-order" data-state={v.state}>
       <h2 className="staff-queue__heading">
@@ -662,6 +824,26 @@ function Order({
           })}
           {v.validityReason ? ` ${t('changeOrders.shorterBecause', { reason: v.validityReason })}` : ''}
         </p>
+      ) : null}
+      {d ? (
+        <p className="staff-request__hint" data-testid="change-order-decision">
+          {d.kind === 'approved'
+            ? t('changeOrders.decision.approved', {
+                name: d.fullName ?? t('queue.unnamed'),
+                at: new Date(d.at).toLocaleString(),
+              })
+            : t('changeOrders.decision.rejected', { at: new Date(d.at).toLocaleString() })}{' '}
+          {d.method === 'in_person_code'
+            ? t('changeOrders.decision.inPerson', {
+                channel: codeLabel(t, 'codeChannel', d.codeChannel ?? 'email'),
+                by: d.capturedBy?.name ?? t('queue.unnamed'),
+              })
+            : t('changeOrders.decision.portal')}
+          {d.reason ? ` ${t('changeOrders.decision.reason', { reason: d.reason })}` : ''}
+        </p>
+      ) : null}
+      {order.actions.captureInPersonApproval && order.inPersonApproval ? (
+        <InPerson t={t} fetchImpl={fetchImpl} order={order} approval={order.inPersonApproval} onDone={onDone} />
       ) : null}
       {order.ownerApproval?.required || order.ownerApproval?.latest ? (
         <div className="staff-request__section" data-testid="change-order-owner-approval">

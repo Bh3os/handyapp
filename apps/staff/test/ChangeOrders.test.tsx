@@ -3,6 +3,7 @@
 import { staffTranslator, type StaffLocale } from '@handyhub/i18n'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { Fetch } from '../src/api'
 import { ChangeOrdersPage, type ChangeOrder, type ChangeOrdersData } from '../src/ChangeOrders'
 
 afterEach(() => {
@@ -267,5 +268,117 @@ describe('ChangeOrdersPage (TSK-0081)', () => {
     )
     expect(within(sent).getByRole('button', { name: 'Revise (replaces the sent version)' })).toBeTruthy()
     expect(within(sent).queryByRole('button', { name: 'Edit the draft' })).toBeNull()
+  })
+
+  it('[HH-CHG-02][T53] in person: a code to the verified contact, the box and the typed name; never a signature', async () => {
+    const issued: ChangeOrder = {
+      ...ORDER,
+      current: {
+        ...ORDER.current,
+        state: 'issued',
+        issuedBy: { id: 'e-1', name: 'Synthetic Estimator' },
+        issuedAt: '2026-10-23T14:00:00.000Z',
+        validUntil: '2026-10-31T04:59:59.000Z',
+        rowVersion: 5,
+      },
+      inPersonApproval: {
+        contentDigest: 'd'.repeat(64),
+        totalCents: 87_000,
+        termsDocumentId: 'estimate-terms-synthetic',
+        termsSha256: 'e'.repeat(64),
+        blockedBy: null,
+        channels: [{ channel: 'email', sentTo: 's***@example.test' }],
+      },
+      actions: { ...ORDER.actions, edit: false, withdraw: false, captureInPersonApproval: true },
+    }
+    const posts: { url: string; body: Record<string, unknown> }[] = []
+    let approved = false
+    const fetchImpl: Fetch = async (input, init) => {
+      const url = String(input)
+      if (init?.method === 'POST') {
+        const body = JSON.parse(String(init.body)) as Record<string, unknown>
+        posts.push({ url, body })
+        if (url.endsWith('/in-person/code'))
+          return json(202, {
+            versionId: 'v-1',
+            channel: 'email',
+            sentTo: 's***@example.test',
+            expiresAt: '2026-10-23T15:10:00.000Z',
+          })
+        if (body['code'] === '000000')
+          return json(400, {
+            error: {
+              code: 'VALIDATION_FAILED',
+              message: '',
+              fieldErrors: [{ field: 'body.code', code: 'invalid_code', message: '' }],
+            },
+          })
+        approved = true
+        return json(201, { decision: 'approved' })
+      }
+      if (!approved) return json(200, data({ changeOrders: [issued] }))
+      return json(
+        200,
+        data({
+          changeOrders: [
+            {
+              ...issued,
+              inPersonApproval: null,
+              actions: { ...issued.actions, captureInPersonApproval: false },
+              current: {
+                ...issued.current,
+                state: 'approved',
+                customerDecision: {
+                  kind: 'approved',
+                  method: 'in_person_code',
+                  fullName: 'Synthetic Customer',
+                  reason: null,
+                  codeChannel: 'email',
+                  capturedBy: { id: 'w-1', name: 'Synthetic Worker' },
+                  scopeVersion: 2,
+                  at: '2026-10-23T15:00:00.000Z',
+                },
+              },
+            },
+          ],
+        }),
+      )
+    }
+    render(<ChangeOrdersPage t={t('en')} fetchImpl={fetchImpl} jobId={JOB} href={href} />)
+    const panel = await screen.findByTestId('change-order-in-person')
+    expect(within(panel).queryByText(/signature/i)).not.toBeNull()
+    expect(within(panel).queryByLabelText(/signature/i)).toBeNull()
+    fireEvent.click(within(panel).getByRole('button', { name: 'Send code to the customer' }))
+    expect(await within(panel).findByText('Code sent to s***@example.test.')).toBeTruthy()
+    expect(posts[0]).toEqual({
+      url: '/api/v1/staff/change-orders/co-1/in-person/code',
+      body: { version: 1, channel: 'email' },
+    })
+    fireEvent.change(within(panel).getByLabelText('Code the customer received'), { target: { value: '000000' } })
+    fireEvent.click(within(panel).getByRole('checkbox'))
+    fireEvent.change(within(panel).getByLabelText(/full name/i), { target: { value: 'Synthetic Customer' } })
+    fireEvent.click(within(panel).getByRole('button', { name: "Record the customer's approval" }))
+    expect(await within(panel).findByRole('alert')).toHaveProperty(
+      'textContent',
+      'That code is not right, or it expired. Check it or send a new one.',
+    )
+    fireEvent.change(within(panel).getByLabelText('Code the customer received'), { target: { value: '123456' } })
+    fireEvent.click(within(panel).getByRole('button', { name: "Record the customer's approval" }))
+    await waitFor(() => expect(screen.getByTestId('change-order-decision')).toBeTruthy())
+    expect(posts[2]?.body).toEqual({
+      version: 1,
+      channel: 'email',
+      code: '123456',
+      contentDigest: 'd'.repeat(64),
+      totalCents: 87_000,
+      termsDocumentId: 'estimate-terms-synthetic',
+      termsSha256: 'e'.repeat(64),
+      acceptTerms: true,
+      fullName: 'Synthetic Customer',
+    })
+    expect(screen.getByTestId('change-order-decision').textContent).toContain(
+      'In person, code by email, recorded by Synthetic Worker.',
+    )
+    expect(screen.queryByTestId('change-order-in-person')).toBeNull()
   })
 })

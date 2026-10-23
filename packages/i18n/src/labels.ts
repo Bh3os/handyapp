@@ -1275,7 +1275,15 @@ export const LABEL_FAMILIES = {
   /** Where a job scope snapshot version comes from (ENT-JobScopeSnapshot). */
   scopeSource: ['approval', 'change_order'],
   /** The customer-facing lists of an accepted scope, as a packet shows them (TSK-0069). */
-  scopeText: ['assumptions', 'exclusions', 'customerResponsibilities', 'dependencies', 'scheduleAssumptions'],
+  scopeText: [
+    'assumptions',
+    'exclusions',
+    'customerResponsibilities',
+    'dependencies',
+    'scheduleAssumptions',
+    'changeOrderScope',
+    'changeOrderHazards',
+  ],
   /** The sections of a job packet (TSK-0069, HH-PKT-01; @handyhub/domain PACKET_SECTIONS). */
   packetSection: [
     'identity',
@@ -1721,7 +1729,20 @@ export const LABEL_FAMILIES = {
     'OWNER_APPROVAL_NOT_REQUIRED',
     'OWNER_MFA_REQUIRED',
     'COMMENT_REQUIRED',
+    // TSK-0082 part 2: the customer's decision and the in-person approval.
+    'CONTACT_NOT_VERIFIED',
+    'CONTENT_MISMATCH',
+    'TERMS_NOT_SHOWN',
+    'TOTAL_MISMATCH',
+    'VERSION_EXPIRED',
+    'VERSION_WITHDRAWN',
+    'VERSION_SUPERSEDED',
+    'VERSION_REJECTED',
+    'VERSION_APPROVED',
+    'invalid_code',
   ],
+  // TSK-0082: where an in-person approval code went.
+  codeChannel: ['email', 'sms'],
   // TSK-0083 (HH-QA-03, HH-WORK-12): the walkthrough and Finished.
   walkthroughOutcome: ['accepted', 'accepted_with_follow_up', 'disputed', 'customer_unavailable'],
   participantRole: ['customer', 'authorized_representative'],

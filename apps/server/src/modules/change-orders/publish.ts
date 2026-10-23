@@ -71,7 +71,7 @@ export type PublishDeps = {
 }
 
 /** The customer content of a version: what the digest fixes and the customer approves. */
-async function customerContent(tx: Tx, v: VersionRow, reference: string) {
+export async function customerContent(tx: Tx | Db, v: VersionRow, reference: string) {
   const lines = await tx
     .selectFrom('work.change_order_lines')
     .select(['position', 'kind', 'description', 'quantity_milli', 'unit', 'unit_price_cents', 'amount_cents'])

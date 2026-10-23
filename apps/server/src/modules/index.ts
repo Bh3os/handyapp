@@ -172,7 +172,11 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     // TSK-0083: the walkthrough and Finished, which submits the job for the Owner's quality review.
     completionModule(),
     // TSK-0081: change orders: a worker's proposal or a staff draft, reviewed by an Estimator or the Owner; binds nothing.
-    changeOrdersModule(),
+    changeOrdersModule({
+      codeKey: deps.codeKey ?? NO_CODE_KEY,
+      trustProxyHops: deps.trustProxyHops ?? 0,
+      testMark: deps.environment !== 'production',
+    }),
     // TSK-0142: the launch phase and its switches (the Owner moves it, with a recorded approval; phase 1 by default).
     launchModule({ environment: deps.environment ?? 'local', gate: deps.launchGate ?? null }),
   ]

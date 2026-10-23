@@ -810,6 +810,16 @@ export const TABLES = {
     classes: ['estimate_approval'],
     categories: [J],
   },
+  // TSK-0082 (0088): the identified customer's approval or rejection of one exact change-order version.
+  'work.change_order_decisions': {
+    holds:
+      'Customer decisions on change orders: the exact version and content digest, totals in cents, the terms, the ' +
+      'typed name or the rejection reason, the verified contact and how they were identified (portal session or ' +
+      'one-time code captured by a worker)',
+    classes: ['estimate_approval', 'contact'],
+    categories: [J],
+    protectedEvidence: true,
+  },
   'staging.environment_marks': {
     holds: 'Which environments identified themselves on this database (staging, local, ci or production) and when',
     classes: ['configuration'],
