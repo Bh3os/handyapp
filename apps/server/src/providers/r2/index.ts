@@ -31,7 +31,7 @@ export class StorageError extends Error {
 export type SignedUrlOptions = { expiresInSeconds?: number }
 
 export interface ObjectStorage {
-  readonly provider: 'r2' | 'fake'
+  readonly provider: 'r2' | 'fake' | 'disk'
   /** Writes a new object; refuses to overwrite one that exists. */
   put(key: string, bytes: Uint8Array, contentType: string): Promise<void>
   get(key: string): Promise<{ bytes: Uint8Array; contentType: string | null }>

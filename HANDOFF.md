@@ -153,6 +153,9 @@ it can now be linked to `work.issue_reports` (0079).
 
 ## 3. Local setup
 
+To run the whole product on one Mac (localhost, its own PostgreSQL, emails in the terminal, photos in a folder), use
+[docs/local-mac.md](docs/local-mac.md) and `scripts/local/`. What follows is the developer setup for tests and CI checks.
+
 Requirements: Node 24, pnpm (the version in `package.json` `packageManager`), PostgreSQL 16, and Chromium for e2e
 (`npx playwright install chromium` locally; the cloud sandbox used `/opt/pw-browsers/chromium`).
 

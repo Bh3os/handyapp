@@ -32,6 +32,9 @@ Vite) and their built `dist/` otherwise (used by the built server).
 
 ## Commands
 
+To run everything on one Mac with its own database (the site, the portal and the staff app on localhost), follow
+[docs/local-mac.md](docs/local-mac.md).
+
 ```sh
 pnpm install
 pnpm lint        # ESLint and Prettier
