@@ -358,6 +358,16 @@ describe('text provider (Bird) outage (TSK-0106, HH-NFR-03, T71, HH-COM-02)', ()
       changedBy: 'test',
       reason: 'synthetic test configuration',
     })
+    // The recipient's zone is unknown, so its texts wait for the fallback window (sms.unknown_zone_hours, 9 AM–9 PM
+    // Eastern; delivery-hours.test.ts covers it). This outage test must not depend on the hour it runs, so its own
+    // database opens the window all day (00:00–23:59, the widest the format allows).
+    await recordPolicyVersion(t.db, {
+      key: 'sms.unknown_zone_hours',
+      value: { open: '00:00', close: '23:59', zone: 'America/Kentucky/Louisville' },
+      sourceIds: ['TEST-SYNTHETIC'],
+      changedBy: 'test',
+      reason: 'synthetic test configuration',
+    })
     await withTx(t.db, (tx) =>
       recordConsent(tx, {
         purpose: 'transactional_sms',
