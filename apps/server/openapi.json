@@ -28081,6 +28081,414 @@
         }
       }
     },
+    "/api/v1/staff/change-order-versions/{versionId}": {
+      "get": {
+        "operationId": "findChangeOrderVersion",
+        "summary": "The job and change order of a change-order version",
+        "description": "Staff with job.view_packet on the job: the job and the change order a version belongs to.",
+        "tags": [
+          "change-orders"
+        ],
+        "parameters": [
+          {
+            "name": "versionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "changeOrderId",
+                    "version"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "changeOrderId": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job.view_packet",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/change-orders.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/change-orders/{changeOrderId}/actions/issue": {
+      "post": {
+        "operationId": "issueChangeOrder",
+        "summary": "Publish a change order to the customer",
+        "description": "Staff with change_order.publish (an Estimator, the Owner), with If-Match, on a reviewed version: priced again against the current approved scope and the money paid (APPROVED_SCOPE_CHANGED, TOTALS_CHANGED). Over the Owner approval threshold (the change or the revised project value), with the project’s other open change orders over it together, or with a credit (every credit while no materiality is configured), only with the Owner’s approval of this exact content: the Owner’s own publication from a second-factor session is the approval; anyone else is refused (OWNER_APPROVAL_REQUIRED, _PENDING, _REJECTED) and requests it first. Valid for change_order.validity days (7) counted in the business time zone; the Owner may set fewer days (validityDays, with validityReason). In one transaction: issued with its content digest, the automatic proposed-change notice queued, the expiry scheduled. Binds nothing until the customer approves it.",
+        "tags": [
+          "change-orders"
+        ],
+        "parameters": [
+          {
+            "name": "changeOrderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {
+                  "validityDays": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 7
+                  },
+                  "validityReason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "changeOrderId",
+                    "versionId",
+                    "state",
+                    "rowVersion",
+                    "reference",
+                    "validUntil",
+                    "ownerApproval"
+                  ],
+                  "properties": {
+                    "changeOrderId": {
+                      "type": "string"
+                    },
+                    "versionId": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "draft",
+                        "reviewed",
+                        "issued",
+                        "approved",
+                        "rejected",
+                        "expired",
+                        "superseded",
+                        "withdrawn"
+                      ]
+                    },
+                    "rowVersion": {
+                      "type": "integer"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "validUntil": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "ownerApproval": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "approvalId",
+                            "basis"
+                          ],
+                          "properties": {
+                            "approvalId": {
+                              "type": "string"
+                            },
+                            "basis": {
+                              "type": "string",
+                              "enum": [
+                                "request",
+                                "owner_publication"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "change_order.publish",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "change_order.issue",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/change-orders.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/change-orders/{changeOrderId}/actions/reopen": {
       "post": {
         "operationId": "changeOrderReopen",
@@ -28539,11 +28947,236 @@
         }
       }
     },
+    "/api/v1/staff/change-orders/{changeOrderId}/actions/revise": {
+      "post": {
+        "operationId": "reviseChangeOrder",
+        "summary": "Revise or reissue a change order",
+        "description": "Staff with change_order.publish, with If-Match, on an issued, expired, withdrawn or rejected version: the next version as a draft with the same content and lines, priced again against the current approved scope, for the staff to review the current pricing, materials, schedule and scope before issuing it (OWN-DEC-168). An issued version is superseded by it (or recorded as expired when past its validity) and can no longer be approved.",
+        "tags": [
+          "change-orders"
+        ],
+        "parameters": [
+          {
+            "name": "changeOrderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "changeOrderId",
+                    "versionId",
+                    "state",
+                    "rowVersion",
+                    "version"
+                  ],
+                  "properties": {
+                    "changeOrderId": {
+                      "type": "string"
+                    },
+                    "versionId": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "draft",
+                        "reviewed",
+                        "issued",
+                        "approved",
+                        "rejected",
+                        "expired",
+                        "superseded",
+                        "withdrawn"
+                      ]
+                    },
+                    "rowVersion": {
+                      "type": "integer"
+                    },
+                    "version": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "change_order.publish",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "change_order.revise",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/change-orders.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/change-orders/{changeOrderId}/actions/withdraw": {
       "post": {
         "operationId": "changeOrderWithdraw",
         "summary": "Change order: withdraw",
-        "description": "With If-Match (the version’s row version). draft or reviewed -> withdrawn, with a reason. A worker withdraws only their own draft; the steps it named no longer wait.",
+        "description": "With If-Match (the version’s row version). draft, reviewed or issued -> withdrawn, with a reason. A worker withdraws only their own draft; the steps it named no longer wait; an issued change order can no longer be approved.",
         "tags": [
           "change-orders"
         ],
@@ -29116,6 +29749,224 @@
           "secondFactor": "required",
           "csrf": "required_with_staff_session",
           "audit": "change_order.update",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/change-orders.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/change-orders/{changeOrderId}/owner-approval": {
+      "post": {
+        "operationId": "requestChangeOrderOwnerApproval",
+        "summary": "Ask the Owner to approve publishing a change order",
+        "description": "Staff with change_order.publish, with If-Match, on a reviewed version whose publication needs the Owner (OWNER_APPROVAL_NOT_REQUIRED otherwise): records a pending approval of this exact content and opens the Owner Decisions item; asking again for the same content returns the open one. The Owner decides it through /staff/publication-approvals/{id}/decision.",
+        "tags": [
+          "change-orders"
+        ],
+        "parameters": [
+          {
+            "name": "changeOrderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "changeOrderId",
+                    "versionId",
+                    "approvalId",
+                    "created",
+                    "reasons"
+                  ],
+                  "properties": {
+                    "changeOrderId": {
+                      "type": "string"
+                    },
+                    "versionId": {
+                      "type": "string"
+                    },
+                    "approvalId": {
+                      "type": "string"
+                    },
+                    "created": {
+                      "type": "boolean"
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "change_order.publish",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "change_order.request_owner_approval",
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/change-orders.test.ts"
@@ -35079,6 +35930,7 @@
                                   "discount.eligibility_verification",
                                   "tax.mode",
                                   "estimate.validity",
+                                  "change_order.validity",
                                   "estimate.publishing_roles",
                                   "owner_approval.threshold",
                                   "owner_approval.discretionary_credit",
@@ -37201,6 +38053,7 @@
                                   "discount.eligibility_verification",
                                   "tax.mode",
                                   "estimate.validity",
+                                  "change_order.validity",
                                   "estimate.publishing_roles",
                                   "owner_approval.threshold",
                                   "owner_approval.discretionary_credit",
@@ -39603,6 +40456,7 @@
                                   "discount.eligibility_verification",
                                   "tax.mode",
                                   "estimate.validity",
+                                  "change_order.validity",
                                   "estimate.publishing_roles",
                                   "owner_approval.threshold",
                                   "owner_approval.discretionary_credit",
@@ -41578,6 +42432,7 @@
                                   "discount.eligibility_verification",
                                   "tax.mode",
                                   "estimate.validity",
+                                  "change_order.validity",
                                   "estimate.publishing_roles",
                                   "owner_approval.threshold",
                                   "owner_approval.discretionary_credit",
@@ -43729,6 +44584,7 @@
                                   "discount.eligibility_verification",
                                   "tax.mode",
                                   "estimate.validity",
+                                  "change_order.validity",
                                   "estimate.publishing_roles",
                                   "owner_approval.threshold",
                                   "owner_approval.discretionary_credit",
@@ -45704,6 +46560,7 @@
                                   "discount.eligibility_verification",
                                   "tax.mode",
                                   "estimate.validity",
+                                  "change_order.validity",
                                   "estimate.publishing_roles",
                                   "owner_approval.threshold",
                                   "owner_approval.discretionary_credit",
@@ -48046,6 +48903,7 @@
                                   "discount.eligibility_verification",
                                   "tax.mode",
                                   "estimate.validity",
+                                  "change_order.validity",
                                   "estimate.publishing_roles",
                                   "owner_approval.threshold",
                                   "owner_approval.discretionary_credit",
@@ -50210,6 +51068,7 @@
                                   "discount.eligibility_verification",
                                   "tax.mode",
                                   "estimate.validity",
+                                  "change_order.validity",
                                   "estimate.publishing_roles",
                                   "owner_approval.threshold",
                                   "owner_approval.discretionary_credit",
@@ -52365,6 +53224,7 @@
                                   "discount.eligibility_verification",
                                   "tax.mode",
                                   "estimate.validity",
+                                  "change_order.validity",
                                   "estimate.publishing_roles",
                                   "owner_approval.threshold",
                                   "owner_approval.discretionary_credit",
@@ -54520,6 +55380,7 @@
                                   "discount.eligibility_verification",
                                   "tax.mode",
                                   "estimate.validity",
+                                  "change_order.validity",
                                   "estimate.publishing_roles",
                                   "owner_approval.threshold",
                                   "owner_approval.discretionary_credit",
@@ -56680,6 +57541,7 @@
                                   "discount.eligibility_verification",
                                   "tax.mode",
                                   "estimate.validity",
+                                  "change_order.validity",
                                   "estimate.publishing_roles",
                                   "owner_approval.threshold",
                                   "owner_approval.discretionary_credit",
@@ -59133,6 +59995,7 @@
                                   "discount.eligibility_verification",
                                   "tax.mode",
                                   "estimate.validity",
+                                  "change_order.validity",
                                   "estimate.publishing_roles",
                                   "owner_approval.threshold",
                                   "owner_approval.discretionary_credit",
@@ -61288,6 +62151,7 @@
                                   "discount.eligibility_verification",
                                   "tax.mode",
                                   "estimate.validity",
+                                  "change_order.validity",
                                   "estimate.publishing_roles",
                                   "owner_approval.threshold",
                                   "owner_approval.discretionary_credit",
@@ -63648,6 +64512,7 @@
                                   "discount.eligibility_verification",
                                   "tax.mode",
                                   "estimate.validity",
+                                  "change_order.validity",
                                   "estimate.publishing_roles",
                                   "owner_approval.threshold",
                                   "owner_approval.discretionary_credit",
@@ -73903,6 +74768,7 @@
                           "origin",
                           "createdAt",
                           "current",
+                          "ownerApproval",
                           "history",
                           "actions"
                         ],
@@ -73957,6 +74823,12 @@
                               "withdrawnBy",
                               "withdrawnAt",
                               "withdrawReason",
+                              "issuedBy",
+                              "issuedAt",
+                              "validUntil",
+                              "validityReason",
+                              "supersededAt",
+                              "expiredAt",
                               "rowVersion"
                             ],
                             "properties": {
@@ -74229,10 +75101,138 @@
                                   "null"
                                 ]
                               },
+                              "issuedBy": {
+                                "anyOf": [
+                                  {
+                                    "type": "null"
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "id",
+                                      "name"
+                                    ],
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
+                              "issuedAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              },
+                              "validUntil": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              },
+                              "validityReason": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "supersededAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              },
+                              "expiredAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              },
                               "rowVersion": {
                                 "type": "integer"
                               }
                             }
+                          },
+                          "ownerApproval": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "required",
+                                  "reasons",
+                                  "flags",
+                                  "latest"
+                                ],
+                                "properties": {
+                                  "required": {
+                                    "type": "boolean"
+                                  },
+                                  "reasons": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "flags": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "latest": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "approvalId",
+                                          "state",
+                                          "rowVersion",
+                                          "comment"
+                                        ],
+                                        "properties": {
+                                          "approvalId": {
+                                            "type": "string"
+                                          },
+                                          "state": {
+                                            "type": "string"
+                                          },
+                                          "rowVersion": {
+                                            "type": "integer"
+                                          },
+                                          "comment": {
+                                            "type": [
+                                              "string",
+                                              "null"
+                                            ]
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
                           },
                           "history": {
                             "type": "array",
@@ -74278,7 +75278,11 @@
                               "edit",
                               "review",
                               "reopen",
-                              "withdraw"
+                              "withdraw",
+                              "issue",
+                              "requestOwnerApproval",
+                              "revise",
+                              "decideOwnerApproval"
                             ],
                             "properties": {
                               "edit": {
@@ -74291,6 +75295,18 @@
                                 "type": "boolean"
                               },
                               "withdraw": {
+                                "type": "boolean"
+                              },
+                              "issue": {
+                                "type": "boolean"
+                              },
+                              "requestOwnerApproval": {
+                                "type": "boolean"
+                              },
+                              "revise": {
+                                "type": "boolean"
+                              },
+                              "decideOwnerApproval": {
                                 "type": "boolean"
                               }
                             }
@@ -114524,6 +115540,7 @@
                 "cancellation_review",
                 "visit_cancellation_review",
                 "estimate_publication_approval",
+                "change_order_publication_approval",
                 "incident_notification"
               ]
             }
@@ -114660,6 +115677,7 @@
                               "cancellation_review",
                               "visit_cancellation_review",
                               "estimate_publication_approval",
+                              "change_order_publication_approval",
                               "incident_notification"
                             ]
                           },
@@ -114949,6 +115967,7 @@
                           "cancellation_review",
                           "visit_cancellation_review",
                           "estimate_publication_approval",
+                          "change_order_publication_approval",
                           "incident_notification"
                         ]
                       }
@@ -115105,6 +116124,7 @@
                 "cancellation_review",
                 "visit_cancellation_review",
                 "estimate_publication_approval",
+                "change_order_publication_approval",
                 "incident_notification"
               ]
             }
@@ -115241,6 +116261,7 @@
                               "cancellation_review",
                               "visit_cancellation_review",
                               "estimate_publication_approval",
+                              "change_order_publication_approval",
                               "incident_notification"
                             ]
                           },
@@ -115530,6 +116551,7 @@
                           "cancellation_review",
                           "visit_cancellation_review",
                           "estimate_publication_approval",
+                          "change_order_publication_approval",
                           "incident_notification"
                         ]
                       }
@@ -129195,6 +130217,7 @@
                               "discount.eligibility_verification",
                               "tax.mode",
                               "estimate.validity",
+                              "change_order.validity",
                               "estimate.publishing_roles",
                               "owner_approval.threshold",
                               "owner_approval.discretionary_credit",

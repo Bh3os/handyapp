@@ -11,23 +11,45 @@
 //   approves an issued version (TSK-0082).
 // - Every write is audited with identifiers, states and totals; no reason, scope or note text enters the summary.
 import type { Tx } from '@handyhub/db'
-import { CHANGE_ORDER_MACHINE, type ChangeOrderEvent, type ChangeOrderOrigin } from '@handyhub/domain'
+import type { ChangeOrderOrigin } from '@handyhub/domain'
 import type { StaffActor } from '@handyhub/policy'
 import { ApiError } from '../../api/errors.js'
 import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
+import { loadConfig } from '../../platform/config/index.js'
 import { jobAssignments } from '../packets/assignments.js'
+import {
+  changeOrderExpiryAutomation,
+  issueChangeOrder,
+  requestChangeOrderApproval,
+  reviseChangeOrder,
+} from './publish.js'
 import {
   CHANGE_ORDER_PARAMS,
   CHANGE_ORDERS_VIEW,
   CREATE_BODY,
   CREATE_RESULT,
   EVENT_BODY,
+  ISSUE_BODY,
+  ISSUE_RESULT,
   JOB_PARAMS,
+  OWNER_APPROVAL_RESULT,
+  REVISE_RESULT,
+  EMPTY_OBJECT,
   NO_QUERY,
   UPDATE_BODY,
+  VERSION_LOOKUP,
+  VERSION_PARAMS,
   WRITE_RESULT,
 } from './schemas.js'
-import { changeOrderEvent, changeOrdersView, createChangeOrder, type DraftInput, updateDraft } from './store.js'
+import {
+  changeOrderEvent,
+  changeOrdersView,
+  createChangeOrder,
+  type DraftInput,
+  STAFF_EVENTS,
+  type StaffEvent,
+  updateDraft,
+} from './store.js'
 
 export { changeOrderWaitingSteps } from './store.js'
 
@@ -57,6 +79,17 @@ const orderFacts: NonNullable<RouteDef['resource']> = async ({ req, db }) => {
   return o ? factsOfJob(db, o.job_id) : null
 }
 
+const versionFacts: NonNullable<RouteDef['resource']> = async ({ req, db }) => {
+  const { versionId } = req.params as { versionId: string }
+  if (!UUID_RE.test(versionId)) return null
+  const v = await db
+    .selectFrom('work.change_order_versions')
+    .select('job_id')
+    .where('id', '=', versionId)
+    .executeTakeFirst()
+  return v ? factsOfJob(db, v.job_id) : null
+}
+
 const write = {
   actors: ['staff'],
   kind: 'write',
@@ -66,7 +99,7 @@ const write = {
   test: TEST,
 } as const
 
-const EVENT_TEXT: Readonly<Record<ChangeOrderEvent, string>> = {
+const EVENT_TEXT: Readonly<Record<StaffEvent, string>> = {
   review:
     'draft -> reviewed: an Estimator or the Owner checked pricing and eligibility. Every line priced, at least one ' +
     'line, and the totals hold against the current approved total and the money paid (CREDIT_EXCEEDS_REMAINING_' +
@@ -74,8 +107,8 @@ const EVENT_TEXT: Readonly<Record<ChangeOrderEvent, string>> = {
     'again first).',
   reopen: 'reviewed -> draft, to change it again.',
   withdraw:
-    'draft or reviewed -> withdrawn, with a reason. A worker withdraws only their own draft; the steps it named no ' +
-    'longer wait.',
+    'draft, reviewed or issued -> withdrawn, with a reason. A worker withdraws only their own draft; the steps it ' +
+    'named no longer wait; an issued change order can no longer be approved.',
 }
 
 export function changeOrdersModule(): ApiModule {
@@ -176,7 +209,7 @@ export function changeOrdersModule(): ApiModule {
     },
   }
 
-  const events: RouteDef[] = CHANGE_ORDER_MACHINE.transitions.map(({ event }) => ({
+  const events: RouteDef[] = STAFF_EVENTS.map((event) => ({
     ...write,
     method: 'POST',
     expectedVersion: 'required',
@@ -207,5 +240,141 @@ export function changeOrdersModule(): ApiModule {
     },
   }))
 
-  return { name: 'change-orders', routes: [list, create, update, ...events] }
+  const expiry = changeOrderExpiryAutomation()
+  const secondFactor = (ctx: ApiContext) =>
+    ctx.req.staffSession?.state === 'complete' && ctx.req.staffSession.mfaEnrolled === true
+
+  // TSK-0082: publish the reviewed version to the customer.
+  const issue: RouteDef = {
+    ...write,
+    method: 'POST',
+    expectedVersion: 'required',
+    path: '/staff/change-orders/:changeOrderId/actions/issue',
+    operationId: 'issueChangeOrder',
+    summary: 'Publish a change order to the customer',
+    description:
+      'Staff with change_order.publish (an Estimator, the Owner), with If-Match, on a reviewed version: priced ' +
+      'again against the current approved scope and the money paid (APPROVED_SCOPE_CHANGED, TOTALS_CHANGED). Over ' +
+      'the Owner approval threshold (the change or the revised project value), with the project’s other open change ' +
+      'orders over it together, or with a credit (every credit while no materiality is configured), only with the ' +
+      'Owner’s approval of this exact content: the Owner’s own publication from a second-factor session is the ' +
+      'approval; anyone else is refused (OWNER_APPROVAL_REQUIRED, _PENDING, _REJECTED) and requests it first. Valid ' +
+      'for change_order.validity days (7) counted in the business time zone; the Owner may set fewer days ' +
+      '(validityDays, with validityReason). In one transaction: issued with its content digest, the automatic ' +
+      'proposed-change notice queued, the expiry scheduled. Binds nothing until the customer approves it.',
+    permission: 'change_order.publish',
+    audit: 'change_order.issue',
+    resource: orderFacts,
+    schema: { params: CHANGE_ORDER_PARAMS, body: ISSUE_BODY, response: { 200: ISSUE_RESULT } },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const { changeOrderId } = ctx.req.params as { changeOrderId: string }
+      const out = await issueChangeOrder(
+        tx,
+        staff(ctx),
+        changeOrderId,
+        ctx.req.body as { validityDays?: number; validityReason?: string },
+        ctx.expectedVersion(),
+        { config: await loadConfig(tx), secondFactor: secondFactor(ctx), expiry },
+      )
+      await ctx.audit({
+        target: { type: 'change_order', id: changeOrderId, version: out.rowVersion },
+        summary: {
+          reference: out.reference,
+          state: out.state,
+          validUntil: out.validUntil,
+          ownerApproval: out.ownerApproval,
+        },
+      })
+      return { body: out, version: out.rowVersion }
+    },
+  }
+
+  const requestOwnerApproval: RouteDef = {
+    ...write,
+    method: 'POST',
+    expectedVersion: 'required',
+    path: '/staff/change-orders/:changeOrderId/owner-approval',
+    operationId: 'requestChangeOrderOwnerApproval',
+    summary: 'Ask the Owner to approve publishing a change order',
+    description:
+      'Staff with change_order.publish, with If-Match, on a reviewed version whose publication needs the Owner ' +
+      '(OWNER_APPROVAL_NOT_REQUIRED otherwise): records a pending approval of this exact content and opens the ' +
+      'Owner Decisions item; asking again for the same content returns the open one. The Owner decides it through ' +
+      '/staff/publication-approvals/{id}/decision.',
+    permission: 'change_order.publish',
+    audit: 'change_order.request_owner_approval',
+    resource: orderFacts,
+    schema: { params: CHANGE_ORDER_PARAMS, body: EMPTY_OBJECT, response: { 200: OWNER_APPROVAL_RESULT } },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const { changeOrderId } = ctx.req.params as { changeOrderId: string }
+      const out = await requestChangeOrderApproval(
+        tx,
+        staff(ctx),
+        changeOrderId,
+        ctx.expectedVersion(),
+        await loadConfig(tx),
+      )
+      await ctx.audit({
+        target: { type: 'change_order', id: changeOrderId },
+        summary: { approvalId: out.approvalId, created: out.created, reasons: [...out.reasons] },
+      })
+      return { body: { ...out, reasons: [...out.reasons] } }
+    },
+  }
+
+  const revise: RouteDef = {
+    ...write,
+    method: 'POST',
+    expectedVersion: 'required',
+    path: '/staff/change-orders/:changeOrderId/actions/revise',
+    operationId: 'reviseChangeOrder',
+    summary: 'Revise or reissue a change order',
+    description:
+      'Staff with change_order.publish, with If-Match, on an issued, expired, withdrawn or rejected version: the ' +
+      'next version as a draft with the same content and lines, priced again against the current approved scope, ' +
+      'for the staff to review the current pricing, materials, schedule and scope before issuing it (OWN-DEC-168). ' +
+      'An issued version is superseded by it (or recorded as expired when past its validity) and can no longer be ' +
+      'approved.',
+    permission: 'change_order.publish',
+    audit: 'change_order.revise',
+    resource: orderFacts,
+    schema: { params: CHANGE_ORDER_PARAMS, body: EMPTY_OBJECT, response: { 200: REVISE_RESULT } },
+    handler: async (ctx) => {
+      const { changeOrderId } = ctx.req.params as { changeOrderId: string }
+      const out = await reviseChangeOrder(ctx.tx as Tx, staff(ctx), changeOrderId, ctx.expectedVersion())
+      await ctx.audit({
+        target: { type: 'change_order', id: changeOrderId, version: out.rowVersion },
+        summary: { version: out.version, state: out.state },
+      })
+      return { body: out, version: out.rowVersion }
+    },
+  }
+
+  // The Owner Decisions link of a change-order approval names the version; this finds its job's change orders.
+  const versionLookup: RouteDef = {
+    ...list,
+    path: '/staff/change-order-versions/:versionId',
+    operationId: 'findChangeOrderVersion',
+    summary: 'The job and change order of a change-order version',
+    description: 'Staff with job.view_packet on the job: the job and the change order a version belongs to.',
+    resource: versionFacts,
+    schema: { params: VERSION_PARAMS, querystring: NO_QUERY, response: { 200: VERSION_LOOKUP } },
+    handler: async (ctx) => {
+      const { versionId } = ctx.req.params as { versionId: string }
+      const v = await ctx.db
+        .selectFrom('work.change_order_versions')
+        .select(['job_id', 'change_order_id', 'version'])
+        .where('id', '=', versionId)
+        .executeTakeFirst()
+      if (!v) throw new ApiError('NOT_FOUND')
+      return { body: { jobId: v.job_id, changeOrderId: v.change_order_id, version: v.version } }
+    },
+  }
+
+  return {
+    name: 'change-orders',
+    routes: [list, create, update, ...events, issue, requestOwnerApproval, revise, versionLookup],
+  }
 }

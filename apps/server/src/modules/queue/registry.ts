@@ -541,6 +541,20 @@ export const QUEUE_ITEM_TYPES = [
     action: 'decide',
     screen: 'estimates',
   },
+  // TSK-0082 (HH-CHG-02, OWN-DEC-173, OWN-DEC-204): a change-order version waiting for the Owner's approval before it
+  // is issued to the customer. One item per version while its approval is pending; resolved like the estimate one.
+  // The link opens the job's change orders through the version (/change-order-versions/<id>).
+  {
+    id: 'change_order_publication_approval',
+    section: 'owner_decisions',
+    subject: 'change_order_version',
+    band: 'time_sensitive',
+    view: 'estimate.approve_publication',
+    reasons: [...PUBLICATION_APPROVAL_REASONS],
+    action: 'decide',
+    screen: 'schedule',
+    path: 'change-order-versions',
+  },
   {
     id: 'incident_notification',
     section: 'owner_decisions',

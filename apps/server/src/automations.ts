@@ -1,5 +1,6 @@
 // The declared automations the in-process worker runs (TSK-0012, HH-AUTO-01). Each later task appends its own
 // declaration here; an incomplete one stops the server at boot.
+import { changeOrderExpiryAutomation, changeOrderProposedAutomation } from './modules/change-orders/publish.js'
 import { staffLinkEmailAutomation, type LinkEmailDeps } from './modules/identity/link-email.js'
 import {
   approvalReceiptDocumentAutomation,
@@ -149,6 +150,17 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     // TSK-0055: a published estimate version expires at the end of its validity; publishing sends the automatic
     // estimate-ready notice (FACT-AUTOMATIC-MESSAGES #8).
     estimateExpiryAutomation(),
+    // TSK-0082: an issued change order expires at the end of its validity; issuing sends the proposed-change notice.
+    changeOrderExpiryAutomation(),
+    changeOrderProposedAutomation({
+      providers: {
+        email: deps.providers.email,
+        sms: deps.providers.sms,
+        replyAddress: deps.replyAddress ?? null,
+        linkHosts,
+      },
+      publicSiteUrl: deps.publicSiteUrl,
+    }),
     estimateReadyAutomation({
       providers: {
         email: deps.providers.email,

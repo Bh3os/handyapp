@@ -486,7 +486,21 @@ type Order = {
   reference: string
   origin: string
   current: Version
-  actions: { edit: boolean; review: boolean; reopen: boolean; withdraw: boolean }
+  ownerApproval: {
+    required: boolean
+    reasons: string[]
+    latest: { approvalId: string; state: string; rowVersion: number } | null
+  } | null
+  actions: {
+    edit: boolean
+    review: boolean
+    reopen: boolean
+    withdraw: boolean
+    issue?: boolean
+    requestOwnerApproval?: boolean
+    revise?: boolean
+    decideOwnerApproval?: boolean
+  }
 }
 type View = {
   approved: { snapshotVersion: number; totalCents: number } | null
@@ -588,7 +602,7 @@ describe('[HH-CHG-01][HH-WORK-07][T53] change orders: worker proposals and staff
       revisedTotalCents: Number(snapBefore[0]?.total_cents) + 10_000,
       base: { snapshotId: snapBefore[0]?.id },
     })
-    expect(order.actions).toEqual({ edit: true, review: false, reopen: false, withdraw: true })
+    expect(order.actions).toMatchObject({ edit: true, review: false, reopen: false, withdraw: true })
     // Nothing binds: the scope snapshots, the packet and the approved total are unchanged.
     expect(await snapshots(jobId)).toEqual(snapBefore)
     expect(await packet(jobId)).toEqual(packetBefore)
@@ -600,7 +614,7 @@ describe('[HH-CHG-01][HH-WORK-07][T53] change orders: worker proposals and staff
     const office = await staffWrite('office', `/api/v1/staff/jobs/${jobId}/change-orders`, draft([]))
     expect(office.statusCode).toBe(403)
     const order = await orderOf('cara', jobId, 1)
-    expect(order.actions).toEqual({ edit: false, review: false, reopen: false, withdraw: false })
+    expect(order.actions).toMatchObject({ edit: false, review: false, reopen: false, withdraw: false })
     expect(
       (await edit('cara', first, order.current.rowVersion, draft([{ kind: 'charge', description: 'Synthetic' }])))
         .statusCode,
@@ -637,7 +651,7 @@ describe('[HH-CHG-01][HH-WORK-07][T53] change orders: worker proposals and staff
 
   it('[HH-CHG-01] the estimator edits and reviews it: every line priced; reviewed is not edited; reopened', async () => {
     let order = await orderOf('estimator', jobId, 1)
-    expect(order.actions).toEqual({ edit: true, review: true, reopen: false, withdraw: true })
+    expect(order.actions).toMatchObject({ edit: true, review: true, reopen: false, withdraw: true })
     // An incomplete line is kept in the draft and refused at review.
     const incomplete = await edit(
       'estimator',
@@ -688,7 +702,7 @@ describe('[HH-CHG-01][HH-WORK-07][T53] change orders: worker proposals and staff
     expect(reviewed.statusCode, reviewed.body).toBe(200)
     order = await orderOf('estimator', jobId, 1)
     expect(order.current).toMatchObject({ state: 'reviewed', reviewedBy: { id: ids.estimator } })
-    expect(order.actions).toEqual({ edit: false, review: false, reopen: true, withdraw: true })
+    expect(order.actions).toMatchObject({ edit: false, review: false, reopen: true, withdraw: true })
     const locked = await edit('estimator', first, order.current.rowVersion, draft([]))
     expect(codesOf(locked)).toEqual(['NOT_A_DRAFT'])
     // The worker can no longer withdraw it once reviewed; the estimator reopens it.
@@ -783,5 +797,219 @@ describe('[HH-CHG-01][HH-WORK-07][T53] change orders: worker proposals and staff
         t.db,
       ),
     ).rejects.toThrow()
+  })
+})
+
+// --- Publication (TSK-0082 part 1) -----------------------------------------------------------------------------------
+
+describe('[HH-CHG-02][OWN-DEC-168][OWN-DEC-173] publishing a change order: Owner approval, validity, revise', () => {
+  let p: Project
+  let jobId: string
+  /** A change order drafted and reviewed by the estimator; returns its id and current row version. */
+  const reviewed = async (lines: Line[], who: Person = 'estimator') => {
+    const res = await staffWrite(who, `/api/v1/staff/jobs/${jobId}/change-orders`, {
+      ...draft(lines),
+      origin: 'estimator',
+    })
+    expect(res.statusCode, res.body).toBe(201)
+    const { changeOrderId, rowVersion, number } = res.json<{
+      changeOrderId: string
+      rowVersion: number
+      number: number
+    }>()
+    const r = await event(who, changeOrderId, 'review', rowVersion)
+    expect(r.statusCode, r.body).toBe(200)
+    return { id: changeOrderId, number, rowVersion: rowVersion + 1 }
+  }
+  const issue = (who: Person, id: string, version: number, body: Record<string, unknown> = {}) =>
+    staffWrite(who, `/api/v1/staff/change-orders/${id}/actions/issue`, body, version)
+  const versionRow = async (id: string) =>
+    t.db
+      .selectFrom('work.change_order_versions')
+      .selectAll()
+      .where('change_order_id', '=', id)
+      .orderBy('version', 'desc')
+      .limit(1)
+      .executeTakeFirstOrThrow()
+
+  it('[HH-CHG-02] an estimator issues a reviewed change order: valid 7 days, notice queued, still binds nothing', async () => {
+    p = await project()
+    jobId = await approve(p, 80_000)
+    const before = { snapshots: await snapshots(jobId), packet: await packet(jobId) }
+    const co = await reviewed([
+      { kind: 'charge', description: 'Synthetic extra board', quantity: '1', unitPriceCents: 9_000 },
+    ])
+    expect((await orderOf('estimator', jobId, co.number)).actions).toMatchObject({
+      issue: true,
+      requestOwnerApproval: false,
+    })
+    expect((await orderOf('estimator', jobId, co.number)).ownerApproval).toMatchObject({ required: false })
+    // A worker or Office never publishes.
+    expect((await issue('office', co.id, co.rowVersion)).statusCode).toBe(403)
+    const res = await issue('estimator', co.id, co.rowVersion)
+    expect(res.statusCode, res.body).toBe(200)
+    const out = res.json<{ state: string; validUntil: string; ownerApproval: unknown; reference: string }>()
+    expect(out).toMatchObject({ state: 'issued', ownerApproval: null, reference: `${p.reference}-C${co.number}` })
+    // Seven calendar days, to the end of the day in the business time zone.
+    const days = (new Date(out.validUntil).getTime() - Date.now()) / 86_400_000
+    expect(days).toBeGreaterThan(7)
+    expect(days).toBeLessThanOrEqual(8)
+    const row = await versionRow(co.id)
+    expect(row).toMatchObject({ state: 'issued', issued_by: ids.estimator })
+    expect(row.content_sha256).toMatch(/^[0-9a-f]{64}$/)
+    // The proposed-change notice and the expiry job are written with it.
+    const events = await t.db
+      .selectFrom('platform.outbox_events')
+      .select(['type', 'idempotency_key'])
+      .where('type', '=', 'change_order.published')
+      .where('aggregate_id', '=', row.id)
+      .execute()
+    expect(events).toHaveLength(1)
+    const jobs = await t.db
+      .selectFrom('platform.jobs')
+      .select(['automation', 'run_at'])
+      .where('target_id', '=', row.id)
+      .execute()
+    expect(jobs.map((j) => j.automation)).toContain('change_order.validity_expiry')
+    // Issued is not approved: the scope, the packet and the approved total stay as they were.
+    expect(await snapshots(jobId)).toEqual(before.snapshots)
+    expect(await packet(jobId)).toEqual(before.packet)
+    const issued = await orderOf('estimator', jobId, co.number)
+    expect(issued.current.state).toBe('issued')
+    expect(issued.actions).toMatchObject({ edit: false, issue: false, revise: true, withdraw: true })
+  })
+
+  it('[OWN-DEC-173][OWN-DEC-204] over the threshold or with a credit, only with the Owner’s approval', async () => {
+    // A credit is a discretionary credit while no materiality is configured: the estimator asks the Owner.
+    const credit = await reviewed([
+      { kind: 'credit', description: 'Synthetic: goodwill credit', quantity: '1', unitPriceCents: 5_000 },
+    ])
+    let order = await orderOf('estimator', jobId, credit.number)
+    expect(order.ownerApproval).toMatchObject({ required: true, reasons: ['discretionary_credit'] })
+    const refused = await issue('estimator', credit.id, credit.rowVersion)
+    expect(refused.statusCode).toBe(409)
+    expect(codesOf(refused)).toContain('OWNER_APPROVAL_REQUIRED')
+    const asked = await staffWrite(
+      'estimator',
+      `/api/v1/staff/change-orders/${credit.id}/owner-approval`,
+      {},
+      credit.rowVersion,
+    )
+    expect(asked.statusCode, asked.body).toBe(200)
+    const approvalId = asked.json<{ approvalId: string }>().approvalId
+    order = await orderOf('owner', jobId, credit.number)
+    expect(order.ownerApproval?.latest).toMatchObject({ approvalId, state: 'pending' })
+    expect(order.actions.decideOwnerApproval).toBe(true)
+    expect(codesOf(await issue('estimator', credit.id, credit.rowVersion))).toContain('OWNER_APPROVAL_PENDING')
+    const decided = await staffWrite(
+      'owner',
+      `/api/v1/staff/publication-approvals/${approvalId}/decision`,
+      { decision: 'approve', comment: 'Synthetic: goodwill credit is fine' },
+      order.ownerApproval?.latest?.rowVersion,
+    )
+    expect(decided.statusCode, decided.body).toBe(200)
+    const issued = await issue('estimator', credit.id, credit.rowVersion)
+    expect(issued.statusCode, issued.body).toBe(200)
+    expect(issued.json()).toMatchObject({ state: 'issued', ownerApproval: { approvalId, basis: 'request' } })
+    // Over $2,500.00 the Owner's own publication is the approval.
+    const big = await reviewed([
+      { kind: 'charge', description: 'Synthetic: new room', quantity: '1', unitPriceCents: 250_001 },
+    ])
+    expect((await orderOf('owner', jobId, big.number)).ownerApproval?.reasons).toContain('change_order_adjustment')
+    const owner = await issue('owner', big.id, big.rowVersion)
+    expect(owner.statusCode, owner.body).toBe(200)
+    expect(owner.json()).toMatchObject({ ownerApproval: { basis: 'owner_publication' } })
+  })
+
+  it('[OWN-DEC-168] only the Owner sets a shorter validity, with a reason; never a longer one', async () => {
+    const co = await reviewed([
+      { kind: 'charge', description: 'Synthetic: urgent', quantity: '1', unitPriceCents: 1_000 },
+    ])
+    const estimator = await issue('estimator', co.id, co.rowVersion, { validityDays: 2, validityReason: 'Synthetic' })
+    expect(estimator.statusCode).toBe(403)
+    expect(codesOf(await issue('owner', co.id, co.rowVersion, { validityDays: 2 }))).toEqual(['REASON_REQUIRED'])
+    expect((await issue('owner', co.id, co.rowVersion, { validityDays: 9, validityReason: 'x' })).statusCode).toBe(400)
+    const short = await issue('owner', co.id, co.rowVersion, {
+      validityDays: 2,
+      validityReason: 'Synthetic: material price holds two days',
+    })
+    expect(short.statusCode, short.body).toBe(200)
+    const days = (new Date(short.json<{ validUntil: string }>().validUntil).getTime() - Date.now()) / 86_400_000
+    expect(days).toBeLessThanOrEqual(3)
+    expect(await versionRow(co.id)).toMatchObject({ validity_days: 2 })
+  })
+
+  it('[OWN-DEC-168] an issued version expires at its end, is shown expired before the job runs, and is reissued', async () => {
+    const co = await reviewed([
+      { kind: 'charge', description: 'Synthetic: shelf', quantity: '1', unitPriceCents: 2_000 },
+    ])
+    // The project's other open change orders together are over the threshold now (the splitting check): the Owner
+    // issues it, and the Owner's publication is the approval.
+    expect((await issue('owner', co.id, co.rowVersion)).statusCode).toBe(200)
+    const row = await versionRow(co.id)
+    // The job refuses to expire it early.
+    const { expireIfDue } = await import('../../src/modules/change-orders/publish.js')
+    await expect(withTx(t.db, (tx) => expireIfDue(tx, row.id))).rejects.toThrow(/not due/)
+    // Its validity ended (moved into the past for the test, bypassing the guard that keeps it unchanged).
+    await withTx(t.db, async (tx) => {
+      await sql`SET LOCAL session_replication_role = replica`.execute(tx)
+      await sql`UPDATE work.change_order_versions SET issued_at = now() - interval '9 days',
+                  valid_until = now() - interval '1 day' WHERE id = ${row.id}`.execute(tx)
+    })
+    expect((await orderOf('estimator', jobId, co.number)).current.state).toBe('expired')
+    expect(await withTx(t.db, (tx) => expireIfDue(tx, row.id))).toBe('expired')
+    let expired = await orderOf('estimator', jobId, co.number)
+    expect(expired.actions).toMatchObject({ revise: true, issue: false, withdraw: false })
+    // Reissued after review: version 2 as a draft with the same lines; version 1 stays expired.
+    const again = await staffWrite(
+      'estimator',
+      `/api/v1/staff/change-orders/${co.id}/actions/revise`,
+      {},
+      expired.current.rowVersion,
+    )
+    expect(again.statusCode, again.body).toBe(200)
+    expired = await orderOf('estimator', jobId, co.number)
+    expect(expired.current).toMatchObject({ version: 2, state: 'draft', chargesCents: 2_000 })
+    expect((expired as unknown as { history: { version: number; state: string }[] }).history).toEqual([
+      expect.objectContaining({ version: 1, state: 'expired' }),
+    ])
+  })
+
+  it('[HH-CHG-02] revising an issued version supersedes it; the database keeps issued versions as issued', async () => {
+    const co = await reviewed([
+      { kind: 'charge', description: 'Synthetic: door', quantity: '1', unitPriceCents: 3_000 },
+    ])
+    // The project's other open change orders together are over the threshold now (the splitting check): the Owner
+    // issues it, and the Owner's publication is the approval.
+    expect((await issue('owner', co.id, co.rowVersion)).statusCode).toBe(200)
+    const issued = await versionRow(co.id)
+    await expect(
+      sql`UPDATE work.change_order_versions SET valid_until = valid_until + interval '30 days',
+            row_version = row_version + 1 WHERE id = ${issued.id}`.execute(t.db),
+    ).rejects.toThrow(/never changes/)
+    const res = await staffWrite(
+      'estimator',
+      `/api/v1/staff/change-orders/${co.id}/actions/revise`,
+      {},
+      issued.row_version,
+    )
+    expect(res.statusCode, res.body).toBe(200)
+    const old = await t.db
+      .selectFrom('work.change_order_versions')
+      .select(['state', 'superseded_at'])
+      .where('id', '=', issued.id)
+      .executeTakeFirstOrThrow()
+    expect(old.state).toBe('superseded')
+    expect(old.superseded_at).not.toBeNull()
+    // The database refuses issuing with a credit and no used Owner approval.
+    const credit = await reviewed([
+      { kind: 'credit', description: 'Synthetic credit', quantity: '1', unitPriceCents: 100 },
+    ])
+    const v = await versionRow(credit.id)
+    await expect(
+      sql`UPDATE work.change_order_versions SET state = 'issued', issued_by = ${ids.estimator}, issued_at = now(),
+            content_sha256 = ${'a'.repeat(64)}, valid_until = now() + interval '7 days',
+            row_version = row_version + 1 WHERE id = ${v.id}`.execute(t.db),
+    ).rejects.toThrow(/Owner's approval/)
   })
 })

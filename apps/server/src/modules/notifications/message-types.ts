@@ -265,7 +265,8 @@ const TYPES: readonly MessageType[] = [
     channels: both,
     triggerEvents: ['change_order.published'],
     variables: vars('customerName', 'jobNumber', 'changeOrderLink'),
-    supplied: [],
+    // TSK-0082: issuing a change order supplies every value (the link: the project's Documents tab).
+    supplied: ['customerName', 'jobNumber', 'changeOrderLink'],
     sourceIds: ['OWN-DEC-151', 'OWN-DEC-152'],
   },
   {

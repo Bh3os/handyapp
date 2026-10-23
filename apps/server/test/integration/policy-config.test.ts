@@ -105,6 +105,8 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
     })
     expect(v('tax.mode')).toEqual({ mode: 'no_tax_line' })
     expect(v('estimate.validity')).toEqual({ days: 14, from: 'published' })
+    // TSK-0082 (FACT-CHANGE-ORDER-VALIDITY, OWN-DEC-168).
+    expect(v('change_order.validity')).toEqual({ days: 7, from: 'published' })
     expect(v('estimate.publishing_roles').roles).toEqual(['owner', 'estimator'])
     expect(v('payment.term_default')).toEqual({ term: 'due_on_receipt' })
     expect(v('payment.methods').surcharge).toBe(false)

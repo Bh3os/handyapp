@@ -69,10 +69,26 @@ const ORDER: ChangeOrder = {
     withdrawnBy: null,
     withdrawnAt: null,
     withdrawReason: null,
+    issuedBy: null,
+    issuedAt: null,
+    validUntil: null,
+    validityReason: null,
+    supersededAt: null,
+    expiredAt: null,
     rowVersion: 2,
   },
+  ownerApproval: null,
   history: [],
-  actions: { edit: true, review: false, reopen: false, withdraw: true },
+  actions: {
+    edit: true,
+    review: false,
+    reopen: false,
+    withdraw: true,
+    issue: false,
+    requestOwnerApproval: false,
+    revise: false,
+    decideOwnerApproval: false,
+  },
 }
 function data(over: Partial<ChangeOrdersData> = {}): ChangeOrdersData {
   return {
@@ -155,7 +171,7 @@ describe('ChangeOrdersPage (TSK-0081)', () => {
   })
 
   it('[HH-CHG-01] an estimator reviews with If-Match; a refused review says why, in Spanish', async () => {
-    const reviewable = { ...ORDER, actions: { edit: true, review: true, reopen: false, withdraw: true } }
+    const reviewable = { ...ORDER, actions: { ...ORDER.actions, review: true } }
     const fetchImpl = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) =>
       init?.method === 'POST'
         ? json(409, {
@@ -183,5 +199,73 @@ describe('ChangeOrdersPage (TSK-0081)', () => {
     // Staff choose the origin of a new draft.
     fireEvent.click(screen.getByRole('button', { name: 'Redactar una orden de cambio' }))
     expect(screen.getByLabelText('De dónde viene el cambio')).toBeTruthy()
+  })
+
+  it('[HH-CHG-02][OWN-DEC-173] publishing: the Owner approval it needs, the Owner’s decision, and the issued validity', async () => {
+    const reviewed: ChangeOrder = {
+      ...ORDER,
+      current: { ...ORDER.current, state: 'reviewed' },
+      ownerApproval: {
+        required: true,
+        reasons: ['discretionary_credit'],
+        flags: [],
+        latest: { approvalId: 'a-1', state: 'pending', rowVersion: 1, comment: null },
+      },
+      actions: { ...ORDER.actions, edit: false, issue: true, decideOwnerApproval: true },
+    }
+    const fetchImpl = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) =>
+      init?.method === 'POST'
+        ? json(200, { ok: true })
+        : json(200, data({ changeOrders: [reviewed], actions: { create: true, chooseOrigin: true } })),
+    )
+    render(<ChangeOrdersPage t={t('en')} fetchImpl={fetchImpl} jobId={JOB} href={href} />)
+    const order = await screen.findByTestId('change-order')
+    expect(within(order).getByTestId('change-order-owner-approval').textContent).toContain(
+      'Owner approval: Waiting for the Owner',
+    )
+    const decision = within(order).getByTestId('change-order-owner-decision')
+    fireEvent.click(within(decision).getByLabelText('Reject it'))
+    fireEvent.change(within(decision).getByLabelText('Your reason (kept with the decision)'), {
+      target: { value: 'Synthetic: too large a credit' },
+    })
+    fireEvent.click(within(decision).getByRole('button', { name: 'Record the decision' }))
+    await waitFor(() =>
+      expect(fetchImpl.mock.calls.some(([u]) => String(u).includes('/publication-approvals/'))).toBe(true),
+    )
+    const [url, init] = fetchImpl.mock.calls.find(([u]) => String(u).includes('/publication-approvals/')) as [
+      string,
+      RequestInit,
+    ]
+    expect(String(url)).toContain('/staff/publication-approvals/a-1/decision')
+    expect(JSON.parse(String(init.body))).toEqual({ decision: 'reject', comment: 'Synthetic: too large a credit' })
+    expect((init.headers as Record<string, string>)['if-match']).toBe('"1"')
+    cleanup()
+    // Issued: the validity is shown and the version can only be revised or withdrawn.
+    const issued: ChangeOrder = {
+      ...ORDER,
+      current: {
+        ...ORDER.current,
+        state: 'issued',
+        issuedBy: { id: 'e-1', name: 'Synthetic Estimator' },
+        issuedAt: '2026-10-23T15:00:00.000Z',
+        validUntil: '2026-10-31T03:59:59.999Z',
+      },
+      actions: { ...ORDER.actions, edit: false, revise: true },
+    }
+    render(
+      <ChangeOrdersPage
+        t={t('en')}
+        fetchImpl={vi.fn(async () => json(200, data({ changeOrders: [issued] })))}
+        jobId={JOB}
+        href={href}
+      />,
+    )
+    const sent = await screen.findByTestId('change-order')
+    expect(within(sent).getByRole('heading').textContent).toBe('HH-SYNTH081-C1 Sent to the customer')
+    expect(within(sent).getByTestId('change-order-issued').textContent).toContain(
+      'Sent to the customer by Synthetic Estimator',
+    )
+    expect(within(sent).getByRole('button', { name: 'Revise (replaces the sent version)' })).toBeTruthy()
+    expect(within(sent).queryByRole('button', { name: 'Edit the draft' })).toBeNull()
   })
 })

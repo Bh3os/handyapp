@@ -22,7 +22,7 @@ import { JobPacketPage } from './JobPacket'
 import { LoadoutPage } from './Loadout'
 import { MyDay } from './MyDay'
 import { QualityReviewPage } from './QualityReview'
-import { ChangeOrdersPage } from './ChangeOrders'
+import { ChangeOrdersPage, ChangeOrderVersionLink } from './ChangeOrders'
 import { ChecklistPage } from './Checklist'
 import { QueueHome } from './Queue'
 import { MergeReview, RelinkRequest } from './RecordLinks'
@@ -239,6 +239,7 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
                 route.screen === 'checklist' ||
                 // TSK-0081: a job's change orders, from the job packet and the checklist.
                 route.screen === 'change-orders' ||
+                route.screen === 'change-order-versions' ||
                 (route.screen === 'cases' && !nav?.items.includes('cases'))
               ? nav?.items.includes('my-day')
                 ? 'my-day'
@@ -379,6 +380,9 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
               <JobSafety key={`safety-${route.id}`} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} />
               <ChecklistPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} href={href} />
             </>
+          ) : route.page === 'record' && route.screen === 'change-order-versions' ? (
+            // TSK-0082: an Owner Decisions item names the change-order version; open its job's change orders.
+            <ChangeOrderVersionLink key={route.id} t={t} fetchImpl={doFetch} versionId={route.id} href={href} />
           ) : route.page === 'record' && route.screen === 'change-orders' ? (
             // TSK-0081: a job's change orders: proposals and drafts, apart from the approved scope.
             <ChangeOrdersPage key={route.id} t={t} fetchImpl={doFetch} jobId={route.id} href={href} />

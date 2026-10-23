@@ -107,6 +107,7 @@ export const LABEL_FAMILIES = {
     'visit_cancellation_review',
     // TSK-0130: an estimate version waiting for the Owner's approval before publishing.
     'estimate_publication_approval',
+    'change_order_publication_approval',
     'incident_notification',
   ],
   /** Why a queue item needs action (HH-OPS-02 "reason"). */
@@ -271,6 +272,7 @@ export const LABEL_FAMILIES = {
     'discount.eligibility_verification',
     'tax.mode',
     'estimate.validity',
+    'change_order.validity',
     'estimate.publishing_roles',
     'owner_approval.threshold',
     'owner_approval.discretionary_credit',
@@ -1708,6 +1710,17 @@ export const LABEL_FAMILIES = {
     'REASON_REQUIRED',
     'NOT_PRICED',
     'INVALID_TRANSITION',
+    'NOT_REVIEWED',
+    'NOT_REVISABLE',
+    'OWNER_ONLY',
+    'NEVER_LONGER',
+    'VALIDITY_NOT_CONFIGURED',
+    'OWNER_APPROVAL_REQUIRED',
+    'OWNER_APPROVAL_PENDING',
+    'OWNER_APPROVAL_REJECTED',
+    'OWNER_APPROVAL_NOT_REQUIRED',
+    'OWNER_MFA_REQUIRED',
+    'COMMENT_REQUIRED',
   ],
   // TSK-0083 (HH-QA-03, HH-WORK-12): the walkthrough and Finished.
   walkthroughOutcome: ['accepted', 'accepted_with_follow_up', 'disputed', 'customer_unavailable'],
