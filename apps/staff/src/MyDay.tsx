@@ -16,6 +16,7 @@ import { call, idempotencyKey, type Fetch } from './api'
 import { MyJobPackets } from './JobPacket'
 import { codeLabel } from './Requests'
 import { StopWorkPanel } from './StopWork'
+import { VisitOutcomeForm, type RecordedOutcome } from './VisitOutcomes'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
 
@@ -47,7 +48,9 @@ export type MyDayVisit = {
   mine: { departedAt: string | null; arrivedAt: string | null; finishedAt: string | null }
   next: 'not_confirmed' | 'wait' | 'not_configured' | 'on_my_way' | 'arrived' | 'finished' | 'done'
   onMyWayOpensAt: string | null
-  actions: { onMyWay: boolean; arrived: boolean; finished: boolean }
+  /** TSK-0078: the outcomes recorded on this visit. */
+  outcomes?: RecordedOutcome[]
+  actions: { onMyWay: boolean; arrived: boolean; finished: boolean; recordOutcome?: boolean }
 }
 type MyDayBody = {
   checkedAt: string
@@ -379,6 +382,17 @@ function VisitCard({
           {v.jobId && (v.state === 'en_route' || v.state === 'arrived') && v.assignment === 'confirmed' ? (
             // TSK-0077 (HH-WORK-09): Stop Work / Report Hazard on the active visit, inline, never disabled.
             <StopWorkPanel t={t} fetchImpl={fetchImpl} jobId={v.jobId} visitId={v.visitId} />
+          ) : null}
+          {v.actions.recordOutcome ? (
+            // TSK-0078 (HH-SCH-09): a delay, no access, the customer absent, weather, missing resources or a
+            // readiness issue, each with a note and a staff follow-up. "No access" ends the visit (it leaves My Day).
+            <VisitOutcomeForm<MyDayVisit>
+              t={t}
+              fetchImpl={fetchImpl}
+              visitId={v.visitId}
+              outcomes={v.outcomes ?? []}
+              onRecorded={(next) => (next ? onChanged(next) : onStale())}
+            />
           ) : null}
           {problem ? (
             <p role="alert" className="hh-field__error" data-testid="myday-problem">

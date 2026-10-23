@@ -156,6 +156,15 @@ export {
   WORK_VISIT_PURPOSES,
 } from './visit.js'
 export type { VisitEvent, VisitFacts, VisitPurpose, VisitState } from './visit.js'
+// TSK-0078: delays, no access, customer absence and the other recorded visit outcomes.
+export {
+  VISIT_OUTCOME_KINDS,
+  VISIT_OUTCOME_NOTE_MAX,
+  VISIT_OUTCOME_STATES,
+  visitOutcome,
+  type VisitOutcomeKind,
+  type VisitOutcomeProblem,
+} from './visit-outcome.js'
 export * from './local-time.js'
 export * from './zones.js'
 export {

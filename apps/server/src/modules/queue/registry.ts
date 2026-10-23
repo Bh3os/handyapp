@@ -8,7 +8,7 @@
 // The view actions of the queue section and the screens are PROPOSED mappings (the matrix names who acts, not who
 // sees a list); the Owner Decisions types use the owner-only action of each decision as the matrix states it.
 // Labels come from the staff catalogs (label families queueItemType, queueReason and queueAction).
-import { PUBLICATION_APPROVAL_REASONS } from '@handyhub/domain'
+import { PUBLICATION_APPROVAL_REASONS, VISIT_OUTCOME_KINDS } from '@handyhub/domain'
 import type { Action } from '@handyhub/policy'
 
 export const QUEUE_SECTIONS = ['queue', 'owner_decisions'] as const
@@ -47,6 +47,8 @@ export const QUEUE_ACTIONS = [
   // TSK-0084: review a job's quality (start, decide, re-check) or work its punch items.
   'review_quality',
   'review_punch_items',
+  // TSK-0078: follow up a recorded visit outcome (reschedule, cancel or contact the customer).
+  'follow_up_visit',
 ] as const
 export type QueueAction = (typeof QUEUE_ACTIONS)[number]
 
@@ -352,6 +354,21 @@ export const QUEUE_ITEM_TYPES = [
     reasons: ['assignee_disabled', 'availability_changed', 'equipment_retired'],
     action: 'reassign_visit',
     screen: 'schedule',
+  },
+  // TSK-0078 (HH-SCH-09): a worker's recorded visit outcome (delay, no access, customer absent, weather, missing
+  // resources, readiness issue), one item per outcome, opened in the outcome's transaction and resolved by the staff
+  // follow-up. On the visit's own date it is in the today_change band; assigned to the request's responsible staff
+  // member when there is one. Seen by those who reschedule visits (visit.reschedule: Owner, Office), PROPOSED.
+  {
+    id: 'visit_outcome',
+    section: 'queue',
+    subject: 'visit_outcome',
+    band: 'time_sensitive',
+    view: 'visit.reschedule',
+    reasons: [...VISIT_OUTCOME_KINDS],
+    action: 'follow_up_visit',
+    screen: 'schedule',
+    path: 'visit-outcomes',
   },
   // TSK-0071 (HH-PKT-06): a critical loadout shortage blocks Start Work on its work package until the Owner provides the
   // item or approves a substitute. One item per job while any of its task blocks blocks, opened in the same

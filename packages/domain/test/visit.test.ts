@@ -19,8 +19,9 @@ describe('[HH-SCH-01] visit states are separate from preferences and scheduling 
     expect(VISIT_MACHINE.initial).toBe('tentative')
     expect(eventsFrom(VISIT_MACHINE, 'tentative').sort()).toEqual(['confirm', 'expire'])
     expect(eventsFrom(VISIT_MACHINE, 'confirmed').sort()).toEqual(['cancel', 'record_no_access', 'start_travel'])
-    expect(eventsFrom(VISIT_MACHINE, 'en_route')).toEqual(['arrive'])
-    expect(eventsFrom(VISIT_MACHINE, 'arrived')).toEqual(['finish'])
+    // TSK-0078 (HH-SCH-09): no access is also recorded on site, once the worker is on the way or arrived.
+    expect(eventsFrom(VISIT_MACHINE, 'en_route')).toEqual(['arrive', 'record_no_access'])
+    expect(eventsFrom(VISIT_MACHINE, 'arrived')).toEqual(['finish', 'record_no_access'])
     for (const s of ['completed', 'expired', 'canceled', 'no_access'] as const)
       expect(eventsFrom(VISIT_MACHINE, s)).toEqual([])
     expect(VISIT_PURPOSES).toEqual(['site_estimate', 'service', 'follow_up', 'return_work'])

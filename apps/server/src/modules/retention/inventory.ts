@@ -810,6 +810,14 @@ export const TABLES = {
     classes: ['estimate_approval'],
     categories: [J],
   },
+  // TSK-0078 (0089): the explicit outcomes of visits (delay, no access, customer absent...) and their follow-up.
+  'work.visit_outcomes': {
+    holds:
+      'Visit outcomes: delay, no access, customer absent, weather, missing resources or a readiness issue, the ' +
+      "worker's note, who recorded it and when, and the staff follow-up note",
+    classes: ['request_details'],
+    categories: [J],
+  },
   // TSK-0082 (0088): the identified customer's approval or rejection of one exact change-order version.
   'work.change_order_decisions': {
     holds:

@@ -1,6 +1,13 @@
 // JSON schemas of the My Day, tap and timestamp routes (TSK-0070; HH-API-01, HH-ARC-04). Input objects refuse unknown
 // fields; response objects list every field, so nothing else (an access code above all) can reach a response.
-import { ACKNOWLEDGMENT_STATES, MY_DAY_NEXT, STAMP_STATUSES, TIME_STAMP_KINDS } from '@handyhub/domain'
+import {
+  ACKNOWLEDGMENT_STATES,
+  MY_DAY_NEXT,
+  STAMP_STATUSES,
+  TIME_STAMP_KINDS,
+  VISIT_OUTCOME_KINDS,
+  VISIT_OUTCOME_NOTE_MAX,
+} from '@handyhub/domain'
 
 const UUID = {
   type: 'string',
@@ -69,7 +76,16 @@ export const MY_DAY_ITEM = obj({
   mine: obj({ departedAt: TIME_OR_NULL, arrivedAt: TIME_OR_NULL, finishedAt: TIME_OR_NULL }),
   next: { type: 'string', enum: [...MY_DAY_NEXT] },
   onMyWayOpensAt: TIME_OR_NULL,
-  actions: obj({ onMyWay: BOOL, arrived: BOOL, finished: BOOL }),
+  // TSK-0078: the outcomes recorded on this visit.
+  outcomes: arr(
+    obj({
+      outcomeId: STR,
+      kind: { type: 'string', enum: [...VISIT_OUTCOME_KINDS] },
+      recordedAt: TIME,
+      followedUp: BOOL,
+    }),
+  ),
+  actions: obj({ onMyWay: BOOL, arrived: BOOL, finished: BOOL, recordOutcome: BOOL }),
 })
 
 export const MY_DAY = obj({
@@ -149,3 +165,44 @@ export const EXPORT_FILE = obj({
   rows: INT,
   csv: STR,
 })
+
+// TSK-0078: visit outcomes and their follow-up.
+const OUTCOME_KIND = { type: 'string', enum: [...VISIT_OUTCOME_KINDS] } as const
+const NOTE = { type: 'string', minLength: 1, maxLength: VISIT_OUTCOME_NOTE_MAX, pattern: '\\S' } as const
+export const OUTCOME_PARAMS = obj({ outcomeId: UUID })
+export const OUTCOME_BODY = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['kind', 'note'],
+  properties: { kind: OUTCOME_KIND, note: NOTE },
+} as const
+export const OUTCOME_RESULT = obj({
+  outcomeId: STR,
+  visitId: STR,
+  kind: OUTCOME_KIND,
+  visitState: STR,
+  recordedAt: TIME,
+  // The visit as the caller's My Day shows it now; null once it left My Day (no access).
+  visit: { anyOf: [{ type: 'null' }, MY_DAY_ITEM] },
+})
+const STAFF_REF = obj({ id: STR, name: STR_OR_NULL })
+export const OUTCOME_VIEW = obj({
+  outcomeId: STR,
+  visitId: STR,
+  reference: STR,
+  kind: OUTCOME_KIND,
+  note: STR,
+  visitState: STR,
+  visitNow: STR,
+  localDate: STR,
+  recordedBy: STAFF_REF,
+  recordedAt: TIME,
+  followUp: { anyOf: [{ type: 'null' }, obj({ by: STAFF_REF, at: TIME, note: STR })] },
+  actions: obj({ followUp: BOOL }),
+})
+export const FOLLOW_UP_BODY = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['note'],
+  properties: { note: NOTE },
+} as const

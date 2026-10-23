@@ -23,6 +23,7 @@ import { LoadoutPage } from './Loadout'
 import { MyDay } from './MyDay'
 import { QualityReviewPage } from './QualityReview'
 import { ChangeOrdersPage, ChangeOrderVersionLink } from './ChangeOrders'
+import { VisitOutcomePage } from './VisitOutcomes'
 import { ChecklistPage } from './Checklist'
 import { QueueHome } from './Queue'
 import { MergeReview, RelinkRequest } from './RecordLinks'
@@ -246,6 +247,8 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
                 : 'schedule'
               : // TSK-0070: a visit's Arrived and Finished times sit below the schedule; the server decides who sees them.
                 route.screen === 'visit-times' ||
+                  // TSK-0078: a recorded visit outcome's follow-up, from the staff queue.
+                  route.screen === 'visit-outcomes' ||
                   route.screen === 'start-review' ||
                   route.screen === 'safety-holds' ||
                   route.screen === 'quality-reviews'
@@ -380,6 +383,9 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
               <JobSafety key={`safety-${route.id}`} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} />
               <ChecklistPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} href={href} />
             </>
+          ) : route.page === 'record' && route.screen === 'visit-outcomes' ? (
+            // TSK-0078: one visit outcome and its follow-up (the Owner and Office).
+            <VisitOutcomePage key={route.id} t={t} fetchImpl={doFetch} outcomeId={route.id} />
           ) : route.page === 'record' && route.screen === 'change-order-versions' ? (
             // TSK-0082: an Owner Decisions item names the change-order version; open its job's change orders.
             <ChangeOrderVersionLink key={route.id} t={t} fetchImpl={doFetch} versionId={route.id} href={href} />

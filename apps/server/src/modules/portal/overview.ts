@@ -30,6 +30,7 @@ import {
 import type { DataScope } from '@handyhub/policy'
 import { loadConfig } from '../../platform/config/index.js'
 import { approvalFacts } from '../estimates/receipt.js'
+import { openVisitOutcome } from '../field/outcomes.js'
 import { customerDeposit, type CustomerDeposit } from '../finance/index.js'
 import { findProject } from '../records/repository.js'
 import { replyWindow } from '../questions/model.js'
@@ -180,6 +181,9 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
   const completion = job
     ? customerCompletion(job.operational_state, (job.review_state as QualityReviewState | null) ?? null)
     : null
+  // TSK-0078 (HH-SCH-09): a recorded visit outcome still waiting for staff follow-up shows only "Update pending": no
+  // reason, note, worker or arrival time.
+  const outcomeOpen = await openVisitOutcome(db, project.id)
   const facts: PortalFacts = {
     requestState: r.state as RequestState,
     projectState: p.state as ProjectState,
@@ -191,7 +195,7 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
     visitWindowsOffered: visits.visitWindowsOffered,
     workWindowsOffered: visits.workWindowsOffered,
     ...(visits.visit ? { visit: visits.visit } : {}),
-    ...(safety ? { hold: 'safety' as const } : {}),
+    ...(safety ? { hold: 'safety' as const } : outcomeOpen ? { hold: 'other' as const } : {}),
     ...(completion ? { completion } : {}),
   }
   const status = customerStatus(facts)
