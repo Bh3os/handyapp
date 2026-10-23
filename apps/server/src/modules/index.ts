@@ -27,6 +27,7 @@ import { auditModule } from './audit/index.js'
 import { capacityModule } from './capacity/index.js'
 import { casesModule } from './cases/index.js'
 import { qualityModule } from './quality/index.js'
+import { checklistModule } from './checklist/index.js'
 import { portalModule } from './portal/index.js'
 import { questionsModule } from './questions/index.js'
 import { SITE_MODULE } from './site/index.js'
@@ -164,6 +165,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     casesModule({ storage: deps.storage ?? null }),
     // TSK-0084: the Owner's quality review of every job, punch items, corrections and re-checks.
     qualityModule(),
+    // TSK-0075: the job checklist in six ordered stages, step evidence, pause, resume, skip, reopen and handoffs.
+    checklistModule(),
     // TSK-0142: the launch phase and its switches (the Owner moves it, with a recorded approval; phase 1 by default).
     launchModule({ environment: deps.environment ?? 'local', gate: deps.launchGate ?? null }),
   ]

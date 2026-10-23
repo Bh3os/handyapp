@@ -1781,6 +1781,55 @@ export interface StagingTestDataSeedingsTable {
   request_id: string
 }
 
+export interface WorkChecklistHandoffsTable {
+  id: Generated<string>
+  job_id: string
+  project_id: string
+  work_package_id: string | null
+  from_worker: string
+  to_worker: string | null
+  note: string
+  at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface WorkChecklistStepEventsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  step_row_id: string
+  event: string
+  from_state: string | null
+  to_state: string
+  worker_id: string
+  measurement: string | null
+  note: string | null
+  photo_ids: Generated<string[]>
+  reason: string | null
+  at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface WorkChecklistStepsTable {
+  id: Generated<string>
+  job_id: string
+  project_id: string
+  work_package_id: string
+  sop_version_id: string
+  step_id: string
+  stage: number
+  required: boolean
+  evidence: string[]
+  state: string
+  measurement: string | null
+  note: string | null
+  photo_ids: Generated<string[]>
+  skip_reason: string | null
+  worker_id: string
+  completed_by: string | null
+  completed_at: Timestamp | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
+}
+
 export interface WorkEquipmentTable {
   id: Generated<string>
   name: string
@@ -2494,6 +2543,9 @@ export interface Database {
   'staging.reset_runs': StagingResetRunsTable
   'staging.reusable_test_accounts': StagingReusableTestAccountsTable
   'staging.test_data_seedings': StagingTestDataSeedingsTable
+  'work.checklist_handoffs': WorkChecklistHandoffsTable
+  'work.checklist_step_events': WorkChecklistStepEventsTable
+  'work.checklist_steps': WorkChecklistStepsTable
   'work.equipment': WorkEquipmentTable
   'work.field_photos': WorkFieldPhotosTable
   'work.gate_exceptions': WorkGateExceptionsTable

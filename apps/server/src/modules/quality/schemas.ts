@@ -130,6 +130,18 @@ export const REVIEW_VIEW = obj({
   workPackages: arr(obj({ id: STR, code: STR, position: INT, state: STR })),
   evidence: obj({ beforePhotos: INT, afterPhotos: INT }),
   checklistRecorded: BOOL,
+  checklist: arr(
+    obj({
+      workPackageId: STR,
+      code: STR,
+      steps: INT,
+      completed: INT,
+      skipped: INT,
+      requiredSkipped: INT,
+      requiredOpen: INT,
+      complete: BOOL,
+    }),
+  ),
   walkthroughRecorded: BOOL,
   safetyHolds: arr(obj({ id: STR, category: STR, state: STR, raisedAt: TIME })),
   workers: arr(STAFF_REF),

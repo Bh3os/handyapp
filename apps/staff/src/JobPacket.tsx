@@ -933,6 +933,12 @@ export function JobPacketPage({
             {t('loadout.open')}
           </a>
         </p>
+        {/* TSK-0075: the checklist runs on its own page once the worker has started work. */}
+        <p className="staff-packet__screen-only">
+          <a href={href(`/checklist/${v.job.id}`)} data-testid="packet-checklist-link">
+            {t('checklist.open')}
+          </a>
+        </p>
       </Section>
 
       <Section id={section('dependencies')} title={t('packet.section.dependencies')}>

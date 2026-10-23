@@ -65,6 +65,16 @@ export type QualityReviewData = {
   workPackages: { id: string; code: string; position: number; state: string }[]
   evidence: { beforePhotos: number; afterPhotos: number }
   checklistRecorded: boolean
+  checklist: {
+    workPackageId: string
+    code: string
+    steps: number
+    completed: number
+    skipped: number
+    requiredSkipped: number
+    requiredOpen: number
+    complete: boolean
+  }[]
   walkthroughRecorded: boolean
   safetyHolds: { id: string; category: string; state: string; raisedAt: string }[]
   workers: StaffRef[]
@@ -261,7 +271,25 @@ export function QualityReviewPage({
             {data.workPackages.map((p) => p.code).join(', ')}
           </dd>
           <dt>{codeLabel(t, 'qualityArea', 'checklist')}</dt>
-          <dd>{data.checklistRecorded ? t('quality.recorded') : t('quality.notRecorded')}</dd>
+          <dd>
+            {data.checklist.length ? (
+              <ul className="staff-request__list" data-testid="quality-checklist">
+                {data.checklist.map((c) => (
+                  <li key={c.workPackageId}>
+                    {t('quality.checklistLine', {
+                      code: c.code,
+                      completed: c.completed,
+                      steps: c.steps,
+                      skipped: c.requiredSkipped,
+                      open: c.requiredOpen,
+                    })}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              t('quality.notRecorded')
+            )}
+          </dd>
           <dt>{codeLabel(t, 'qualityArea', 'evidence')}</dt>
           <dd>
             {t('quality.photos', { before: data.evidence.beforePhotos, after: data.evidence.afterPhotos })}{' '}

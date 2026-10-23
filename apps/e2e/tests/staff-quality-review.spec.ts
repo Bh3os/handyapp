@@ -27,7 +27,8 @@ test.use({ extraHTTPHeaders: HEADERS })
 
 const cli = fileURLToPath(new URL('../../server/dist/cli/staff-access.js', import.meta.url))
 const ESTIMATOR = 'e2e-quality-estimator@example.test'
-const OWNER = 'e2e-quality-owner@example.test'
+// The Owner every spec shares (staff-auth.spec.ts creates it; whichever spec runs first does here).
+const OWNER = 'e2e-owner@example.test'
 const WORKER = 'e2e-quality-worker@example.test'
 const pw = ['synthetic', 'staff', 'quality', 'review', 'passphrase', '84'].join(' ')
 
@@ -246,7 +247,7 @@ test.describe("The Owner's quality review and punch items (TSK-0084)", () => {
   }) => {
     const link = await sendRequest(request)
     const estimator = await staffSession(browser, ESTIMATOR, 'estimator', 'E2E Review Estimator')
-    const owner = await staffSession(browser, OWNER, 'owner', 'E2E Review Owner')
+    const owner = await staffSession(browser, OWNER, 'owner', 'E2E Owner')
     // The worker who will correct the item: an active synthetic staff record that never signs in.
     await withDb(async (db) => {
       const user = await db
@@ -368,7 +369,7 @@ test.describe("The Owner's quality review and punch items (TSK-0084)", () => {
       await expect(review.getByTestId('quality-gate')).toContainText('No final invoice yet: the review is not decided')
       await review.getByRole('button', { name: 'Start the review' }).click()
       await expect(review.getByText('In review', { exact: true })).toBeVisible()
-      await expect(review.getByText('Reviewer: E2E Review Owner')).toBeVisible()
+      await expect(review.getByText(/^Reviewer: /)).toBeVisible()
 
       // A minor punch item for the worker, linked to the work package.
       const add = review.getByTestId('add-punch-item')

@@ -814,6 +814,8 @@ export const LABEL_FAMILIES = {
     'approval_receipt',
     'automation',
     'business_settings',
+    // TSK-0075: the job checklist and handoff notes.
+    'checklist',
     // TSK-0093: cases (complaints, incident handling, referrals, customer updates).
     'case',
     'check',
@@ -1655,6 +1657,24 @@ export const LABEL_FAMILIES = {
     'REVIEWED_THROUGH_HOLD',
     'ALREADY_REVIEWED',
     'NOTICE_NOT_DRAFT',
+  ],
+  // TSK-0075 (HH-WORK-11, HH-WORK-05): the job checklist.
+  checklistStepState: ['not_started', 'in_progress', 'paused', 'completed', 'skipped'],
+  checklistEvent: ['start', 'pause', 'resume', 'complete', 'skip', 'reopen'],
+  checklistRefusal: [
+    'JOB_NOT_IN_PROGRESS',
+    'HOLD_OPEN',
+    'WORK_NOT_STARTED',
+    'NOT_A_WORK_PACKAGE_OF_THE_JOB',
+    'WORK_PACKAGE_BLOCKED',
+    'WORK_PACKAGE_NOT_IN_PROGRESS',
+    'NOT_A_PHOTO_OF_THE_WORK_PACKAGE',
+    'EARLIER_STAGE_OPEN',
+    'EVIDENCE_MISSING',
+    'REASON_REQUIRED',
+    'INVALID_STATE',
+    'HANDOFF_TO_SELF',
+    'NOT_A_WORKER',
   ],
   // TSK-0084 (HH-QA-02, HH-QA-04): the Owner's quality review and punch items.
   qualityReviewState: ['pending', 'in_review', 'passed', 'punch_required', 'pending_recheck'],

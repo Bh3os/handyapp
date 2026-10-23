@@ -19,6 +19,7 @@ import { WINDOW_OFFER_MACHINE } from './window-offer.js'
 import { GATE_EXCEPTION_MACHINE } from './start-gate.js'
 import { COMPLAINT_CASE_MACHINE, INCIDENT_CASE_MACHINE } from './case.js'
 import { PUNCH_ITEM_MACHINE, QUALITY_REVIEW_MACHINE } from './quality-review.js'
+import { CHECKLIST_STEP_MACHINE } from './checklist.js'
 
 export const PACKAGE_NAME = '@handyhub/domain'
 
@@ -280,6 +281,8 @@ export const MACHINES = {
   // TSK-0084: the Owner's quality review and its punch items.
   'quality_review.lifecycle': QUALITY_REVIEW_MACHINE,
   'punch_item.lifecycle': PUNCH_ITEM_MACHINE,
+  // TSK-0075: a step of the job checklist.
+  'checklist_step.lifecycle': CHECKLIST_STEP_MACHINE,
 } as const
 export type MachineKey = keyof typeof MACHINES
 type M<K extends MachineKey> = (typeof MACHINES)[K]
@@ -392,5 +395,7 @@ export type {
 } from './case.js'
 // TSK-0084 (HH-QA-02, HH-QA-04, ENT-QAInspection, ENT-PunchItem): the Owner's quality review and punch items.
 export * from './quality-review.js'
+// TSK-0075 (HH-WORK-11, HH-WORK-05, ENT-Task): the job checklist in six ordered stages.
+export * from './checklist.js'
 // TSK-0142: the launch phases and their switches (OWN-DEC-191).
 export * from './launch.js'
