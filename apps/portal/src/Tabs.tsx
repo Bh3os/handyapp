@@ -21,6 +21,7 @@ import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useEffect, useState, type FormEvent } from 'react'
 import { cents, formatUsd } from '@handyhub/money'
 import { AppointmentsList } from './Appointments'
+import { ChangeOrders } from './ChangeOrders'
 import {
   newKey,
   portalApi,
@@ -504,6 +505,8 @@ function Content({
             onNavigate={onNavigate}
             fetchImpl={fetchImpl}
           />
+          {/* TSK-0082: the change orders sent, the original estimate and the current authorized total. */}
+          <ChangeOrders reference={data.reference} fetchImpl={fetchImpl} />
           <Invoices reference={data.reference} invoices={data.invoices} fetchImpl={fetchImpl} />
           <p className="hh-muted">{t('portal.documents.others')}</p>
         </>

@@ -675,6 +675,48 @@ test.describe('Start Work: the server-side gate and the job-level Hold (TSK-0073
       expect(packetAfter).toBe(packetBefore)
       await axe(w)
       expect(await w.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+
+      // TSK-0082: the estimator reviews and issues it; the customer approves the exact version in the Documents tab
+      // (the box unchecked by default, the typed name). One new scope version and one new packet version follow.
+      const listed = (await (await estimator.page.request.get(`/api/v1/staff/jobs/${jobId}/change-orders`)).json()) as {
+        changeOrders: { changeOrderId: string; current: { rowVersion: number } }[]
+      }
+      const co = listed.changeOrders[0] as { changeOrderId: string; current: { rowVersion: number } }
+      await estimator.write(
+        'POST',
+        `/api/v1/staff/change-orders/${co.changeOrderId}/actions/review`,
+        {},
+        co.current.rowVersion,
+      )
+      await estimator.write(
+        'POST',
+        `/api/v1/staff/change-orders/${co.changeOrderId}/actions/issue`,
+        {},
+        co.current.rowVersion + 1,
+      )
+      await page.goto(`/portal/p/${link.reference}/documents`)
+      const orders = page.getByTestId('documents-change-orders')
+      await expect(orders.getByTestId('change-order')).toContainText('Waiting for your decision')
+      await expect(orders.getByTestId('change-orders-current-total')).toHaveText('$325.00')
+      await expect(orders.getByTestId('change-order-totals')).toContainText('$450.00')
+      const accept = orders.getByRole('checkbox')
+      await expect(accept).not.toBeChecked()
+      await accept.check()
+      await orders.getByLabel('Full name').fill('Test Start Customer')
+      await orders.getByRole('button', { name: 'Approve Change' }).click()
+      await expect(orders.getByText(/You approved this change on/)).toBeVisible()
+      await expect(orders.getByTestId('change-orders-current-total')).toHaveText('$450.00')
+      await axe(page)
+      const packetApproved = (
+        (await (await w.request.get(`/api/v1/staff/jobs/${jobId}/packet`)).json()) as {
+          packet: { version: number; critical: boolean }
+        }
+      ).packet
+      expect(packetApproved).toMatchObject({ version: packetBefore + 1, critical: true })
+      await w.reload()
+      await expect(w.getByTestId('change-order-decision')).toContainText(
+        'Approved by the customer (Test Start Customer)',
+      )
     } finally {
       await estimator.close()
       await office.close()

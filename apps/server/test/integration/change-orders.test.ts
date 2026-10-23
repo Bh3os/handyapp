@@ -1466,3 +1466,36 @@ describe('[HH-CHG-02][HH-CHG-03][T53][T44] the identified customer approves or r
     ).rejects.toThrow(/follows the approval/)
   })
 })
+
+describe('[OWN-DEC-173][OWN-DEC-204] the Owner approval threshold at its boundary', () => {
+  it('[HH-EST-16] a revised project value of $2,500.01 needs the Owner; exactly $2,500.00 does not', async () => {
+    const p = await project()
+    const jobId = await approve(p, 80_000)
+    const reviewedCo = async (unitPriceCents: number) => {
+      const res = await staffWrite('estimator', `/api/v1/staff/jobs/${jobId}/change-orders`, {
+        ...draft([{ kind: 'charge', description: 'Synthetic: boundary work', quantity: '1', unitPriceCents }]),
+        origin: 'estimator',
+      })
+      expect(res.statusCode, res.body).toBe(201)
+      const { changeOrderId, rowVersion } = res.json<{ changeOrderId: string; rowVersion: number }>()
+      expect((await event('estimator', changeOrderId, 'review', rowVersion)).statusCode).toBe(200)
+      return { id: changeOrderId, rowVersion: rowVersion + 1 }
+    }
+    const issue = (id: string, version: number) =>
+      staffWrite('estimator', `/api/v1/staff/change-orders/${id}/actions/issue`, {}, version)
+    // $800.00 approved + $1,700.01 = $2,500.01: over the threshold.
+    const over = await reviewedCo(170_001)
+    const refused = await issue(over.id, over.rowVersion)
+    expect(refused.statusCode).toBe(409)
+    expect(codesOf(refused)).toContain('OWNER_APPROVAL_REQUIRED')
+    expect(
+      (await event('estimator', over.id, 'withdraw', over.rowVersion, { reason: 'Synthetic: boundary test' }))
+        .statusCode,
+    ).toBe(200)
+    // $800.00 + $1,700.00 = $2,500.00 exactly: no Owner approval.
+    const at = await reviewedCo(170_000)
+    const issued = await issue(at.id, at.rowVersion)
+    expect(issued.statusCode, issued.body).toBe(200)
+    expect(issued.json()).toMatchObject({ state: 'issued', ownerApproval: null })
+  })
+})
