@@ -696,6 +696,17 @@ export interface FinanceInvoicePaymentLinksTable {
   set_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface FinanceInvoiceVoidsTable {
+  id: Generated<string>
+  invoice_id: string
+  job_id: string
+  reason: string
+  voided_by: string
+  staff_session_id: string
+  authenticated_at: Timestamp
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface FinanceInvoicesTable {
   id: Generated<string>
   project_id: string
@@ -845,6 +856,7 @@ export interface FinanceRefundsTable {
   provider_confirmation: string | null
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
   version: Generated<number>
+  decision_reason: string | null
 }
 
 export interface IdentityAuthIdentitiesTable {
@@ -2697,6 +2709,7 @@ export interface Database {
   'finance.invoice_documents': FinanceInvoiceDocumentsTable
   'finance.invoice_lines': FinanceInvoiceLinesTable
   'finance.invoice_payment_links': FinanceInvoicePaymentLinksTable
+  'finance.invoice_voids': FinanceInvoiceVoidsTable
   'finance.invoices': FinanceInvoicesTable
   'finance.payment_adjustments': FinancePaymentAdjustmentsTable
   'finance.payment_allocations': FinancePaymentAllocationsTable
