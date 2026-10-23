@@ -393,7 +393,13 @@ test.describe('Invoices drafted from the approved scope, issued after the qualit
       const list = page.getByTestId('documents-invoices')
       await expect(list.getByText(`Invoice ${invoiceNumber}`, { exact: true })).toBeVisible()
       await expect(list.getByText('Current', { exact: true })).toBeVisible()
-      await expect(list.getByRole('button', { name: `Download invoice ${invoiceNumber} (PDF)` })).toBeVisible()
+      // The PDF is rendered by a background job after the issue: the tab says it is being prepared until then, so
+      // reload until the download is offered.
+      const download = list.getByRole('button', { name: `Download invoice ${invoiceNumber} (PDF)` })
+      await expect(async () => {
+        if (!(await download.isVisible())) await page.reload()
+        await expect(download).toBeVisible({ timeout: 2_000 })
+      }).toPass({ timeout: 30_000 })
       await expect(list.getByTestId('documents-invoice-balance')).toHaveText('Balance due: $1,000.00')
       await axe(page)
       await page.setViewportSize({ width: 375, height: 740 })

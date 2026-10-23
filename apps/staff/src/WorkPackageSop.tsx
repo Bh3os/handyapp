@@ -343,7 +343,8 @@ function Checklist({
             </>
           ) : (
             <>
-              <StatusBadge tone="warning">{t('sop.spanishNotReleased')}</StatusBadge>
+              {/* Plain text, not a badge: badges do not wrap, and this one is long at phone width. */}
+              <strong>{t('sop.spanishNotReleased')}</strong>
               {sop.spanish.check ? (
                 <>
                   {' '}
