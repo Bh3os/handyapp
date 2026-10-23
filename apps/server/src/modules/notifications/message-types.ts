@@ -296,9 +296,9 @@ const TYPES: readonly MessageType[] = [
     templateId: 'payment_receipt',
     audience: 'customer',
     channels: ['email'],
-    triggerEvents: ['invoice.paid', 'payment.receipt_sent'],
+    // TSK-0087 (OWN-DEC-152): each confirmed recorded payment's receipt, once (finance/receipts.ts).
+    triggerEvents: ['payment.receipt_issued'],
     variables: vars('customerName', 'invoiceNumber', 'receiptNumber', 'paymentNumber', 'receiptLink', 'projectLink'),
-    supplied: [],
     sourceIds: ['OWN-DEC-111', 'OWN-DEC-110', 'OWN-DEC-151', 'OWN-DEC-152'],
   },
   // TSK-0036 (HH-ID-11): the notice after a customer account's sign-in email changed, to the old and the new verified

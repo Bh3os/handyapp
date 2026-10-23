@@ -441,6 +441,11 @@ test.describe('Invoices drafted from the approved scope, issued after the qualit
         'https://square.link/u/SYNTHE2E087',
       )
       await expect(tab.getByTestId('payments-placeholder')).toHaveCount(4)
+      // TSK-0087 part 2: each confirmed payment has its receipt; the partial ones say so.
+      await expect(tab.getByTestId('payments-receipt')).toHaveCount(3)
+      await expect(tab.getByTestId('payments-receipt').last()).toContainText(
+        'Partial payment: $900.00 still due after it.',
+      )
       await expect(tab.getByText('Returning from the card payment page does not mark anything paid.')).toBeVisible()
       expect(
         await withDb((db) => db.selectFrom('finance.payments').select('id').where('job_id', '=', jobId).execute()),

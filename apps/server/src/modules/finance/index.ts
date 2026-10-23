@@ -46,6 +46,7 @@ export {
 } from './invoice-automations.js'
 export { customerInvoiceList, issueInvoice, jobInvoices, prepareDraft, qualityGate } from './invoices.js'
 export { INVOICE_PAID_EVENT } from './money-events.js'
+export { issuePaymentReceipt, paymentReceiptAutomation, RECEIPT_ISSUED_EVENT } from './receipts.js'
 
 const TEST = 'test/integration/deposits.test.ts'
 

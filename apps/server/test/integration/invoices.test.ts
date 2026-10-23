@@ -23,7 +23,7 @@ import { createStaffUser, setPasswordHash } from '../../src/modules/identity/acc
 import { startCustomerSession } from '../../src/modules/identity/customer-sessions.js'
 import { readCodeKey, type CodeKeySettings } from '../../src/modules/identity/index.js'
 import { hashPassword } from '../../src/modules/identity/passwords.js'
-import { confirmationDepositGate } from '../../src/modules/finance/index.js'
+import { confirmationDepositGate, paymentReceiptAutomation } from '../../src/modules/finance/index.js'
 import {
   depositInvoiceAutomation,
   invoiceDocumentAutomation,
@@ -93,6 +93,8 @@ const worker = () =>
       fast(invoiceDocumentAutomation(storage)),
       fast(invoiceReadyAutomation(notices)),
       fast(depositInvoiceAutomation(notices)),
+      // TSK-0087: each confirmed payment's receipt message.
+      fast(paymentReceiptAutomation(notices)),
     ]),
   })
 const tick = () => new Promise((r) => setTimeout(r, 15))
@@ -1118,7 +1120,13 @@ type PaymentsTab = {
     balanceCents: number
     payByCardUrl: string | null
   }[]
-  payments: { receivedOn: string; method: string; amountCents: number; state: string }[]
+  payments: {
+    receivedOn: string
+    method: string
+    amountCents: number
+    state: string
+    receipt: { number: string; paymentNumber: string; partial: boolean; balanceAfterCents: number } | null
+  }[]
   confirmedCents: number
   pendingCents: number
   balanceCents: number
@@ -1302,5 +1310,97 @@ describe('[HH-FIN-08][HH-FIN-09][HH-PORT-12][T60] Square links, recorded payment
     tab = await paymentsTab(job.reference, job.customerCookie)
     expect(tab.invoices[0]).toMatchObject({ state: 'paid', balanceCents: 0, pendingCents: 0, payByCardUrl: null })
     expect(tab.balanceCents).toBe(0)
+  })
+})
+
+describe('[HH-FIN-11][OWN-DEC-152][FACT-AUTOMATIC-MESSAGES] a receipt for each confirmed recorded payment (TSK-0087)', () => {
+  const receipts = (projectId: string) =>
+    t.db
+      .selectFrom('finance.payment_receipts as r')
+      .innerJoin('finance.payments as p', 'p.id', 'r.payment_id')
+      .select([
+        'r.id',
+        'r.number',
+        'r.payment_number',
+        'r.partial',
+        'r.balance_after_cents',
+        'r.invoice_id',
+        'p.method',
+      ])
+      .where('r.project_id', '=', projectId)
+      .orderBy('r.sequence')
+      .execute()
+  const receiptMails = (receiptId: string) =>
+    t.db
+      .selectFrom('platform.message_deliveries')
+      .select(['channel', 'state', 'error_code'])
+      .where('subject_key', '=', `payment_receipt:${receiptId}`)
+      .execute()
+
+  it('[HH-FIN-11][T59][T62] at once for cash and card, for a check only once cleared; partial ones say so; sent once', async () => {
+    const job = await scopedJob()
+    await drain()
+    // A deposit paid before any deposit invoice: its receipt exists, and no message names an invoice it does not have.
+    expect((await payDeposit('office', job.jobId, { method: 'cash', amountCents: 22_500 })).statusCode).toBe(201)
+    await reviewOutcome(t.db, job.jobId, 'passed')
+    const f = (await issue('office', await finalOf(job.jobId))).json<JobInvoices>().final as Invoice
+    const cash = await payInvoice('office', f.id, { method: 'cash', amountCents: 30_000 })
+    expect(cash.statusCode, cash.body).toBe(201)
+    const check = await payInvoice('office', f.id, {
+      method: 'check',
+      amountCents: 20_000,
+      reference: ref('check'),
+      payerName: 'Synthetic Payer',
+    })
+    expect(check.statusCode, check.body).toBe(201)
+    // A check that has not cleared has no receipt (never on initiation).
+    let rows = await receipts(job.projectId)
+    const R = job.projectReference
+    expect(rows.map((r) => [r.method, r.number, r.payment_number, r.partial, Number(r.balance_after_cents)])).toEqual([
+      ['cash', `${R}-R1`, `${R}-P1`, false, 0],
+      ['cash', `${R}-R2`, `${R}-P2`, true, 60_000],
+    ])
+    expect(rows[0]?.invoice_id).toBeNull()
+    expect(rows[1]?.invoice_id).toBe(f.id)
+    const receiptEmails = () => fakes.fakeEmail.calls.filter((c) => c.subject.startsWith('HandyHub | Payment Receipt'))
+    const before = receiptEmails().length
+    await drain()
+    await drain()
+    // The deposit's receipt names no invoice: nothing is sent for it. The cash payment's receipt sends once, by email.
+    expect(await receiptMails(rows[0]?.id as string)).toEqual([])
+    expect(await receiptMails(rows[1]?.id as string)).toEqual([{ channel: 'email', state: 'queued', error_code: null }])
+    expect(receiptEmails().length).toBe(before + 1)
+    const mail = receiptEmails().at(-1)
+    expect(mail?.subject).toBe(`HandyHub | Payment Receipt #${R}-R2`)
+    expect(mail?.text).toContain(`invoice #${f.number}`)
+    expect(mail?.text).toContain(`Payment reference: ${R}-P2`)
+    expect(mail?.text).toContain(`https://site.example.test/portal/p/${R}/payments`)
+
+    // The Owner clears the check: its receipt now, still partial ($400.00 remains).
+    const checkId = ((await finalOf(job.jobId)).payments.find((p) => p.state === 'received') as { id: string }).id
+    expect((await staffWrite('owner', 'POST', `/staff/payments/${checkId}/clear`, {})).statusCode).toBe(200)
+    rows = await receipts(job.projectId)
+    expect(rows.at(-1)).toMatchObject({ method: 'check', number: `${R}-R3`, partial: true })
+    expect(Number(rows.at(-1)?.balance_after_cents)).toBe(40_000)
+    // The last payment pays the rest: not partial; the invoice is Paid.
+    await payInvoice('office', f.id, { method: 'zelle', amountCents: 40_000, reference: ref('zelle') })
+    rows = await receipts(job.projectId)
+    expect(rows.at(-1)).toMatchObject({ method: 'zelle', number: `${R}-R4`, partial: false })
+    await drain()
+    for (const r of rows.slice(1)) expect(await receiptMails(r.id)).toHaveLength(1)
+
+    // The Payments tab names each receipt and says when a payment was partial.
+    const tab = await paymentsTab(job.reference, job.customerCookie)
+    expect(tab.payments.map((p) => [p.method, p.receipt])).toEqual([
+      ['cash', { number: `${R}-R1`, paymentNumber: `${R}-P1`, partial: false, balanceAfterCents: 0 }],
+      ['cash', { number: `${R}-R2`, paymentNumber: `${R}-P2`, partial: true, balanceAfterCents: 60_000 }],
+      ['check', { number: `${R}-R3`, paymentNumber: `${R}-P3`, partial: true, balanceAfterCents: 40_000 }],
+      ['zelle', { number: `${R}-R4`, paymentNumber: `${R}-P4`, partial: false, balanceAfterCents: 0 }],
+    ])
+
+    // A receipt is issued once and never changes.
+    await expect(
+      sql`UPDATE finance.payment_receipts SET partial = false WHERE id = ${rows[1]?.id as string}`.execute(t.db),
+    ).rejects.toThrow(/never changed or deleted/)
   })
 })

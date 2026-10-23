@@ -1168,5 +1168,7 @@
   "portal.payments.how.chime": "Chime:",
   "portal.payments.placeholder": "Placeholder — not a payment destination",
   "portal.payments.handleMissing": "Not available yet",
-  "portal.payments.verifiedOnly": "A payment shows as paid only after HandyHub verifies and records it. Returning from the card payment page does not mark anything paid."
+  "portal.payments.verifiedOnly": "A payment shows as paid only after HandyHub verifies and records it. Returning from the card payment page does not mark anything paid.",
+  "portal.payments.receipt": "Receipt {number} (payment {payment}).",
+  "portal.payments.receiptPartial": "Receipt {number} (payment {payment}). Partial payment: {balance} still due after it."
 }

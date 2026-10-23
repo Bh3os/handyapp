@@ -31,6 +31,7 @@ import { loadConfig } from '../../platform/config/index.js'
 import { FRESH_AUTH_MINUTES } from '../identity/sessions.js'
 import { syncDepositItem } from './deposit-queue.js'
 import { announcePaidInvoices, syncUnallocatedItem } from './money-events.js'
+import { issuePaymentReceipt } from './receipts.js'
 
 type Reader = Db | Tx
 
@@ -526,6 +527,8 @@ export async function recordDepositPayment(
   // this money announces it once.
   await syncUnallocatedItem(tx, jobId)
   await announcePaidInvoices(tx, jobId)
+  // TSK-0087: a confirmed payment's receipt, at once (a check's when it is cleared).
+  await issuePaymentReceipt(tx, payment.id)
   const after = await requirementOfJob(tx, jobId)
   return {
     paymentId: payment.id,
@@ -580,6 +583,8 @@ export async function markCheckCleared(
   await syncDepositItem(tx, p.job_id)
   // TSK-0086: an invoice the cleared check pays in full is Paid now, announced once.
   await announcePaidInvoices(tx, p.job_id)
+  // TSK-0087: the cleared check's receipt.
+  await issuePaymentReceipt(tx, p.id)
   const r = await requirementOfJob(tx, p.job_id)
   return {
     jobId: p.job_id,

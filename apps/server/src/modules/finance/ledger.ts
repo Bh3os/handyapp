@@ -22,6 +22,7 @@ import { ApiError, type FieldError } from '../../api/errors.js'
 import { loadConfig } from '../../platform/config/index.js'
 import { checkPaymentInput, type PaymentMethod, type PaymentState, type RecordPaymentInput } from './deposits.js'
 import { announcePaidInvoices, syncUnallocatedItem } from './money-events.js'
+import { issuePaymentReceipt } from './receipts.js'
 
 type Reader = Db | Tx
 
@@ -215,6 +216,8 @@ export async function recordInvoicePayment(
     .execute()
   await syncUnallocatedItem(tx, i.job_id)
   await announcePaidInvoices(tx, i.job_id)
+  // TSK-0087: a confirmed payment's receipt, at once (a check's when it is cleared).
+  await issuePaymentReceipt(tx, payment.id)
   const after = await tx.selectFrom('finance.invoices').select('state').where('id', '=', i.id).executeTakeFirstOrThrow()
   return {
     paymentId: payment.id,

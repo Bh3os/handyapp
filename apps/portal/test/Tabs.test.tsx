@@ -396,7 +396,13 @@ describe('the Payments tab (TSK-0087, HH-PORT-12)', () => {
     ],
     payments: [
       { receivedOn: '2026-10-20', method: 'cash', amountCents: 22_500, state: 'confirmed' },
-      { receivedOn: '2026-10-21', method: 'square_payment_link', amountCents: 40_000, state: 'confirmed' },
+      {
+        receivedOn: '2026-10-21',
+        method: 'square_payment_link',
+        amountCents: 40_000,
+        state: 'confirmed',
+        receipt: { number: `${REF}-R2`, paymentNumber: `${REF}-P2`, partial: true, balanceAfterCents: 50_000 },
+      },
       { receivedOn: '2026-10-21', method: 'check', amountCents: 20_000, state: 'pending' },
     ],
     confirmedCents: 62_500,
@@ -427,6 +433,10 @@ describe('the Payments tab (TSK-0087, HH-PORT-12)', () => {
     expect(pay.getAttribute('href')).toBe('https://square.link/u/SYNTH087')
     expect(pay.getAttribute('target')).toBe('_blank')
     expect(within(tab).getByTestId('payments-recorded').textContent).toContain('Pending until cleared')
+    // TSK-0087 part 2: a confirmed payment's receipt, and a partial payment says so.
+    expect(within(tab).getByTestId('payments-receipt').textContent).toBe(
+      ` Receipt ${REF}-R2 (payment ${REF}-P2). Partial payment: $500.00 still due after it.`,
+    )
     // The handles are placeholders: labelled, never a destination, no copy button; the card wording names Square.
     const how = within(tab).getByTestId('payments-instructions')
     expect(within(how).getAllByTestId('payments-placeholder')).toHaveLength(4)
