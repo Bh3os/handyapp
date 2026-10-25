@@ -61,6 +61,7 @@ import {
   refuse,
   type ReservationRequest,
 } from '../capacity/resources.js'
+import { notDismissed } from '../capacity/flags.js'
 import {
   changeFacts,
   finishReschedule,
@@ -832,6 +833,7 @@ export async function projectVisits(
           'in',
           reservations.map((r) => r.id),
         )
+        .where(notDismissed)
         .execute()
     : []
   const names = await staffNames(db, [
@@ -932,6 +934,8 @@ export async function projectVisits(
     },
     // TSK-0070 (HH-WORK-06): the Owner opens each started visit's Arrived and Finished times.
     visitTimes: holdsAction(actor, 'visit.correct_timestamps'),
+    // TSK-0151 (OWN-DEC-200 H7): the Owner keeps an appointment as it is despite a discretionary flag, with a reason.
+    dismissFlags: holdsAction(actor, 'visit.dismiss_flag'),
     visits: visits.map((v) => ({
       id: v.id,
       number: v.number,

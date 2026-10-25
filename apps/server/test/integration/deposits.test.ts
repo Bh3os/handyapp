@@ -114,7 +114,15 @@ beforeAll(async () => {
       .insertInto('identity.role_grants')
       .values([
         { staff_user_id: ids.admin, kind: 'role', name: 'estimator', issued_by: 'test' },
-        { staff_user_id: ids.worker, kind: 'capability', name: 'collect', issued_by: 'test' },
+        // TSK-0151 (OWN-DEC-200 H4): the collect grant records the worker's training (a synthetic record).
+        {
+          staff_user_id: ids.worker,
+          kind: 'capability',
+          name: 'collect',
+          issued_by: 'test',
+          trained_on: '2026-10-01',
+          training: 'Synthetic: cash handling and receipts',
+        },
       ])
       .execute()
   })

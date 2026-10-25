@@ -33,6 +33,6 @@ Effect:
 - H3: a disabled employee's role-assignment history stays, but reactivation never restores outdated access by itself: each role is confirmed again by the Owner. Replaces "role grants are kept unchanged when someone is re-enabled".
 - H4: cash collection needs an explicit, recorded authorization by the Owner for a Worker who is trained for it; the Worker role alone is not enough. The Owner-only financial controls stay ([[OWN-DEC-138]]).
 - H7: the Owner may resolve or override discretionary operational issues (for example a working-hours or equipment flag) with a recorded reason where legally and safely permitted; no general owner override ever waives a mandatory safety, legal, licensing, qualification or employee-protection restriction ([[RULE-SAFETY-GATES]]).
-- Built by [[TSK-0151]].
+- Built by [[TSK-0151]] (2026-10-24, migration 0098): permission review on reactivation, the trained collect grant, owner dismissal of discretionary flags and the server check refusing overrides of mandatory restrictions ([[OQ-STAFF-AMENDMENT-DETAILS]]).
 
 **Confirmed by [[OWN-DEC-202]] (2026-10-22):** the H1 reading is final, amended: the app's own email and password sign-in stays (no ZITADEL), with MFA mandatory for every active staff account instead of optional; immediate session revocation and invalidated credentials on offboarding; reactivation through secure links and the Owner's permission review.

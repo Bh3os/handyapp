@@ -117,6 +117,8 @@ export type ProjectVisits = {
   actions: { planEstimateVisit: boolean; planWorkVisit: boolean }
   /** TSK-0070: the caller may open each started visit's Arrived and Finished times (the Owner). */
   visitTimes?: boolean
+  /** TSK-0151: the caller may keep an appointment as it is despite a working-hours or equipment flag (the Owner). */
+  dismissFlags?: boolean
   visits: Visit[]
 }
 
@@ -522,6 +524,7 @@ function VisitItem({
   policy,
   when,
   onChanged,
+  dismissFlags = false,
 }: {
   t: T
   locale: StaffLocale
@@ -530,6 +533,8 @@ function VisitItem({
   policy: OfferPolicy | null
   when: (iso: string) => string
   onChanged: (d: ProjectVisits | null) => void
+  /** TSK-0151: the caller (the Owner) may keep an appointment as it is despite a discretionary flag. */
+  dismissFlags?: boolean
 }) {
   const notEntered = t('visits.notEntered')
   const minutes = (n: number | null) => (n === null ? notEntered : t('visits.minutes', { n }))
@@ -602,7 +607,13 @@ function VisitItem({
           {t('capacity.reservedRange', { span: spanText(visit.reservedRange, visit.window.timeZone, locale) })}
         </p>
       ) : null}
-      <Assignments t={t} locale={locale} zone={visit.window.timeZone} assignments={visit.assignments ?? []} />
+      <Assignments
+        t={t}
+        locale={locale}
+        zone={visit.window.timeZone}
+        assignments={visit.assignments ?? []}
+        {...(dismissFlags ? { dismiss: { fetchImpl, onDone: () => onChanged(null) } } : {})}
+      />
       {currentReason ? (
         <p className="staff-request__hint" data-testid="visit-window-reason">
           {t('visits.historyReason', { reason: currentReason })}
@@ -802,6 +813,7 @@ export function ProjectVisitsSection({
               policy={data.windowOffers ?? null}
               when={when}
               onChanged={changed}
+              dismissFlags={data.dismissFlags === true}
             />
           ))}
         </ul>

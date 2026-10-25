@@ -102,6 +102,8 @@ export const LABEL_FAMILIES = {
     'property_time_zone',
     // TSK-0084: a job's punch items not yet re-checked; a job awaiting the Owner's quality review.
     'punch_items',
+    // TSK-0151: a reactivated account waiting for the Owner's permission review (Owner Decisions).
+    'permission_review',
     'deposit_waiver',
     'quality_review',
     'start_work_exception',
@@ -177,6 +179,8 @@ export const LABEL_FAMILIES = {
     'assignee_disabled',
     'availability_changed',
     'equipment_retired',
+    // TSK-0151: an account re-enabled; its earlier grants wait for the Owner.
+    'account_reenabled',
     'work_cancellation_requested',
     'critical_shortage',
     // TSK-0067: an appointment reminder draft waiting for release.
@@ -249,6 +253,7 @@ export const LABEL_FAMILIES = {
     'review_field_event',
     'clear_check',
     'reconcile',
+    'review_permissions',
   ],
   // TSK-0078 (HH-SCH-09): the outcomes a worker records on a visit, and why one is refused.
   visitOutcomeKind: ['delay', 'no_access', 'customer_absent', 'weather', 'missing_resources', 'readiness_issue'],
@@ -831,6 +836,10 @@ export const LABEL_FAMILIES = {
     'EQUIPMENT_NAME_TAKEN',
     'EQUIPMENT_RETIRED',
     'BUSINESS_TIMEZONE_NOT_CONFIGURED',
+    // TSK-0151 (OWN-DEC-200 H7): the Owner's dismissal of a reservation flag.
+    'MANDATORY_RESTRICTION',
+    'FLAG_NOT_OPEN',
+    'RESERVATION_ENDED',
     'required',
     'STALE_VERSION',
     'FORBIDDEN',
@@ -1102,6 +1111,13 @@ export const LABEL_FAMILIES = {
     'OWN_ACCOUNT',
     // TSK-0154: the Owner reset an authenticator of an account that has none.
     'MFA_NOT_ENROLLED',
+    // TSK-0151: the training a collect grant records, and the permission review of a reactivated account.
+    'TRAINING_REQUIRED',
+    'TRAINING_NOT_USED',
+    'TRAINING_DATE_FUTURE',
+    'DATE_INVALID',
+    'NO_OPEN_REVIEW',
+    'REVIEW_ITEM_DECIDED',
     'required',
     'FORBIDDEN',
     'FRESH_AUTH_REQUIRED',

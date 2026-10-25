@@ -96,6 +96,8 @@ export const CLEARED_CATEGORIES = {
     'work.visit_changes',
     'work.reservations',
     'work.reservation_flags',
+    // TSK-0151 (0098): the Owner's dismissals of reservation flags.
+    'work.reservation_flag_dismissals',
   ],
   jobs: [
     'work.jobs',
@@ -292,6 +294,9 @@ export const KEPT_TABLES = [
   'identity.staff_mfa',
   'identity.staff_recovery_codes',
   'identity.staff_status_changes',
+  // TSK-0151 (0098): the permission reviews of re-enabled accounts (staff records, kept like the status history).
+  'identity.permission_reviews',
+  'identity.permission_review_items',
   'identity.rate_limits',
   'platform.message_templates',
   'platform.rate_counters',

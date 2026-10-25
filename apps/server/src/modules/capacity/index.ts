@@ -7,6 +7,8 @@
 //   POST /staff/time-off/:timeOffId/withdraw          withdraw recorded time off
 //   POST /staff/equipment                             register an equipment item (equipment.manage, PROPOSED)
 //   POST /staff/equipment/:equipmentId/retire         retire an item
+//   POST /staff/reservations/:reservationId/flags/dismiss  keep an appointment as it is despite a working-hours or
+//                                                     equipment flag (visit.dismiss_flag, PROPOSED; TSK-0151)
 // Every write takes an idempotency key and records its audit event. Availability changes flag the upcoming
 // reservations they touch for review and never cancel them (OWN-DEC-123). Reservations themselves are made by the
 // visit confirmation and window change (modules/visits) through resources.ts.
@@ -25,13 +27,17 @@ import {
   type PeriodInput,
   type TimeOffInput,
 } from './availability.js'
+import { dismissFlags, openFlagsOf } from './flags.js'
 import {
   AVAILABILITY,
   AVAILABILITY_CHANGE,
   CAPACITY_DAY,
   DAY_QUERY,
+  DISMISS_FLAG_BODY,
   EQUIPMENT_BODY,
   EQUIPMENT_PARAMS,
+  FLAG_DISMISSED,
+  RESERVATION_PARAMS,
   STAFF_PARAMS,
   TIME_OFF_BODY,
   TIME_OFF_PARAMS,
@@ -257,7 +263,47 @@ export function capacityModule(): ApiModule {
     },
   }
 
-  return { name: 'capacity', routes: [day, availability, hours, timeOff, withdraw, register, retire] }
+  const dismiss: RouteDef = {
+    ...write,
+    method: 'POST',
+    path: '/staff/reservations/:reservationId/flags/dismiss',
+    operationId: 'dismissReservationFlag',
+    test: 'test/integration/staff-management.test.ts',
+    summary: 'Keep an appointment as it is despite a flag',
+    description:
+      'Owner only, with a written reason (visit.dismiss_flag, PROPOSED in the availability row; TSK-0151, ' +
+      'OWN-DEC-200 H7). Dismisses every open flag of the cause on the upcoming reservation: a working-hours or ' +
+      'equipment flag is discretionary. A time-off flag (employee protection) or a disabled-account flag is a ' +
+      'mandatory restriction and is never waived by an override (CONFLICT MANDATORY_RESTRICTION). The visit and its ' +
+      "reservation stay as they are; the visit's action-queue item is updated, or resolved when nothing else flags " +
+      'it. A dismissal never touches the Start Work gate or a hold. Refusals: NOT_FOUND, CONFLICT ' +
+      '(MANDATORY_RESTRICTION, FLAG_NOT_OPEN, RESERVATION_ENDED), VALIDATION_FAILED (reason).',
+    permission: 'visit.dismiss_flag',
+    expectedVersion: 'none',
+    audit: 'visit.dismiss_flag',
+    schema: { params: RESERVATION_PARAMS, body: DISMISS_FLAG_BODY, response: { 200: FLAG_DISMISSED } },
+    handler: async (ctx) => {
+      const actor = staffActor(ctx)
+      const { reservationId } = ctx.req.params as { reservationId: string }
+      const body = ctx.req.body as { cause: string; reason: string }
+      const out = await dismissFlags(ctx.tx as Tx, { actorId: actor.userId, reservationId, ...body })
+      await ctx.audit({
+        target: { type: 'visit', id: out.visitId },
+        summary: { reservationId, cause: body.cause, dismissed: out.dismissed },
+        reason: body.reason.trim(),
+      })
+      return {
+        body: {
+          reservationId,
+          visitId: out.visitId,
+          dismissed: out.dismissed,
+          flags: await openFlagsOf(ctx.tx as Tx, reservationId),
+        },
+      }
+    },
+  }
+
+  return { name: 'capacity', routes: [day, availability, hours, timeOff, withdraw, register, retire, dismiss] }
 }
 
 export {
