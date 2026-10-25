@@ -139,6 +139,8 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       'deposit_due',
       // TSK-0090: money to reconcile (payment.reconcile: the Owner and Office).
       'reconciliation_item',
+      // TSK-0091: invoice reminders a payment suspended (payment_reminder.release: the Owner and Office).
+      'invoice_reminder_review',
       // TSK-0097: appointments flagged for review (reassignment) are seen by the roles that reassign visits.
       'visit_flagged',
       // TSK-0078: recorded visit outcomes to follow up (visit.reschedule: the Owner and Office).

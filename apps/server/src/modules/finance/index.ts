@@ -13,6 +13,7 @@
 //   POST /staff/payments/:paymentId/adjustments     TSK-0089: failed, dispute opened/won/lost (payment.correct, fresh)
 //   POST /staff/payments/:paymentId/correction      TSK-0089: void and record the right payment (payment.correct)
 //   POST /staff/jobs/:jobId/deposit/waiver          the Owner's waiver: fresh sign-in and a reason (deposit.waive)
+// TSK-0091: the unpaid-invoice reminder routes are invoice-reminder-routes.ts.
 // Each write is decided by the policy (deny by default), runs in one transaction with its idempotency key and records
 // its audit event. The work-scheduling gate is deposit-gate.ts, called by the confirming transaction itself.
 import type { Tx } from '@handyhub/db'
@@ -21,6 +22,7 @@ import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
 import { FRESH_AUTH_MINUTES } from '../identity/sessions.js'
 import { adjustmentRoutes } from './adjustment-routes.js'
 import { reconciliationRoutes } from './reconciliation-routes.js'
+import { invoiceReminderRoutes } from './invoice-reminder-routes.js'
 import { invoiceRoutes, type InvoiceRouteDeps } from './invoice-routes.js'
 import {
   DEPOSIT_LIMITS,
@@ -70,6 +72,14 @@ export { customerInvoiceList, issueInvoice, jobInvoices, prepareDraft, qualityGa
 export { INVOICE_PAID_EVENT } from './money-events.js'
 export { issuePaymentReceipt, paymentReceiptAutomation, RECEIPT_ISSUED_EVENT } from './receipts.js'
 export { jobDisputeOpen } from './exceptions.js'
+export {
+  syncInvoiceReminders,
+  syncJobInvoiceReminders,
+  unpaidReminderAutomations,
+  unpaidReminderFailureItem,
+  unpaidReminderRecordCheck,
+  unpaidReminderValues,
+} from './invoice-reminders.js'
 
 const TEST = 'test/integration/deposits.test.ts'
 
@@ -850,11 +860,18 @@ const routes: RouteDef[] = [
 
 /**
  * The finance module: the deposit routes (TSK-0059), the invoice and ledger routes (TSK-0085, TSK-0086) and the
- * refund, credit, write-off and void routes (TSK-0089) and the reconciliation queue (TSK-0090).
+ * refund, credit, write-off and void routes (TSK-0089), the reconciliation queue (TSK-0090) and the unpaid-invoice
+ * reminders (TSK-0091).
  */
 export function financeModule(deps: InvoiceRouteDeps): ApiModule {
   return {
     name: 'finance',
-    routes: [...routes, ...invoiceRoutes(deps), ...adjustmentRoutes(), ...reconciliationRoutes()],
+    routes: [
+      ...routes,
+      ...invoiceRoutes(deps),
+      ...adjustmentRoutes(),
+      ...reconciliationRoutes(),
+      ...invoiceReminderRoutes(),
+    ],
   }
 }

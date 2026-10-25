@@ -23,6 +23,7 @@ import { sql } from 'kysely'
 import { ApiError, type FieldError } from '../../api/errors.js'
 import { openQueueItem, resolveQueueItem } from '../queue/items.js'
 import { requireOwnerFreshSession } from './exceptions.js'
+import { syncInvoiceReminders, syncJobInvoiceReminders } from './invoice-reminders.js'
 import { invoiceMoney } from './ledger.js'
 import { announcePaidInvoices, syncUnallocatedItem } from './money-events.js'
 
@@ -185,6 +186,8 @@ export async function requestAdjustment(tx: Tx, actor: StaffActor, jobId: string
   // A requested refund already holds its money: the unallocated item follows.
   await syncUnallocatedItem(tx, jobId)
   await syncRequestItem(tx, jobId)
+  // TSK-0091: a refund, credit or write-off under review stops the job's invoice reminders.
+  await syncJobInvoiceReminders(tx, jobId)
   return out
 }
 
@@ -246,6 +249,8 @@ export async function decideAdjustment(
   await syncRequestItem(tx, f.job_id)
   // A credit that brings the invoice to $0.00 makes it Paid (announced once).
   await announcePaidInvoices(tx, f.job_id)
+  // TSK-0091: the review is over (no automatic restart); a credit or write-off may leave no balance.
+  await syncJobInvoiceReminders(tx, f.job_id)
   return {
     id,
     jobId: f.job_id,
@@ -304,6 +309,8 @@ export async function recordRefundOutcome(
     .returning(['state', 'version'])
     .executeTakeFirstOrThrow()
   if (input.outcome === 'failed') await syncUnallocatedItem(tx, f.job_id)
+  // TSK-0091: a refund that needs review stops the job's invoice reminders.
+  await syncJobInvoiceReminders(tx, f.job_id)
   return { id, jobId: f.job_id, from: f.state, state: row.state, version: row.version }
 }
 
@@ -356,6 +363,8 @@ export async function voidInvoice(
     .where('id', '=', i.id)
     .returning('version')
     .executeTakeFirstOrThrow()
+  // TSK-0091: a voided invoice is never reminded; its waiting reminders are cancelled and its items resolved.
+  await syncInvoiceReminders(tx, i.id)
   return { invoiceId: i.id, jobId: i.job_id, kind: i.kind, number: i.number, from: i.state, version: row.version }
 }
 

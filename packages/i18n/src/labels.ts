@@ -90,6 +90,8 @@ export const LABEL_FAMILIES = {
     'check_to_clear',
     // TSK-0090: unmatched or uncertain money waiting for a person.
     'reconciliation_item',
+    // TSK-0091: a payment suspended an invoice's reminders; staff confirm the next step.
+    'invoice_reminder_review',
     'visit_flagged',
     // TSK-0078: a recorded visit outcome waiting for staff follow-up.
     'visit_outcome',
@@ -156,6 +158,8 @@ export const LABEL_FAMILIES = {
     'cancellation_outcome_requested',
     'deletion_requested',
     'overdue_owner_decision',
+    // TSK-0091: why an invoice's reminders wait for staff.
+    'payment_recorded',
     'not_a_fit_with_obligations',
     'ready_for_estimate',
     'estimate_draft',
@@ -881,6 +885,8 @@ export const LABEL_FAMILIES = {
     'inbox',
     'invoice',
     'invoice_document',
+    // TSK-0091: the unpaid-invoice reminders (scheduled, not scheduled, planned, outcomes).
+    'invoice_reminder',
     'incident',
     'job_hold',
     'job_packet',
@@ -1226,6 +1232,56 @@ export const LABEL_FAMILIES = {
     'sms_disabled',
     'text_hours_not_configured',
     'waiting_text_hours',
+    // TSK-0091 (OWN-DEC-210): why an unpaid-invoice reminder is not scheduled or sent, or a follow-up not available
+    // (apps/server/src/modules/finance/invoice-reminders.ts).
+    'invoice_not_found',
+    'not_final_invoice',
+    'invoice_not_issued',
+    'invoice_voided',
+    'invoice_paid',
+    'no_balance',
+    'payment_plan',
+    'collection_hold',
+    'payment_disputed',
+    'dispute_case_open',
+    'billing_complaint_open',
+    'refund_or_credit_review',
+    'payment_recorded',
+    'not_configured',
+    'due_date_revised',
+    'stage_already_sent',
+    'stage_time_passed',
+    'no_email_address',
+    'follow_up_waiting',
+    'automatic_reminders_pending',
+  ],
+  /** The collection steps staff record on an issued final invoice (TSK-0091; finance.invoice_collection_steps). */
+  collectionStep: [
+    'revised_due_date',
+    'payment_plan',
+    'collection_hold',
+    'arrangement_ended',
+    'follow_up_released',
+    'overdue_decided',
+  ],
+  /** Why an unpaid-invoice reminder action was refused (TSK-0091), by the field code the server answers. */
+  invoiceReminderRefusal: [
+    'NOT_FINAL_INVOICE',
+    'INVOICE_NOT_ISSUED',
+    'INVOICE_VOIDED',
+    'INVOICE_PAID',
+    'ARRANGEMENT_ACTIVE',
+    'ARRANGEMENT_NOT_ACTIVE',
+    'AUTOMATIC_REMINDERS_PENDING',
+    'FOLLOW_UP_WAITING',
+    'NO_EMAIL_ADDRESS',
+    'NOT_OVERDUE',
+    'DUE_DATE_IN_PAST',
+    'DUE_DATE_TOO_FAR',
+    'INVALID_DATE',
+    'TIME_ZONE_NOT_CONFIGURED',
+    'required',
+    'TOO_LONG',
   ],
   /** Deposit requirement states (ENT-DepositRequirement; TSK-0059). */
   depositState: ['not_required', 'required', 'partly_satisfied', 'satisfied', 'applied', 'waived'],

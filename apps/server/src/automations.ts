@@ -23,6 +23,10 @@ import {
   invoiceDraftAutomation,
   invoiceReadyAutomation,
   paymentReceiptAutomation,
+  unpaidReminderAutomations,
+  unpaidReminderFailureItem,
+  unpaidReminderRecordCheck,
+  unpaidReminderValues,
 } from './modules/finance/index.js'
 import { deliveryStatusAutomation, linkHostsOf, releaseAutomation } from './modules/notifications/index.js'
 import { photoProcessAutomation } from './modules/photos/index.js'
@@ -83,8 +87,8 @@ export type AutomationDeps = LinkEmailDeps & {
  * The send-time record checks of the one `notify.release` registration (HH-COM-05), by the record type a released
  * draft or scheduled automatic reminder is about: an estimate reminder's version (TSK-0060, TSK-0121, HH-EST-14), a
  * staff reply's project and contact (TSK-0050), a question reminder's question (TSK-0051, HH-LEAD-06) and an
- * appointment reminder's visit (TSK-0067, HH-COM-11). A feature whose deliveries need a check adds its record type
- * here, never a second registration.
+ * appointment reminder's visit (TSK-0067, HH-COM-11) and an unpaid-invoice reminder's or follow-up's invoice (TSK-0091,
+ * HH-FIN-19). A feature whose deliveries need a check adds its record type here, never a second registration.
  */
 export const RELEASE_RECORD_CHECKS: RecordChecks = {
   estimate_version: estimateReminderRecordCheck,
@@ -93,21 +97,24 @@ export const RELEASE_RECORD_CHECKS: RecordChecks = {
   visit: appointmentReminderRecordCheck,
   // TSK-0077: a released work-paused notice is sent only while its report's critical hold still blocks.
   hazard_report: workPausedRecordCheck,
+  // TSK-0091 (OWN-DEC-210): an unpaid-invoice reminder or follow-up is sent only while the invoice may be reminded.
+  invoice: unpaidReminderRecordCheck,
 }
 
 /**
  * The delivery issue of a failed message sent by notify.release: a staff reply's (TSK-0050), and each routine
- * reminder's (TSK-0051, TSK-0067; TSK-0121 adds the estimate reminder's).
+ * reminder's (TSK-0051, TSK-0067; TSK-0121 adds the estimate reminder's; TSK-0091 the unpaid-invoice reminder's).
  */
 export const releaseFailureItem: ReleaseFailureItem = async (tx, row) =>
   (await replyFailureItem(tx, row)) ??
   (await questionReminderFailureItem(tx, row)) ??
   (await appointmentReminderFailureItem(tx, row)) ??
-  (await estimateReminderFailureItem(tx, row))
+  (await estimateReminderFailureItem(tx, row)) ??
+  (await unpaidReminderFailureItem(tx, row))
 
 /**
  * The values notify.release reads at send time, by message (TSK-0120: the staff reply; TSK-0121: the three automatic
- * reminders in their owner wording).
+ * reminders in their owner wording; TSK-0091: the unpaid-invoice reminder and follow-up).
  */
 export function releaseValues(publicSiteUrl: string | undefined): ReleaseValues {
   const sources = [
@@ -115,6 +122,7 @@ export function releaseValues(publicSiteUrl: string | undefined): ReleaseValues 
     estimateReminderValues(publicSiteUrl),
     questionReminderValues(publicSiteUrl),
     appointmentReminderValues(publicSiteUrl),
+    unpaidReminderValues(publicSiteUrl),
   ]
   return async (tx, row) => {
     for (const source of sources) {
@@ -227,6 +235,10 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     depositInvoiceAutomation(visitNotices),
     // TSK-0087: each confirmed recorded payment's automatic receipt (FACT-AUTOMATIC-MESSAGES #20), once, by email.
     paymentReceiptAutomation(visitNotices),
+    // TSK-0091 (OWN-DEC-210): an issued final invoice schedules its two automatic reminders, 3 and 7 calendar days after
+    // the due date, sent by notify.release with the invoice's send-time check; the second one actually sent opens
+    // "Overdue—owner decision".
+    ...unpaidReminderAutomations(),
     // TSK-0032: the automatic receipt email, once per saved request (HH-INT-20); email only.
     receiptEmailAutomation({
       providers: { email: deps.providers.email, sms: null, replyAddress: deps.replyAddress ?? null, linkHosts },

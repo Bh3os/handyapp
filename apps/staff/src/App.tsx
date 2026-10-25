@@ -31,6 +31,7 @@ import { isUnsynced, setSignedInStaff } from './offline/sync'
 import { ChecklistPage } from './Checklist'
 import { QueueHome } from './Queue'
 import { ReconciliationScreen } from './Reconciliation'
+import { InvoiceRemindersPage } from './InvoiceReminders'
 import { MergeReview, RelinkRequest } from './RecordLinks'
 import { RequestRecord } from './Record'
 import { RequestsScreen } from './Requests'
@@ -316,7 +317,8 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
                   route.screen === 'quality-reviews'
                 ? 'schedule'
                 : // TSK-0090: one reconciliation item, from the staff queue, sits below Payments.
-                  route.screen === 'reconciliation'
+                  // TSK-0091: an invoice's reminders, from the staff queue and Owner Decisions, too.
+                  route.screen === 'reconciliation' || route.screen === 'invoice-reminders'
                   ? 'payments'
                   : route.screen
           : route.page === 'home'
@@ -566,6 +568,8 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             <ReconciliationScreen t={t} fetchImpl={doFetch} href={href} />
           ) : route.page === 'record' && route.screen === 'reconciliation' && allowed ? (
             <ReconciliationScreen key={route.id} t={t} fetchImpl={doFetch} href={href} itemId={route.id} />
+          ) : route.page === 'record' && route.screen === 'invoice-reminders' && allowed ? (
+            <InvoiceRemindersPage key={route.id} t={t} fetchImpl={doFetch} href={href} invoiceId={route.id} />
           ) : route.page === 'record' && route.screen === 'payments' && allowed ? (
             <JobDepositPage key={route.id} t={t} fetchImpl={doFetch} jobId={route.id} />
           ) : route.page === 'record' && route.screen === 'requests' && allowed ? (
