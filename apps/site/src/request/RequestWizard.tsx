@@ -23,7 +23,7 @@ import { legalDocument, PRIVACY_NOTICE, SMS_DISCLOSURE } from '@handyhub/domain/
 import { contactDetails, parseSiteFacts, type ContactDetail } from '../site/facts.js'
 import { DraftStore, newSend, type DraftSend } from './draft.js'
 import { PhotoReviewList, PhotoUploader, usePhotos, type PhotoLimits } from './photos.js'
-import { Receipt, useReceiptPhotos } from './Receipt.js'
+import { Receipt, useReceiptPhotos } from './Receipt.tsx'
 import { receiptGlance, receiptRecord, saveReceipt, withPhotoCounts, type ReceiptRecord } from './receipt.js'
 import { receiptPath } from '@handyhub/domain/request-form'
 import { keepsBody, resumedFrom, SendStore, sendOutcome, type SendData, type SendReply } from './send.js'
