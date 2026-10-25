@@ -55,6 +55,8 @@ export const QUEUE_ACTIONS = [
   'clear_check',
   // TSK-0090: match or resolve unmatched or uncertain money.
   'reconcile',
+  // TSK-0149: help a customer who cannot sign in or get a new project link, after verifying their identity.
+  'help_access',
 ] as const
 export type QueueAction = (typeof QUEUE_ACTIONS)[number]
 
@@ -69,6 +71,8 @@ export type QueueScreen =
   | 'estimates'
   // TSK-0123: a property record (below the customer records in the menu).
   | 'properties'
+  // TSK-0149: the access help requests sit below the privacy requests (the Owner's customer-account work).
+  | 'privacy'
 
 export type QueueItemType = {
   readonly id: string
@@ -379,6 +383,21 @@ export const QUEUE_ITEM_TYPES = [
     action: 'reconcile',
     screen: 'payments',
     path: 'reconciliation',
+  },
+  // TSK-0149 (OWN-DEC-198 F4, F5): a visitor asked for help signing in or getting a new project link (the secure
+  // alternative when texts are not available or the reissue limits are reached), one item per help request until the
+  // Owner closes it. The reason is what was asked, never whether anything matched. Seen by the Owner
+  // (customer_account.assist_recovery); the link opens the request. Band PROPOSED.
+  {
+    id: 'access_help_request',
+    section: 'queue',
+    subject: 'access_help_request',
+    band: 'time_sensitive',
+    view: 'customer_account.assist_recovery',
+    reasons: ['sign_in', 'project_link'],
+    action: 'help_access',
+    screen: 'privacy',
+    path: 'access-help',
   },
   // Appointments flagged by an availability change (HH-OPS-01 "upcoming assignments of a disabled account, to
   // reassign; appointments flagged by an availability change", HH-STAFF-02, HH-STAFF-07, TSK-0097): one item per visit,

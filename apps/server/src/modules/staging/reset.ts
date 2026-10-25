@@ -211,6 +211,9 @@ export const CLEARED_CATEGORIES = {
     'identity.verification_attempts',
     'identity.customer_identity_links',
     'identity.customer_account_changes',
+    // TSK-0149 (0100): staff-assisted account recoveries and the requests for help signing in or getting a link.
+    'identity.customer_account_recoveries',
+    'identity.access_help_requests',
   ],
   workflow: [
     'ops.queue_items',

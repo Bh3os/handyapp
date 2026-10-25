@@ -9,14 +9,19 @@ import {
   CONTACT_CHANGED_MESSAGE_KEY,
   emailChangeSubject,
   enrollmentSubject,
+  recoverySubject,
   signInSubject,
 } from '../../src/modules/accounts/index.js'
 import { MODULES } from '../../src/modules/index.js'
 import { messageType, messageTypeProblems } from '../../src/modules/notifications/index.js'
 
-const routes = MODULES.find((m) => m.name === 'accounts')?.routes ?? []
+const all = MODULES.find((m) => m.name === 'accounts')?.routes ?? []
+const SECURITY_TEST = 'test/integration/account-security.test.ts'
+// TSK-0036's routes; TSK-0149's account security routes are covered by their own file (below).
+const routes = all.filter((r) => r.test !== SECURITY_TEST)
+const security = all.filter((r) => r.test === SECURITY_TEST)
 const route = (id: string) => {
-  const r = routes.find((x) => x.operationId === id)
+  const r = all.find((x) => x.operationId === id)
   if (!r) throw new Error(id)
   return r
 }
@@ -93,5 +98,43 @@ describe('the account routes (TSK-0036)', () => {
 
   it('[HH-ID-08] the account page is private under every name it can be fetched by', () => {
     for (const url of ['/account', '/account/', '/account.html']) expect(isPrivatePath('public', url), url).toBe(true)
+  })
+})
+
+describe('the account security routes (TSK-0149, OWN-DEC-198)', () => {
+  it('[HH-ID-11][HH-ID-09][RULE-SERVER-AUTHZ] every route has a complete contract; the Owner’s work is decided by the policy', () => {
+    expect(security.map((r) => `${r.method} ${r.path}`).sort()).toEqual(
+      [
+        'GET /staff/access-help',
+        'GET /staff/access-help/:id',
+        'GET /staff/access-help/lookup',
+        'POST /customer/account/sign-out-everywhere',
+        'POST /public/access/help',
+        'POST /staff/access-help/:id/close',
+        'POST /staff/customer-accounts/:accountId/recovery',
+        'POST /staff/customer-accounts/:accountId/recovery/cancel',
+        'POST /staff/customer-accounts/:accountId/sign-out-everywhere',
+        'POST /staff/projects/:projectId/access-link',
+      ].sort(),
+    )
+    for (const r of security) {
+      expect(routeProblems(r), r.operationId).toEqual([])
+      if (r.path.startsWith('/staff/')) {
+        expect(r.actors, r.operationId).toEqual(['staff'])
+        expect(r.permission, r.operationId).not.toBe(AUTHENTICATION)
+      } else expect(r.permission, r.operationId).toBe(AUTHENTICATION)
+    }
+    expect(route('customerSignOutEverywhere').actors).toEqual(['customer'])
+    expect(route('revokeCustomerAccountSessions').permission).toBe('customer_account.revoke_sessions')
+    expect(route('startCustomerAccountRecovery').permission).toBe('customer_account.assist_recovery')
+    expect(route('sendProjectAccessLink').permission).toBe('project_access.send_link')
+    // The visitor's help request is limited per network (PROPOSED) and has one fixed answer.
+    expect(route('requestAccessHelp').rateLimit).not.toBe('none')
+    expect(Object.keys(route('requestAccessHelp').schema.response)).toEqual(['202'])
+  })
+
+  it('[HH-ID-11] a staff-assisted recovery’s code is tied to that recovery', () => {
+    expect(recoverySubject('r-1')).toBe('recovery:r-1')
+    expect(recoverySubject('00000000-0000-4000-8000-000000000000').length).toBeLessThanOrEqual(200)
   })
 })

@@ -11,6 +11,8 @@
 //   POST /customer/account/email/codes           sign-in email change: a code to the new email (fresh sign-in)
 //   POST /customer/account/email                 ...the entered code: notice to the old email, other sessions end
 //   POST /customer/session/sign-out              Sign Out (any customer session)
+// TSK-0149 (OWN-DEC-198 F2, F4, F5, F6): the account's Sign out everywhere, the public request for help signing in or
+// getting a new link, and the Owner's security work on customer access (security-routes.ts).
 // Enrollment and sign-in establish who the caller is, so they are authentication routes (like the staff sign-in and
 // the access link exchange). The receipt routes need the Receipt-Capability header of the tab that sent the request;
 // the guest-link routes need a live session started from that project's access grant; an unknown, expired or revoked
@@ -49,9 +51,12 @@ import {
   type EnrollmentSource,
   type SendResult,
 } from './accounts.js'
+import { securityRoutes } from './security-routes.js'
 
 export * from './accounts.js'
+export * from './help.js'
 export * from './notice.js'
+export * from './security.js'
 
 /** PROPOSED (no owner value): per client network and hour, on top of the configured per-code and per-address limits. */
 export const ENROLL_CODE_RATE_LIMIT = { bucket: 'account-enroll-code', limit: 30, windowSeconds: 3600 } as const
@@ -82,6 +87,9 @@ const ENROLLED_SCHEMA = ACCOUNT_SIGNED_IN.schema
 
 const invalidCode = () =>
   new ApiError('VALIDATION_FAILED', { fieldErrors: [{ field: 'body.code', code: 'invalid_code', message: '' }] })
+/** TSK-0149 (F4): no code goes by text while texting is not available; the same refusal for every caller. */
+const textsUnavailable = (field: string) =>
+  new ApiError('VALIDATION_FAILED', { fieldErrors: [{ field, code: 'texts_unavailable', message: '' }] })
 
 export type AccountsDeps = {
   /** The key behind one-time codes (TSK-0016); NOT CONFIGURED: no code is sent and nobody signs in. */
@@ -107,6 +115,7 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
       projects: view.projects.map((reference) => ({ reference })),
       freshVerification: fresh,
       emailChange: missing.length === 0 ? ('available' as const) : ('not_configured' as const),
+      texts: view.texts,
     }
   }
 
@@ -118,6 +127,7 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
       throw new ApiError('VALIDATION_FAILED', {
         fieldErrors: [{ field: 'body.channel', code: 'not_verified', message: '' }],
       })
+    if (out.status === 'texts_unavailable') throw textsUnavailable('body.channel')
     return {
       status: 202,
       body: ACCOUNT_CODE_SENT.project({
@@ -200,7 +210,8 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
       'Under the Receipt-Capability header, after the guest chose Create an Account (HH-INT-14, OWN-DEC-63): a one-time ' +
       'code (purpose account_sign_in, the automatic message contact.verification_code) to the request’s own email or ' +
       'phone, which must already be verified for that exact value (the phone only by text, with that request’s current ' +
-      'SMS opt-in). Nothing is created yet. A channel that is not verified is a 400 (not_verified); a resend inside the ' +
+      'SMS opt-in). Nothing is created yet. A channel that is not verified is a 400 (not_verified); the phone while ' +
+      'texting is not available a 400 (texts_unavailable, OWN-DEC-198 F4); a resend inside the ' +
       'cooldown or over a limit is a neutral 429 with Retry-After; while the code key, session.timings or ' +
       'verification.limits is NOT CONFIGURED, 503 and nothing is sent.',
     rateLimit: ENROLL_CODE_RATE_LIMIT,
@@ -292,7 +303,8 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
     summary: 'Create an Account from the project link: the usable channels',
     description:
       'For a live guest-link session: the channels an account can be created with, masked: the grant’s contact’s ' +
-      'own values that a code already verified (the phone only with its current SMS permission). An account session ' +
+      'own values that a code already verified (the phone only with its current SMS permission, and only while ' +
+      'texting is available, OWN-DEC-198 F4). An account session ' +
       'or no session is NOT_FOUND. Nothing about any other project, contact or account.',
     kind: 'read',
     rateLimit: 'none',
@@ -312,7 +324,7 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
     summary: 'Create an Account from the project link: send the code',
     description:
       'As the receipt’s enrollment code, for the guest-link session’s one project and the grant’s own contact. ' +
-      'Refusals: 400 not_verified, 429 with Retry-After, 503 while NOT CONFIGURED.',
+      'Refusals: 400 not_verified or texts_unavailable, 429 with Retry-After, 503 while NOT CONFIGURED.',
     kind: 'write',
     rateLimit: ENROLL_CODE_RATE_LIMIT,
     audit: 'customer_account.enrollment_code',
@@ -370,9 +382,12 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
       'contact.verification_code) goes to it, the phone only by text with its current SMS permission. Every ' +
       'well-formed request gets the same 202 {accepted, codeMinutes} whether or not an account has the value, the ' +
       'phone may be texted, or a per-code limit was reached (HH-ID-03); codeMinutes is the configured code lifetime. ' +
-      'A value that is neither an email nor a US phone number is a 400 (invalid_contact); a network over its limit ' +
-      'a 429 for everyone; while the code key, session.timings or verification.limits is NOT CONFIGURED, 503 for ' +
-      'everyone.',
+      'The new email of a staff-assisted recovery the Owner started (TSK-0149) gets its code the same way. ' +
+      'A value that is neither an email nor a US phone number is a 400 (invalid_contact); a phone while texting is not ' +
+      'available (live texts off until A2P 10DLC, or no released text wording of the code) a 400 (texts_unavailable) ' +
+      'for every phone, decided before any record is read (OWN-DEC-198 F4: the page offers to ask HandyHub for help); ' +
+      'a network over its limit a 429 for everyone; while the code key, session.timings or verification.limits is NOT ' +
+      'CONFIGURED, 503 for everyone.',
     rateLimit: SIGN_IN_CODE_RATE_LIMIT,
     audit: 'customer_account.sign_in_code',
     schema: {
@@ -400,6 +415,7 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
         httpRequestId: httpId(ctx),
       })
       if (out.status === 'not_configured') throw new ApiError('NOT_CONFIGURED')
+      if (out.status === 'texts_unavailable') throw textsUnavailable('body.contact')
       const timings = (await loadConfig(ctx.tx)).get('session.timings')
       if (timings.state !== 'CONFIGURED') throw new ApiError('NOT_CONFIGURED')
       // The value never reaches the audit log; whether a code went, and to which account, does (staff only).
@@ -423,7 +439,10 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
       'browser ends; other devices keep theirs): 30 minutes idle, 8 hours in total (session.timings), revocable on the ' +
       'server. A wrong, expired or used code and a value without an account are the same neutral 400 (body.code, ' +
       'invalid_code); the attempt is counted and kept. Signing in through the account’s other verified contact is ' +
-      'also how access is recovered when one contact is lost (HH-ID-11). 503 while NOT CONFIGURED.',
+      'also how access is recovered when one contact is lost (HH-ID-11), by text only while texting is available ' +
+      '(OWN-DEC-198 F4). The code to the new email of a staff-assisted recovery completes it (TSK-0149): the account ' +
+      'takes that email, every session of the account ends, this browser gets the new one, and the old and the new ' +
+      'email get the notice account.contact_changed. 503 while NOT CONFIGURED.',
     rateLimit: SIGN_IN_RATE_LIMIT,
     audit: 'customer_account.sign_in',
     schema: {
@@ -446,6 +465,7 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
         contact,
         code: body.code,
         clientIp: clientOf(ctx),
+        httpRequestId: httpId(ctx),
         ...(existing ? { replaces: existing.id } : {}),
       })
       if (!out.ok) {
@@ -459,7 +479,13 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
       }
       await ctx.audit({
         target: { type: 'customer_account', id: out.accountId },
-        summary: { channel: contact.channel },
+        summary: {
+          channel: contact.channel,
+          // TSK-0149: a sign-in that completed the Owner's staff-assisted recovery.
+          ...(out.recovery
+            ? { recovered: true, change: out.recovery.changeId, endedSessions: out.recovery.endedSessions }
+            : {}),
+        },
       })
       const session = await resolveCustomerSession(ctx.tx, out.session.token)
       return {
@@ -501,7 +527,8 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
       'For a live account session: its sign-in email and phone (masked), the references of its linked projects (the ' +
       'customer switches between them, HH-PORT-09), whether the sign-in is fresh enough for a contact change, and ' +
       'whether a sign-in email change is available (not_configured while its notice to the old email cannot be sent, ' +
-      'OQ-ACCOUNT-CONTACT-NOTICE). A guest-link session is NOT_FOUND; no session is 401.',
+      'OQ-ACCOUNT-CONTACT-NOTICE), and whether codes can go by text now (texts, the same for everyone: TSK-0149, ' +
+      'OWN-DEC-198 F4). A guest-link session is NOT_FOUND; no session is 401.',
     kind: 'read',
     rateLimit: 'none',
     audit: 'none',
@@ -679,6 +706,7 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
       emailCodes,
       emailChange,
       signOut,
+      ...securityRoutes(deps),
     ],
   }
 }

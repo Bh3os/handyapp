@@ -1,0 +1,23 @@
+---
+id: OQ-ACCOUNT-SECURITY-DETAILS
+type: question
+title: The customer account security details no decision gives
+status: open
+area: identity
+links:
+  related: ["[[OWN-DEC-198]]", "[[HH-ID-11]]", "[[HH-ID-09]]", "[[T22]]", "[[T18]]", "[[ROLE-MATRIX]]", "[[FACT-SESSION-TIMINGS]]", "[[TSK-0149]]"]
+source: "TSK-0149 (2026-10-24): OWN-DEC-198 F2, F4, F5 and F6 state the rules; the details below are PROPOSED"
+---
+**Question:** does the owner approve, or change, these PROPOSED details of the customer account security amendments?
+
+- **Who answers:** the owner.
+- **Decided, in use ([[OWN-DEC-198]]):** ordinary device sessions stay independent, and a security event can revoke every session of an account at once (F2). Phone recovery only when the phone is verified and texting is available, never bypassing SMS consent, registration, rate limits or recovery security, with a secure alternative when it is not (F4). Project links stay valid 24 hours; the reissue limits stay (3 per project per day, 10 per network per hour), with a secure recovery path for legitimate customers who reach them; staff-revoked access is never restored on request (F5). No account or project enumeration; links go only to previously verified, authorized contacts (F6).
+- **PROPOSED, in use on private staging:**
+  - **What ends every session (F2).** Three security events: the customer's **Sign out everywhere** on the account page (this device included); the Owner's **Sign out everywhere** on an account, with a written reason; and the start of a staff-assisted recovery. Each is audited. The email change keeps its rule: the other sessions end and the current one is renewed.
+  - **When texting is "available" (F4).** Live texts are on (`sms.live_delivery`, off until A2P 10DLC) and the code message has a released text wording, plus the number's own current SMS permission. While it is not available, asking for a code by phone (sign-in or Create an Account) is refused with the same words for every phone ("Texts can't be used right now. Use your email instead."), decided before any record is read. The verified phone stays on the account for later; the account page says the phone can't be used to get back in.
+  - **The secure alternative: asking HandyHub for help (F4, F5).** The sign-in page and the page after asking for a new link offer **Ask for help** to every visitor alike. The visitor gives what they need (sign in, or a project link), the email or mobile phone they used, and the request reference if they have it. Every well-formed request gets the same answer ("Thanks. If these details match a HandyHub request or account, we'll contact you using the details we have on file."). The same open need for the same contact is not repeated; 5 requests per network per hour. Each waits in the staff queue as "Help with sign-in or a link", for the Owner only.
+  - **What the Owner does.** The Owner verifies the person's identity through the contact details on file (never through what was typed alone), then: ends every session of the account; or starts a **staff-assisted recovery** with a new sign-in email and a note of how identity was verified; or **sends a new link** to the project's contact on file (the newest request's contact, also after a link staff revoked; it does not count against the customer's own reissue limit). The Owner closes the request once with an outcome (access restored, identity not verified, nothing matched, no action needed) and a note. A lookup by email, phone or reference shows the same matches without a request.
+  - **The staff-assisted recovery.** Starting it ends every session at once. Nothing else changes until the customer signs in with a code sent to the new email, within 24 hours; then the account takes that email (recorded as a staff-assisted change) and the old and the new email get the account-email-changed notice (MESSAGE 21). One pending recovery per account and per email; the Owner can cancel it; it cannot start while that notice cannot be sent, nor with an email another account has. A closed account's pending recovery can never complete; its record stays for the Owner's deletion review.
+  - **Who.** The Owner only, mapped to the ROLE-MATRIX row "Decide privacy requests; Delete action; delete a login account" (the Owner's customer-account work); Office may not. The screen sits below the privacy requests ("Help with customer access").
+  - **Wording.** Customer catalog `access.help.*`, `account.everywhere.*`, `account.textsUnavailable`, `account.home.textsUnavailable`; staff catalogs `accessHelp.*` (English and Spanish).
+- **Until answered:** the PROPOSED details above are used; each is a small change to the nodes or the code.

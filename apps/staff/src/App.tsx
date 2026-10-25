@@ -30,6 +30,7 @@ import { SignOutWarning, SyncStatus, UpdateBanner, draftCounts } from './offline
 import { isUnsynced, setSignedInStaff } from './offline/sync'
 import { ChecklistPage } from './Checklist'
 import { QueueHome } from './Queue'
+import { AccessHelpScreen } from './AccessHelp'
 import { ReconciliationScreen } from './Reconciliation'
 import { MergeReview, RelinkRequest } from './RecordLinks'
 import { RequestRecord } from './Record'
@@ -281,7 +282,10 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
     const nav = session.navigation
     const shown =
       route.page === 'screen'
-        ? route.id
+        ? // TSK-0149: help with customer access sits below the privacy requests (the Owner's customer-account work).
+          route.id === 'access-help'
+          ? 'privacy'
+          : route.id
         : route.page === 'record' || route.page === 'record-step'
           ? // A property record sits below the customer records (TSK-0045): the same menu entry and permission.
             route.screen === 'properties'
@@ -318,7 +322,10 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
                 : // TSK-0090: one reconciliation item, from the staff queue, sits below Payments.
                   route.screen === 'reconciliation'
                   ? 'payments'
-                  : route.screen
+                  : // TSK-0149: one access help request, from the staff queue, sits below the privacy requests.
+                    route.screen === 'access-help'
+                    ? 'privacy'
+                    : route.screen
           : route.page === 'home'
             ? (nav?.home ?? 'home')
             : route.page
@@ -429,11 +436,24 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
               fetchImpl={doFetch}
               onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
             />
+          ) : route.page === 'screen' && route.id === 'access-help' && allowed ? (
+            // TSK-0149: help with customer access (the requests, the lookup and the Owner's actions).
+            <AccessHelpScreen t={t} locale={locale} fetchImpl={doFetch} href={href} />
+          ) : route.page === 'record' && route.screen === 'access-help' && allowed ? (
+            <AccessHelpScreen
+              key={route.id}
+              t={t}
+              locale={locale}
+              fetchImpl={doFetch}
+              href={href}
+              requestId={route.id}
+            />
           ) : route.page === 'screen' && shown === 'privacy' && allowed ? (
             <PrivacyScreen
               t={t}
               locale={locale}
               fetchImpl={doFetch}
+              href={href}
               onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
             />
           ) : route.page === 'screen' && shown === 'cases' && allowed ? (

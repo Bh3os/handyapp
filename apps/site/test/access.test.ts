@@ -7,6 +7,7 @@ import { copyProblems } from '../src/site/claims.js'
 import {
   accessApi,
   forgetToken,
+  helpNotice,
   parseChannels,
   parseGlance,
   recoveryNotice,
@@ -175,6 +176,43 @@ describe('neutral recovery: ask for a new link (TSK-0035, HH-ID-09, HH-ID-06, HH
       )
     const r = await accessApi.exchange(f, TOKEN, 'email', '123456')
     expect(r.ok ? null : [r.status, r.field]).toEqual([400, 'code_ended'])
+  })
+
+  it('[HH-ID-09][HH-ID-03] asking HandyHub for help sends the typed values in the POST body only; one answer for all', async () => {
+    const { f, calls } = fakeFetch({ status: 202, body: { accepted: true } })
+    expect(await accessApi.help(f, 'project_link', { contact: ' c@x.test ', reference: ' HH-7K3QABCD ' })).toEqual({
+      ok: true,
+      data: { accepted: true },
+    })
+    expect(await accessApi.help(f, 'sign_in', { contact: '(502) 555-0100', reference: '  ' })).toEqual({
+      ok: true,
+      data: { accepted: true },
+    })
+    expect(calls.map((c) => [c.url, c.init.method])).toEqual([
+      ['/api/v1/public/access/help', 'POST'],
+      ['/api/v1/public/access/help', 'POST'],
+    ])
+    expect(calls.map((c) => JSON.parse(String(c.init.body)))).toEqual([
+      { kind: 'project_link', contact: 'c@x.test', reference: 'HH-7K3QABCD' },
+      { kind: 'sign_in', contact: '(502) 555-0100' },
+    ])
+    const refused: Fetch = async () =>
+      new Response(
+        JSON.stringify({
+          error: { code: 'VALIDATION_FAILED', fieldErrors: [{ field: 'body.contact', code: 'invalid_contact' }] },
+        }),
+        { status: 400, headers: { 'content-type': 'application/json' } },
+      )
+    const r = await accessApi.help(refused, 'sign_in', { contact: 'x', reference: '' })
+    expect(r.ok ? null : helpNotice(r)).toEqual({ key: 'access.recover.error.contact' })
+  })
+
+  it('[HH-ID-09][HH-ID-03][RULE-NO-INVENTED-FACTS] the help words are the same for everyone and promise nothing', () => {
+    expect(t('access.help.done')).toMatch(/^Thanks\. If these details match a HandyHub request or account/)
+    for (const key of ['access.help.text.signIn', 'access.help.text.projectLink', 'access.help.done'] as const) {
+      expect(copyProblems(t(key)), key).toEqual([])
+      expect(t(key), key).not.toMatch(/we sent|has been sent|your project is|we found|right away|within/i)
+    }
   })
 
   it('[HH-ID-09][RULE-NO-INVENTED-FACTS] the recovery words promise no delivery and name no record', () => {

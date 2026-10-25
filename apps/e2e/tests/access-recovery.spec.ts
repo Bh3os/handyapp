@@ -226,3 +226,70 @@ test.describe('neutral recovery for expired or revoked access (TSK-0035)', () =>
     }
   })
 })
+
+test.describe('the secure alternative at the reissue limit (TSK-0149, OWN-DEC-198 F5, F6)', () => {
+  test.skip(!databaseUrl, 'needs E2E_DATABASE_URL (a fresh PostgreSQL 16 database)')
+
+  test('[HH-ID-09][HH-ID-03][T18] at the limit every visitor sees the same answer and the same offer to ask HandyHub for help', async ({
+    browser,
+    request,
+  }) => {
+    const email = 'recover-limit-e2e@example.test'
+    const link = await sendRequest(request, email)
+    // The per-project limit (3 new links a day) is used up through the API.
+    for (let i = 0; i < 3; i++)
+      expect(
+        (await request.post('/api/v1/public/access/reissue', { data: { token: link.token, contact: email } })).status(),
+      ).toBe(202)
+    const HELP_DONE =
+      "Thanks. If these details match a HandyHub request or account, we'll contact you using the details we have on file."
+    // One visitor with the reference and the right email, one with details that match nothing: the same words.
+    const seen: string[] = []
+    for (const contact of [email, 'nobody-limit-e2e@example.test']) {
+      const context = await browser.newContext({ extraHTTPHeaders: { 'x-forwarded-for': '198.51.100.37' } })
+      const page = await context.newPage()
+      try {
+        await page.goto('/access')
+        const recovery = page.getByRole('region', { name: 'Ask for a new secure link' })
+        await recovery.getByLabel('Request reference').fill(link.reference)
+        await recovery.getByLabel('Email or mobile phone').fill(contact)
+        await recovery.getByRole('button', { name: 'Send a new link' }).click()
+        await expect(recovery.getByText(DONE)).toBeVisible()
+        const help = page.getByRole('region', { name: "Still can't get in? Ask HandyHub for help" })
+        await expect(help).toBeVisible()
+        await help.getByRole('button', { name: 'Ask for help' }).click()
+        await expect(help.getByLabel('Email or mobile phone you used')).toBeFocused()
+        await help.getByLabel('Email or mobile phone you used').fill(contact)
+        await help.getByLabel('Request reference (if you have it)').fill(link.reference)
+        await help.getByRole('button', { name: 'Send my request for help' }).click()
+        await expect(help.getByText(HELP_DONE)).toBeFocused()
+        await axe(page)
+        seen.push(((await page.locator('main').textContent()) ?? '').replace(/\s+/g, ' '))
+      } finally {
+        await context.close()
+      }
+    }
+    expect(seen[0]).toBe(seen[1])
+    // Both wait for the Owner; no new link went out beyond the limit, and nothing went to the unknown address.
+    const asked = await withDb((db) =>
+      db
+        .selectFrom('identity.access_help_requests')
+        .select(['contact_value', 'kind', 'reference'])
+        .where('contact_value', 'in', [email, 'nobody-limit-e2e@example.test'])
+        .orderBy('created_at')
+        .execute(),
+    )
+    expect(asked).toEqual([
+      { contact_value: email, kind: 'project_link', reference: link.reference },
+      { contact_value: 'nobody-limit-e2e@example.test', kind: 'project_link', reference: link.reference },
+    ])
+    const grants = await withDb((db) =>
+      db
+        .selectFrom('identity.project_access_grants')
+        .select('issued_reason')
+        .where('project_id', '=', link.projectId)
+        .execute(),
+    )
+    expect(grants.filter((g) => g.issued_reason === 'reissue')).toHaveLength(3)
+  })
+})

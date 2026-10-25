@@ -897,7 +897,8 @@ export const PHOTO_LINK = customerView(
 
 // Optional customer accounts (TSK-0036; HH-ID-10, HH-ID-11, HH-ID-03, ENT-CustomerAccount). The account a session
 // signed in to, as its owner sees it: the sign-in values masked, the references of its linked projects (read from the
-// active links on every request) and two flags. No account ID, contact ID, link, code or unmasked value.
+// active links on every request) and three flags (TSK-0149: whether codes can go by text now, for everyone). No
+// account ID, contact ID, link, code or unmasked value.
 const CHANNEL = enumOf(['email', 'phone'])
 type AccountRecord = {
   email: string | null
@@ -905,6 +906,7 @@ type AccountRecord = {
   projects: readonly { reference: string }[]
   freshVerification: boolean
   emailChange: 'available' | 'not_configured'
+  texts: 'available' | 'unavailable'
 }
 
 /** The signed-in account (GET /customer/account). */
@@ -917,6 +919,7 @@ export const CUSTOMER_ACCOUNT = customerView(
     projects: { type: 'array', items: PROJECT_REFERENCE.schema },
     freshVerification: { type: 'boolean' },
     emailChange: enumOf(['available', 'not_configured']),
+    texts: enumOf(['available', 'unavailable']),
   },
   (a: AccountRecord) => ({
     email: a.email,
@@ -924,6 +927,7 @@ export const CUSTOMER_ACCOUNT = customerView(
     projects: a.projects.map((p) => PROJECT_REFERENCE.project(p)),
     freshVerification: a.freshVerification,
     emailChange: a.emailChange,
+    texts: a.texts,
   }),
 )
 

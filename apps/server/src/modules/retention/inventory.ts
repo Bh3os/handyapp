@@ -462,6 +462,20 @@ export const TABLES = {
     classes: ['staff_account'],
     categories: [NS],
   },
+  // TSK-0149 (0100): requests for help signing in or getting a new link, and the Owner's outcome.
+  'identity.access_help_requests': {
+    holds:
+      "Requests for help signing in or getting a project link: the email or phone typed, the reference, the Owner's outcome and note",
+    classes: ['contact'],
+    categories: [NS],
+  },
+  // TSK-0149 (0100): the Owner's staff-assisted recoveries of customer accounts.
+  'identity.customer_account_recoveries': {
+    holds:
+      'Staff-assisted account recoveries: the new sign-in email, how the Owner verified identity, who started, completed or cancelled it',
+    classes: ['contact'],
+    categories: [NS],
+  },
   'identity.customer_account_changes': {
     holds: "Changes to a customer account's sign-in contact",
     classes: ['contact'],

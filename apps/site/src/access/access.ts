@@ -186,6 +186,17 @@ export function recoveryProblems(form: RecoveryForm, withReference: boolean): ('
   ]
 }
 
+/** TSK-0149 (OWN-DEC-198 F4, F5): what a visitor asks HandyHub's help for. */
+export type HelpKind = 'sign_in' | 'project_link'
+/** The help form's fields; the reference is optional. */
+export type HelpForm = { contact: string; reference: string }
+
+/** The help form's refusals in the customer's words: only the form itself or the network's limit, never a record. */
+export function helpNotice(r: { status: number; notice: Notice; field?: string }): Notice {
+  if (r.field === 'invalid_contact') return { key: 'access.recover.error.contact' }
+  return r.notice
+}
+
 const BASE = '/api/v1/public/access'
 
 export const accessApi = {
@@ -215,6 +226,24 @@ export const accessApi = {
         body: {
           ...(input.token ? { token: input.token } : { reference: input.reference.trim() }),
           contact: input.contact.trim(),
+        },
+      },
+      (data) => ((data as { accepted?: unknown } | null)?.accepted === true ? { accepted: true as const } : null),
+    ),
+  /**
+   * TSK-0149: asks HandyHub for help (the secure alternative at the limits, or when texts cannot be used). The typed
+   * values travel only in the POST body. Every accepted request has the same answer.
+   */
+  help: (f: Fetch, kind: HelpKind, form: HelpForm) =>
+    call(
+      f,
+      `${BASE}/help`,
+      {
+        method: 'POST',
+        body: {
+          kind,
+          contact: form.contact.trim(),
+          ...(form.reference.trim() ? { reference: form.reference.trim() } : {}),
         },
       },
       (data) => ((data as { accepted?: unknown } | null)?.accepted === true ? { accepted: true as const } : null),

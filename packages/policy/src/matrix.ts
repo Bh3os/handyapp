@@ -186,6 +186,13 @@ export const ACTIONS = [
   'retention.view',
   'records.delete',
   'account.delete',
+  // PROPOSED (TSK-0149, OWN-DEC-198 F2, F4, F5): the Owner's customer-account security work sits in the row where the
+  // Owner deletes a login account: ending every session of an account after a suspected compromise, reading and
+  // closing the requests for help signing in or getting a link, the staff-assisted recovery of an account after
+  // verifying identity, and sending a new link to a project's contact on file (staff restore access).
+  'customer_account.revoke_sessions',
+  'customer_account.assist_recovery',
+  'project_access.send_link',
   'export.bulk',
   'audit.edit',
   'audit.delete',
@@ -686,7 +693,15 @@ export const MATRIX: readonly MatrixRow[] = [
   row(
     STAFF,
     'Decide privacy requests; Delete action; delete a login account',
-    ['privacy.decide', 'retention.view', 'records.delete', 'account.delete'],
+    [
+      'privacy.decide',
+      'retention.view',
+      'records.delete',
+      'account.delete',
+      'customer_account.revoke_sessions',
+      'customer_account.assist_recovery',
+      'project_access.send_link',
+    ],
     { owner: Y('Y', { audit: true }) },
   ),
   row(STAFF, 'Bulk export', ['export.bulk'], { owner: Y('F', F) }),

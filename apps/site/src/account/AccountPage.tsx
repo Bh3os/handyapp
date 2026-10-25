@@ -6,9 +6,13 @@
 //   them), Sign Out, and Change your sign-in email. A contact change needs a fresh sign-in (the customer confirms it's
 //   them with a new code first), sends a notice to the old email and signs the account out everywhere else. While
 //   that notice cannot be sent the page says the change isn't available (OQ-ACCOUNT-CONTACT-NOTICE).
+// - TSK-0149 (OWN-DEC-198 F2, F4): Sign out everywhere ends every session of the account at once. While texts cannot
+//   be used the sign-in says so for every phone and the account page says the phone cannot be used to get back in;
+//   the sign-in offers asking HandyHub for help (the secure alternative) to every visitor alike.
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { Button, Field, StateView } from '@handyhub/ui'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { AccessHelp } from '../access/AccessHelp.js'
 import { ProjectGlanceView } from '../access/AccessLanding.js'
 import { accessApi, type ProjectGlance } from '../access/access.js'
 import { minutesLeft, noticeText, type Fetch, type Notice } from '../request/verification.js'
@@ -299,7 +303,7 @@ function Account({
   account: AccountSummary
   fetchImpl: Fetch
   onAccount: (account: AccountSummary, changed?: boolean) => void
-  onSignedOut: () => void
+  onSignedOut: (everywhere?: boolean) => void
   changed: boolean
 }) {
   const [shown, setShown] = useState<ProjectGlance | null>(null)
@@ -324,6 +328,15 @@ function Account({
     onSignedOut()
   }
 
+  const signOutEverywhere = async () => {
+    setBusy('sign-out-everywhere')
+    setNotice(null)
+    const r = await accountApi.signOutEverywhere(fetchImpl)
+    setBusy(null)
+    if (!r.ok && r.status !== 401 && r.status !== 404) return setNotice(r.notice)
+    onSignedOut(true)
+  }
+
   return (
     <section className="hh-receipt" aria-labelledby="hh-account-home">
       <h2 id="hh-account-home" className="hh-h2" tabIndex={-1}>
@@ -344,6 +357,7 @@ function Account({
           </div>
         ) : null}
       </dl>
+      {account.phone && account.texts === 'unavailable' ? <p>{t('account.home.textsUnavailable')}</p> : null}
       <section className="hh-receipt__section" aria-labelledby="hh-account-projects">
         <h3 id="hh-account-projects" className="hh-h3">
           {t('account.projects.title')}
@@ -374,6 +388,17 @@ function Account({
         onChanged={(a) => onAccount(a, true)}
         onConfirmed={(a) => onAccount(a)}
       />
+      <section className="hh-receipt__section" aria-labelledby="hh-account-everywhere">
+        <h3 id="hh-account-everywhere" className="hh-h3">
+          {t('account.everywhere.title')}
+        </h3>
+        <p>{t('account.everywhere.text')}</p>
+        <div className="hh-request__actions">
+          <Button variant="secondary" pending={busy === 'sign-out-everywhere'} onClick={() => void signOutEverywhere()}>
+            {t('account.everywhere.submit')}
+          </Button>
+        </div>
+      </section>
       <div className="hh-request__actions">
         <a className="hh-button hh-button--secondary" href="/request">
           {t('site.cta.request')}
@@ -391,7 +416,7 @@ function Account({
 
 export default function AccountPage({ fetchImpl = browserFetch }: { fetchImpl?: Fetch }) {
   const [account, setAccount] = useState<AccountSummary | null | 'loading'>('loading')
-  const [signedOut, setSignedOut] = useState(false)
+  const [signedOut, setSignedOut] = useState<'here' | 'everywhere' | null>(null)
   const [changed, setChanged] = useState(false)
   const area = useRef<HTMLDivElement>(null)
 
@@ -420,25 +445,29 @@ export default function AccountPage({ fetchImpl = browserFetch }: { fetchImpl?: 
             setChanged(didChange)
             setAccount(a)
           }}
-          onSignedOut={() => {
+          onSignedOut={(everywhere = false) => {
             setChanged(false)
-            setSignedOut(true)
+            setSignedOut(everywhere ? 'everywhere' : 'here')
             setAccount(null)
           }}
         />
       ) : (
         <>
-          {signedOut ? <p role="status">{t('account.signedOut')}</p> : null}
+          {signedOut ? (
+            <p role="status">{t(signedOut === 'everywhere' ? 'account.everywhere.done' : 'account.signedOut')}</p>
+          ) : null}
           <SignIn
             fetchImpl={fetchImpl}
             title="account.signIn.title"
             text="account.signIn.text"
             onSignedIn={(a) => {
-              setSignedOut(false)
+              setSignedOut(null)
               setAccount(a)
             }}
           />
           <p>{t('account.signIn.noAccount')}</p>
+          {/* TSK-0149 (OWN-DEC-198 F4): the secure alternative, offered to every visitor alike. */}
+          <AccessHelp kind="sign_in" fetchImpl={fetchImpl} level={3} />
         </>
       )}
       <a className="hh-button hh-button--secondary" href="/">
