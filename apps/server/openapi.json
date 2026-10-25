@@ -88576,6 +88576,415 @@
         }
       }
     },
+    "/api/v1/staff/jobs/{jobId}/escalation-calls": {
+      "post": {
+        "operationId": "recordEscalationCall",
+        "summary": "Record a Call Owner, Call 911 or Owner-unreachable tap",
+        "description": "Staff with hazard.report: every worker assigned to the job (\"A, always, no permission needed\"), Office, the Estimator and the Owner. The phone sends it after the call started (a phone link that never waits for this record), offline too: the UUID the phone generated records it once however often it is resent; the same UUID from another account, job or action is refused (CONFLICT, ESCALATION_CALL_EXISTS). A visit or report the server cannot place on the job is left out, never refused. The phone's time is kept beside the server's. owner_unreachable records that the affected work stays paused: nothing here resumes, releases or changes a hold, and Call 911 never depends on the Owner. The answer carries the Owner contact in force and Call 911. Audited. Owner first for every problem that is not life-threatening; call 911 at once, without waiting for anyone, for an actual or reasonably suspected immediate threat to life or serious injury (OWN-DEC-172).",
+        "tags": [
+          "escalation"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "clientId",
+                  "action",
+                  "deviceRecordedAt"
+                ],
+                "properties": {
+                  "clientId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "call_owner",
+                      "call_911",
+                      "owner_unreachable"
+                    ]
+                  },
+                  "visitId": {
+                    "type": "string"
+                  },
+                  "reportId": {
+                    "type": "string"
+                  },
+                  "deviceRecordedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "clientId",
+                    "jobId",
+                    "action",
+                    "alreadyRecorded",
+                    "deviceRecordedAt",
+                    "receivedAt",
+                    "workStaysPaused",
+                    "owner",
+                    "emergency"
+                  ],
+                  "properties": {
+                    "clientId": {
+                      "type": "string"
+                    },
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "action": {
+                      "type": "string",
+                      "enum": [
+                        "call_owner",
+                        "call_911",
+                        "owner_unreachable"
+                      ]
+                    },
+                    "alreadyRecorded": {
+                      "type": "boolean"
+                    },
+                    "deviceRecordedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "receivedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "workStaysPaused": {
+                      "type": "boolean"
+                    },
+                    "owner": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state",
+                            "phone",
+                            "display",
+                            "tel"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "configured"
+                              ]
+                            },
+                            "phone": {
+                              "type": "string"
+                            },
+                            "display": {
+                              "type": "string"
+                            },
+                            "tel": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "not_configured"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "emergency": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "call911"
+                      ],
+                      "properties": {
+                        "call911": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "clientId",
+                    "jobId",
+                    "action",
+                    "alreadyRecorded",
+                    "deviceRecordedAt",
+                    "receivedAt",
+                    "workStaysPaused",
+                    "owner",
+                    "emergency"
+                  ],
+                  "properties": {
+                    "clientId": {
+                      "type": "string"
+                    },
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "action": {
+                      "type": "string",
+                      "enum": [
+                        "call_owner",
+                        "call_911",
+                        "owner_unreachable"
+                      ]
+                    },
+                    "alreadyRecorded": {
+                      "type": "boolean"
+                    },
+                    "deviceRecordedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "receivedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "workStaysPaused": {
+                      "type": "boolean"
+                    },
+                    "owner": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state",
+                            "phone",
+                            "display",
+                            "tel"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "configured"
+                              ]
+                            },
+                            "phone": {
+                              "type": "string"
+                            },
+                            "display": {
+                              "type": "string"
+                            },
+                            "tel": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "not_configured"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "emergency": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "call911"
+                      ],
+                      "properties": {
+                        "call911": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "hazard.report",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "hazard.record_escalation_call",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/escalation.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/jobs/{jobId}/finance-adjustment-requests": {
       "post": {
         "operationId": "requestFinanceAdjustment",
@@ -94979,7 +95388,7 @@
       "get": {
         "operationId": "listIssueReports",
         "summary": "A job's Stop Work, hazard and issue reports",
-        "description": "Staff with work.stop (the assigned workers of the job, Office, the Estimator, the Owner). Every report of the job, newest first, with its severity, whether it paused the job and where its hold stands. A restricted report's details (an injury or an incident: what was reported, the text, the resolution, photos, stabilization, the reporter) are shown only to the Owner (audited) and the worker who reported it; everyone else sees that it exists and its status (OWN-DEC-143). The Owner also sees the work-paused customer notice drafts and may release or dismiss them. Lists the job's work packages for the forms and always carries Call 911. What the caller may do next: report a hazard, report an issue, add a photo, record stabilization, review.",
+        "description": "Staff with work.stop (the assigned workers of the job, Office, the Estimator, the Owner). Every report of the job, newest first, with its severity, whether it paused the job and where its hold stands. A restricted report's details (an injury or an incident: what was reported, the text, the resolution, photos, stabilization, the reporter) are shown only to the Owner (audited) and the worker who reported it; everyone else sees that it exists and its status (OWN-DEC-143). The Owner also sees the work-paused customer notice drafts and may release or dismiss them. Lists the job's work packages for the forms and always carries Call 911, with the Owner's escalation contact (the number the Owner entered, or NOT CONFIGURED) and the recorded Call Owner / Call 911 taps (every one for the Owner, the caller's own for everyone else). What the caller may do next: report a hazard, report an issue, add a photo, record stabilization, review.",
         "tags": [
           "hazards"
         ],
@@ -95009,6 +95418,7 @@
                     "reports",
                     "workPackages",
                     "emergency",
+                    "escalation",
                     "actions"
                   ],
                   "properties": {
@@ -95480,6 +95890,130 @@
                       "properties": {
                         "call911": {
                           "type": "string"
+                        }
+                      }
+                    },
+                    "escalation": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "owner",
+                        "calls"
+                      ],
+                      "properties": {
+                        "owner": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "state",
+                                "phone",
+                                "display",
+                                "tel"
+                              ],
+                              "properties": {
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "configured"
+                                  ]
+                                },
+                                "phone": {
+                                  "type": "string"
+                                },
+                                "display": {
+                                  "type": "string"
+                                },
+                                "tel": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "state"
+                              ],
+                              "properties": {
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "not_configured"
+                                  ]
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "calls": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "clientId",
+                              "action",
+                              "visitId",
+                              "reportId",
+                              "recordedBy",
+                              "deviceRecordedAt",
+                              "receivedAt"
+                            ],
+                            "properties": {
+                              "clientId": {
+                                "type": "string"
+                              },
+                              "action": {
+                                "type": "string",
+                                "enum": [
+                                  "call_owner",
+                                  "call_911",
+                                  "owner_unreachable"
+                                ]
+                              },
+                              "visitId": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "reportId": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "recordedBy": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              },
+                              "deviceRecordedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "receivedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
                         }
                       }
                     },
@@ -98166,6 +98700,7 @@
                       "required": [
                         "siteContact",
                         "escalationContact",
+                        "emergency",
                         "stopWork"
                       ],
                       "properties": {
@@ -98200,17 +98735,60 @@
                           }
                         },
                         "escalationContact": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "state",
+                                "phone",
+                                "display",
+                                "tel"
+                              ],
+                              "properties": {
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "configured"
+                                  ]
+                                },
+                                "phone": {
+                                  "type": "string"
+                                },
+                                "display": {
+                                  "type": "string"
+                                },
+                                "tel": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "state"
+                              ],
+                              "properties": {
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "not_configured"
+                                  ]
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "emergency": {
                           "type": "object",
                           "additionalProperties": false,
                           "required": [
-                            "state"
+                            "call911"
                           ],
                           "properties": {
-                            "state": {
-                              "type": "string",
-                              "enum": [
-                                "not_configured"
-                              ]
+                            "call911": {
+                              "type": "string"
                             }
                           }
                         },
@@ -119293,6 +119871,384 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/privacy.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/profile/escalation-phone": {
+      "get": {
+        "operationId": "getOwnEscalationPhone",
+        "summary": "The escalation number on the Owner's own staff profile",
+        "description": "The Owner (business_details.edit). The phone number every job packet's Call Owner — Report a Problem dials, as entered on the caller's own staff profile: +1 and ten digits, how it is shown and the version, or NOT CONFIGURED (Call Owner then says to call 911 in an emergency). ETag: the version. Owner first for every problem that is not life-threatening; call 911 at once, without waiting for anyone, for an actual or reasonably suspected immediate threat to life or serious injury (OWN-DEC-172).",
+        "tags": [
+          "escalation"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "state",
+                    "phone",
+                    "display",
+                    "version",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "CONFIGURED",
+                        "NOT_CONFIGURED"
+                      ]
+                    },
+                    "phone": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "display": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "updatedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "business_details.edit",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/escalation.test.ts"
+        }
+      },
+      "put": {
+        "operationId": "setOwnEscalationPhone",
+        "summary": "Enter or clear the escalation number on the Owner's own profile",
+        "description": "The Owner only (business_details.edit, with a fresh sign-in within 5 minutes), with If-Match: the version shown. Always the caller's own profile. A North American number as typed ((502) 555-0142, 502-555-0142, +1 502 555 0142) is stored as +1 and ten digits; anything else is refused (VALIDATION_FAILED, invalidPhone), never guessed. null clears it: Call Owner is NOT CONFIGURED again. Every job packet and Stop Work reads it at once (no new packet version). Audited with the state and the versions, never the number.",
+        "tags": [
+          "escalation"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "phone"
+                ],
+                "properties": {
+                  "phone": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 40
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "state",
+                    "phone",
+                    "display",
+                    "version",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "CONFIGURED",
+                        "NOT_CONFIGURED"
+                      ]
+                    },
+                    "phone": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "display": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "updatedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "business_details.edit",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": 5,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "staff.set_escalation_phone",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/escalation.test.ts"
         }
       }
     },

@@ -26,3 +26,5 @@ A named staff member's account and field profile. One person may hold several ro
 **Who may change:** the Owner invites, assigns roles, sets hours, disables, revokes sessions and starts recovery; each user edits only their own name, locale, password and MFA factor.
 
 **Changed by [[OWN-DEC-202]] (2026-10-22):** the MFA factor (TOTP) is required for every active account, no longer optional; `active` means enrolled, an account without a factor enrols at its next sign-in; disabling removes the factor and recovery codes.
+
+**Built by [[TSK-0129]] (2026-10-24):** an Owner account also holds the escalation phone number of every job packet, entered by the Owner on their own account with a fresh sign-in, in its own table (`identity.staff_escalation_phones`, migration 0099); only an account with a live Owner grant holds one, and it is cleared, never deleted ([[OQ-ESCALATION-DETAILS]]).

@@ -229,10 +229,20 @@ export function packetPdfModel(input: PacketPdfInput): CustomerPdfModel {
         label: t('packet.field.siteContact'),
         value: view.communication.siteContact?.value ?? t('packet.nothingRecorded'),
       },
-      { label: t('packet.field.escalation'), value: t('packet.escalationNotConfigured') },
+      // TSK-0129: the number the Owner entered, so the paper copy works without the app (PROPOSED), or NOT CONFIGURED.
+      {
+        label: t('packet.field.escalation'),
+        value:
+          view.communication.escalationContact.state === 'configured'
+            ? view.communication.escalationContact.display
+            : t('packet.escalationNotConfigured'),
+      },
+      { label: t('start.emergency.call911'), value: '911' },
     ],
   })
   blocks.push({ kind: 'text', text: t('packet.emergencyNeverWait') })
+  // The procedure of OWN-DEC-172: in Spanish the owner's instruction exactly as given.
+  blocks.push({ kind: 'text', text: t('escalation.procedure') })
   for (const g of view.communication.stopWork) {
     blocks.push({ kind: 'text', text: t('packet.print.stopWork', { service: g.serviceCode }) })
     blocks.push({ kind: 'list', items: g.items.map((i) => i.text) })

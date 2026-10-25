@@ -36,6 +36,7 @@ import { SITE_MODULE } from './site/index.js'
 import { sopsModule } from './sops/index.js'
 import { startModule } from './start/index.js'
 import { hazardsModule } from './hazards/index.js'
+import { ESCALATION_MODULE } from './escalation/index.js'
 import { staffModule } from './staff/index.js'
 import { systemModule, type SystemDeps } from './system/index.js'
 import { verificationModule } from './verification/index.js'
@@ -154,6 +155,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     // TSK-0077: Stop Work / Report Hazard with its critical hold in the same transaction, issue reports, photos,
     // stabilization records and the Owner-released work-paused notice.
     hazardsModule({ storage: deps.storage ?? null }),
+    // TSK-0129: the Owner's escalation number on their own profile and the recorded Call Owner / Call 911 taps.
+    ESCALATION_MODULE,
     // TSK-0097: staff management (the staff list, role and capability grants, offboarding and re-enabling).
     staffModule(),
     // TSK-0098: the audit-log screen (Owner every entry, Office their own actions; retention shown, never deleted).

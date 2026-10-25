@@ -414,7 +414,8 @@ export function StartWorkPage({
 
   return (
     <main className="staff-start" aria-labelledby="start-title">
-      <EmergencyCall t={t} />
+      {/* TSK-0129: Call 911 first, then Call Owner; the taps are recorded on the job once the gate names it. */}
+      <EmergencyCall t={t} fetchImpl={fetchImpl} jobId={gate?.jobId ?? null} visitId={visitId} />
       {gate?.jobId ? (
         // TSK-0077: Stop Work / Report Hazard, right after Call 911 and before the gate (never behind it).
         <JobSafety

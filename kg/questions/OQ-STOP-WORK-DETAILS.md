@@ -32,3 +32,5 @@ source: "TSK-0077 (2026-10-22): HH-WORK-08, HH-WORK-09, HH-WORK-13 and HH-CHG-04
 - **Human review:** the guidance texts, the hazard kinds, the whole-job list, the reviewer roles and the stabilization record go to the qualified safety reviewer ([[OQ-SAFETY-REVIEW]]); the Spanish Stop Work and guidance texts are AI translations pending the separate comparison of [[TSK-0103]] ([[OWN-DEC-79]]); an injury's insurer or attorney referral is the Owner's ([[HH-INC-04]]); no text decides fault, admits liability or promises compensation.
 - **RISK:** a Stop Work the Owner reports is a hold the Owner raised: it stays open until a second administrator exists ([[OWN-DEC-38]]); the remedy is an owner decision, never a weaker rule.
 - **Until answered:** the PROPOSED details above are used; each is a small change to the nodes or the code.
+
+**Updated by [[TSK-0129]] (2026-10-24):** Call Owner is built: the Stop Work panel and its guidance dial the number the Owner entered on their own account, NOT CONFIGURED (call 911 in an emergency) only while there is none; Call 911 stays first. Its PROPOSED details are in [[OQ-ESCALATION-DETAILS]].

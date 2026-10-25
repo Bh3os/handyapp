@@ -21,3 +21,5 @@ source: "OWN-DEC-80 (new behaviour; no guide id)"
 - The software gives no technical repair procedure for these conditions (human-review boundary: licensed gas and electrical work).
 
 **Changed by [[OWN-DEC-172]] (2026-10-21):** the packet's Call 911 and Call Owner actions implement this ([[HH-PKT-09]]).
+
+**Built by [[TSK-0129]] (2026-10-24):** Call 911 is the first control of every job screen and of Stop Work, a phone link that works without a network and is never behind the Owner, the server or a confirmation; the call is never held back to record the tap. "I could not reach the Owner" shows that the affected work stays paused and to call 911 if it becomes dangerous, and resumes nothing ([[OQ-ESCALATION-DETAILS]]).

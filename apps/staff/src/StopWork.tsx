@@ -1,7 +1,9 @@
 // Stop Work / Report Hazard, issue reports and the job's reports (TSK-0077; HH-WORK-08, HH-WORK-09, HH-WORK-13,
 // HH-CHG-04, HH-INC-02, HH-OFF-03, HH-PKT-09, T48, T54, OWN-DEC-80, OWN-DEC-143, OWN-DEC-152, OWN-DEC-172,
 // RULE-SAFETY-GATES).
-// - Call 911 comes first, a plain phone link that needs nothing else; nothing is ever put in front of it.
+// - Call 911 comes first, a plain phone link that needs nothing else; nothing is ever put in front of it. TSK-0129: then
+//   Call Owner — Report a Problem with the number the Owner entered (or NOT CONFIGURED: call 911 in an emergency) and
+//   "I could not reach the Owner"; each tap is recorded after the call started (Escalation.tsx).
 // - Stop Work / Report Hazard is on every screen of an active job, inline (no page to load), never disabled: not
 //   offline, not while anything else is open, missing or failing. Choosing what was found shows its guidance at once
 //   (a gas leak: evacuate and call from a safe place; live wiring: never touched). No on-site fix is ever offered.
@@ -12,6 +14,7 @@
 //   worker's statement that it is within their training, qualifications, the approved scope and the approved SOP.
 // - The job's reports: restricted details (an injury, an incident) only for the Owner and the reporter, as the server
 //   decides; photos only when safe; stabilization records; the Owner's review and the work-paused customer notice.
+import type { OwnerContact } from '@handyhub/domain/escalation'
 import {
   HAZARD_GUIDANCE,
   HAZARD_KINDS,
@@ -24,6 +27,15 @@ import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { call, idempotencyKey, setCsrfToken, upload, type Fetch } from './api'
+import {
+  EscalationActions,
+  EscalationCalls,
+  OwnerCallLine,
+  recordEscalation,
+  rememberOwnerContact,
+  useOwnerContact,
+  type EscalationCall,
+} from './Escalation'
 import { useOwnerWrite, ReauthForm } from './OwnerWrite'
 import { codeLabel } from './Requests'
 
@@ -34,16 +46,12 @@ const bcp47 = (locale: StaffLocale) => (locale === 'es' ? 'es-US' : 'en-US')
 const when = (iso: string, locale: StaffLocale) =>
   new Intl.DateTimeFormat(bcp47(locale), { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso))
 
-/** Call 911: first, a phone link that needs nothing else (OWN-DEC-172, OWN-DEC-208). */
-export function EmergencyCall({ t }: { t: T }) {
-  return (
-    <section className="staff-start__emergency" aria-label={t('start.emergency.title')} data-testid="start-call-911">
-      <a className="staff-start__call911" href="tel:911">
-        {t('start.emergency.call911')}
-      </a>
-      <p>{t('start.emergency.note')}</p>
-    </section>
-  )
+/**
+ * Call 911 first, a phone link that needs nothing else (OWN-DEC-172, OWN-DEC-208); then Call Owner (TSK-0129). The
+ * taps are recorded on the job when one is known.
+ */
+export function EmergencyCall(props: Parameters<typeof EscalationActions>[0]) {
+  return <EscalationActions {...props} />
 }
 
 // --- Stops saved on this phone -----------------------------------------------------------------------------------
@@ -115,6 +123,7 @@ export function StopWorkPanel({
   visitId,
   workPackages = [],
   call911 = true,
+  owner,
   onStopped,
 }: {
   t: T
@@ -123,6 +132,8 @@ export function StopWorkPanel({
   visitId?: string
   workPackages?: Pkg[]
   call911?: boolean
+  /** TSK-0129: the Owner's contact the server last answered for this job (else the one this phone kept). */
+  owner?: OwnerContact | null
   onStopped?: () => void
 }) {
   const ids = useId()
@@ -183,9 +194,24 @@ export function StopWorkPanel({
   }
 
   const shown: HazardKind | null = result ? (result.kind === 'sent' ? result.answer.hazard : result.hazard) : hazard
+  // TSK-0129: a Call Owner tap from the guidance is recorded like one from the actions above (never in front of it).
+  const callOwner = () =>
+    void recordEscalation(fetchImpl, jobId, 'call_owner', {
+      visitId,
+      reportId: result?.kind === 'sent' ? result.answer.reportId : undefined,
+    })
   return (
     <section className="staff-stop" aria-labelledby={`${ids}-title`} data-testid="stop-work">
-      {call911 ? <EmergencyCall t={t} /> : null}
+      {call911 ? (
+        <EscalationActions
+          t={t}
+          fetchImpl={fetchImpl}
+          jobId={jobId}
+          visitId={visitId ?? null}
+          reportId={result?.kind === 'sent' ? result.answer.reportId : null}
+          owner={owner ?? null}
+        />
+      ) : null}
       <h2 id={`${ids}-title`} className="staff-myday__sub">
         {t('stop.title')}
       </h2>
@@ -206,7 +232,7 @@ export function StopWorkPanel({
               </label>
             ))}
           </fieldset>
-          {shown ? <Guidance t={t} hazard={shown} /> : null}
+          {shown ? <Guidance t={t} hazard={shown} onCallOwner={callOwner} /> : null}
           <Field
             label={t('stop.description')}
             hint={t('stop.descriptionHint')}
@@ -273,7 +299,7 @@ export function StopWorkPanel({
               </Button>
             </>
           )}
-          <Guidance t={t} hazard={shown ?? 'other_unsafe'} />
+          <Guidance t={t} hazard={shown ?? 'other_unsafe'} onCallOwner={callOwner} />
           <p>{t('stop.noResolveOnSite')}</p>
         </div>
       ) : null}
@@ -282,7 +308,8 @@ export function StopWorkPanel({
 }
 
 /** What to do now, for what was found; never a repair procedure. */
-function Guidance({ t, hazard }: { t: T; hazard: HazardKind }) {
+function Guidance({ t, hazard, onCallOwner }: { t: T; hazard: HazardKind; onCallOwner?: () => void }) {
+  const contact = useOwnerContact()
   return (
     <div className="staff-stop__guidance" data-testid="stop-guidance">
       <ul>
@@ -290,7 +317,7 @@ function Guidance({ t, hazard }: { t: T; hazard: HazardKind }) {
           <li key={g}>{codeLabel(t, 'hazardGuidance', g)}</li>
         ))}
       </ul>
-      <p className="staff-request__hint">{t('stop.callOwnerNotConfigured')}</p>
+      <OwnerCallLine t={t} contact={contact} {...(onCallOwner ? { onCall: onCallOwner } : {})} />
     </div>
   )
 }
@@ -506,6 +533,8 @@ export type ReportsView = {
   jobState: string
   reports: ReportView[]
   workPackages: Pkg[]
+  /** TSK-0129: the Owner's contact in force and the recorded escalation taps the caller may see. */
+  escalation?: { owner: OwnerContact; calls: EscalationCall[] }
   actions: { reportHazard: boolean; reportIssue: boolean }
 }
 
@@ -516,6 +545,8 @@ export function useReports(fetchImpl: Fetch, jobId: string) {
     const r = await call<ReportsView>(fetchImpl, `/staff/jobs/${encodeURIComponent(jobId)}/issue-reports`)
     // Only a reports answer counts (a refused or unexpected answer shows no list; Stop Work stays regardless).
     setView(r.ok && Array.isArray(r.data?.reports) ? r.data : false)
+    // TSK-0129: the Owner's contact in force, kept on this phone for Call Owner offline (every screen's actions).
+    if (r.ok && r.data?.escalation) rememberOwnerContact(r.data.escalation.owner)
   }, [fetchImpl, jobId])
   useEffect(() => {
     void flushPendingStops(fetchImpl).then(() => load())
@@ -768,6 +799,7 @@ export function JobSafety({
         {...(visitId ? { visitId } : {})}
         workPackages={pkgs}
         call911={call911}
+        owner={view ? (view.escalation?.owner ?? null) : null}
         onStopped={() => void load()}
       />
       {view && issues && view.actions.reportIssue ? (
@@ -780,6 +812,7 @@ export function JobSafety({
           onDone={() => void load()}
         />
       ) : null}
+      {view && view.escalation ? <EscalationCalls t={t} locale={locale} calls={view.escalation.calls} /> : null}
       {view && view.reports.length ? (
         <section aria-labelledby={`reports-${jobId}`}>
           <h2 id={`reports-${jobId}`} className="staff-myday__sub">

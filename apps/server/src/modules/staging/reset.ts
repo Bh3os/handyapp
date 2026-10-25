@@ -125,6 +125,8 @@ export const CLEARED_CATEGORIES = {
     'work.issue_reports',
     'work.stabilization_records',
     'work.issue_report_reviews',
+    // TSK-0129 (0099): the recorded Call Owner, Call 911 and Owner-unreachable taps.
+    'work.escalation_calls',
   ],
   payments: [
     'finance.payments',
@@ -292,6 +294,8 @@ export const KEPT_TABLES = [
   'identity.staff_mfa',
   'identity.staff_recovery_codes',
   'identity.staff_status_changes',
+  // TSK-0129 (0099): the Owner's escalation number is staff profile data, kept like the staff accounts.
+  'identity.staff_escalation_phones',
   'identity.rate_limits',
   'platform.message_templates',
   'platform.rate_counters',
