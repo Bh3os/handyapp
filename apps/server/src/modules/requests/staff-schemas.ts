@@ -143,6 +143,7 @@ export const DETAIL = {
     'spam',
     'project',
     'customer',
+    'repeatOf',
     'original',
     'contactVerification',
     'preferredWindows',
@@ -190,6 +191,25 @@ export const DETAIL = {
       additionalProperties: false,
       required: ['id', 'displayName'],
       properties: { id: { type: 'string' }, displayName: { type: 'string' } },
+    },
+    // TSK-0113 (HH-ID-12, OWN-DEC-113): sent with Request This Service Again from the customer's account: the earlier
+    // project it repeats, when the customer confirmed the property details were still current, and whether the
+    // address is the earlier one. Null for any other request.
+    repeatOf: {
+      anyOf: [
+        { type: 'null' },
+        {
+          type: 'object',
+          additionalProperties: false,
+          required: ['projectId', 'reference', 'detailsConfirmedAt', 'sameAddress'],
+          properties: {
+            projectId: { type: 'string' },
+            reference: { type: 'string' },
+            detailsConfirmedAt: { type: 'string', format: 'date-time' },
+            sameAddress: { type: 'boolean' },
+          },
+        },
+      ],
     },
     original: {
       type: 'object',

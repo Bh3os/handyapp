@@ -78,6 +78,16 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
         // TSK-0124: claiming a guest project into the account with a code to its verified contact.
         'sendProjectClaimCode',
         'claimProject',
+        // TSK-0113: saved properties, preferences and Request This Service Again.
+        'getAccountProperties',
+        'saveAccountProperty',
+        'renameAccountProperty',
+        'removeAccountProperty',
+        'getSavedPropertyRequest',
+        'getRequestAgain',
+        'getAccountPreferences',
+        'setAccountPreferences',
+        'setAccountPermission',
         // TSK-0039: the workspace tabs beside the Overview.
         'getCustomerProjectMessages',
         'getCustomerProjectDocuments',

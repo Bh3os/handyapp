@@ -11,6 +11,15 @@
 //                                              TSK-0063)
 //   POST /staff/window-offers/:offerId/withdraw  withdraw an open offer, releasing its holds (visit.offer_windows,
 //                                              If-Match; TSK-0063)
+//   POST /staff/window-offers/:offerId/publish   publish a draft offer: its holds and its 24 hours start now; over an
+//                                              open offer, a replacement with a reason (visit.offer_windows, If-Match;
+//                                              TSK-0145)
+//   POST /staff/window-offers/:offerId/discard   discard a draft that was never published (visit.offer_windows,
+//                                              If-Match; TSK-0145)
+//   POST /staff/visits/:visitId/inspection-authorization  the Owner authorizes a hazard-evaluation inspection while an
+//                                              intake hold stays open (visit.authorize_inspection, If-Match; TSK-0145)
+//   POST /staff/visits/:visitId/follow-up-authorization   the recorded basis of a follow-up visit on a completed job
+//                                              (visit.authorize_follow_up, If-Match; TSK-0145)
 //   GET  /staff/schedule                       the scheduling board: a day or a week by worker, with every visit of
 //                                              the range (schedule.view_board; TSK-0065)
 //   POST /staff/visits/:visitId/reassign       reassign a confirmed visit to another team, same window (visit.reassign,
@@ -41,8 +50,17 @@ import {
   type ReassignInput,
   type RescheduleMeta,
 } from './changes.js'
+import { authorizeFollowUp, authorizeInspection, type FollowUpInput, type InspectionInput } from './authorizations.js'
 import { WORK_VISIT_GATES, type WorkVisitGate } from './gates.js'
-import { offerWindows, windowOfferExpiryAutomation, withdrawOffer, type OfferInput } from './offers.js'
+import {
+  discardOfferDraft,
+  offerWindows,
+  publishOffer,
+  windowOfferExpiryAutomation,
+  withdrawOffer,
+  type OfferInput,
+  type OfferResult,
+} from './offers.js'
 import { appointmentReminderRoutes } from './reminder-routes.js'
 import { siteCheckRoutes } from './site-check-routes.js'
 import { workerAccessRoutes } from './worker-access.js'
@@ -51,11 +69,15 @@ import {
   CANCEL_BODY,
   CONFIRM_BODY,
   DECLINE_BODY,
+  DISCARD_BODY,
+  FOLLOW_UP_BODY,
+  INSPECTION_BODY,
   NEW_VISIT_BODY,
   OFFER_BODY,
   OFFER_PARAMS,
   PROJECT_PARAMS,
   PROJECT_VISITS,
+  PUBLISH_BODY,
   REASSIGN_BODY,
   REQUEST_PARAMS,
   SCHEDULE_BOARD,
@@ -79,6 +101,7 @@ const CAPACITY_TEST = 'test/integration/capacity.test.ts'
 const OFFERS_TEST = 'test/integration/window-offers.test.ts'
 const BOARD_TEST = 'test/integration/schedule-board.test.ts'
 const CHANGES_TEST = 'test/integration/visit-changes.test.ts'
+const AMENDMENTS_TEST = 'test/integration/visit-amendments.test.ts'
 
 export type VisitsDeps = {
   /** The gates every work-visit window passes (WORK_VISIT_GATES); tests may add their own. */
@@ -116,6 +139,25 @@ const offerProjectOf: NonNullable<RouteDef['resource']> = async ({ req, db }) =>
   const { offerId } = req.params as { offerId: string }
   const o = await db.selectFrom('work.window_offers').select('project_id').where('id', '=', offerId).executeTakeFirst()
   return o ? { projectId: o.project_id } : null
+}
+
+/** The audit summary of a saved or published offer (local windows, team, the hold and its exact end). */
+function offerSummary(out: OfferResult) {
+  return {
+    projectId: out.projectId,
+    visitId: out.visitId,
+    purpose: out.purpose,
+    state: out.state,
+    number: out.number,
+    windows: out.windows.map(windowSummary),
+    workers: [...out.workerIds],
+    equipment: [...out.equipmentIds],
+    holdHours: out.holdHours,
+    policyVersion: out.policyVersion,
+    publishedAt: out.publishedAt ? out.publishedAt.toISOString() : null,
+    expiresAt: out.expiresAt ? out.expiresAt.toISOString() : null,
+    ...(out.replaced ? { replaced: { offerId: out.replaced.offerId, number: out.replaced.number } } : {}),
+  }
 }
 
 export function visitsModule(deps: VisitsDeps = {}): ApiModule {
@@ -336,20 +378,24 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
     summary: 'Offer windows of a tentative visit to the customer, held for its team',
     description:
       'Staff with visit.offer_windows (Owner, Office; an Estimator: estimate visits only, PROPOSED), with If-Match: the ' +
-      'visit version shown (HH-SCH-11, HH-LEAD-07, OWN-DEC-144). Names the windows (local date and arrival window in ' +
-      "the visit's zone, with the reading of a repeated hour when needed), the visit's whole team (exactly its number " +
-      'of workers, the lead first, and an item for each equipment entry) and optional customer-facing preparation ' +
-      'instructions. The number of windows is the configured policy (scheduling.window_offers: 2-3, OWN-DEC-99 and ' +
-      'OWN-DEC-105; NOT CONFIGURED while unset), their reserved ranges may not overlap (OFFER_WINDOWS_OVERLAP) and each ' +
-      "must start in the future. Every window is checked like a confirmation (the team's working hours, time off, " +
-      'eligibility and existing reservations or holds, the on-site part inside the visit hours; a work visit passes ' +
-      "the job's scheduling gates) and held for the team until the offer expires: the configured hold hours from the " +
-      'offer, by the database clock (24 hours, OWN-DEC-144). A held window cannot be offered to or confirmed for anyone ' +
-      'else: a concurrent offer or confirmation of the same capacity gets CONFLICT naming every unmet requirement per ' +
-      'window (windows[i].workers.<id>, ...) with alternatives, and nothing partial is written. One open offer per ' +
-      'visit (OFFER_OPEN). An estimate visit writes the committed event of the automatic options notice ' +
-      '(estimate_visit.windows_published, FACT-AUTOMATIC-MESSAGES #5; wording NOT CONFIGURED); the list names none for ' +
-      "work visits. The expiry is scheduled with the offer. Nothing is confirmed here. Returns the project's visits.",
+      'visit version shown (HH-SCH-11, HH-LEAD-07, OWN-DEC-144, OWN-DEC-194). Names the windows (local date and ' +
+      "arrival window in the visit's zone, with the reading of a repeated hour when needed), the visit's whole team " +
+      '(exactly its number of workers, the lead first, and an item for each equipment entry) and optional ' +
+      'customer-facing preparation instructions. The number of windows is the configured policy ' +
+      '(scheduling.window_offers: 2-3, OWN-DEC-99 and OWN-DEC-105; NOT CONFIGURED while unset), their reserved ranges ' +
+      'may not overlap (OFFER_WINDOWS_OVERLAP) and each must start in the future. TSK-0145: with draft true the offer ' +
+      'is only saved as a draft (B1): nothing is held, no number is given and no clock runs (one draft per visit, ' +
+      'OFFER_DRAFT_EXISTS). Otherwise it is published at once, as publishWindowOffer does: the conditions of the ' +
+      "visit's purpose (A2: an estimate visit needs no approved job; a work visit its approval, the job's gates and, " +
+      'on a completed job, its follow-up authorization; every visit no blocking hold, A1, and the site checks) and ' +
+      "every window like a confirmation (the team's working hours, time off, eligibility and existing reservations or " +
+      'holds, the on-site part inside the visit hours), each window then held for the team until the offer expires: ' +
+      'the configured hold hours from the publication, by the database clock (24 hours, OWN-DEC-144). A concurrent ' +
+      'offer or confirmation of the same capacity gets CONFLICT naming every unmet requirement per window ' +
+      '(windows[i].workers.<id>, ...) with alternatives, and nothing partial is written. One open offer per visit: ' +
+      'over it, a replaceReason replaces it (B4; OFFER_OPEN without one). Publishing writes the committed event of ' +
+      'the automatic options notice (estimate_visit.windows_published #5, work_visit.windows_published #11) and ' +
+      "schedules the expiry. Nothing is confirmed here. Returns the project's visits.",
     actors: ['staff'],
     permission: 'visit.offer_windows',
     kind: 'write',
@@ -373,21 +419,179 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
         expiry,
       })
       await ctx.audit({
-        target: { type: 'window_offer', id: out.offerId, version: 1 },
-        summary: {
-          projectId: out.projectId,
-          visitId: out.visitId,
-          purpose: out.purpose,
-          number: out.number,
-          windows: out.windows.map(windowSummary),
-          workers: [...out.workerIds],
-          equipment: [...out.equipmentIds],
-          holdHours: out.holdHours,
-          policyVersion: out.policyVersion,
-          expiresAt: out.expiresAt.toISOString(),
-        },
+        target: { type: 'window_offer', id: out.offerId, version: out.version },
+        summary: offerSummary(out),
+        ...(out.replaced && body.replaceReason ? { reason: body.replaceReason.trim() } : {}),
       })
       return { status: 201, body: await projectVisits(tx, actor, ctx.scope, out.projectId, gates) }
+    },
+  }
+
+  const publish: RouteDef = {
+    method: 'POST',
+    path: '/staff/window-offers/:offerId/publish',
+    operationId: 'publishWindowOffer',
+    summary: 'Publish a draft window offer to the customer',
+    description:
+      'Staff with visit.offer_windows (an Estimator: estimate visits only, PROPOSED), with If-Match: the draft version ' +
+      'shown (TSK-0145; OWN-DEC-194 B1, B3, B4). In one transaction: the conditions of the visit purpose and every ' +
+      'window are checked again as when offering (a window now in the past, or the visit planning changed since the ' +
+      'draft: windows[i] WINDOW_IN_PAST, OFFER_DRAFT_STALE), the offer takes the next number of the project, its ' +
+      'publication instant and its exact expiry (the hold hours in force from now, by the database clock: the 24 ' +
+      'hours start here, never when the draft was saved), and every window holds the whole team. Over the visit’s ' +
+      'open offer it needs a replaceReason (OFFER_OPEN otherwise; NO_OPEN_OFFER with a reason and nothing to replace) ' +
+      'and replaces it: the open offer ends as replaced, its holds released, and the customer gets the new offer’s ' +
+      'options notice once. An offer that is not a draft is CONFLICT naming its state. Returns the project’s visits.',
+    actors: ['staff'],
+    permission: 'visit.offer_windows',
+    kind: 'write',
+    idempotency: 'required',
+    expectedVersion: 'required',
+    rateLimit: 'none',
+    audit: 'visit.publish_offer',
+    pagination: false,
+    test: AMENDMENTS_TEST,
+    resource: offerProjectOf,
+    schema: { params: OFFER_PARAMS, body: PUBLISH_BODY, response: { 200: PROJECT_VISITS } },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const actor = staffActor(ctx)
+      const { offerId } = ctx.req.params as { offerId: string }
+      const body = ctx.req.body as { replaceReason?: string }
+      const out = await publishOffer(tx, actor, ctx.scope, offerId, body, {
+        gates,
+        now: new Date(),
+        expectedVersion: ctx.expectedVersion(),
+        expiry,
+      })
+      await ctx.audit({
+        target: { type: 'window_offer', id: out.offerId, version: out.version },
+        summary: offerSummary(out),
+        ...(out.replaced && body.replaceReason ? { reason: body.replaceReason.trim() } : {}),
+      })
+      return { body: await projectVisits(tx, actor, ctx.scope, out.projectId, gates), version: out.version }
+    },
+  }
+
+  const discard: RouteDef = {
+    method: 'POST',
+    path: '/staff/window-offers/:offerId/discard',
+    operationId: 'discardWindowOfferDraft',
+    summary: 'Discard a draft window offer that was never published',
+    description:
+      'Staff with visit.offer_windows (an Estimator: estimate visits only, PROPOSED), with If-Match: the draft version ' +
+      'shown (TSK-0145, B1). The draft held nothing and started no clock; it is kept as history. A published offer is ' +
+      'withdrawn or replaced instead (CONFLICT naming its state). Returns the project’s visits.',
+    actors: ['staff'],
+    permission: 'visit.offer_windows',
+    kind: 'write',
+    idempotency: 'required',
+    expectedVersion: 'required',
+    rateLimit: 'none',
+    audit: 'visit.discard_offer',
+    pagination: false,
+    test: AMENDMENTS_TEST,
+    resource: offerProjectOf,
+    schema: { params: OFFER_PARAMS, body: DISCARD_BODY, response: { 200: PROJECT_VISITS } },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const actor = staffActor(ctx)
+      const { offerId } = ctx.req.params as { offerId: string }
+      const out = await discardOfferDraft(tx, actor, ctx.scope, offerId, { expectedVersion: ctx.expectedVersion() })
+      await ctx.audit({
+        target: { type: 'window_offer', id: out.offerId, version: out.version },
+        summary: { projectId: out.projectId, visitId: out.visitId },
+      })
+      return { body: await projectVisits(tx, actor, ctx.scope, out.projectId, gates), version: out.version }
+    },
+  }
+
+  const inspection: RouteDef = {
+    method: 'POST',
+    path: '/staff/visits/:visitId/inspection-authorization',
+    operationId: 'authorizeHazardInspection',
+    summary: 'Authorize a hazard-evaluation inspection visit while an intake hold stays open',
+    description:
+      'The Owner only (visit.authorize_inspection), with If-Match: the visit version shown (TSK-0145; OWN-DEC-193 A1, ' +
+      'OWN-DEC-208). Holds stay mandatory: while an intake review hold is open, the only visit of its project that can ' +
+      'be offered or confirmed is a tentative site visit the Owner authorizes as a hazard-evaluation inspection, ' +
+      'naming the qualified person and their qualification (recorded, never judged), the safety conditions and a ' +
+      'reason (REQUIRED, REASON_REQUIRED). It covers the intake review holds open now; they stay open and keep blocking ' +
+      'every other visit and Start Work, and a later review hold, a job-level Hold or a critical safety hold still ' +
+      'blocks it. Refusals: CONFLICT VISIT_NOT_TENTATIVE, NOT_A_SITE_VISIT, INSPECTION_AUTHORIZED, NO_REVIEW_HOLD. ' +
+      'Append-only. Returns the project’s visits.',
+    actors: ['staff'],
+    permission: 'visit.authorize_inspection',
+    kind: 'write',
+    idempotency: 'required',
+    expectedVersion: 'required',
+    rateLimit: 'none',
+    audit: 'visit.authorize_inspection',
+    pagination: false,
+    test: AMENDMENTS_TEST,
+    resource: visitProjectOf,
+    schema: { params: VISIT_PARAMS, body: INSPECTION_BODY, response: { 200: PROJECT_VISITS } },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const actor = staffActor(ctx)
+      const { visitId } = ctx.req.params as { visitId: string }
+      const body = ctx.req.body as InspectionInput
+      const out = await authorizeInspection(tx, actor, ctx.scope, visitId, body, {
+        expectedVersion: ctx.expectedVersion(),
+      })
+      // The qualified person's name and the conditions stay on the record; the audit names the visit and its holds.
+      await ctx.audit({
+        target: { type: 'visit', id: out.visitId },
+        summary: { projectId: out.projectId, authorizationId: out.id, holdIds: out.holdIds },
+        reason: body.reason.trim(),
+      })
+      return { body: await projectVisits(tx, actor, ctx.scope, out.projectId, gates) }
+    },
+  }
+
+  const followUp: RouteDef = {
+    method: 'POST',
+    path: '/staff/visits/:visitId/follow-up-authorization',
+    operationId: 'authorizeFollowUpVisit',
+    summary: 'Record the authorization of a follow-up visit on a completed job',
+    description:
+      'Staff with visit.authorize_follow_up (Owner; Office, PROPOSED), with If-Match: the visit version shown ' +
+      '(TSK-0145; OWN-DEC-193 A4). A work visit of a job whose work is complete (operationally complete, closed or ' +
+      'reopened) is offered and confirmed only with its recorded basis: contractual_obligation, warranty, punch_list ' +
+      'or return_work, with a note saying which (NOTE_REQUIRED). A warranty names the job’s return work classified as ' +
+      'a warranty claim (RETURN_WORK_NOT_WARRANTY), a return-work authorization the job’s return work the Owner ' +
+      'decided (RETURN_WORK_NOT_DECIDED); both need returnWorkId (RETURN_WORK_REQUIRED, RETURN_WORK_UNKNOWN). New paid ' +
+      'work needs an approved estimate or change order instead. Refusals: CONFLICT VISIT_NOT_TENTATIVE, ' +
+      'NOT_A_WORK_VISIT, JOB_NOT_COMPLETE, FOLLOW_UP_AUTHORIZED. Append-only. Returns the project’s visits.',
+    actors: ['staff'],
+    permission: 'visit.authorize_follow_up',
+    kind: 'write',
+    idempotency: 'required',
+    expectedVersion: 'required',
+    rateLimit: 'none',
+    audit: 'visit.authorize_follow_up',
+    pagination: false,
+    test: AMENDMENTS_TEST,
+    resource: visitProjectOf,
+    schema: { params: VISIT_PARAMS, body: FOLLOW_UP_BODY, response: { 200: PROJECT_VISITS } },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const actor = staffActor(ctx)
+      const { visitId } = ctx.req.params as { visitId: string }
+      const body = ctx.req.body as FollowUpInput
+      const out = await authorizeFollowUp(tx, actor, ctx.scope, visitId, body, {
+        expectedVersion: ctx.expectedVersion(),
+      })
+      await ctx.audit({
+        target: { type: 'visit', id: out.visitId },
+        summary: {
+          projectId: out.projectId,
+          authorizationId: out.id,
+          basis: out.basis,
+          returnWorkId: out.returnWorkId,
+        },
+      })
+      return { body: await projectVisits(tx, actor, ctx.scope, out.projectId, gates) }
     },
   }
 
@@ -398,9 +602,12 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
     summary: 'Withdraw an open window offer',
     description:
       'Staff with visit.offer_windows (an Estimator: estimate visits only, PROPOSED), with If-Match: the offer version ' +
-      'shown and a reason (PROPOSED: required). Ends the offer and releases every hold it has (kept as history, ended ' +
-      '"hold_released"); the visit stays tentative for a new offer. An offer that already ended (selected, expired, ' +
-      "withdrawn, other times asked for) is CONFLICT naming its state. Returns the project's visits.",
+      'shown and a reason (OWN-DEC-194 B4: required). Ends the offer and releases every hold it has (kept as history, ' +
+      'ended "hold_released"); the visit stays tentative for a new offer. TSK-0145 (PROPOSED): no withdrawal notice ' +
+      'has owner-approved wording, so none is sent: the times leave the customer’s Appointments tab and staff get the ' +
+      '"offered windows need new times" item (window_offer_withdrawn) until new windows are published (their notice ' +
+      'tells the customer). An offer that is not open (a draft: discard it; selected, expired, withdrawn, replaced, ' +
+      "other times asked for) is CONFLICT naming its state. Returns the project's visits.",
     actors: ['staff'],
     permission: 'visit.offer_windows',
     kind: 'write',
@@ -638,6 +845,10 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
       confirm,
       offer,
       withdraw,
+      publish,
+      discard,
+      inspection,
+      followUp,
       board,
       reassign,
       cancel,

@@ -500,6 +500,7 @@ async function age(offerId: string, seconds: number) {
   await withTx(t.db, async (tx) => {
     await sql`SET LOCAL session_replication_role = replica`.execute(tx)
     await sql`UPDATE work.window_offers SET offered_at = offered_at - make_interval(secs => ${seconds}),
+                published_at = published_at - make_interval(secs => ${seconds}),
                 expires_at = expires_at - make_interval(secs => ${seconds}) WHERE id = ${offerId}`.execute(tx)
     await sql`UPDATE work.reservations SET hold_expires_at = hold_expires_at - make_interval(secs => ${seconds})
                WHERE offer_id = ${offerId} AND kind = 'hold'`.execute(tx)
@@ -544,7 +545,8 @@ describe('[HH-SCH-11][HH-LEAD-07][OWN-DEC-144] staff offer windows held for 24 h
       [3, 'hold', ids.ann],
     ])
     const row = await offerRow(o.id)
-    for (const h of holds) expect(new Date(h.hold_expires_at as Date).getTime()).toBe(row.expires_at.getTime())
+    for (const h of holds)
+      expect(new Date(h.hold_expires_at as Date).getTime()).toBe((row.expires_at as Date).getTime())
     // The committed event of the automatic options notice, the scheduled expiry and the audit.
     const events = await t.db
       .selectFrom('platform.outbox_events')
@@ -558,7 +560,7 @@ describe('[HH-SCH-11][HH-LEAD-07][OWN-DEC-144] staff offer windows held for 24 h
       .where('target_id', '=', o.id)
       .executeTakeFirstOrThrow()
     expect(job).toMatchObject({ automation: 'visit.window_offer_expiry', target_id: o.id })
-    expect(new Date(job.run_at).getTime()).toBe(row.expires_at.getTime())
+    expect(new Date(job.run_at).getTime()).toBe((row.expires_at as Date).getTime())
     const audit = await t.db
       .selectFrom('platform.audit_events')
       .select(['action', 'summary'])

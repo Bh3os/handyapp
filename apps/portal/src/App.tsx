@@ -7,12 +7,16 @@
 //   /portal/p/<reference>/documents/<estimate number>/<version>  one estimate version in the Documents tab (TSK-0056)
 //   /portal/terms/<document id>  the estimate terms on a page of their own (TSK-0056, HH-EST-13)
 //   /portal/p/<reference>/privacy  your data and privacy requests about this project's customer (TSK-0100)
+//   /portal/properties     the signed-in account's saved properties (TSK-0113)
+//   /portal/preferences    the signed-in account's preferences (TSK-0113)
 // Every read is authorized and scoped on the server; the page only shows what the customer views return.
 import { customerTranslator } from '@handyhub/i18n'
 import { useCallback, useEffect, useState } from 'react'
 import { REFERENCE, WORKSPACE_TABS, type Fetch, type WorkspaceTab } from './api'
+import { PreferencesPage } from './Preferences'
 import { PrivacyPage } from './Privacy'
 import { Projects } from './Projects'
+import { SavedPropertiesPage } from './SavedProperties'
 import { TermsPage } from './Terms'
 import { Workspace } from './Workspace'
 
@@ -23,6 +27,9 @@ export type PortalRoute =
   | { page: 'terms'; documentId: string }
   /** TSK-0100: the privacy requests page of a project (not a workspace tab: the six tabs stay as decided). */
   | { page: 'privacy'; reference: string }
+  /** TSK-0113 (HH-ID-12): the signed-in account's saved properties and preferences (not a project's). */
+  | { page: 'properties' }
+  | { page: 'preferences' }
 
 /** An estimate number as the server issues it (migration 0026): the project reference and E<n>. */
 const ESTIMATE_NUMBER = /^HH-[0-9A-HJKMNP-TV-Z]{8}-E[1-9][0-9]{0,3}$/
@@ -32,6 +39,8 @@ const isTab = (v: string): v is WorkspaceTab => (WORKSPACE_TABS as readonly stri
 /** The page for a path below /portal/; anything unknown is the projects page. */
 export function routeOf(pathname: string): PortalRoute {
   const rest = pathname.replace(/^\/portal(?=\/|$)/, '')
+  if (/^\/properties\/?$/.test(rest)) return { page: 'properties' }
+  if (/^\/preferences\/?$/.test(rest)) return { page: 'preferences' }
   const terms = /^\/terms\/([a-z][a-z0-9-]{0,38}[0-9])\/?$/.exec(rest)
   if (terms) return { page: 'terms', documentId: terms[1] as string }
   const doc = /^\/p\/([^/]+)\/documents\/([^/]+)\/([1-9][0-9]{0,3})\/?$/.exec(rest)
@@ -76,7 +85,11 @@ export function App({ path, fetchImpl = browserFetch }: { path?: string; fetchIm
         <p className="portal__brand">{t('portal.title')}</p>
       </header>
       <main lang="en" className="portal__main">
-        {route.page === 'terms' ? (
+        {route.page === 'properties' ? (
+          <SavedPropertiesPage fetchImpl={fetchImpl} />
+        ) : route.page === 'preferences' ? (
+          <PreferencesPage fetchImpl={fetchImpl} />
+        ) : route.page === 'terms' ? (
           <TermsPage documentId={route.documentId} />
         ) : route.page === 'privacy' ? (
           <PrivacyPage key={route.reference} reference={route.reference} fetchImpl={fetchImpl} />

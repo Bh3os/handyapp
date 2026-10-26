@@ -554,6 +554,18 @@ export const TABLES = {
     classes: ['contact'],
     categories: [NS],
   },
+  // TSK-0113 (0121): the account's own contact-method preference and its names for properties of its history.
+  'identity.customer_account_preferences': {
+    holds: 'The contact method a customer account starts new requests with',
+    classes: ['contact'],
+    categories: [NS],
+  },
+  'identity.customer_saved_properties': {
+    holds:
+      "A customer account's own names for properties of its verified history (the property record holds the address)",
+    classes: ['service_address'],
+    categories: [NS],
+  },
   'identity.customer_account_changes': {
     holds: "Changes to a customer account's sign-in contact",
     classes: ['contact'],
@@ -699,6 +711,15 @@ export const TABLES = {
   },
   'intake.request_services': {
     holds: 'The services a request asks about',
+    classes: ['request_details'],
+    categories: [R, J],
+  },
+  // TSK-0113 (0121): Request This Service Again: the earlier project a request repeats, from which account, when the
+  // customer confirmed the property details and whether the address was the earlier one.
+  'intake.request_repeats': {
+    holds:
+      'The earlier project a request was sent again from, the account that sent it, when the property details were ' +
+      'confirmed and whether the address was unchanged',
     classes: ['request_details'],
     categories: [R, J],
   },
@@ -1121,6 +1142,25 @@ export const TABLES = {
       "reference for a deposit), the Owner's decision, follow-up owner and deadline, and how it ended",
     classes: ['scheduling'],
     categories: [J, S],
+  },
+  // TSK-0145 (0120, OWN-DEC-193 A4): the recorded basis of a follow-up visit on a completed job.
+  'work.follow_up_authorizations': {
+    holds: 'The recorded basis of a follow-up visit on a completed job (obligation, warranty, punch list, return work)',
+    classes: ['scheduling'],
+    categories: [J],
+  },
+  // TSK-0145 (0120, OWN-DEC-193 A1, OWN-DEC-208): the Owner's hazard-evaluation inspection authorizations, naming the
+  // qualified person, the safety conditions and the intake review holds they evaluate.
+  'work.hazard_inspection_authorizations': {
+    holds:
+      "The Owner's authorization of a hazard-evaluation inspection visit: qualified person, safety conditions, reason",
+    classes: ['scheduling'],
+    categories: [R, J, S],
+  },
+  'work.hazard_inspection_holds': {
+    holds: 'The intake review holds a hazard-evaluation inspection evaluates',
+    classes: ['scheduling'],
+    categories: [R, J, S],
   },
   'work.holds': {
     holds: 'Review and safety holds and loadout task blocks with their resolution and reviewer',

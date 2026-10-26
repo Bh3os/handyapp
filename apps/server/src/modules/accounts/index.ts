@@ -15,6 +15,8 @@
 // getting a new link, and the Owner's security work on customer access (security-routes.ts).
 // TSK-0124 (HH-ID-14, OWN-DEC-160): Add a project, the verified claiming of a guest project into the signed-in account
 // with a code to that project's verified contact (claim-routes.ts, claims.ts).
+// TSK-0113 (HH-ID-12, OWN-DEC-113): the account's saved properties, its preferences and Request This Service Again
+// (saved-routes.ts, saved.ts).
 // Enrollment and sign-in establish who the caller is, so they are authentication routes (like the staff sign-in and
 // the access link exchange). The receipt routes need the Receipt-Capability header of the tab that sent the request;
 // the guest-link routes need a live session started from that project's access grant; an unknown, expired or revoked
@@ -54,13 +56,16 @@ import {
   type SendResult,
 } from './accounts.js'
 import { claimRoutes } from './claim-routes.js'
+import { savedRoutes } from './saved-routes.js'
 import { securityRoutes } from './security-routes.js'
 
 export * from './accounts.js'
 export * from './claims.js'
 export { CLAIM_CODE_RATE_LIMIT, CLAIM_RATE_LIMIT } from './claim-routes.js'
+export { ACCOUNT_SETTINGS_RATE_LIMIT } from './saved-routes.js'
 export * from './help.js'
 export * from './notice.js'
+export * from './saved.js'
 export * from './security.js'
 
 /** PROPOSED (no owner value): per client network and hour, on top of the configured per-code and per-address limits. */
@@ -714,6 +719,8 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
       ...securityRoutes(deps),
       // TSK-0124: Add a project to the account with a code to its verified contact.
       ...claimRoutes(deps),
+      // TSK-0113: saved properties, preferences and Request This Service Again.
+      ...savedRoutes(),
     ],
   }
 }

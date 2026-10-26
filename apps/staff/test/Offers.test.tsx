@@ -272,3 +272,76 @@ describe('[HH-SCH-11][FACT-AUTOMATIC-MESSAGES] the offers of a visit', () => {
     expect((calls[0]?.init?.headers as Record<string, string>)['if-match']).toBe('"1"')
   })
 })
+
+describe('[HH-SCH-11][OWN-DEC-194] drafts, publication and replacement (TSK-0145)', () => {
+  const when = (iso: string) => iso.slice(0, 16)
+
+  it('[OWN-DEC-194] a draft says nothing is held and no clock runs; over a published offer it is published as its replacement', async () => {
+    const calls: { url: string; init?: RequestInit }[] = []
+    const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push({ url, ...(init ? { init } : {}) })
+      return json(200, { visits: [] })
+    })
+    const onChanged = vi.fn()
+    const { t } = staffTranslator('en')
+    const draft = offer({
+      number: null,
+      state: 'draft',
+      held: false,
+      version: 1,
+      expiresAt: null,
+      publishedAt: null,
+      publishedBy: null,
+      notices: [],
+      actions: { withdraw: false, publish: true, discard: true },
+    })
+    render(
+      <VisitOffers
+        t={t}
+        locale="en"
+        fetchImpl={fetchImpl as never}
+        offers={[draft, offer({ id: 'open-offer', version: 3 })]}
+        when={when}
+        onChanged={onChanged}
+      />,
+    )
+    const entry = screen.getAllByTestId('visit-offer')[0] as HTMLElement
+    expect(entry.textContent).toContain('Draft offer')
+    expect(within(entry).getByTestId('offer-draft').textContent).toContain('nothing is held')
+    expect(within(entry).queryByTestId('offer-notice')).toBeNull()
+    fireEvent.change(within(entry).getByLabelText(/Why the open offer is replaced/), {
+      target: { value: 'Synthetic: the customer called' },
+    })
+    fireEvent.click(within(entry).getByRole('button', { name: 'Publish' }))
+    await waitFor(() => expect(onChanged).toHaveBeenCalled())
+    expect(calls[0]?.url).toBe(`/api/v1/staff/window-offers/${OFFER}/publish`)
+    expect(JSON.parse(String(calls[0]?.init?.body))).toEqual({ replaceReason: 'Synthetic: the customer called' })
+    expect((calls[0]?.init?.headers as Record<string, string>)['if-match']).toBe('"1"')
+  })
+
+  it('[OWN-DEC-194] a replaced offer names its successor and the reason (Spanish)', () => {
+    const { t } = staffTranslator('es')
+    render(
+      <VisitOffers
+        t={t}
+        locale="es"
+        fetchImpl={vi.fn() as never}
+        offers={[
+          offer({
+            state: 'replaced',
+            held: false,
+            closedBy: { id: 'o', name: 'Synthetic Office' },
+            closedReason: 'Synthetic: crew changed',
+            replacedByNumber: 2,
+            actions: { withdraw: false, publish: false, discard: false },
+          }),
+        ]}
+        when={when}
+        onChanged={vi.fn()}
+      />,
+    )
+    expect(screen.getByTestId('offer-closed-reason').textContent).toBe(
+      'Reemplazada por la oferta 2 por Synthetic Office: Synthetic: crew changed',
+    )
+  })
+})

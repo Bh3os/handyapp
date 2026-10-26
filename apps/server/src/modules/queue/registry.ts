@@ -260,7 +260,8 @@ export const QUEUE_ITEM_TYPES = [
     subject: 'request',
     band: 'time_sensitive',
     view: 'visit.offer_windows',
-    reasons: ['window_other_times_requested', 'window_offer_expired'],
+    // TSK-0145 (OWN-DEC-194 B4): staff withdrew the offered windows (no withdrawal notice has approved wording yet).
+    reasons: ['window_other_times_requested', 'window_offer_expired', 'window_offer_withdrawn'],
     action: 'offer_windows',
     screen: 'requests',
   },

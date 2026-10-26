@@ -1898,6 +1898,123 @@ async function claimProject(
   return { ok: false, failure: claimFailure(r) }
 }
 
+// TSK-0113 (HH-ID-12, OWN-DEC-113): the signed-in account's saved properties (account.properties), its preferences
+// (account.preferences) and what Request This Service Again starts from (account.request_prefill, read by the request
+// form on the public site). Only the account's own history: anything else is NOT_FOUND like a missing record.
+export const PROPERTY_TYPES = ['house', 'apartment_condo', 'townhouse', 'rental_short_term'] as const
+export type PropertyType = (typeof PROPERTY_TYPES)[number]
+export type PropertyAddress = {
+  street: string
+  unit: string | null
+  city: string
+  state: string
+  zip: string
+  propertyType: PropertyType
+}
+export type AccountProperty = {
+  reference: string
+  address: PropertyAddress
+  saved: { id: string; label: string } | null
+}
+export const CONTACT_METHODS = ['email', 'call', 'text'] as const
+export type ContactMethod = (typeof CONTACT_METHODS)[number]
+export const CONSENT_STATES = ['granted', 'withdrawn', 'none'] as const
+export type ConsentState = (typeof CONSENT_STATES)[number]
+export type AccountPreferences = {
+  preferredChannel: ContactMethod | null
+  email: { destination: string; marketing: ConsentState; followUps: ConsentState } | null
+  phone: { destination: string; texts: ConsentState; marketing: ConsentState; followUps: ConsentState } | null
+}
+export type AccountPermission = 'marketing' | 'follow_ups' | 'texts'
+
+function parseAddress(v: unknown): PropertyAddress | null {
+  if (!isObj(v) || !isStr(v['street']) || !isStrOrNull(v['unit']) || !isStr(v['city']) || !isStr(v['state']))
+    return null
+  if (!isStr(v['zip']) || !oneOf(PROPERTY_TYPES)(v['propertyType'])) return null
+  return {
+    street: v['street'],
+    unit: v['unit'],
+    city: v['city'],
+    state: v['state'],
+    zip: v['zip'],
+    propertyType: v['propertyType'],
+  }
+}
+function parseProperties(v: unknown): AccountProperty[] | null {
+  if (!isObj(v) || !Array.isArray(v['properties'])) return null
+  const out: AccountProperty[] = []
+  for (const p of v['properties']) {
+    const address = isObj(p) ? parseAddress(p['address']) : null
+    if (!isObj(p) || !isStr(p['reference']) || !address) return null
+    const saved = p['saved']
+    if (saved !== null && !(isObj(saved) && isStr(saved['id']) && isStr(saved['label']))) return null
+    const named = saved as { id: string; label: string } | null
+    out.push({ reference: p['reference'], address, saved: named ? { id: named.id, label: named.label } : null })
+  }
+  return out
+}
+function parsePreferences(v: unknown): AccountPreferences | null {
+  if (!isObj(v)) return null
+  const channel = v['preferredChannel']
+  if (channel !== null && !oneOf(CONTACT_METHODS)(channel)) return null
+  const states = (o: Obj, keys: readonly string[]) => keys.every((k) => oneOf(CONSENT_STATES)(o[k]))
+  const e = v['email']
+  const p = v['phone']
+  if (e !== null && !(isObj(e) && isStr(e['destination']) && states(e, ['marketing', 'followUps']))) return null
+  if (p !== null && !(isObj(p) && isStr(p['destination']) && states(p, ['texts', 'marketing', 'followUps'])))
+    return null
+  return {
+    preferredChannel: channel,
+    email: e
+      ? {
+          destination: e['destination'] as string,
+          marketing: e['marketing'] as ConsentState,
+          followUps: e['followUps'] as ConsentState,
+        }
+      : null,
+    phone: p
+      ? {
+          destination: p['destination'] as string,
+          texts: p['texts'] as ConsentState,
+          marketing: p['marketing'] as ConsentState,
+          followUps: p['followUps'] as ConsentState,
+        }
+      : null,
+  }
+}
+
+/** Why a change to the saved properties or the preferences was not made. */
+export type SettingsFailure =
+  | 'expired'
+  | 'unavailable'
+  | 'invalid_label'
+  | 'label_in_use'
+  | 'already_saved'
+  | 'texts_on_request_form'
+  | 'rate_limited'
+  | 'failed'
+function settingsFailure(r: { status: number; json: unknown }): SettingsFailure {
+  if (r.status === 401) return 'expired'
+  if (r.status === 404) return 'unavailable'
+  if (r.status === 429) return 'rate_limited'
+  const codes = fieldCodes(r.json)
+  for (const c of ['invalid_label', 'label_in_use', 'already_saved', 'texts_on_request_form'] as const)
+    if ((r.status === 400 || r.status === 409) && codes.includes(c)) return c
+  return 'failed'
+}
+async function settingsWrite<T>(
+  fetchImpl: Fetch,
+  path: string,
+  body: unknown,
+  parse: (v: unknown) => T | null,
+): Promise<{ ok: true; data: T } | { ok: false; failure: SettingsFailure }> {
+  const r = await post(fetchImpl, path, body)
+  if (!r) return { ok: false, failure: 'failed' }
+  const data = r.status === 200 ? parse(r.json) : null
+  return data !== null ? { ok: true, data } : { ok: false, failure: settingsFailure(r) }
+}
+const savedPath = (id: string) => `/customer/account/properties/${encodeURIComponent(id)}`
+
 export const portalApi = {
   projects: (f: Fetch) => read(f, '/customer/projects', parseList),
   caseUpdates: (f: Fetch, reference: string) =>
@@ -1963,4 +2080,17 @@ export const portalApi = {
   // TSK-0124: Add a project to the account with a code to its verified contact.
   sendClaimCode,
   claimProject,
+  // TSK-0113: saved properties and preferences of the signed-in account.
+  properties: (f: Fetch) => read(f, '/customer/account/properties', parseProperties),
+  saveProperty: (f: Fetch, reference: string, label: string) =>
+    settingsWrite(f, '/customer/account/properties', { reference, label }, parseProperties),
+  renameProperty: (f: Fetch, id: string, label: string) => settingsWrite(f, savedPath(id), { label }, parseProperties),
+  removeProperty: (f: Fetch, id: string) => settingsWrite(f, `${savedPath(id)}/remove`, {}, parseProperties),
+  preferences: (f: Fetch) => read(f, '/customer/account/preferences', parsePreferences),
+  setPreferredChannel: (f: Fetch, preferredChannel: ContactMethod | null) =>
+    settingsWrite(f, '/customer/account/preferences', { preferredChannel }, parsePreferences),
+  setPermission: (
+    f: Fetch,
+    body: { channel: 'email' | 'sms'; permission: AccountPermission; granted: boolean; privacyNoticeVersion?: string },
+  ) => settingsWrite(f, '/customer/account/permissions', body, parsePreferences),
 }

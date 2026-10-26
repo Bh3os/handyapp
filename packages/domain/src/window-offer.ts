@@ -6,9 +6,18 @@
 //   open -> withdrawn                staff withdraw it: every hold is released
 //   open -> expired                  the hold time passed with no selection: every hold ends and the visit expires
 //
+// TSK-0145 (OWN-DEC-194 B1, B4): an offer is saved as a draft first.
+//
+//   draft -> open                    published to the customer: its holds start and the hold time runs from now
+//   draft -> discarded               staff discard a draft that was never published (nothing was held)
+//   open -> replaced                 staff replace it, with a reason, by the visit's draft published at the same time
+//
 // - One mechanism for estimate visits and work visits: staff offer the configured number of windows (OWN-DEC-99,
 //   OWN-DEC-105: 2-3) of one tentative visit, each holding the visit's whole team for its reserved range until the
-//   offer expires (OWN-DEC-144: 24 hours from the offer). A hold is never a confirmed booking (HH-SCH-05).
+//   offer expires (OWN-DEC-144: 24 hours from the offer's publication, OWN-DEC-194 B1; a draft holds nothing and
+//   starts no clock). A hold is never a confirmed booking (HH-SCH-05).
+// - One active (open) offer per visit; a published offer is never changed: staff withdraw or replace it, each with a
+//   recorded reason (OWN-DEC-194 B4).
 // - The customer answers only while the offer is held; the expiry happens only once the hold time has passed. The
 //   database enforces the same with its own clock, so a selection and the expiry never both happen.
 // - Pure and browser-safe.
@@ -16,7 +25,16 @@ import { defineMachine, type EventOf, type Guard } from './engine.js'
 import { reasonGiven } from './guards.js'
 import type { Interval } from './capacity.js'
 
-export const WINDOW_OFFER_STATES = ['open', 'selected', 'other_times_requested', 'withdrawn', 'expired'] as const
+export const WINDOW_OFFER_STATES = [
+  'draft',
+  'discarded',
+  'open',
+  'selected',
+  'other_times_requested',
+  'withdrawn',
+  'replaced',
+  'expired',
+] as const
 export type WindowOfferState = (typeof WINDOW_OFFER_STATES)[number]
 
 /** The configured offer policy (scheduling.window_offers). */
@@ -54,21 +72,25 @@ export const WINDOW_OFFER_MACHINE = defineMachine({
   entity: 'window_offer',
   dimension: 'lifecycle',
   states: WINDOW_OFFER_STATES,
-  initial: 'open',
-  final: ['selected', 'other_times_requested', 'withdrawn', 'expired'],
+  initial: 'draft',
+  final: ['discarded', 'selected', 'other_times_requested', 'withdrawn', 'replaced', 'expired'],
   transitions: [
+    // B1: publishing starts the hold time; the server rechecks every window, the team and the visit's conditions.
+    { event: 'publish', from: ['draft'], to: 'open', actors: ['staff'] },
+    { event: 'discard', from: ['draft'], to: 'discarded', actors: ['staff'] },
     { event: 'select', from: ['open'], to: 'selected', actors: ['customer'], guards: [held, knownPosition] },
     { event: 'request_other_times', from: ['open'], to: 'other_times_requested', actors: ['customer'], guards: [held] },
-    // PROPOSED: a withdrawal carries the staff member's reason.
+    // OWN-DEC-194 B4: a withdrawal or a replacement carries the staff member's reason.
     { event: 'withdraw', from: ['open'], to: 'withdrawn', actors: ['staff'], guards: [reason] },
+    { event: 'replace', from: ['open'], to: 'replaced', actors: ['staff'], guards: [reason] },
     { event: 'expire', from: ['open'], to: 'expired', actors: ['system'], guards: [holdEnded] },
   ],
 })
 export type WindowOfferEvent = EventOf<typeof WINDOW_OFFER_MACHINE>
 
-/** When an offer made at `offeredAt` stops holding its windows. */
-export function holdExpiresAt(offeredAt: Date, policy: Pick<WindowOfferPolicy, 'holdHours'>): Date {
-  return new Date(offeredAt.getTime() + policy.holdHours * 3_600_000)
+/** When an offer published at `publishedAt` stops holding its windows (B1: never counted from a draft). */
+export function holdExpiresAt(publishedAt: Date, policy: Pick<WindowOfferPolicy, 'holdHours'>): Date {
+  return new Date(publishedAt.getTime() + policy.holdHours * 3_600_000)
 }
 
 export type OfferProblem =

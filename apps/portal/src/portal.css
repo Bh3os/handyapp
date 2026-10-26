@@ -170,6 +170,75 @@
   width: 100%;
 }
 
+/* TSK-0113: the account's links, saved properties and preferences. */
+.portal-account__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hh-space-3);
+  margin: 0;
+}
+
+.portal-account__links a {
+  color: var(--hh-link);
+}
+
+.portal-properties__item {
+  display: grid;
+  gap: var(--hh-space-2);
+}
+
+.portal-properties__item > * {
+  margin: 0;
+}
+
+.portal-properties__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hh-space-2);
+  margin: 0;
+}
+
+.portal-properties__field {
+  width: 100%;
+}
+
+.portal-preferences {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--hh-space-3);
+}
+
+.portal-preferences__row {
+  display: grid;
+  gap: var(--hh-space-2);
+  justify-items: start;
+}
+
+.portal-preferences__row > p {
+  margin: 0;
+}
+
+.portal-preferences__choices {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--hh-space-2);
+}
+
+.portal-preferences__choices > p {
+  margin: 0;
+}
+
+.portal-preferences__choice {
+  display: flex;
+  align-items: center;
+  gap: var(--hh-space-2);
+  min-height: 44px;
+}
+
 /* The workspace tabs (TSK-0039): the tab list wraps on phones (no sideways scroll), Overview first. */
 .portal-tab {
   display: grid;

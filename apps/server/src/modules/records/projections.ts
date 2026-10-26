@@ -1002,6 +1002,123 @@ export const ACCOUNT_CLAIMED = customerView(
   (r: { reference: string }) => ({ project: PROJECT_REFERENCE.project(r) }),
 )
 
+// TSK-0113 (HH-ID-12, HH-ID-03, OWN-DEC-113): the signed-in account's saved properties, its preferences and what Request
+// This Service Again starts from. Only the account's own history: the addresses of its linked projects (each named by
+// its latest project's reference), its own names for them, its preferences and the permissions of its own verified
+// sign-in values (masked). Never a property, contact or customer record ID, a price, a discount, a verification or a
+// consent of the earlier request.
+const PROPERTY_ADDRESS = object({
+  street: STRING,
+  unit: { type: ['string', 'null'] },
+  city: STRING,
+  state: STRING,
+  zip: STRING,
+  propertyType: STRING,
+})
+type PropertyAddressRecord = {
+  street: string
+  unit: string | null
+  city: string
+  state: string
+  zip: string
+  propertyType: string
+}
+const address = (a: PropertyAddressRecord) => ({
+  street: a.street,
+  unit: a.unit,
+  city: a.city,
+  state: a.state,
+  zip: a.zip,
+  propertyType: a.propertyType,
+})
+const ACCOUNT_PROPERTY = object({
+  reference: STRING,
+  address: PROPERTY_ADDRESS,
+  saved: { anyOf: [{ type: 'null' }, object({ id: STRING, label: STRING })] },
+})
+type AccountPropertyRecord = {
+  reference: string
+  address: PropertyAddressRecord
+  saved: { id: string; label: string } | null
+}
+export const ACCOUNT_PROPERTIES = customerView(
+  'account.properties',
+  'CustomerAccount',
+  { properties: { type: 'array', items: ACCOUNT_PROPERTY } },
+  (r: { properties: readonly AccountPropertyRecord[] }) => ({
+    properties: r.properties.map((p) => ({
+      reference: p.reference,
+      address: address(p.address),
+      saved: p.saved ? { id: p.saved.id, label: p.saved.label } : null,
+    })),
+  }),
+)
+
+const CONTACT_METHOD = { anyOf: [{ type: 'null' }, enumOf(['email', 'call', 'text'])] } as const
+export const REQUEST_PREFILL = customerView(
+  'account.request_prefill',
+  'CustomerAccount',
+  {
+    reference: STRING,
+    services: { type: 'array', items: STRING },
+    notSure: { type: 'boolean' },
+    address: PROPERTY_ADDRESS,
+    contact: object({ fullName: STRING, email: STRING, phone: STRING }),
+    preferredChannel: CONTACT_METHOD,
+  },
+  (r: {
+    reference: string
+    services: readonly string[]
+    notSure: boolean
+    address: PropertyAddressRecord
+    contact: { fullName: string; email: string; phone: string }
+    preferredChannel: string | null
+  }) => ({
+    reference: r.reference,
+    services: [...r.services],
+    notSure: r.notSure,
+    address: address(r.address),
+    contact: { fullName: r.contact.fullName, email: r.contact.email, phone: r.contact.phone },
+    preferredChannel: r.preferredChannel,
+  }),
+)
+
+const CONSENT_STATE = enumOf(['granted', 'withdrawn', 'none'])
+export const ACCOUNT_PREFERENCES = customerView(
+  'account.preferences',
+  'CustomerAccount',
+  {
+    preferredChannel: CONTACT_METHOD,
+    email: {
+      anyOf: [{ type: 'null' }, object({ destination: STRING, marketing: CONSENT_STATE, followUps: CONSENT_STATE })],
+    },
+    phone: {
+      anyOf: [
+        { type: 'null' },
+        object({ destination: STRING, texts: CONSENT_STATE, marketing: CONSENT_STATE, followUps: CONSENT_STATE }),
+      ],
+    },
+  },
+  (p: {
+    preferredChannel: string | null
+    email: { destination: string; marketing: string; followUps: string } | null
+    phone: { destination: string; texts: string; marketing: string; followUps: string } | null
+  }) => ({
+    preferredChannel: p.preferredChannel,
+    email: p.email
+      ? { destination: p.email.destination, marketing: p.email.marketing, followUps: p.email.followUps }
+      : null,
+    phone: p.phone
+      ? {
+          destination: p.phone.destination,
+          texts: p.phone.texts,
+          marketing: p.phone.marketing,
+          followUps: p.phone.followUps,
+        }
+      : null,
+  }),
+)
+
 // The customer estimate view (TSK-0056; HH-EST-06, HH-EST-09, HH-EST-13, HH-PORT-10, OWN-DEC-103). The customer-facing
 // content of one version as published: the lines, texts and totals in integer cents exactly as stored, the business
 // name, the payment term code, the terms the version pinned (by document ID and state; the portal holds the wording),
@@ -2097,6 +2214,9 @@ export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
     ENROLLMENT_CHANNEL,
     ACCOUNT_CLAIM_ACCEPTED,
     ACCOUNT_CLAIMED,
+    ACCOUNT_PROPERTIES,
+    REQUEST_PREFILL,
+    ACCOUNT_PREFERENCES,
     CUSTOMER_ESTIMATE,
     CUSTOMER_ESTIMATE_RESPONSE,
     CUSTOMER_ESTIMATE_SELECTION,
