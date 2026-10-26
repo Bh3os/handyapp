@@ -26,9 +26,18 @@ export type StoredPacket = {
   view: unknown
   /** Each pinned work package's SOP checklist, by work package (HH-OFF-01: the packet with its SOP checklist). */
   sops: Record<string, unknown>
+  /**
+   * TSK-0115: the job checklist as the server last answered it to this worker after their Start Work, kept only while
+   * the Owner has turned offline checklist steps on (offline/checklist.ts). It goes with the packet copy.
+   */
+  checklist?: StoredChecklist | null
 }
 
-export type DraftKind = 'tap' | 'stop' | 'note'
+/** TSK-0115: the checklist copy: the view (without handoff notes and the worker list) and when it was taken. */
+export type StoredChecklist = { savedAt: string; view: unknown }
+
+/** TSK-0115: 'step' is a checklist step saved offline (only while the Owner has turned it on). */
+export type DraftKind = 'tap' | 'stop' | 'note' | 'step'
 /**
  * Where a draft is (HH-OFF-07): saved on this phone, being uploaded, synced, failed (the server refused the upload
  * itself) or kept by the server for the Owner's review (never applied).
