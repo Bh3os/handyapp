@@ -112,7 +112,7 @@ describe('the SMS disclosure is a versioned legal text (TSK-0029, HH-INT-22, ENT
     expect(entry.sourceIds).toContain('OQ-ATTORNEY-PRIVACY')
     const hash = createHash('sha256').update(legalTextContent(SMS_DISCLOSURE, CATALOGS['customer.en'])).digest('hex')
     expect(entry.value).toEqual({
-      documentId: 'sms-disclosure-1',
+      documentId: 'sms-disclosure-2',
       status: 'draft',
       attorneyReviewed: false,
       preparedOn: SMS_DISCLOSURE.preparedOn,
@@ -145,7 +145,7 @@ describe('consents from the request form are stored separately (TSK-0029, HH-INT
     expect(res.statusCode).toBe(201)
     const r = await stored(res.json<{ reference: string }>().reference)
     expect(r.sms_opt_in).toBe(true)
-    expect(r.original_submission).toMatchObject({ smsOptIn: true, smsDisclosureVersion: 'sms-disclosure-1' })
+    expect(r.original_submission).toMatchObject({ smsOptIn: true, smsDisclosureVersion: SMS_DISCLOSURE.documentId })
     const rows = await records(b)
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({
@@ -153,7 +153,7 @@ describe('consents from the request form are stored separately (TSK-0029, HH-INT
       channel: 'sms',
       destination: e164(b),
       granted: true,
-      disclosure_version: 'sms-disclosure-1',
+      disclosure_version: SMS_DISCLOSURE.documentId,
       source: 'request_form',
       subject_kind: 'customer_contact',
       subject_id: r.contact_id,
@@ -208,7 +208,7 @@ describe('consents from the request form are stored separately (TSK-0029, HH-INT
     expect((await submit(b)).statusCode).toBe(201)
     const rows = await records(b)
     expect(rows.map((x) => [x.purpose, x.channel, x.disclosure_version])).toEqual([
-      ['transactional_sms', 'sms', 'sms-disclosure-1'],
+      ['transactional_sms', 'sms', SMS_DISCLOSURE.documentId],
       ['marketing', 'email', 'privacy-notice-1'],
       ['marketing', 'sms', 'privacy-notice-1'],
     ])
@@ -341,7 +341,7 @@ describe('STOP, HELP and START after a request-form opt-in (TSK-0029, HH-COM-12,
     expect(await currentConsent(t.db, 'email', b.contact.email, 'marketing')).toBe('granted')
     const rows = (await records(b)).filter((x) => x.channel === 'sms')
     expect(rows.map((x) => [x.purpose, x.granted, x.source, x.disclosure_version])).toEqual([
-      ['transactional_sms', true, 'request_form', 'sms-disclosure-1'],
+      ['transactional_sms', true, 'request_form', SMS_DISCLOSURE.documentId],
       ['marketing', true, 'request_form', 'privacy-notice-1'],
       ['transactional_sms', false, 'sms_keyword', null],
       ['marketing', false, 'sms_keyword', null],

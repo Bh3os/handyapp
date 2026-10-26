@@ -47,7 +47,8 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
     // discount.eligibility_verification version 2. TSK-0140 (migration 0115) recorded the cancellation rules of
     // OWN-DEC-161, OWN-DEC-163 and OWN-DEC-195 as cancellation.rules version 2. TSK-0124 (migration 0119) recorded the
     // decided 24-hour guest link and the reissue limit (OWN-DEC-160, OWN-DEC-198 F5) as access.grants and
-    // access.recovery version 2.
+    // access.recovery version 2. TSK-0133 (migration 0126) recorded the request form's SMS opt-in in the owner's wording
+    // (OWN-DEC-190) and the SMS terms with the real message types: legal.sms_disclosure and legal.sms_terms version 2.
     const expected: Record<string, number> = {
       'access.grants': 2,
       'access.recovery': 2,
@@ -59,6 +60,8 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
       'request.window_hours': 2,
       'discount.rule': 2,
       'discount.eligibility_verification': 2,
+      'legal.sms_disclosure': 2,
+      'legal.sms_terms': 2,
     }
     for (const e of entries) expect(e.version, e.key).toBe(expected[e.key] ?? 1)
   })

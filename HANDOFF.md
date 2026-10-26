@@ -348,8 +348,12 @@ Each is recorded in the graph; read it with `node tools/kg.mjs show <id>`.
 
 ### Engineering follow-ups and known risks
 
-- Website Terms v1 cancellation text predates OWN-DEC-161/163. Privacy v1 lacks the provisional OWN-DEC-177 rows. The
-  `sms-disclosure-1` wording differs from OWN-DEC-190 (TSK-0133) (#72).
+- Website Terms v1 cancellation text predates OWN-DEC-161/163. Privacy v1 lacks the provisional OWN-DEC-177 rows, and
+  it does not mention the receipt's verification-code consent (OQ-10DLC-PACKAGE-DETAILS) (#72). The request-form SMS
+  opt-in now uses the OWN-DEC-190 wording (`sms-disclosure-2`, TSK-0133).
+- A2P 10DLC: the registration package is `docs/10dlc/registration.md`, prepared but not submitted (TSK-0133). Its
+  tests (`tendlc-package` unit and integration) fail when a consent text, a released text template or the live-texts
+  setting changes; update the package with the change.
 - `cancellationFacts` treats an arrived visit as work started. It only opens an Owner item and no money moves; the fix is
   in TSK-0140 (#73).
 - Messages still `template_values_not_wired`: estimate_follow_up, deposit_invoice, proposed_change (TSK-0082),

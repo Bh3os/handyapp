@@ -7,7 +7,7 @@
 // - Inbound texts (Bird sms.received) whose whole body is a keyword: STOP withdraws the SMS opt-in and marketing texts,
 //   START records a new SMS opt-in (never marketing), HELP changes nothing. Each is recorded at once with the receipt as
 //   evidence. Bird itself answers the keyword with its keyword rule (and blocks later sends after STOP); this app sends
-//   no second reply. The HELP wording is `sms.help_reply`, NOT CONFIGURED until the owner sets it (PROPOSED below).
+//   no second reply. The HELP wording is `sms.help_reply`, NOT CONFIGURED until the owner sets it (KEYWORD_REPLIES below).
 // - Bird sms_suppression.created (a STOP, a carrier opt-out or a manual suppression) records the withdrawal too.
 // - Inbound texts that are not keywords are left for the unified inbox (the receipt stays 'received').
 import type { Tx } from '@handyhub/db'
@@ -29,12 +29,18 @@ export const SMS_KEYWORDS = {
 export type SmsKeyword = keyof typeof SMS_KEYWORDS
 
 /**
- * PROPOSED HELP answer (HH-COM-12 asks for the program name and the support contact; the support contact is still a
- * placeholder, FACT-PUBLIC-CONTACT). Not active: `sms.help_reply` stays NOT CONFIGURED until the owner approves a
- * wording, which is then also set as the HELP reply of the Bird keyword rule.
+ * The keyword replies in the owner's wording (OWN-DEC-190 section 5; TSK-0133). Bird sends them: the Owner sets them as
+ * the replies of the Bird keyword rules and of the 10DLC campaign (docs/10dlc/registration.md); this app sends none.
+ * The HELP reply needs the real support contact for `{verifiedSupportContact}` (FACT-PUBLIC-CONTACT is still a
+ * placeholder), so it is not usable yet and `sms.help_reply` stays NOT CONFIGURED until the owner gives that contact.
+ * It replaces the earlier PROPOSED HELP wording of TSK-0048.
  */
-export const PROPOSED_HELP_REPLY =
-  'HandyHub: texts about your home-service requests and appointments. Reply STOP to opt out. Msg & data rates may apply. Help: [support contact].'
+export const KEYWORD_REPLIES = {
+  optIn:
+    "HandyHub: You're subscribed to service SMS updates. Message frequency varies. Message and data rates may apply. Reply HELP for help or STOP to opt out.",
+  optOut: "HandyHub: You've opted out of text messages. No further SMS notifications will be sent for this program.",
+  help: 'HandyHub: For assistance, contact {verifiedSupportContact}. Reply STOP to opt out.',
+} as const
 
 export function keywordOf(text: string): SmsKeyword | null {
   const word = text

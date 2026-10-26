@@ -69,7 +69,7 @@ export {
   deliveryStatusAutomation,
   keywordOf,
   nextState,
-  PROPOSED_HELP_REPLY,
+  KEYWORD_REPLIES,
   SMS_KEYWORDS,
   type SmsKeyword,
 } from './status.js'

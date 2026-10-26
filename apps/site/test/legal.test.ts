@@ -13,8 +13,10 @@ import {
   legalTextKeys,
   PRIVACY_NOTICE,
   SMS_DISCLOSURE,
+  SMS_DISCLOSURE_V1,
   SMS_NO_SHARING_KEY,
   SMS_TERMS,
+  SMS_TERMS_V1,
   WEBSITE_TERMS,
   type LegalDocument,
 } from '@handyhub/domain/legal'
@@ -109,27 +111,35 @@ describe('A2P 10DLC website elements (TSK-0024, HH-COM-12, OWN-DEC-147, T76)', (
   it('[HH-COM-12][T76] the SMS terms name the program, message types, frequency, rates, STOP, HELP and support', () => {
     expect(section(SMS_TERMS, 'program')).toMatch(/Program name: HandyHub Service Texts\./)
     const messages = section(SMS_TERMS, 'messages')
+    // Version 2 (TSK-0133): the customer messages the registry may text; the email-only ones are not listed.
     for (const type of [
-      /receipt for your request/,
       /verification codes/,
       /view your project/,
       /question about your request/,
       /visit options/,
       /cannot take on your request/,
       /estimate is ready/,
+      /answers your question about an estimate/,
       /approve an estimate/,
+      /Work appointment options/,
       /work appointment/,
+      /visit is cancelled/,
       /on my way/,
+      /deposit invoice/,
+      /proposes a change/,
       /invoice is ready/,
-      /payment receipt/,
-      /estimate you have not answered/,
-      /question you have not answered/,
+      /job is complete/,
+      /sign-in email/,
+      /One reminder about an estimate you have not answered/,
+      /One reminder about a question you have not answered/,
       /before each confirmed appointment/,
       /satisfaction check/,
-      /unpaid invoice/,
       /Repeat-service reminders/,
+      /work on your project is paused/,
     ])
       expect(messages).toMatch(type)
+    for (const emailOnly of [/receipt for your request/, /payment receipt/i, /unpaid invoice/i])
+      expect(messages).not.toMatch(emailOnly)
     expect(section(SMS_TERMS, 'frequency')).toMatch(/^Message frequency/m)
     expect(section(SMS_TERMS, 'rates')).toContain('Message and data rates may apply.')
     expect(section(SMS_TERMS, 'stop')).toContain('Reply STOP to opt out.')
@@ -144,6 +154,11 @@ describe('A2P 10DLC website elements (TSK-0024, HH-COM-12, OWN-DEC-147, T76)', (
     expect(optIn).toMatch(/not checked in advance/)
     expect(optIn).toMatch(/separate from accepting any terms and from marketing permission/)
     expect(optIn).toMatch(/separate marketing permission/)
+    // Opt-in point B (OWN-DEC-178): the receipt's consent covers the verification code only.
+    expect(optIn).toMatch(
+      /On the receipt for your request, you can separately agree to receive a one-time verification/,
+    )
+    expect(optIn).toMatch(/covers the verification code only/)
   })
 
   it('[HH-COM-12][FACT-LEGAL-ENTITY] one brand and legal-entity name on every document and in the footer', () => {
@@ -280,48 +295,67 @@ describe('actual practice only; nothing invented (TSK-0024, HH-PRIV-04, RULE-NO-
   })
 })
 
-describe('the SMS opt-in disclosure beside the request-form checkbox (TSK-0029, HH-INT-22, HH-COM-12, T76)', () => {
+describe('the SMS opt-in beside the request-form checkbox (TSK-0029, TSK-0133, HH-INT-22, OWN-DEC-190, T76)', () => {
   const disclosure = legalTextKeys(SMS_DISCLOSURE).map((k) => customerTranslator().t(k as CustomerKey))
   const all = disclosure.join('\n')
+  const owner = readFileSync(join(KG, 'decisions/OWN-DEC-190.md'), 'utf8')
 
   it('[HH-INT-22][ENT-PolicyVersion] is a versioned draft text whose hash covers its exact wording', () => {
     const hash = createHash('sha256').update(legalTextContent(SMS_DISCLOSURE, customer), 'utf8').digest('hex')
     expect(hash).toBe(SMS_DISCLOSURE.contentSha256)
     for (const key of legalTextKeys(SMS_DISCLOSURE)) expect(Object.hasOwn(customer, key), key).toBe(true)
-    expect(SMS_DISCLOSURE).toMatchObject({ documentId: 'sms-disclosure-1', status: 'draft', attorneyReviewed: false })
+    expect(SMS_DISCLOSURE).toMatchObject({
+      documentId: 'sms-disclosure-2',
+      version: 2,
+      status: 'draft',
+      attorneyReviewed: false,
+    })
     const pattern = new RegExp((REQUEST_FORM_SCHEMA.properties.smsDisclosureVersion as { pattern: string }).pattern)
     expect(SMS_DISCLOSURE.documentId).toMatch(pattern)
     expect(LEGAL_DOCUMENTS.map((d) => d.documentId)).not.toContain(SMS_DISCLOSURE.documentId)
   })
 
-  it('[HH-INT-22][HH-COM-12][T76] names the program and message types, frequency, rates, STOP, HELP, support and links', () => {
-    expect(customer[SMS_DISCLOSURE.label]).toBe('I agree to receive HandyHub Service Texts at the phone number above.')
-    expect(all).toMatch(/HandyHub Service Texts are messages about your estimate requests, projects, appointments/)
-    expect(all).toMatch(/^Message frequency varies/m)
+  it('[ENT-PolicyVersion] the superseded versions still hash to the wording they recorded', () => {
+    expect(SMS_DISCLOSURE_V1.documentId).toBe('sms-disclosure-1')
+    const v1 = createHash('sha256').update(legalTextContent(SMS_DISCLOSURE_V1, customer), 'utf8').digest('hex')
+    expect(v1).toBe(SMS_DISCLOSURE_V1.contentSha256)
+    expect(SMS_TERMS_V1.documentId).toBe('sms-terms-1')
+    const terms = createHash('sha256').update(legalContent(SMS_TERMS_V1, customer), 'utf8').digest('hex')
+    expect(terms).toBe(SMS_TERMS_V1.contentSha256)
+    expect(SMS_TERMS).toMatchObject({ documentId: 'sms-terms-2', version: 2 })
+    expect(SMS_TERMS.configKey).toBe(SMS_TERMS_V1.configKey)
+  })
+
+  it('[OWN-DEC-190][HH-INT-22][T76] the label and the disclosure are the owner’s opt-in point A, word for word', () => {
+    const label = customer[SMS_DISCLOSURE.label] as string
+    expect(label).toBe(
+      'I agree to receive text messages from HandyHub about my service requests, estimates, appointments, and project updates at the phone number provided.',
+    )
+    expect(owner).toContain(`"${label}"`)
+    const sentence = customer['legal.smsOptInDisclosure.disclosure'] as string
+    expect(owner).toContain(`"${sentence}"`)
+    // The same sentence the receipt shows beside its own box (opt-in point B).
+    expect(sentence).toBe(customer['legal.smsVerificationDisclosure.disclosure'])
     expect(all).toContain('Message and data rates may apply.')
-    expect(all).toContain('Reply STOP to opt out.')
-    expect(all).toContain('Reply HELP for help.')
+    expect(all).toContain('Reply STOP to opt out or HELP for assistance.')
+    expect(all).toContain('Consent is not required to purchase services.')
+    // The support contact HH-INT-22 asks for (PROPOSED), a placeholder until the owner gives it.
     expect(all).toContain('Support contact:')
     expect(SMS_DISCLOSURE.blocks.some((b) => b.kind === 'contact')).toBe(true)
     expect(SMS_DISCLOSURE.blocks.flatMap((b) => (b.kind === 'link' ? [b.to] : []))).toEqual([
-      'sms_terms',
       'privacy_notice',
+      'sms_terms',
     ])
-    // Optional and separate: never required to send, never marketing (OWN-DEC-147).
-    expect(all).toMatch(/Texts are optional/)
-    expect(all).toMatch(/Sending a request or giving us your phone number is not agreement to texts\./)
-    expect(all).toMatch(/separate marketing permission/)
   })
 
-  it('[HH-COM-12] every sentence the SMS terms publish is the same catalog key, so the two never differ', () => {
+  it('[HH-COM-12] every sentence beside the box is the owner’s or one the SMS terms publish under the same key', () => {
     const terms = new Set(legalKeys(SMS_TERMS))
     const own = legalTextKeys(SMS_DISCLOSURE).filter((k) => !terms.has(k))
-    // Only the checkbox label, the short frequency sentence and the two link labels are the disclosure's own.
     expect(own.sort()).toEqual([
       'legal.link.privacy',
       'legal.link.smsTerms',
-      'legal.smsDisclosure.frequency',
-      'legal.smsDisclosure.label',
+      'legal.smsOptInDisclosure.disclosure',
+      'legal.smsOptInDisclosure.label',
     ])
   })
 
