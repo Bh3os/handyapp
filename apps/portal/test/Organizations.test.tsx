@@ -106,7 +106,9 @@ describe('the organizations page (TSK-0118, HH-ID-13)', () => {
     expect(await within(region).findByText('Choose at least one shared project.')).toBeTruthy()
     fireEvent.click(within(region).getByRole('checkbox', { name: `Project ${HOME}` }))
     fireEvent.click(
-      within(region).getByRole('checkbox', { name: 'Allow approving estimates, change orders and appointments' }),
+      within(region).getByRole('checkbox', {
+        name: 'Allow approving, declining or asking for changes to estimates and change orders, and choosing or changing appointment times',
+      }),
     )
     fireEvent.click(within(region).getByRole('button', { name: 'Invite' }))
     expect(await screen.findByText('manager@example.test is invited.')).toBeTruthy()
@@ -120,8 +122,17 @@ describe('the organizations page (TSK-0118, HH-ID-13)', () => {
       name: 'manager@example.test',
     })
     expect(within(person).getByText('Invited')).toBeTruthy()
-    expect(within(person).getByText('Can approve estimates, change orders and appointments')).toBeTruthy()
+    expect(
+      within(person).getByText(
+        'Can approve, decline or ask for changes to estimates and change orders, and choose or change appointment times',
+      ),
+    ).toBeTruthy()
     expect(within(person).queryByText('Can see balances and pay')).toBeNull()
+    // TSK-0150 (OWN-DEC-199, portal.organizations.done.withdrawn): an invitee never had access, so withdrawing the
+    // invitation says so instead of "no longer has access".
+    fireEvent.click(within(person).getByRole('button', { name: 'Withdraw the invitation to manager@example.test' }))
+    expect(await screen.findByText('The invitation to manager@example.test is withdrawn.')).toBeTruthy()
+    expect(screen.queryByText('manager@example.test no longer has access.')).toBeNull()
   })
 
   it('[HH-ID-13][HH-ID-03] an invitation shows only the name, privileges and project count until it is accepted', async () => {
@@ -148,7 +159,9 @@ describe('the organizations page (TSK-0118, HH-ID-13)', () => {
     expect(screen.queryByText(RENTAL)).toBeNull()
     fireEvent.click(within(invitation).getByRole('button', { name: 'Accept the invitation from Synthetic Rentals' }))
     expect(
-      await screen.findByText('You joined Synthetic Rentals. Its shared projects are on your projects page.'),
+      await screen.findByText(
+        'You joined Synthetic Rentals. The projects it shares with you are on your projects page.',
+      ),
     ).toBeTruthy()
     const membership = screen.getByRole('region', { name: 'Organizations you belong to' })
     expect(

@@ -8296,6 +8296,7 @@
                                   "choose_work_appointment",
                                   "view_appointment",
                                   "arrival_update",
+                                  "arrival_recorded",
                                   "view_updates",
                                   "safety_review",
                                   "update_pending",
@@ -10113,6 +10114,7 @@
                     "reference",
                     "original",
                     "currentTotalCents",
+                    "validUntilZone",
                     "changeOrders",
                     "refreshedAt",
                     "refreshSeconds"
@@ -10153,6 +10155,29 @@
                       "type": [
                         "integer",
                         "null"
+                      ]
+                    },
+                    "validUntilZone": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "zone",
+                            "business"
+                          ],
+                          "properties": {
+                            "zone": {
+                              "type": "string"
+                            },
+                            "business": {
+                              "type": "boolean"
+                            }
+                          }
+                        }
                       ]
                     },
                     "changeOrders": {
@@ -11136,7 +11161,8 @@
                           "publishedAt",
                           "validUntil",
                           "totalCents",
-                          "receipt"
+                          "receipt",
+                          "validUntilZone"
                         ],
                         "properties": {
                           "number": {
@@ -11182,6 +11208,29 @@
                                   "preparing",
                                   "issued"
                                 ]
+                              }
+                            ]
+                          },
+                          "validUntilZone": {
+                            "oneOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "zone",
+                                  "business"
+                                ],
+                                "properties": {
+                                  "zone": {
+                                    "type": "string"
+                                  },
+                                  "business": {
+                                    "type": "boolean"
+                                  }
+                                }
                               }
                             ]
                           }
@@ -11706,6 +11755,7 @@
                             "enum": [
                               "terms_not_configured",
                               "terms_not_in_effect",
+                              "terms_not_current",
                               "superseded",
                               "expired",
                               "not_published",
@@ -14298,6 +14348,7 @@
                     "timeline",
                     "appointment",
                     "payment",
+                    "invoiceBalanceCents",
                     "refreshedAt",
                     "refreshSeconds"
                   ],
@@ -14363,6 +14414,7 @@
                             "choose_work_appointment",
                             "view_appointment",
                             "arrival_update",
+                            "arrival_recorded",
                             "view_updates",
                             "safety_review",
                             "update_pending",
@@ -14692,6 +14744,10 @@
                           }
                         }
                       ]
+                    },
+                    "invoiceBalanceCents": {
+                      "type": "integer",
+                      "minimum": 0
                     },
                     "refreshedAt": {
                       "type": "string",
@@ -55314,6 +55370,7 @@
                                   "sms.unknown_zone_hours",
                                   "launch.phase",
                                   "sms.live_delivery",
+                                  "field.offline_actions",
                                   "ai.module"
                                 ]
                               },
@@ -57500,6 +57557,7 @@
                                   "sms.unknown_zone_hours",
                                   "launch.phase",
                                   "sms.live_delivery",
+                                  "field.offline_actions",
                                   "ai.module"
                                 ]
                               },
@@ -59966,6 +60024,7 @@
                                   "sms.unknown_zone_hours",
                                   "launch.phase",
                                   "sms.live_delivery",
+                                  "field.offline_actions",
                                   "ai.module"
                                 ]
                               },
@@ -62005,6 +62064,7 @@
                                   "sms.unknown_zone_hours",
                                   "launch.phase",
                                   "sms.live_delivery",
+                                  "field.offline_actions",
                                   "ai.module"
                                 ]
                               },
@@ -64220,6 +64280,7 @@
                                   "sms.unknown_zone_hours",
                                   "launch.phase",
                                   "sms.live_delivery",
+                                  "field.offline_actions",
                                   "ai.module"
                                 ]
                               },
@@ -66259,6 +66320,7 @@
                                   "sms.unknown_zone_hours",
                                   "launch.phase",
                                   "sms.live_delivery",
+                                  "field.offline_actions",
                                   "ai.module"
                                 ]
                               },
@@ -68665,6 +68727,7 @@
                                   "sms.unknown_zone_hours",
                                   "launch.phase",
                                   "sms.live_delivery",
+                                  "field.offline_actions",
                                   "ai.module"
                                 ]
                               },
@@ -70893,6 +70956,7 @@
                                   "sms.unknown_zone_hours",
                                   "launch.phase",
                                   "sms.live_delivery",
+                                  "field.offline_actions",
                                   "ai.module"
                                 ]
                               },
@@ -73112,6 +73176,7 @@
                                   "sms.unknown_zone_hours",
                                   "launch.phase",
                                   "sms.live_delivery",
+                                  "field.offline_actions",
                                   "ai.module"
                                 ]
                               },
@@ -75331,6 +75396,7 @@
                                   "sms.unknown_zone_hours",
                                   "launch.phase",
                                   "sms.live_delivery",
+                                  "field.offline_actions",
                                   "ai.module"
                                 ]
                               },
@@ -77555,6 +77621,7 @@
                                   "sms.unknown_zone_hours",
                                   "launch.phase",
                                   "sms.live_delivery",
+                                  "field.offline_actions",
                                   "ai.module"
                                 ]
                               },
@@ -80072,6 +80139,7 @@
                                   "sms.unknown_zone_hours",
                                   "launch.phase",
                                   "sms.live_delivery",
+                                  "field.offline_actions",
                                   "ai.module"
                                 ]
                               },
@@ -82291,6 +82359,7 @@
                                   "sms.unknown_zone_hours",
                                   "launch.phase",
                                   "sms.live_delivery",
+                                  "field.offline_actions",
                                   "ai.module"
                                 ]
                               },
@@ -84715,6 +84784,7 @@
                                   "sms.unknown_zone_hours",
                                   "launch.phase",
                                   "sms.live_delivery",
+                                  "field.offline_actions",
                                   "ai.module"
                                 ]
                               },
@@ -86486,7 +86556,7 @@
       "post": {
         "operationId": "syncFieldEvent",
         "summary": "Upload one field event a phone saved",
-        "description": "Staff with a My Day (schedule.view_my_day) upload one event their phone saved (today On my way, Arrived or Finished), with the UUID the phone generated (clientId), the phone's own time and the attempt number (one Idempotency-Key per attempt). The UUID is the key: an event resent any number of times is ingested once and answers as it did the first time (ingested: false); the same UUID for a different event is refused (CLIENT_ID_REUSED). Each event is decided again: the worker must have been assigned to the visit when the phone recorded it and still be assigned now, else it is kept for the Owner's review and never applied (not_assigned). It is then applied as an online tap would be (applied, or already_recorded), the phone's time kept beside the server's; one the visit's newer state refuses is kept for review, never applied over it (conflict, with the refusal code). The Owner may upload the events another account's phone holds (actorId): kept for review only (recovered). Each event in review opens the Owner's queue item field_event_review.",
+        "description": "Staff with a My Day (schedule.view_my_day) upload one event their phone saved (today On my way, Arrived or Finished), with the UUID the phone generated (clientId), the phone's own time and the attempt number (one Idempotency-Key per attempt). The UUID is the key: an event resent any number of times is ingested once and answers as it did the first time (ingested: false); the same UUID for a different event is refused (CLIENT_ID_REUSED). Each event is decided again: the worker must have been assigned to the visit when the phone recorded it and still be assigned now, else it is kept for the Owner's review and never applied (not_assigned). It is then applied as an online tap would be (applied, or already_recorded), the phone's time kept beside the server's; one the visit's newer state refuses is kept for review, never applied over it (conflict, with the refusal code). The Owner may upload the events another account's phone holds (actorId): kept for review only (recovered). Each event in review opens the Owner's queue item field_event_review. TSK-0115: a checklist_step event (with step: the work package, step, event start/pause/resume/complete, the version the phone saw and the evidence) is taken only while the Owner has turned it on (field.offline_actions; OFFLINE_ACTION_NOT_ENABLED otherwise, nothing kept), then decided as above with job.record_checklist_step and applied through the checklist route's own checks (the worker's own Start Work, no open hold, the step's version); what they refuse now is kept for review with the refusal code, never applied.",
         "tags": [
           "field"
         ],
@@ -86524,7 +86594,8 @@
                     "enum": [
                       "tap_on_my_way",
                       "tap_arrived",
-                      "tap_finished"
+                      "tap_finished",
+                      "checklist_step"
                     ]
                   },
                   "visitId": {
@@ -86547,6 +86618,55 @@
                     "type": "integer",
                     "minimum": 1,
                     "maximum": 10000
+                  },
+                  "step": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "workPackageId",
+                      "stepId",
+                      "event",
+                      "version"
+                    ],
+                    "properties": {
+                      "workPackageId": {
+                        "type": "string",
+                        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                      },
+                      "stepId": {
+                        "type": "string",
+                        "pattern": "^[1-6]\\.[0-9]{1,3}$"
+                      },
+                      "event": {
+                        "type": "string",
+                        "enum": [
+                          "start",
+                          "pause",
+                          "resume",
+                          "complete"
+                        ]
+                      },
+                      "version": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "measurement": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "note": {
+                        "type": "string",
+                        "maxLength": 2000
+                      },
+                      "photoIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                        },
+                        "maxItems": 20
+                      }
+                    }
                   }
                 }
               }
@@ -86775,6 +86895,7 @@
                     "state",
                     "outcome",
                     "detail",
+                    "step",
                     "review",
                     "actions"
                   ],
@@ -86787,7 +86908,8 @@
                       "enum": [
                         "tap_on_my_way",
                         "tap_arrived",
-                        "tap_finished"
+                        "tap_finished",
+                        "checklist_step"
                       ]
                     },
                     "visitId": {
@@ -86873,6 +86995,58 @@
                       "type": [
                         "string",
                         "null"
+                      ]
+                    },
+                    "step": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "workPackageId",
+                            "stepId",
+                            "event",
+                            "version",
+                            "measurement",
+                            "note",
+                            "photoIds"
+                          ],
+                          "properties": {
+                            "workPackageId": {
+                              "type": "string"
+                            },
+                            "stepId": {
+                              "type": "string"
+                            },
+                            "event": {
+                              "type": "string"
+                            },
+                            "version": {
+                              "type": "integer"
+                            },
+                            "measurement": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "note": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "photoIds": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
                       ]
                     },
                     "review": {
@@ -87099,6 +87273,7 @@
                     "state",
                     "outcome",
                     "detail",
+                    "step",
                     "review",
                     "actions"
                   ],
@@ -87111,7 +87286,8 @@
                       "enum": [
                         "tap_on_my_way",
                         "tap_arrived",
-                        "tap_finished"
+                        "tap_finished",
+                        "checklist_step"
                       ]
                     },
                     "visitId": {
@@ -87197,6 +87373,58 @@
                       "type": [
                         "string",
                         "null"
+                      ]
+                    },
+                    "step": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "workPackageId",
+                            "stepId",
+                            "event",
+                            "version",
+                            "measurement",
+                            "note",
+                            "photoIds"
+                          ],
+                          "properties": {
+                            "workPackageId": {
+                              "type": "string"
+                            },
+                            "stepId": {
+                              "type": "string"
+                            },
+                            "event": {
+                              "type": "string"
+                            },
+                            "version": {
+                              "type": "integer"
+                            },
+                            "measurement": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "note": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "photoIds": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
                       ]
                     },
                     "review": {
@@ -103249,7 +103477,7 @@
       "get": {
         "operationId": "getJobChecklist",
         "summary": "The job's checklist",
-        "description": "Staff with job.record_checklist_step: assigned to the job inside the access window. Per work package, the pinned SOP version in six ordered stages with every step verbatim, whether it is required, the evidence it asks for and the controls quoted before it; each step’s state, evidence, skip reason, worker and the actions the caller may take now; the current stage and the summary (required steps open or skipped). Also the job’s field photos to attach as evidence, the handoff notes, and what blocks the caller (JOB_NOT_IN_PROGRESS, HOLD_OPEN, WORK_NOT_STARTED).",
+        "description": "Staff with job.record_checklist_step: assigned to the job inside the access window. Per work package, the pinned SOP version in six ordered stages with every step verbatim, whether it is required, the evidence it asks for and the controls quoted before it; each step’s state, evidence, skip reason, worker and the actions the caller may take now; the current stage and the summary (required steps open or skipped). Also the job’s field photos to attach as evidence, the handoff notes, and what blocks the caller (JOB_NOT_IN_PROGRESS, HOLD_OPEN, WORK_NOT_STARTED). TSK-0115: the step events the phone may save offline (none until the Owner turns offline checklist steps on, field.offline_actions) and the visit of the caller’s latest Start Work.",
         "tags": [
           "checklist"
         ],
@@ -103281,7 +103509,8 @@
                     "photos",
                     "handoffs",
                     "workers",
-                    "actions"
+                    "actions",
+                    "offline"
                   ],
                   "properties": {
                     "jobId": {
@@ -103761,6 +103990,29 @@
                       "properties": {
                         "handoff": {
                           "type": "boolean"
+                        }
+                      }
+                    },
+                    "offline": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "events",
+                        "visitId"
+                      ],
+                      "properties": {
+                        "events": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "visitId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
                         }
                       }
                     }
@@ -206187,6 +206439,398 @@
         }
       }
     },
+    "/api/v1/staff/settings/offline-actions": {
+      "get": {
+        "operationId": "getOfflineActions",
+        "summary": "The offline actions turned on",
+        "description": "The Owner (visit.correct_timestamps: the role that reviews what phones upload). The actions a phone may save offline beyond the minimal set (On my way, Arrived, Finished, Stop Work): field.offline_actions, its version, what it turns on, the actions available (PROPOSED: checklist_step) and the reason of the last change. Nothing is on until the Owner turns it on after walking the offline controls on staging (HH-OFF-08). ETag: the configuration version.",
+        "tags": [
+          "field"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "version",
+                    "actions",
+                    "available",
+                    "changedAt",
+                    "reason"
+                  ],
+                  "properties": {
+                    "version": {
+                      "type": "integer"
+                    },
+                    "actions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "checklist_step"
+                        ]
+                      }
+                    },
+                    "available": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "checklist_step"
+                        ]
+                      }
+                    },
+                    "changedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "reason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "visit.correct_timestamps",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/checklist.test.ts"
+        }
+      },
+      "put": {
+        "operationId": "setOfflineActions",
+        "summary": "Turn offline actions on or off (Owner only)",
+        "description": "The Owner only (policy_values.change: a fresh sign-in within 5 minutes and a written reason), with If-Match: the configuration version shown. Records the next version of field.offline_actions with the actions listed (an empty list turns every one off). Turning one on says the offline controls were proven on staging (HH-OFF-08); it never moves Start Work, a hold, an approval or a payment offline. The database accepts the change only from a live Owner with a reason. Audited with the old and new list.",
+        "tags": [
+          "field"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "actions",
+                  "reason"
+                ],
+                "properties": {
+                  "actions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "checklist_step"
+                      ]
+                    },
+                    "uniqueItems": true
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "version",
+                    "actions",
+                    "available",
+                    "changedAt",
+                    "reason"
+                  ],
+                  "properties": {
+                    "version": {
+                      "type": "integer"
+                    },
+                    "actions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "checklist_step"
+                        ]
+                      }
+                    },
+                    "available": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "checklist_step"
+                        ]
+                      }
+                    },
+                    "changedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "reason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "policy_values.change",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": 5,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "field_event.offline_actions_change",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/checklist.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/sop-versions/{sopVersionId}/sign-off": {
       "post": {
         "operationId": "signOffSopVersion",
@@ -208637,6 +209281,7 @@
                               "sms.unknown_zone_hours",
                               "launch.phase",
                               "sms.live_delivery",
+                              "field.offline_actions",
                               "ai.module"
                             ]
                           },

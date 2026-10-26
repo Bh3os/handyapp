@@ -224,6 +224,7 @@ describe('document downloads (TSK-0100, HH-PRIV-06)', () => {
           timeline: [{ kind: 'received', at: NOW, text: null }],
           appointment: null,
           payment: { state: 'none' },
+          invoiceBalanceCents: 0,
           refreshedAt: NOW,
           refreshSeconds: 0,
         })

@@ -21,7 +21,7 @@ import {
   type DecisionFailure,
   type Fetch,
 } from './api'
-import { day, Reverify } from './Estimate'
+import { day, Reverify, validUntilText } from './Estimate'
 import { t } from './labels'
 
 const usd = (n: number) => formatUsd(cents(n))
@@ -236,11 +236,13 @@ function Decide({
 
 function Item({
   c,
+  zone,
   reference,
   fetchImpl,
   onDone,
 }: {
   c: ChangeOrder
+  zone: ChangeOrderList['validUntilZone']
   reference: string
   fetchImpl: Fetch
   onDone: () => Promise<void>
@@ -249,11 +251,18 @@ function Item({
     <li className="portal-documents__item" data-testid="change-order">
       <p>
         <strong>{t('portal.changeOrders.name', { reference: c.reference, version: c.version })}</strong>{' '}
-        <StatusBadge tone={TONE[c.status]}>{t(STATUS[c.status])}</StatusBadge>
+        {/* TSK-0150 (OWN-DEC-199): an open version another approved change blocked is not waiting for a decision. */}
+        {c.status === 'issued' && c.approval && !c.approval.canDecide ? (
+          <StatusBadge tone="neutral">{t('portal.changeOrders.status.blocked')}</StatusBadge>
+        ) : (
+          <StatusBadge tone={TONE[c.status]}>{t(STATUS[c.status])}</StatusBadge>
+        )}
       </p>
       <p className="hh-small hh-muted">
         {t('portal.changeOrders.sent', { date: day(c.sentAt) })}
-        {c.status === 'issued' ? ` · ${t('portal.changeOrders.validUntil', { date: day(c.validUntil) })}` : ''}
+        {c.status === 'issued'
+          ? ` · ${t('portal.changeOrders.validUntil', { date: validUntilText(c.validUntil, zone) })}`
+          : ''}
       </p>
       <p>
         <strong>{t('portal.changeOrders.reason')}</strong> {c.reason}
@@ -322,7 +331,14 @@ export function ChangeOrders({ reference, fetchImpl }: { reference: string; fetc
       </dl>
       <ul className="portal-documents">
         {data.changeOrders.map((c) => (
-          <Item key={`${c.number}-${c.version}`} c={c} reference={reference} fetchImpl={fetchImpl} onDone={load} />
+          <Item
+            key={`${c.number}-${c.version}`}
+            c={c}
+            zone={data.validUntilZone}
+            reference={reference}
+            fetchImpl={fetchImpl}
+            onDone={load}
+          />
         ))}
       </ul>
     </section>

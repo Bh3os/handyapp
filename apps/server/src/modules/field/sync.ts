@@ -16,23 +16,35 @@
 //     for review only, never applied (recovered).
 // - Every event in review opens the Owner's queue item field_event_review; the Owner records once what was done
 //   (correct a timestamp with the existing correction, or nothing to apply). Nothing is ever deleted.
+// TSK-0115 (HH-OFF-08, HH-OFF-03, migration 0128): a checklist step saved offline (started, paused, resumed or
+// completed) is a checklist_step event. It is taken only while the Owner has turned the action on
+// (field.offline_actions; otherwise OFFLINE_ACTION_NOT_ENABLED and the draft stays on the phone), then decided like a
+// tap: assigned to the visit then and now (and job.record_checklist_step now), then applied through the online
+// route's own path (checklist/store.ts stepEvent: the worker's own Start Work, the job and package in progress, no
+// open hold, the step's version). Whatever that path refuses now (a hold raised since, a version moved by someone
+// else, an earlier stage reopened) is kept for the Owner's review, never applied over the newer state.
 import type { Db, Tx } from '@handyhub/db'
-import type { FieldTap } from '@handyhub/domain'
+import type { FieldTap, OfflineChecklistEvent } from '@handyhub/domain'
 import { decide, type StaffActor } from '@handyhub/policy'
 import { sql } from 'kysely'
 import { ApiError, type FieldError } from '../../api/errors.js'
+import { loadConfig } from '../../platform/config/index.js'
+import { stepEvent } from '../checklist/store.js'
+import { jobAssignments } from '../packets/assignments.js'
 import { openQueueItem, resolveQueueItem } from '../queue/index.js'
 import { holdsAction } from '../visits/changes.js'
+import { offlineActions } from './offline-actions.js'
 import { recordTap, visitAssignments } from './taps.js'
 
 type Reader = Db | Tx
 
-export const FIELD_EVENT_TYPES = ['tap_on_my_way', 'tap_arrived', 'tap_finished'] as const
+export const FIELD_EVENT_TYPES = ['tap_on_my_way', 'tap_arrived', 'tap_finished', 'checklist_step'] as const
 export type FieldEventType = (typeof FIELD_EVENT_TYPES)[number]
+type TapEventType = Exclude<FieldEventType, 'checklist_step'>
 export const FIELD_EVENT_QUEUE_TYPE = 'field_event_review'
 export const FIELD_EVENT_NOTE_MAX = 2000
 
-const TAP_OF: Record<FieldEventType, FieldTap> = {
+const TAP_OF: Record<TapEventType, FieldTap> = {
   tap_on_my_way: 'on_my_way',
   tap_arrived: 'arrived',
   tap_finished: 'finished',
@@ -45,10 +57,22 @@ const REASON_OF = {
   recovered: 'sync_recovered',
 } as const
 
+/** TSK-0115: the checklist step a checklist_step event records (the online route's body, with its event). */
+export type OfflineStep = {
+  workPackageId: string
+  stepId: string
+  event: OfflineChecklistEvent
+  version: number
+  measurement?: string | undefined
+  note?: string | undefined
+  photoIds?: string[] | undefined
+}
+
 export type FieldEventInput = {
   clientId: string
   type: FieldEventType
   visitId: string
+  step?: OfflineStep | undefined
   /** Who recorded it on the phone; the caller when omitted. */
   actorId?: string | undefined
   baseVersion?: number | undefined
@@ -70,6 +94,13 @@ export type FieldEventResult = {
 }
 
 const field = (f: string, code: string): FieldError => ({ field: f, code, message: '' })
+/** A JSON value with its object keys sorted (jsonb keeps its own key order): two payloads compare by content. */
+const canonical = (v: unknown): string =>
+  JSON.stringify(v, (_k, x: unknown) =>
+    x && typeof x === 'object' && !Array.isArray(x)
+      ? Object.fromEntries(Object.entries(x as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)))
+      : x,
+  )
 
 /** Whether the worker held a confirmed reservation of the visit at that moment (ended reservations included). */
 async function assignedAt(tx: Tx, visitId: string, staffUserId: string, at: Date): Promise<boolean> {
@@ -117,6 +148,12 @@ export async function ingestFieldEvent(
 ): Promise<FieldEventResult & { projectId: string; visitVersion: number | null }> {
   const recordedBy = input.actorId ?? actor.userId
   const device = new Date(input.deviceRecordedAt)
+  const isStep = input.type === 'checklist_step'
+  if (isStep !== (input.step !== undefined))
+    throw new ApiError('VALIDATION_FAILED', {
+      fieldErrors: [field('body.step', isStep ? 'STEP_REQUIRED' : 'STEP_NOT_ALLOWED')],
+    })
+  const payload = isStep ? stepPayload(input.step as OfflineStep) : { tap: TAP_OF[input.type as TapEventType] }
   // One event at a time per UUID: two uploads of the same event never both apply it.
   await sql`SELECT pg_advisory_xact_lock(hashtextextended(${`field_event:${input.clientId}`}, 0))`.execute(tx)
   const seen = await tx
@@ -131,7 +168,8 @@ export async function ingestFieldEvent(
       seen.uploaded_by !== actor.userId ||
       seen.type !== input.type ||
       seen.visit_id !== input.visitId ||
-      seen.device_recorded_at.getTime() !== device.getTime()
+      seen.device_recorded_at.getTime() !== device.getTime() ||
+      canonical(seen.payload) !== canonical(payload)
     )
       throw new ApiError('CONFLICT', { fieldErrors: [field('body.clientId', 'CLIENT_ID_REUSED')] })
     return { ...resultOf(seen, false), projectId: seen.project_id, visitVersion: null }
@@ -143,11 +181,15 @@ export async function ingestFieldEvent(
     .where('v.id', '=', input.visitId)
     .executeTakeFirst()
   if (!v) throw new ApiError('NOT_FOUND')
+  // TSK-0115: an offline action the Owner has not turned on is refused, never kept: the draft stays on the phone.
+  if (isStep && !offlineActions(await loadConfig(tx)).includes('checklist_step'))
+    throw new ApiError('CONFLICT', { fieldErrors: [field('body.type', 'OFFLINE_ACTION_NOT_ENABLED')] })
+  if (isStep && !v.job_id)
+    throw new ApiError('VALIDATION_FAILED', { fieldErrors: [field('body.visitId', 'VISIT_HAS_NO_JOB')] })
 
   let outcome: FieldEventOutcome
   let detail: string | null = null
   let visitVersion: number | null = null
-  const tap = TAP_OF[input.type]
   if (recordedBy !== actor.userId) {
     // The recovery upload: another account's evidence, from a phone the Owner holds. Kept for review, never applied.
     if (!holdsAction(actor, 'visit.correct_timestamps')) throw new ApiError('FORBIDDEN')
@@ -158,7 +200,10 @@ export async function ingestFieldEvent(
       .executeTakeFirst()
     if (!known) throw new ApiError('VALIDATION_FAILED', { fieldErrors: [field('body.actorId', 'UNKNOWN_STAFF')] })
     outcome = 'recovered'
+  } else if (isStep) {
+    ;({ outcome, detail } = await applyStep(tx, actor, v, input.step as OfflineStep, device, now))
   } else {
+    const tap = TAP_OF[input.type as TapEventType]
     const facts = { projectId: v.project_id, assignments: await visitAssignments(tx, v.id) }
     const allowed = decide(actor, `visit.tap_${tap}`, facts, { now, online: true })
     if (!(await assignedAt(tx, v.id, actor.userId, device))) {
@@ -207,8 +252,8 @@ export async function ingestFieldEvent(
       base_version: input.baseVersion ?? null,
       device_recorded_at: device,
       received_at: now,
-      payload: JSON.stringify({ tap }),
-      attachment_refs: JSON.stringify([]),
+      payload: JSON.stringify(payload),
+      attachment_refs: JSON.stringify(isStep ? (input.step?.photoIds ?? []) : []),
       attempts: input.attempt ?? 1,
       state: synchronized ? 'synchronized' : 'needs_review',
       outcome,
@@ -228,6 +273,58 @@ export async function ingestFieldEvent(
     })
   }
   return { ...resultOf(row, true), projectId: v.project_id, visitVersion }
+}
+
+/** What a checklist_step event keeps of its step: the fields given, in one order (a resend compares equal). */
+function stepPayload(s: OfflineStep): Record<string, unknown> {
+  return {
+    workPackageId: s.workPackageId,
+    stepId: s.stepId,
+    event: s.event,
+    version: s.version,
+    ...(s.measurement !== undefined ? { measurement: s.measurement } : {}),
+    ...(s.note !== undefined ? { note: s.note } : {}),
+    ...(s.photoIds !== undefined ? { photoIds: s.photoIds } : {}),
+  }
+}
+
+/**
+ * TSK-0115: decides and applies one checklist step a phone saved offline (see the header). The online route's path
+ * refuses before it writes anything, so a step kept for review leaves nothing behind.
+ */
+async function applyStep(
+  tx: Tx,
+  actor: StaffActor,
+  v: { id: string; project_id: string; job_id: string | null; state: string },
+  step: OfflineStep,
+  device: Date,
+  now: Date,
+): Promise<{ outcome: FieldEventOutcome; detail: string | null }> {
+  const jobId = v.job_id as string
+  if (!(await assignedAt(tx, v.id, actor.userId, device)))
+    return { outcome: 'not_assigned', detail: 'NOT_ASSIGNED_THEN' }
+  if (CLOSED_STATES.includes(v.state)) return { outcome: 'conflict', detail: 'VISIT_NOT_ACTIVE' }
+  const facts = { projectId: v.project_id, assignments: await jobAssignments(tx, jobId) }
+  if (decide(actor, 'job.record_checklist_step', facts, { now, online: true }).effect !== 'allow')
+    return { outcome: 'not_assigned', detail: 'NOT_ASSIGNED_NOW' }
+  try {
+    await stepEvent(tx, actor, jobId, step.event, {
+      workPackageId: step.workPackageId,
+      stepId: step.stepId,
+      version: step.version,
+      ...(step.measurement !== undefined ? { measurement: step.measurement } : {}),
+      ...(step.note !== undefined ? { note: step.note } : {}),
+      ...(step.photoIds !== undefined ? { photoIds: step.photoIds } : {}),
+    })
+    return { outcome: 'applied', detail: null }
+  } catch (e) {
+    if (!(e instanceof ApiError)) throw e
+    if (e.code === 'FORBIDDEN') return { outcome: 'not_assigned', detail: 'NOT_ASSIGNED_NOW' }
+    if (e.code === 'STALE_VERSION') return { outcome: 'conflict', detail: 'STALE_VERSION' }
+    if (e.code === 'NOT_FOUND') return { outcome: 'conflict', detail: 'STEP_NOT_FOUND' }
+    if (e.code === 'CONFLICT') return { outcome: 'conflict', detail: e.options.fieldErrors?.[0]?.code ?? 'CONFLICT' }
+    throw e
+  }
 }
 
 /** Records the Owner's review of an event in review, once, and resolves its item. */
@@ -277,6 +374,16 @@ export type FieldEventView = {
   state: FieldEventState
   outcome: FieldEventOutcome
   detail: string | null
+  /** TSK-0115: the checklist step a checklist_step event names (null for a tap). */
+  step: {
+    workPackageId: string
+    stepId: string
+    event: string
+    version: number
+    measurement: string | null
+    note: string | null
+    photoIds: string[]
+  } | null
   review: { by: { id: string; name: string | null }; at: string; note: string } | null
 }
 
@@ -301,6 +408,7 @@ export async function fieldEventView(db: Reader, clientId: string): Promise<Fiel
       'e.state',
       'e.outcome',
       'e.detail',
+      'e.payload',
       'e.reviewed_by',
       'e.reviewed_at',
       'e.review_note',
@@ -314,6 +422,7 @@ export async function fieldEventView(db: Reader, clientId: string): Promise<Fiel
     .where('e.client_id', '=', clientId)
     .executeTakeFirst()
   if (!e) return null
+  const p = (typeof e.payload === 'string' ? JSON.parse(e.payload) : e.payload) as Record<string, unknown>
   return {
     clientId: e.client_id,
     type: e.type as FieldEventType,
@@ -329,6 +438,18 @@ export async function fieldEventView(db: Reader, clientId: string): Promise<Fiel
     state: e.state as FieldEventState,
     outcome: e.outcome as FieldEventOutcome,
     detail: e.detail,
+    step:
+      e.type === 'checklist_step'
+        ? {
+            workPackageId: String(p['workPackageId']),
+            stepId: String(p['stepId']),
+            event: String(p['event']),
+            version: Number(p['version']),
+            measurement: typeof p['measurement'] === 'string' ? p['measurement'] : null,
+            note: typeof p['note'] === 'string' ? p['note'] : null,
+            photoIds: Array.isArray(p['photoIds']) ? (p['photoIds'] as string[]) : [],
+          }
+        : null,
     review:
       e.reviewed_by && e.reviewed_at && e.review_note
         ? { by: { id: e.reviewed_by, name: e.reviewer_name }, at: e.reviewed_at.toISOString(), note: e.review_note }

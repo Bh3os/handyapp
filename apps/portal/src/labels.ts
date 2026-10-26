@@ -41,6 +41,7 @@ export const STEP_TEXT: Record<Step, CustomerKey | null> = {
   choose_work_appointment: 'portal.step.choose_work_appointment',
   view_appointment: 'portal.step.view_appointment',
   arrival_update: 'portal.step.arrival_update',
+  arrival_recorded: 'portal.step.arrival_recorded',
   view_updates: 'portal.step.view_updates',
   safety_review: null,
   update_pending: null,

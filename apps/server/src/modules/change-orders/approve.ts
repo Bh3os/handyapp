@@ -26,7 +26,9 @@ import { CHANGE_ORDER_MACHINE, effectiveChangeOrderState, transition } from '@ha
 import type { CustomerActor, DataScope } from '@handyhub/policy'
 import { sql } from 'kysely'
 import { ApiError, type FieldError } from '../../api/errors.js'
+import { loadConfig } from '../../platform/config/index.js'
 import { accessStillValid, canonicalJson, FULL_NAME_MAX, stillFresh } from '../estimates/approval.js'
+import { validityZone } from '../estimates/customer.js'
 import type { CustomerSession } from '../identity/index.js'
 import { issueCode, maskForCustomer, verifyCode, type CodeKeySettings } from '../identity/index.js'
 import { currentConsent } from '../notifications/index.js'
@@ -109,6 +111,8 @@ export type CustomerChangeOrders = {
   original: { estimateNumber: string; version: number; totalCents: number } | null
   /** The current authorized total: the latest approved scope (the original plus every approved change order). */
   currentTotalCents: number | null
+  /** TSK-0150: the zone each "Valid until" is shown in, as on the estimate (property zone, or business time). */
+  validUntilZone: { zone: string; business: boolean } | null
   changeOrders: CustomerChangeOrder[]
 }
 
@@ -149,7 +153,9 @@ export async function customerChangeOrders(
   const project = await findProject(db, scope, { reference })
   if (!project) return null
   const job = await db.selectFrom('work.jobs').select('id').where('project_id', '=', project.id).executeTakeFirst()
-  if (!job) return { reference: project.reference, original: null, currentTotalCents: null, changeOrders: [] }
+  const validUntilZone = await validityZone(db, project.id, await loadConfig(db))
+  if (!job)
+    return { reference: project.reference, original: null, currentTotalCents: null, validUntilZone, changeOrders: [] }
   const original = await db
     .selectFrom('work.job_scope_snapshots as s')
     .innerJoin('estimating.approvals as a', 'a.id', 's.approval_id')
@@ -210,8 +216,25 @@ export async function customerChangeOrders(
       ? { estimateNumber: original.number, version: original.version, totalCents: Number(original.total_cents) }
       : null,
     currentTotalCents: latest ? Number(latest.total_cents) : null,
+    validUntilZone,
     changeOrders: out,
   }
+}
+
+/**
+ * TSK-0150 (HH-PORT-02, OWN-DEC-199): whether a change order of the project waits for the customer's decision: its
+ * latest issued version is open (not expired) and can be decided now (priced on the current approved scope). The
+ * Overview then asks the customer to review the change instead of saying HandyHub has the next step.
+ */
+export async function changeOrderAwaitingDecision(db: Reader, projectId: string): Promise<boolean> {
+  const job = await db.selectFrom('work.jobs').select('id').where('project_id', '=', projectId).executeTakeFirst()
+  if (!job) return false
+  const latest = await terms(db, job.id)
+  if (!latest) return false
+  const now = await dbNow(db)
+  return (await customerVersions(db, job.id)).some(
+    (v) => effectiveChangeOrderState(v.state, v.valid_until, now) === 'issued' && v.base_snapshot_id === latest.id,
+  )
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

@@ -59,6 +59,11 @@ export type CustomerEstimateListItem = {
   totalCents: number
   /** TSK-0058: an approved version's receipt, issued or being prepared; null for any other version. */
   receipt: ReceiptView['state'] | null
+  /**
+   * TSK-0150 (OWN-DEC-199): the zone the end of validity is shown in, as on the estimate itself (the property's zone, or
+   * business time said so), so the list never shows another day than the estimate does.
+   */
+  validUntilZone: { zone: string; business: boolean } | null
 }
 
 /** The estimate versions of a project the customer received, newest first; null for a project outside the scope. */
@@ -91,6 +96,7 @@ export async function customerEstimateList(
     .orderBy('v.published_at', 'desc')
     .orderBy('v.version', 'desc')
     .execute()
+  const zone = rows.length ? await validityZone(db, project.id, await loadConfig(db)) : null
   return rows.flatMap((r) =>
     r.published_at && r.total_cents !== null
       ? [
@@ -102,6 +108,7 @@ export async function customerEstimateList(
             validUntil: r.valid_until,
             totalCents: Number(r.total_cents),
             receipt: r.approval_id ? (r.receipt_id ? ('issued' as const) : ('preparing' as const)) : null,
+            validUntilZone: zone,
           },
         ]
       : [],
@@ -122,6 +129,7 @@ export type TermsState = 'not_configured' | 'not_in_effect' | 'in_effect'
 export type ApprovalReason =
   | 'terms_not_configured'
   | 'terms_not_in_effect'
+  | 'terms_not_current'
   | 'superseded'
   | 'expired'
   | 'not_published'
@@ -213,7 +221,7 @@ export type CustomerEstimateDetail = {
  * The zone a version's expiry is shown in (TSK-0123; OWN-DEC-159 item 12): computed in business time (the stored
  * valid-until instant), shown in the property's own zone when it is known, otherwise in the business zone, said so.
  */
-async function validityZone(db: Reader, projectId: string, config: Config) {
+export async function validityZone(db: Reader, projectId: string, config: Config) {
   const p = await db
     .selectFrom('crm.projects as p')
     .innerJoin('crm.properties as pr', 'pr.id', 'p.property_id')
@@ -250,6 +258,15 @@ export async function customerEstimateDetail(
   const reasons: ApprovalReason[] = []
   if (terms.state === 'not_configured') reasons.push('terms_not_configured')
   if (terms.state === 'not_in_effect') reasons.push('terms_not_in_effect')
+  // TSK-0150 (OWN-DEC-199): the terms were re-versioned after this version was sent. Approval accepts only the current
+  // terms (approval.ts termsForApproval, TERMS_NOT_CURRENT), so the page never offers an approval the server refuses.
+  const currentTerms = config.get('legal.estimate_terms')
+  if (
+    terms.state === 'in_effect' &&
+    currentTerms.state === 'CONFIGURED' &&
+    currentTerms.value.documentId !== c.termsVersion
+  )
+    reasons.push('terms_not_current')
   const check = await acceptanceCheck(db, row.id, now)
   let current: { number: string; version: number } | null = null
   // An approved version needs no reason why it cannot be approved again.

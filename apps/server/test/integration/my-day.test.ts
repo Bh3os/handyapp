@@ -737,7 +737,7 @@ describe('[HH-SCH-08][HH-PORT-07][T65] On my way: the assigned worker’s tap, o
 
     // The portal: "On the way" only now that it is recorded; no worker name, no ETA.
     const after = await customerGet(p, 'overview')
-    expect(after.status).toMatchObject({ situation: 'on_the_way' })
+    expect(after.status).toMatchObject({ situation: 'on_the_way', step: 'arrival_update' })
     expect(after.timeline?.[0]?.kind).toBe('on_the_way')
     const appointments = await customerGet(p, 'appointments')
     expect(appointments.appointments?.map((a) => a.status)).toContain('en_route')
@@ -815,6 +815,12 @@ describe('[HH-WORK-06][T47] Arrived and Finished per worker; the Owner corrects,
     expect(benLeaves.json()).toMatchObject({ recorded: true, visit: { state: 'en_route', next: 'arrived' } })
     const arrived = await tap('ann', visitId, 'arrived')
     expect(arrived.json()).toMatchObject({ recorded: true, visit: { state: 'arrived', next: 'finished' } })
+    // TSK-0150 (OWN-DEC-199): once "Arrived" is recorded the customer step no longer says the visit is on the way.
+    expect((await customerGet(p, 'overview')).status).toMatchObject({
+      situation: 'on_the_way',
+      step: 'arrival_recorded',
+      waitingOn: 'handyhub',
+    })
     // Alone on site, Ann is asked for nothing between Arrived and Finished (OWN-DEC-149).
     const alone = (await myDay('ann')).visits.find((v) => v.visitId === visitId) as Item
     expect(alone.actions).toEqual({ onMyWay: false, arrived: false, finished: true, recordOutcome: true })

@@ -208,7 +208,8 @@ describe('neutral recovery: ask for a new link (TSK-0035, HH-ID-09, HH-ID-06, HH
   })
 
   it('[HH-ID-09][HH-ID-03][RULE-NO-INVENTED-FACTS] the help words are the same for everyone and promise nothing', () => {
-    expect(t('access.help.done')).toMatch(/^Thanks\. If these details match a HandyHub request or account/)
+    // TSK-0150 (OWN-DEC-199): the Owner reviews the request first and may close it without contact.
+    expect(t('access.help.done')).toMatch(/^Thanks\. HandyHub will review your message and, if these details match/)
     for (const key of ['access.help.text.signIn', 'access.help.text.projectLink', 'access.help.done'] as const) {
       expect(copyProblems(t(key)), key).toEqual([])
       expect(t(key), key).not.toMatch(/we sent|has been sent|your project is|we found|right away|within/i)
