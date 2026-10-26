@@ -1,10 +1,11 @@
 // The scheduling board on the server (TSK-0065; HH-SCH-13, HH-OPS-03, S05, ENT-Visit, ENT-Reservation, ENT-StaffUser,
 // OWN-DEC-119, OWN-DEC-123, RULE-SERVER-AUTHZ, RULE-SAFETY-GATES).
-// - One read for the board: a local day or a week (PROPOSED: Monday to Sunday, ISO weeks) of the business zone, with
-//   every worker who may be reserved for a visit (the capacity module's eligibility) and, per day, their working
+// - One read for the board: a local day or a week (Monday to Sunday, ISO weeks; OWN-DEC-192 J1) of the business zone,
+//   with every worker who may be reserved for a visit (the capacity module's eligibility) and, per day, their working
 //   periods, approved time off, the reservations and holds they carry (a two-person visit is on both workers; a hold is
 //   never a booking) and the free time left (the remaining capacity, from the worker's own working hours only: nothing
-//   is assumed for a worker whose hours are not set). Visits that reserve no worker yet are listed apart, by day.
+//   is assumed for a worker whose hours are not set, OWN-DEC-192 J2). Visits that reserve no worker yet are listed
+//   apart, by day.
 // - Each visit of the range once: purpose (an Estimate visit is told apart from work visits), state, version, the
 //   arrival window with its zone, the expected work, the staff-entered travel and preparation buffers (never invented:
 //   empty stays "not entered"), the workers it needs and its team, whether its windows are offered, what still stops
@@ -63,7 +64,7 @@ const span = (i: Interval) => ({ startsAt: iso(i.start), endsAt: iso(i.end) })
 const minutesOf = (list: readonly Interval[]) => Math.round(list.reduce((n, i) => n + (i.end - i.start), 0) / 60_000)
 const overlaps = (a: Interval, b: Interval) => a.start < b.end && b.start < a.end
 
-/** The local days a view shows around a date: the day itself, or its week (PROPOSED: Monday first). */
+/** The local days a view shows around a date: the day itself, or its week (Monday first, OWN-DEC-192 J1). */
 export function boardDays(date: string, view: BoardView): string[] {
   if (view === 'day') return [date]
   const monday = addLocalDays(date, 1 - isoWeekday(date))

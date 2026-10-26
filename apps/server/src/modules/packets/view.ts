@@ -32,7 +32,7 @@ import type { PacketRow } from './content.js'
 
 type Reader = Db | Tx
 
-/** PROPOSED: signed photo links in a packet last 5 minutes, like request photos (PHOTO_URL_SECONDS). */
+/** Signed photo links in a packet last 5 minutes, like request photos (PHOTO_URL_SECONDS; OWN-DEC-192 D4). */
 export const PACKET_PHOTO_URL_SECONDS = 300
 
 /** The stages whose evidence is pre-work evidence, and those that make the completion preview (HH-WORK-11 order). */
@@ -48,7 +48,7 @@ export const addressLine = (a: PacketAddress) =>
   [[a.street, a.unit].filter(Boolean).join(' '), a.city, `${a.state} ${a.zip}`].join(', ')
 
 /**
- * PROPOSED (OQ-PACKET-DETAILS): the plain directions link of HH-PKT-01 opens the address in a maps app through a
+ * Decided as built (OWN-DEC-192 D5): the plain directions link of HH-PKT-01 opens the address in a maps app through a
  * public directions URL; nothing is sent anywhere until the worker taps it.
  */
 export const directionsUrl = (a: PacketAddress) =>

@@ -649,7 +649,7 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
     summary: 'The scheduling board: a day or a week by worker',
     description:
       'Staff with schedule.view_board (Owner, Office; Estimator PROPOSED), TSK-0065 (HH-SCH-13). One local day ' +
-      '(view=day, the default) or its week (view=week; PROPOSED: Monday to Sunday) of the business zone (NOT ' +
+      '(view=day, the default) or its week (view=week; Monday to Sunday, OWN-DEC-192 J1) of the business zone (NOT ' +
       'CONFIGURED while business.timezone is unset); date defaults to today there, and visitId opens the date of that ' +
       "visit's window (NOT_FOUND outside the caller's data scope). Every active staff member who may be reserved for a " +
       'visit, with each day of the range: working periods (none while the Owner has not set them), approved time off, ' +

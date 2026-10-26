@@ -19,8 +19,10 @@
 // working hours, visit hours: capacity/resources.ts evaluate) are checked by each path beside these, in the same
 // refusal. No role, flag or AI skips any of them: there is no parameter that does.
 // PROPOSED (OQ-CONFIRMATION-PRECONDITIONS): an intake review hold blocks confirmation of every visit of its project,
-// estimate visits included; the customer is told only that the time cannot be confirmed yet (and, when it is the
-// deposit, that it is due), never which hold or why.
+// estimate visits included (A1, amended: see TSK-0145 below). Decided as built (OWN-DEC-192 A5, A3, A6): the customer
+// is told only that the time cannot be confirmed yet (and, when it is the deposit, that it is due), never which hold
+// or why; planning or moving a tentative visit is never blocked by a hold, only confirming is; staff see every unmet
+// item under "Not ready to confirm" and Confirm only once nothing blocks.
 // Final owner amendments 2026-10-22 (TSK-0127, OWN-DEC-179, OWN-DEC-167): a ZIP-only coverage outcome is preliminary
 // screening. A visit is confirmed (by staff or by the customer's selection) and windows are offered only once staff
 // have verified the property's complete address and its county for its current address version, and that county is
