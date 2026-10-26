@@ -21,6 +21,7 @@ import {
   CUSTOMER_STEPS,
   CUSTOMER_TIMELINE_KINDS,
   DASHBOARD_SECTIONS,
+  SERIES_UNITS,
   WAITING_ON,
   type CustomerStatus,
   type DashboardSection,
@@ -54,6 +55,8 @@ export const ENTITIES = [
   'PrivacyRequest',
   // TSK-0082: the change orders sent to the customer and their decision on one.
   'ChangeOrder',
+  // TSK-0114: the repeat-service schedule the customer agreed to.
+  'ServiceSeries',
 ] as const
 export type Entity = (typeof ENTITIES)[number]
 
@@ -238,6 +241,11 @@ export const PROJECT_SUMMARY = customerView(
     status: object(STATUS_FIELDS),
     section: enumOf(DASHBOARD_SECTIONS),
     documents: { type: 'integer', minimum: 0 },
+    // TSK-0118 (HH-ID-13): the organization a project is shared through and the membership's privileges; null for
+    // the account's own projects (and a guest link's).
+    organization: {
+      anyOf: [{ type: 'null' }, object({ name: STRING, approve: { type: 'boolean' }, pay: { type: 'boolean' } })],
+    },
   },
   (p: {
     reference: string
@@ -247,6 +255,7 @@ export const PROJECT_SUMMARY = customerView(
     status: StatusRecord
     section: DashboardSection
     documents: number
+    organization?: { name: string; approve: boolean; pay: boolean } | null
   }) => ({
     reference: p.reference,
     services: [...p.services],
@@ -255,6 +264,9 @@ export const PROJECT_SUMMARY = customerView(
     status: status(p.status),
     section: p.section,
     documents: p.documents,
+    organization: p.organization
+      ? { name: p.organization.name, approve: p.organization.approve, pay: p.organization.pay }
+      : null,
   }),
 )
 
@@ -404,18 +416,22 @@ type CustomerPayment =
       payByCardUrl: string | null
     }
   | { state: 'deposit_received'; amountCents: number }
+  // TSK-0118 (HH-ID-13): an organization member without the pay privilege sees that payments are not shared with them.
+  | { state: 'not_shared' }
 const customerPayment = (p: CustomerPayment) =>
-  p.state === 'deposit_due'
-    ? {
-        state: p.state,
-        amountCents: p.amountCents,
-        verifiedCents: p.verifiedCents,
-        pendingCents: p.pendingCents,
-        payByCardUrl: p.payByCardUrl,
-      }
-    : p.state === 'deposit_received'
-      ? { state: p.state, amountCents: p.amountCents }
-      : { state: 'none' as const }
+  p.state === 'not_shared'
+    ? { state: p.state }
+    : p.state === 'deposit_due'
+      ? {
+          state: p.state,
+          amountCents: p.amountCents,
+          verifiedCents: p.verifiedCents,
+          pendingCents: p.pendingCents,
+          payByCardUrl: p.payByCardUrl,
+        }
+      : p.state === 'deposit_received'
+        ? { state: p.state, amountCents: p.amountCents }
+        : { state: 'none' as const }
 
 /** The project Overview (TSK-0038): status, one next action, the filtered timeline, appointment and payment summary. */
 export const PROJECT_OVERVIEW = customerView(
@@ -443,8 +459,12 @@ export const PROJECT_OVERVIEW = customerView(
           payByCardUrl: { type: ['string', 'null'] },
         }),
         object({ state: enumOf(['deposit_received']), amountCents: { type: 'integer' } }),
+        // TSK-0118: an organization member without the pay privilege; no amount or link is sent.
+        object({ state: enumOf(['not_shared']) }),
       ],
     },
+    // TSK-0150 (OWN-DEC-199): the balance still owed on the issued final invoices, beside the deposit; 0 while none.
+    invoiceBalanceCents: { type: 'integer', minimum: 0 },
     refreshedAt: DATE,
     refreshSeconds: { type: 'integer', minimum: 0 },
   },
@@ -457,6 +477,7 @@ export const PROJECT_OVERVIEW = customerView(
     timeline: TimelineRecord[]
     appointment: AppointmentRecord | null
     payment: CustomerPayment
+    invoiceBalanceCents: number
     refreshedAt: Date
     refreshSeconds: number
   }) => ({
@@ -468,6 +489,7 @@ export const PROJECT_OVERVIEW = customerView(
     timeline: o.timeline.map(entry),
     appointment: o.appointment ? appointmentOf(o.appointment) : null,
     payment: customerPayment(o.payment),
+    invoiceBalanceCents: o.invoiceBalanceCents,
     refreshedAt: o.refreshedAt.toISOString(),
     refreshSeconds: o.refreshSeconds,
   }),
@@ -557,6 +579,8 @@ const ESTIMATE_LIST_ITEM = object({
   totalCents: CENTS,
   // TSK-0058 (HH-PORT-10): an approved version's approval receipt PDF, issued or being prepared; null otherwise.
   receipt: { oneOf: [{ type: 'null' }, enumOf(['preparing', 'issued'])] },
+  // TSK-0150: the zone the end of validity is shown in, as on the estimate itself.
+  validUntilZone: { oneOf: [{ type: 'null' }, object({ zone: STRING, business: { type: 'boolean' } })] },
 })
 type EstimateListRecord = {
   number: string
@@ -566,6 +590,7 @@ type EstimateListRecord = {
   validUntil: Date | null
   totalCents: number
   receipt: 'preparing' | 'issued' | null
+  validUntilZone: { zone: string; business: boolean } | null
 }
 // TSK-0085 (HH-PORT-10, HH-FIN-04): the issued invoices (never a draft), each current or superseded (voided and
 // reissued), its payment state, issue date, total, the balance still owed from confirmed payments and credits, any
@@ -617,6 +642,9 @@ const listedView = customerView(
             validUntil: e.validUntil ? e.validUntil.toISOString() : null,
             totalCents: e.totalCents,
             receipt: e.receipt,
+            validUntilZone: e.validUntilZone
+              ? { zone: e.validUntilZone.zone, business: e.validUntilZone.business }
+              : null,
           }))
         : undefined,
     invoices:
@@ -1119,6 +1147,173 @@ export const ACCOUNT_PREFERENCES = customerView(
   }),
 )
 
+// TSK-0118 (HH-ID-13, HH-ID-03): the signed-in account's organizations. As administrator: each organization's name,
+// the projects it shares (by reference), its open memberships (the invited email the administrator typed, invited or
+// active, the privileges and the scope by reference) and its history; the references the account may share (its own
+// linked projects). As member: the organization's name, the privileges and the projects the membership reaches now,
+// never the other members or the organization's other projects. Invitations to the account's own sign-in email: the
+// organization's name, the privileges and how many projects they cover, never the projects or anyone's details. Never
+// an account, customer, contact, property or project ID.
+const REFERENCES = { type: 'array', items: STRING } as const
+/** The kinds of an organization's history entries (identity.organization_events, migration 0125). */
+export const ORGANIZATION_EVENT_KINDS = [
+  'created',
+  'project_added',
+  'project_removed',
+  'member_invited',
+  'invitation_withdrawn',
+  'invitation_accepted',
+  'invitation_declined',
+  'member_changed',
+  'member_removed',
+  'member_left',
+  'membership_ended_account_closed',
+] as const
+const ORGANIZATION_MEMBER = object({
+  id: STRING,
+  email: STRING,
+  state: enumOf(['invited', 'active']),
+  approve: { type: 'boolean' },
+  pay: { type: 'boolean' },
+  projects: REFERENCES,
+  invitedAt: DATE,
+  acceptedAt: NULLABLE_DATE,
+})
+const ORGANIZATION_HISTORY = object({
+  kind: enumOf(ORGANIZATION_EVENT_KINDS),
+  by: enumOf(['administrator', 'member', 'handyhub']),
+  at: DATE,
+  email: NULLABLE_STRING,
+  reference: NULLABLE_STRING,
+  approve: { type: ['boolean', 'null'] },
+  pay: { type: ['boolean', 'null'] },
+  scopeProjects: { type: ['integer', 'null'], minimum: 0 },
+})
+const ADMINISTERED_ORGANIZATION = object({
+  id: STRING,
+  name: STRING,
+  createdAt: DATE,
+  projects: REFERENCES,
+  members: { type: 'array', items: ORGANIZATION_MEMBER },
+  history: { type: 'array', items: ORGANIZATION_HISTORY },
+})
+const MEMBER_ORGANIZATION = object({
+  id: STRING,
+  name: STRING,
+  approve: { type: 'boolean' },
+  pay: { type: 'boolean' },
+  projects: REFERENCES,
+  acceptedAt: DATE,
+})
+const ORGANIZATION_INVITATION = object({
+  id: STRING,
+  organization: STRING,
+  approve: { type: 'boolean' },
+  pay: { type: 'boolean' },
+  projects: COUNT,
+  invitedAt: DATE,
+})
+type OrganizationsRecord = {
+  linkedProjects: readonly string[]
+  administered: readonly {
+    id: string
+    name: string
+    createdAt: Date
+    projects: readonly string[]
+    members: readonly {
+      id: string
+      email: string
+      state: string
+      approve: boolean
+      pay: boolean
+      projects: readonly string[]
+      invitedAt: Date
+      acceptedAt: Date | null
+    }[]
+    history: readonly {
+      kind: string
+      by: string
+      at: Date
+      email: string | null
+      reference: string | null
+      approve: boolean | null
+      pay: boolean | null
+      scopeProjects: number | null
+    }[]
+  }[]
+  memberships: readonly {
+    id: string
+    name: string
+    approve: boolean
+    pay: boolean
+    projects: readonly string[]
+    acceptedAt: Date
+  }[]
+  invitations: readonly {
+    id: string
+    organization: string
+    approve: boolean
+    pay: boolean
+    projects: number
+    invitedAt: Date
+  }[]
+}
+export const ACCOUNT_ORGANIZATIONS = customerView(
+  'account.organizations',
+  'CustomerAccount',
+  {
+    linkedProjects: REFERENCES,
+    administered: { type: 'array', items: ADMINISTERED_ORGANIZATION },
+    memberships: { type: 'array', items: MEMBER_ORGANIZATION },
+    invitations: { type: 'array', items: ORGANIZATION_INVITATION },
+  },
+  (r: OrganizationsRecord) => ({
+    linkedProjects: [...r.linkedProjects],
+    administered: r.administered.map((o) => ({
+      id: o.id,
+      name: o.name,
+      createdAt: o.createdAt.toISOString(),
+      projects: [...o.projects],
+      members: o.members.map((m) => ({
+        id: m.id,
+        email: m.email,
+        state: m.state,
+        approve: m.approve,
+        pay: m.pay,
+        projects: [...m.projects],
+        invitedAt: m.invitedAt.toISOString(),
+        acceptedAt: m.acceptedAt ? m.acceptedAt.toISOString() : null,
+      })),
+      history: o.history.map((h) => ({
+        kind: h.kind,
+        by: h.by,
+        at: h.at.toISOString(),
+        email: h.email,
+        reference: h.reference,
+        approve: h.approve,
+        pay: h.pay,
+        scopeProjects: h.scopeProjects,
+      })),
+    })),
+    memberships: r.memberships.map((m) => ({
+      id: m.id,
+      name: m.name,
+      approve: m.approve,
+      pay: m.pay,
+      projects: [...m.projects],
+      acceptedAt: m.acceptedAt.toISOString(),
+    })),
+    invitations: r.invitations.map((i) => ({
+      id: i.id,
+      organization: i.organization,
+      approve: i.approve,
+      pay: i.pay,
+      projects: i.projects,
+      invitedAt: i.invitedAt.toISOString(),
+    })),
+  }),
+)
+
 // The customer estimate view (TSK-0056; HH-EST-06, HH-EST-09, HH-EST-13, HH-PORT-10, OWN-DEC-103). The customer-facing
 // content of one version as published: the lines, texts and totals in integer cents exactly as stored, the business
 // name, the payment term code, the terms the version pinned (by document ID and state; the portal holds the wording),
@@ -1278,12 +1473,16 @@ export const CUSTOMER_ESTIMATE = customerView(
         items: enumOf([
           'terms_not_configured',
           'terms_not_in_effect',
+          // TSK-0150: the terms changed after this version was sent; only the current terms can be accepted.
+          'terms_not_current',
           'superseded',
           'expired',
           'not_published',
           // TSK-0125 (OWN-DEC-165): approval waits for the requested discount's verification, or an updated estimate.
           'reduction_pending_verification',
           'reduction_not_verified',
+          // TSK-0118 (HH-ID-13): an organization member whose membership does not include approving.
+          'no_approval_privilege',
         ]),
       },
       current: { oneOf: [{ type: 'null' }, object({ number: STRING, version: { type: 'integer', minimum: 1 } })] },
@@ -2076,6 +2275,56 @@ export const PROJECT_CASES = customerView(
   }),
 )
 
+// The project's repeat-service schedule as the customer agreed to it (TSK-0114; HH-SCH-10, OWN-DEC-113, OWN-DEC-148):
+// whether it runs, its next dates in the property's zone (each with whether its request was sent), how often, whether
+// reminders are wanted and the notice a change needs. Never how staff heard the agreement, staff notes, who recorded
+// it, the reminder drafts or another project's details; null when the project has no schedule.
+export const PROJECT_REPEAT_SERVICE = customerView(
+  'project.repeat_service',
+  'ServiceSeries',
+  {
+    reference: STRING,
+    schedule: {
+      anyOf: [
+        { type: 'null' },
+        object({
+          state: enumOf(['active', 'stopped']),
+          nextDates: { type: 'array', items: object({ date: STRING, requested: { type: 'boolean' } }) },
+          interval: {
+            anyOf: [{ type: 'null' }, object({ unit: enumOf(SERIES_UNITS), count: { type: 'integer' } })],
+          },
+          reminders: { type: 'boolean' },
+          changeNoticeHours: { type: ['integer', 'null'] },
+          stoppedAt: { type: ['string', 'null'], format: 'date-time' },
+        }),
+      ],
+    },
+  },
+  (r: {
+    reference: string
+    schedule: {
+      state: string
+      nextDates: readonly { date: string; requested: boolean }[]
+      interval: { unit: string; count: number } | null
+      reminders: boolean
+      changeNoticeHours: number | null
+      stoppedAt: Date | null
+    } | null
+  }) => ({
+    reference: r.reference,
+    schedule: r.schedule
+      ? {
+          state: r.schedule.state,
+          nextDates: r.schedule.nextDates.map((d) => ({ date: d.date, requested: d.requested })),
+          interval: r.schedule.interval ? { unit: r.schedule.interval.unit, count: r.schedule.interval.count } : null,
+          reminders: r.schedule.reminders,
+          changeNoticeHours: r.schedule.changeNoticeHours,
+          stoppedAt: r.schedule.stoppedAt ? r.schedule.stoppedAt.toISOString() : null,
+        }
+      : null,
+  }),
+)
+
 /**
  * The project's change orders as the customer sees them (TSK-0082; HH-CHG-02, HH-PORT-05, OWN-DEC-169): the accepted
  * estimate's total, the current authorized total (the original plus every approved change), and each change order
@@ -2106,6 +2355,8 @@ export const CUSTOMER_CHANGE_ORDERS = customerView(
       ],
     },
     currentTotalCents: NULLABLE_CENTS,
+    // TSK-0150: the zone each "Valid until" is shown in, as on the estimate.
+    validUntilZone: { oneOf: [{ type: 'null' }, object({ zone: STRING, business: { type: 'boolean' } })] },
     changeOrders: {
       type: 'array',
       items: object({
@@ -2135,7 +2386,9 @@ export const CUSTOMER_CHANGE_ORDERS = customerView(
             { type: 'null' },
             object({
               canDecide: { type: 'boolean' },
-              blockedBy: { anyOf: [{ type: 'null' }, enumOf(['APPROVED_SCOPE_CHANGED'])] },
+              // TSK-0118 (HH-ID-13): NO_APPROVAL_PRIVILEGE for an organization member whose membership does not
+              // include approving.
+              blockedBy: { anyOf: [{ type: 'null' }, enumOf(['APPROVED_SCOPE_CHANGED', 'NO_APPROVAL_PRIVILEGE'])] },
               contentDigest: { type: 'string', pattern: '^[0-9a-f]{64}$' },
               termsDocumentId: STRING,
               termsSha256: { type: 'string', pattern: '^[0-9a-f]{64}$' },
@@ -2151,6 +2404,7 @@ export const CUSTOMER_CHANGE_ORDERS = customerView(
     reference: string
     original: { estimateNumber: string; version: number; totalCents: number } | null
     currentTotalCents: number | null
+    validUntilZone: { zone: string; business: boolean } | null
     changeOrders: readonly Record<string, unknown>[]
     refreshedAt: Date
     refreshSeconds: number
@@ -2158,6 +2412,7 @@ export const CUSTOMER_CHANGE_ORDERS = customerView(
     reference: r.reference,
     original: r.original,
     currentTotalCents: r.currentTotalCents,
+    validUntilZone: r.validUntilZone ? { zone: r.validUntilZone.zone, business: r.validUntilZone.business } : null,
     changeOrders: r.changeOrders,
     refreshedAt: r.refreshedAt.toISOString(),
     refreshSeconds: r.refreshSeconds,
@@ -2217,6 +2472,7 @@ export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
     ACCOUNT_PROPERTIES,
     REQUEST_PREFILL,
     ACCOUNT_PREFERENCES,
+    ACCOUNT_ORGANIZATIONS,
     CUSTOMER_ESTIMATE,
     CUSTOMER_ESTIMATE_RESPONSE,
     CUSTOMER_ESTIMATE_SELECTION,
@@ -2234,5 +2490,6 @@ export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
     PROJECT_CASES,
     CUSTOMER_CHANGE_ORDERS,
     CUSTOMER_CHANGE_ORDER_DECISION,
+    PROJECT_REPEAT_SERVICE,
   ].map((v) => [v.name, v as CustomerView<never>]),
 )

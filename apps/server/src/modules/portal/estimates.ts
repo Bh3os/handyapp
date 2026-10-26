@@ -20,7 +20,7 @@
 //   ticked box, the typed name, the digest of the content viewed, the options and the total shown approves; no GET,
 //   link preview, timeout or silence ever does (HH-EST-09, T17). Request Changes, Decline and Request an Updated
 //   Estimate never accept an estimate.
-import type { CustomerActor } from '@handyhub/policy'
+import { dataScope, type CustomerActor } from '@handyhub/policy'
 import { clientAddress } from '../../access-gate.js'
 import { ApiError } from '../../api/errors.js'
 import { readIdempotencyKey } from '../../api/idempotency.js'
@@ -221,7 +221,8 @@ export function portalEstimateRoutes(deps: PortalEstimateDeps = {}): RouteDef[] 
       'subtotal, discount row, total and deposit for that choice in integer cents: the version’s own line amounts with ' +
       'the discount share and deposit rule version it pinned (FACT-DEPOSIT-RULE), never the client’s arithmetic. A ' +
       'position that is not an option line is VALIDATION_FAILED; a version that is not current is CONFLICT naming ' +
-      'its status. Never approves anything. Any other project, estimate or version is NOT_FOUND (T19).',
+      'its status. Never approves anything. Any other project, estimate or version is NOT_FOUND (T19); TSK-0118: so is ' +
+      'a project an organization member reaches without the approve privilege.',
     actors: ['customer'],
     permission: 'request.view',
     kind: 'write',
@@ -246,7 +247,10 @@ export function portalEstimateRoutes(deps: PortalEstimateDeps = {}): RouteDef[] 
     handler: async (ctx) => {
       if (!ctx.tx) throw new Error('saveEstimateSelection runs in its write transaction')
       const ref = refOf(ctx.req.params as Params)
-      const out = await saveSelection(ctx.tx, ctx.actor as CustomerActor, ctx.scope, {
+      // TSK-0118 (HH-ID-13): selecting options prepares an approval, so an organization member needs the approve
+      // privilege (the estimate.approve scope); the project's own customer reaches the same projects as before.
+      const scope = dataScope(ctx.actor, 'estimate.approve', new Date())
+      const out = await saveSelection(ctx.tx, ctx.actor as CustomerActor, scope, {
         ...ref,
         options: (ctx.req.body as { options: number[] }).options,
       })

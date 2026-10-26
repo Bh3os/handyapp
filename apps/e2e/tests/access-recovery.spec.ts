@@ -242,7 +242,7 @@ test.describe('the secure alternative at the reissue limit (TSK-0149, OWN-DEC-19
         (await request.post('/api/v1/public/access/reissue', { data: { token: link.token, contact: email } })).status(),
       ).toBe(202)
     const HELP_DONE =
-      "Thanks. If these details match a HandyHub request or account, we'll contact you using the details we have on file."
+      'Thanks. HandyHub will review your message and, if these details match a HandyHub request or account, contact you using the details we have on file.'
     // One visitor with the reference and the right email, one with details that match nothing: the same words.
     const seen: string[] = []
     for (const contact of [email, 'nobody-limit-e2e@example.test']) {

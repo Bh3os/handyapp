@@ -304,7 +304,9 @@ export async function requestErasurePlan(
                      WHERE d.project_id = ${P}::uuid AND x.id NOT IN (SELECT id FROM m))
          -- TSK-0113: a later request sent again from this project names it.
          OR EXISTS (SELECT 1 FROM intake.request_repeats x WHERE x.source_project_id = ${P}::uuid
-                      AND x.request_id <> ${R}::uuid)) AS project,
+                      AND x.request_id <> ${R}::uuid)
+         -- TSK-0114: a customer-agreed repeat-service schedule is recorded on this project.
+         OR EXISTS (SELECT 1 FROM work.service_series x WHERE x.project_id = ${P}::uuid)) AS project,
         (EXISTS (SELECT 1 FROM crm.projects p WHERE p.customer_id = ${C}::uuid AND p.id <> ${P}::uuid)
          OR EXISTS (SELECT 1 FROM intake.requests q WHERE q.customer_id = ${C}::uuid AND q.id <> ${R}::uuid)
          OR EXISTS (SELECT 1 FROM identity.customer_accounts a
@@ -511,6 +513,10 @@ export async function requestErasurePlan(
     },
     { kind: 'message_deliveries', table: 'platform.message_deliveries', where: anyOf('id', deliveries) },
     { kind: 'message_deliveries', table: 'platform.webhook_receipts', where: anyOf('id', receipts) },
+    // TSK-0118: the project's shares with organizations, the member scopes naming it and the history naming it.
+    { kind: 'access_links', table: 'identity.organization_scopes', where: eq('project_id', P) },
+    { kind: 'access_links', table: 'identity.organization_projects', where: eq('project_id', P) },
+    { kind: 'access_links', table: 'identity.organization_events', where: eq('project_id', P) },
     { kind: 'access_links', table: 'identity.customer_identity_links', where: anyOf('id', links) },
     { kind: 'sessions', table: 'identity.customer_sessions', where: anyOf('id', sessions) },
     { kind: 'access_links', table: 'identity.project_access_grants', where: anyOf('id', grants) },
@@ -519,6 +525,8 @@ export async function requestErasurePlan(
     { kind: 'help_requests', table: 'identity.access_help_requests', where: anyOf('id', help) },
     // TSK-0113: the request's link to the earlier project it was sent again from.
     { kind: 'request_submission', table: 'intake.request_repeats', where: eq('request_id', R) },
+    // TSK-0114: the occurrence of a repeat-service schedule this request carried (the date returns to the schedule).
+    { kind: 'request_submission', table: 'work.service_series_occurrences', where: eq('request_id', R) },
     { kind: 'request_submission', table: 'intake.requests', where: eq('id', R) },
     // Stored responses of earlier writes (the idempotency records, kept after they expire) that name an erased record.
     { kind: 'stored_responses', table: 'platform.idempotency_keys', where: mentions },

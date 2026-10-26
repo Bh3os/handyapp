@@ -85,7 +85,7 @@ describe('the dashboard sections (TSK-0124, HH-ID-14, OWN-DEC-160)', () => {
     ).toBeTruthy()
     expect(
       within(screen.getByRole('region', { name: 'Cancelled and archived' })).getByText(
-        'Cancelled and closed projects appear here.',
+        'Cancelled projects, and projects closed before any work was completed, appear here.',
       ),
     ).toBeTruthy()
   })

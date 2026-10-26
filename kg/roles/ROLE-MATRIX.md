@@ -59,6 +59,8 @@ These are server rules, enforced by one policy point on every read, write, searc
 | Record a follow-up visit's authorization on a completed job | Y | Y (P) | — | — | — | — |
 | Select an offered window | — | — | — | — | V | — |
 | Request reschedule or cancellation | — | — | — | — | V | — |
+| Record, change or stop a customer-agreed repeat-service schedule | Y | Y (P) | — | — | — | — |
+| Change or stop their repeat-service schedule and its reminders | — | — | — | — | V | — |
 | Cancel accepted, scheduled or paid work (financial review) | Y | — | — | — | — | — |
 | Cancel a work visit for a routine customer-authorized cancellation within policy | Y | Y | — | — | — | — |
 | Set working days, hours and time off | Y | — | — | — | — | — |
@@ -144,6 +146,8 @@ These are server rules, enforced by one policy point on every read, write, searc
 
 **Changed by [[OWN-DEC-173]] (2026-10-21):** publishing an estimate or change order above [[FACT-OWNER-APPROVAL-THRESHOLD]] needs the Owner's approval first; the row "Approve or reject publishing over the Owner approval threshold" is the Owner's alone, and changing the threshold is "Change policy values" (F) ([[TSK-0130]]).
 
+**Built by [[TSK-0114]] (2026-10-26):** "Record, change or stop a customer-agreed repeat-service schedule" (`service_series.manage`: the Owner, Office P) also covers skipping an occurrence and linking the request that carries it; "Change or stop their repeat-service schedule and its reminders" (`service_series.change`) is the customer's, on a project their session opens. Releasing a repeat-service reminder is "Reply from a project, release drafts". PROPOSED details: [[OQ-REPEAT-SERVICE-DETAILS]].
+
 **Built by [[TSK-0092]] (2026-10-25):** closing a job (`job.close`) sits in the Owner's cell of "Quality review, punch items, self-review" (P: ENT-Job "the Owner reviews quality, closes and reopens"); reopening is "Reopen a closed job" (F). Releasing the satisfaction check and review requests, preparing a review request and recording the customer's answer are "Reply from a project, release drafts" on the project's records (the Owner, Office). PROPOSED details: [[OQ-CLOSEOUT-DETAILS]].
 
 **Built by [[TSK-0095]] (2026-10-26):** reading a job's estimated-versus-actual costs and recording cost entries, voids and category confirmations (`job_cost.view`, `job_cost.record`) are the new Finance row "View and record job costs, estimated versus actual" (P: the Owner only). PROPOSED details: [[OQ-JOB-COST-DETAILS]].
@@ -153,3 +157,5 @@ These are server rules, enforced by one policy point on every read, write, searc
 **Built by [[TSK-0096]] (2026-10-26):** "Owner Dashboard and its CSV" is `dashboard.view` (the dashboard and its drill-down lists) and `dashboard.export_csv` (its CSV, which also needs a sign-in within the last 5 minutes, as every bulk export does under [[T64]]); "Accounting exports" is `export.accounting` (F) for the accountant's files. PROPOSED details: [[OQ-DASHBOARD-DETAILS]].
 
 **Built by [[TSK-0131]] (2026-10-26):** a job's gross margin and its advisory target flag are read with the job's costs (`job_cost.view`, the Owner); entering the labor cost rate per worker (`labor_rate.manage`) and recording why a job is below the target margin (`job_margin.review`) are the new Finance row "Enter labor cost rates per worker; record why a job is below the target margin" (the Owner, [[OWN-DEC-189]]); changing the target is "Change policy values" (F). PROPOSED details: [[OQ-JOB-MARGIN-DETAILS]].
+
+**Built by [[TSK-0118]] (2026-10-26, migration 0125):** a Customer "V" cell also covers a project in the scope of the signed-in account's organization membership ([[HH-ID-13]]), but only for the actions the membership's privileges name (the policy's organization table): reading the project (`request.view`) for every membership; the estimate decisions, `change_order.approve` and the appointment choices and requests with `approve`; `payment.view` with `pay`. Every other customer action stays the project customer's own. The Payments tab is now authorized by "View balances and payments" (`payment.view`, Customer V), as its invoices are. No row is added. PROPOSED details: [[OQ-ORGANIZATION-ACCOUNTS-DETAILS]].

@@ -62,6 +62,7 @@ const overview = (appointment: unknown) => ({
   timeline: [{ kind: 'received', at: SENT, text: null }],
   appointment,
   payment: { state: 'none' },
+  invoiceBalanceCents: 0,
   refreshedAt: NOW,
   refreshSeconds: 0,
 })
@@ -184,6 +185,10 @@ describe('[HH-PORT-04][OWN-DEC-107] the customer asks to change a confirmed appo
       'This appointment can no longer be changed here. The page now shows what is current.',
     )
     expect((await screen.findByTestId('appointment')).textContent).toContain('Canceled')
+    // TSK-0150 (OWN-DEC-199, portal.appointment.confirmed.title): the list keeps canceled and past visits, so it is
+    // "Your visits", never "Confirmed visits".
+    expect(screen.getByText('Your visits')).toBeTruthy()
+    expect(screen.queryByText('Confirmed visits')).toBeNull()
   })
 
   it('[HH-PORT-06] an appointment without its number or actions is not the declared view', () => {

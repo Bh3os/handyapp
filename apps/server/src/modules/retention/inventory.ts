@@ -587,6 +587,32 @@ export const TABLES = {
     classes: ['contact'],
     categories: [NS],
   },
+  // TSK-0118 (0125): customer-side organization accounts, their shared projects, memberships, scopes and history.
+  'identity.organizations': {
+    holds: 'Customer-side organization accounts: the name its administrator gave it and the administrator account',
+    classes: ['contact'],
+    categories: [NS],
+  },
+  'identity.organization_projects': {
+    holds: "Projects an organization's administrator shares with it",
+    classes: ['contact'],
+    categories: [NS],
+  },
+  'identity.organization_memberships': {
+    holds: 'Organization memberships: the invited email, the account that accepted, privileges, state and times',
+    classes: ['contact'],
+    categories: [NS],
+  },
+  'identity.organization_scopes': {
+    holds: 'The organization projects each membership reaches',
+    classes: ['contact'],
+    categories: [NS],
+  },
+  'identity.organization_events': {
+    holds: "An organization's append-only history: projects shared or removed, invitations and membership changes",
+    classes: ['contact'],
+    categories: [NS],
+  },
   'identity.customer_sessions': { holds: 'Customer sessions (token hashes)', classes: ['technical'], categories: [SL] },
   'identity.project_access_grants': {
     holds: 'Secure project access links (token hashes, expiry, revocation)',
@@ -1335,6 +1361,25 @@ export const TABLES = {
     holds: "Each assigned worker's On my way tap per visit, and whether it moved the visit on the way",
     classes: ['scheduling'],
     categories: [J],
+  },
+  // TSK-0114 (0124): customer-agreed repeat-service schedules, their history (staff notes among it) and the dates kept,
+  // skipped or linked to their own request.
+  'work.service_series': {
+    holds:
+      "A project's customer-agreed repeat-service schedule: the next date, the interval, reminders, how it was agreed",
+    classes: ['scheduling'],
+    categories: [R, J],
+  },
+  'work.service_series_changes': {
+    holds:
+      'The history of a repeat-service schedule: who changed it (staff or the customer), the schedule then, staff notes',
+    classes: ['scheduling', 'request_details'],
+    categories: [R, J],
+  },
+  'work.service_series_occurrences': {
+    holds: 'Dates of a repeat-service schedule kept by a change, skipped, or linked to their own new request',
+    classes: ['scheduling'],
+    categories: [R, J],
   },
   'work.visit_changes': {
     holds:

@@ -39,7 +39,7 @@ import {
   type TabData,
   type WorkspaceTab,
 } from './api'
-import { day, estimatePath, EstimateView, STATUS_LABEL, STATUS_TONE } from './Estimate'
+import { day, estimatePath, EstimateView, STATUS_LABEL, STATUS_TONE, validUntilText } from './Estimate'
 import { t, when } from './labels'
 import { useLive } from './live'
 import { NotShown, RefreshLine } from './States'
@@ -147,7 +147,10 @@ function Estimates({
               </p>
               <p className="hh-small hh-muted">
                 {t('portal.documents.estimate.sent', { date: day(e.publishedAt) })}
-                {e.validUntil ? ` · ${t('portal.documents.estimate.validUntil', { date: day(e.validUntil) })}` : ''}
+                {/* TSK-0150: the same moment and zone as on the estimate itself, never the browser's day. */}
+                {e.validUntil
+                  ? ` · ${t('portal.documents.estimate.validUntil', { date: validUntilText(e.validUntil, e.validUntilZone) })}`
+                  : ''}
                 {` · ${t('portal.documents.estimate.total', { total: formatUsd(cents(e.totalCents)) })}`}
               </p>
               {e.receipt ? (
@@ -698,7 +701,6 @@ function Content({
           {/* TSK-0082: the change orders sent, the original estimate and the current authorized total. */}
           <ChangeOrders reference={data.reference} fetchImpl={fetchImpl} />
           <Invoices reference={data.reference} invoices={data.invoices} fetchImpl={fetchImpl} />
-          <p className="hh-muted">{t('portal.documents.others')}</p>
         </>
       ) : (
         <Empty title="portal.documents.none.title" text="portal.documents.none.text" />

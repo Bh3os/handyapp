@@ -37,6 +37,7 @@ import { AccessHelpScreen } from './AccessHelp'
 import { ReconciliationScreen } from './Reconciliation'
 import { InvoiceRemindersPage } from './InvoiceReminders'
 import { CloseoutPage } from './Closeout'
+import { RepeatServicePage } from './RepeatService'
 import { JobCostsPage } from './JobCosts'
 import { LaborRatesSetting, MarginTargetSetting } from './JobMargin'
 import { MergeReview, RelinkRequest } from './RecordLinks'
@@ -301,7 +302,8 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
           : route.id
         : route.page === 'record' || route.page === 'record-step'
           ? // A property record sits below the customer records (TSK-0045): the same menu entry and permission.
-            route.screen === 'properties'
+            // TSK-0114: so does a project's customer-agreed repeat-service schedule.
+            route.screen === 'properties' || route.screen === 'repeat-service'
             ? 'customers'
             : // A job packet (TSK-0069) is reached from My Day or the board; the server decides who may open it.
               // TSK-0073: the Start Work briefing is reached from My Day (a link, never a direct start).
@@ -564,6 +566,9 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
           ) : route.page === 'record' && route.screen === 'quality-reviews' ? (
             // TSK-0084: a job's quality review and punch items (the Owner), or a worker's own punch items on it.
             <QualityReviewPage key={route.id} t={t} fetchImpl={doFetch} jobId={route.id} href={href} />
+          ) : route.page === 'record' && route.screen === 'repeat-service' && allowed ? (
+            // TSK-0114: a project's customer-agreed repeat-service schedule and its reminders.
+            <RepeatServicePage key={route.id} t={t} fetchImpl={doFetch} projectId={route.id} href={href} />
           ) : route.page === 'record' && route.screen === 'closeout' && allowed ? (
             // TSK-0092: a job's closeout, the Owner's reopen and its follow-ups.
             <CloseoutPage key={route.id} t={t} fetchImpl={doFetch} jobId={route.id} href={href} />

@@ -195,6 +195,15 @@ describe('the workspace tabs (TSK-0039, HH-PORT-09, OWN-DEC-106)', () => {
         Object.entries(body).filter(([k]) => !['reference', 'refreshedAt', 'refreshSeconds'].includes(k)),
       )
     }
+    // TSK-0150 (OWN-DEC-199): portal.messages.none.text and portal.documents.none.text. The request's automatic
+    // notices are not in the Messages tab (only the conversation is), and the Documents tab lists estimates
+    // (with the approval receipt) and invoices only; payment receipts are in Payments, and care notes nowhere yet.
+    const notices = await t.db
+      .selectFrom('platform.outbox_events')
+      .select('type')
+      .where('aggregate_id', 'in', [p.requestId, p.projectId])
+      .execute()
+    expect(notices.length).toBeGreaterThan(0)
     expect(answers).toEqual({
       // TSK-0050: the project conversation; nothing has been written on this project yet.
       messages: { messages: [] },

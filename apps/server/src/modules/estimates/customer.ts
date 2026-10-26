@@ -26,7 +26,7 @@
 //   it was verified is ever shown.
 import type { Db, Tx } from '@handyhub/db'
 import { estimateTermsDocument, estimateTermsInEffect } from '@handyhub/domain/legal'
-import type { CustomerActor, DataScope } from '@handyhub/policy'
+import { hasProjectAccess, type CustomerActor, type DataScope } from '@handyhub/policy'
 import { customerDisplayZone, knownPropertyZone } from '@handyhub/domain'
 import { loadConfig, type Config } from '../../platform/config/index.js'
 import type { ObjectStorage } from '../../providers/index.js'
@@ -59,6 +59,11 @@ export type CustomerEstimateListItem = {
   totalCents: number
   /** TSK-0058: an approved version's receipt, issued or being prepared; null for any other version. */
   receipt: ReceiptView['state'] | null
+  /**
+   * TSK-0150 (OWN-DEC-199): the zone the end of validity is shown in, as on the estimate itself (the property's zone, or
+   * business time said so), so the list never shows another day than the estimate does.
+   */
+  validUntilZone: { zone: string; business: boolean } | null
 }
 
 /** The estimate versions of a project the customer received, newest first; null for a project outside the scope. */
@@ -91,6 +96,7 @@ export async function customerEstimateList(
     .orderBy('v.published_at', 'desc')
     .orderBy('v.version', 'desc')
     .execute()
+  const zone = rows.length ? await validityZone(db, project.id, await loadConfig(db)) : null
   return rows.flatMap((r) =>
     r.published_at && r.total_cents !== null
       ? [
@@ -102,6 +108,7 @@ export async function customerEstimateList(
             validUntil: r.valid_until,
             totalCents: Number(r.total_cents),
             receipt: r.approval_id ? (r.receipt_id ? ('issued' as const) : ('preparing' as const)) : null,
+            validUntilZone: zone,
           },
         ]
       : [],
@@ -122,11 +129,14 @@ export type TermsState = 'not_configured' | 'not_in_effect' | 'in_effect'
 export type ApprovalReason =
   | 'terms_not_configured'
   | 'terms_not_in_effect'
+  | 'terms_not_current'
   | 'superseded'
   | 'expired'
   | 'not_published'
   | 'reduction_pending_verification'
   | 'reduction_not_verified'
+  // TSK-0118 (HH-ID-13): an organization member whose membership does not include approving.
+  | 'no_approval_privilege'
 
 /** The totals of the customer's selection, as the server computes them (integer cents). */
 export type SelectionView = {
@@ -211,7 +221,7 @@ export type CustomerEstimateDetail = {
  * The zone a version's expiry is shown in (TSK-0123; OWN-DEC-159 item 12): computed in business time (the stored
  * valid-until instant), shown in the property's own zone when it is known, otherwise in the business zone, said so.
  */
-async function validityZone(db: Reader, projectId: string, config: Config) {
+export async function validityZone(db: Reader, projectId: string, config: Config) {
   const p = await db
     .selectFrom('crm.projects as p')
     .innerJoin('crm.properties as pr', 'pr.id', 'p.property_id')
@@ -248,6 +258,15 @@ export async function customerEstimateDetail(
   const reasons: ApprovalReason[] = []
   if (terms.state === 'not_configured') reasons.push('terms_not_configured')
   if (terms.state === 'not_in_effect') reasons.push('terms_not_in_effect')
+  // TSK-0150 (OWN-DEC-199): the terms were re-versioned after this version was sent. Approval accepts only the current
+  // terms (approval.ts termsForApproval, TERMS_NOT_CURRENT), so the page never offers an approval the server refuses.
+  const currentTerms = config.get('legal.estimate_terms')
+  if (
+    terms.state === 'in_effect' &&
+    currentTerms.state === 'CONFIGURED' &&
+    currentTerms.value.documentId !== c.termsVersion
+  )
+    reasons.push('terms_not_current')
   const check = await acceptanceCheck(db, row.id, now)
   let current: { number: string; version: number } | null = null
   // An approved version needs no reason why it cannot be approved again.
@@ -255,6 +274,10 @@ export async function customerEstimateDetail(
     reasons.push((REDUCTION_REASON[check.code] ?? check.code.toLowerCase()) as ApprovalReason)
     if (check.current) current = { number: row.number, version: check.current.version }
   }
+  // TSK-0118 (HH-ID-13): an organization member decides on the estimate only with the approve privilege (the same
+  // privilege covers approving, declining and asking for changes); the project's own customer always may.
+  const mayDecide = hasProjectAccess(actor, { projectId: row.project_id }, now, 'estimate.approve')
+  if (!mayDecide && status === 'current') reasons.push('no_approval_privilege')
   const contentDigest = await versionContentDigest(db, row.id)
   if (!contentDigest) return null
   const available = status === 'current' && reasons.length === 0
@@ -325,9 +348,9 @@ export async function customerEstimateDetail(
       receipt: approvedRecord ? await receiptOfVersion(db, row.id, storage) : null,
     },
     actions: {
-      requestChanges: status === 'current',
-      decline: status === 'current',
-      requestUpdate: status === 'expired' && current === null,
+      requestChanges: mayDecide && status === 'current',
+      decline: mayDecide && status === 'current',
+      requestUpdate: mayDecide && status === 'expired' && current === null,
     },
     freshVerification: actor.freshVerification,
     responses: await estimateResponses(db, row.estimate_id),

@@ -114,6 +114,10 @@ export const CLEARED_CATEGORIES = {
     'work.hazard_inspection_authorizations',
     'work.hazard_inspection_holds',
     'work.follow_up_authorizations',
+    // TSK-0114 (0124): customer-agreed repeat-service schedules, their history and their recorded dates.
+    'work.service_series',
+    'work.service_series_changes',
+    'work.service_series_occurrences',
   ],
   jobs: [
     'work.jobs',
@@ -258,6 +262,12 @@ export const CLEARED_CATEGORIES = {
     // TSK-0149 (0100): staff-assisted account recoveries and the requests for help signing in or getting a link.
     'identity.customer_account_recoveries',
     'identity.access_help_requests',
+    // TSK-0118 (0125): customer-side organizations, their shared projects, memberships, scopes and history.
+    'identity.organizations',
+    'identity.organization_projects',
+    'identity.organization_memberships',
+    'identity.organization_scopes',
+    'identity.organization_events',
   ],
   workflow: [
     'ops.queue_items',

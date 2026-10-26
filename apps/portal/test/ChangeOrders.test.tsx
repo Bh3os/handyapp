@@ -91,6 +91,21 @@ function api(first: unknown, decide: (body: Record<string, unknown>, url: string
   return { fetchImpl, posts }
 }
 
+describe('"Valid until" in the zone of the estimate (TSK-0150, OWN-DEC-199)', () => {
+  it('the end of validity shows its time and the business zone, so no browser shows another day', async () => {
+    const zoned = { ...list([order()]), validUntilZone: { zone: 'America/Chicago', business: true } }
+    expect(parseChangeOrders(zoned)).not.toBeNull()
+    expect(parseChangeOrders({ ...zoned, validUntilZone: { zone: 1 } })).toBeNull()
+    const { fetchImpl } = api(zoned, () => json(500, {}))
+    render(<ChangeOrders reference={REF} fetchImpl={fetchImpl} />)
+    const section = await screen.findByTestId('documents-change-orders')
+    // 04:59:59 UTC on October 31 is 11:59 PM on October 30 in Chicago (CDT).
+    expect(
+      within(section).getByText(/Valid until October 30, 2026.{1,5}11:59 PM CDT, HandyHub business time/),
+    ).toBeTruthy()
+  })
+})
+
 describe('change orders in the Documents tab (TSK-0082, HH-PORT-05)', () => {
   it('[OWN-DEC-169] the original estimate, the current total and each sent change with its lines and totals', async () => {
     expect(parseChangeOrders(list([order()]))).not.toBeNull()
@@ -170,8 +185,13 @@ describe('change orders in the Documents tab (TSK-0082, HH-PORT-05)', () => {
     const blocked = order({ approval: { ...order().approval, canDecide: false, blockedBy: 'APPROVED_SCOPE_CHANGED' } })
     const { fetchImpl } = api(list([blocked]), () => json(500, {}))
     render(<ChangeOrders reference={REF} fetchImpl={fetchImpl} />)
-    expect(await screen.findByText(/HandyHub is updating this change order/)).toBeTruthy()
+    expect(await screen.findByText(/so this version can't be approved or declined/)).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Approve Change' })).toBeNull()
+    // TSK-0150 (OWN-DEC-199): its badge never says it waits for the customer's decision, and nothing promises a new
+    // version that no mechanism sends.
+    expect(screen.getByText("Can't be decided")).toBeTruthy()
+    expect(screen.queryByText('Waiting for your decision')).toBeNull()
+    expect(screen.queryByText(/You will receive a new version/)).toBeNull()
     cleanup()
     const empty = api(list([]), () => json(500, {}))
     const { container } = render(<ChangeOrders reference={REF} fetchImpl={empty.fetchImpl} />)

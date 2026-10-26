@@ -6,7 +6,7 @@
 // made-up "everything" scope.
 import { heldScopes } from './listing.js'
 import { type Action, rowFor } from './matrix.js'
-import type { Actor } from './scope.js'
+import { accessCovers, type Actor } from './scope.js'
 
 declare const BRAND: unique symbol
 
@@ -14,7 +14,8 @@ type Branded<T> = T & { readonly [BRAND]: true }
 
 /**
  * - `all`: a staff role holds the action with no record scope (Y).
- * - `projects`: exactly these projects: a customer's live, verified project accesses (V).
+ * - `projects`: exactly these projects: a customer's live, verified project accesses (V); TSK-0118: an organization
+ *   member's only where the membership's privileges cover the action.
  * - `assigned`: the projects of this staff user's active job assignments (A). No job assignment is recorded yet (the
  *   scheduling tasks add them), so the data layer resolves this scope to no records until they exist.
  * - `own`: only records that belong to this staff user (their estimate, thread or report); project-wide reads reach
@@ -50,11 +51,10 @@ export function dataScope(actor: Actor, action: Action | null, now: Date): DataS
         if (!rule) return NO_SCOPE
         if (rule.scope !== 'customer_project') return NO_SCOPE
       }
-      const t = now.getTime()
-      const live = actor.projectAccess.filter(
-        (g) =>
-          (g.revokedAt === undefined || g.revokedAt.getTime() > t) &&
-          (g.expiresAt === undefined || g.expiresAt.getTime() > t),
+      // TSK-0118: an organization access counts only for the actions its privileges cover, and never for a route
+      // that names no action (the account's own pages read the account's links themselves).
+      const live = actor.projectAccess.filter((g) =>
+        action === null ? g.via !== 'organization' && accessCovers(g, undefined, now) : accessCovers(g, action, now),
       )
       return make({ kind: 'projects', projectIds: [...new Set(live.map((g) => g.projectId))] })
     }

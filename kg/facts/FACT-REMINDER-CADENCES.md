@@ -44,3 +44,5 @@ source: "OWN-DEC-78, 101, 107, 109, 112, 113, 132; owner-answers-verbatim 2026-1
 **Built by [[TSK-0091]] (2026-10-24):** `reminders.cadences` version 3 (migration 0097) replaces the "Unpaid invoice" row as changed by [[OWN-DEC-210]]: `unpaidInvoice` is two automatic reminders, 3 and 7 calendar days after the invoice's due date, each once per invoice and stage, with any further follow-up released by staff. PROPOSED: each is due at the opening of the contact hours in the business time zone ([[OQ-UNPAID-REMINDER-DETAILS]]).
 
 **Built by [[TSK-0092]] (2026-10-25):** the service-quality follow-up (satisfaction check) uses `reminders.cadences.satisfaction.daysAfterCompletion` (2) as 48 elapsed hours after the Owner's review passed; the draft is released by staff ([[OQ-CLOSEOUT-DETAILS]]).
+
+**Built by [[TSK-0114]] (2026-10-26):** repeat service: a draft on each occurrence's date of the customer-agreed schedule (PROPOSED: at the opening of the contact hours in the property's zone), released by staff; its wording is NOT CONFIGURED ([[OQ-REPEAT-SERVICE-DETAILS]]).

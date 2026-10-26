@@ -1,5 +1,7 @@
 // Actors, record facts and the record-scope predicates (RULE-SERVER-AUTHZ; HH-STAFF-04; ENT-ProjectAccessGrant).
 // The server computes every fact from its own records; nothing here trusts a client-supplied flag.
+import type { Action } from './matrix.js'
+import { organizationAllows, type OrganizationPrivilege } from './organization.js'
 import type { Capability, StaffRole } from './roles.js'
 
 export type StaffActor = {
@@ -13,12 +15,28 @@ export type StaffActor = {
   readonly freshAuth: boolean
 }
 
-/** One verified project access of a customer: a single-project guest link or an account's linked project. */
+/**
+ * One verified project access of a customer: a single-project guest link, an account's linked project, or (TSK-0118)
+ * a project in the scope of the account's organization membership, limited to that membership's privileges.
+ */
 export type ProjectAccess = {
   readonly projectId: string
-  readonly via: 'grant' | 'account'
+  readonly via: 'grant' | 'account' | 'organization'
   readonly expiresAt?: Date
   readonly revokedAt?: Date
+  /** TSK-0118: an organization access's privileges (organization.ts); ignored for the other kinds. */
+  readonly privileges?: readonly OrganizationPrivilege[]
+}
+
+/**
+ * Whether one access is live at `now` and covers `action`. A guest link or an account link covers every customer
+ * action the matrix gives the project's customer; an organization access only what its privileges name (TSK-0118).
+ */
+export function accessCovers(access: ProjectAccess, action: Action | undefined, now: Date): boolean {
+  const t = now.getTime()
+  if (access.revokedAt !== undefined && access.revokedAt.getTime() <= t) return false
+  if (access.expiresAt !== undefined && access.expiresAt.getTime() <= t) return false
+  return access.via !== 'organization' || organizationAllows(access.privileges ?? [], action)
 }
 
 export type CustomerActor = {
@@ -75,16 +93,13 @@ export function isAssigned(actor: Actor, resource: Resource, now: Date): boolean
   )
 }
 
-/** Project grant: the customer holds an unexpired, unrevoked access to the record's project. */
-export function hasProjectAccess(actor: Actor, resource: Resource, now: Date): boolean {
+/**
+ * Project grant: the customer holds an unexpired, unrevoked access to the record's project that covers `action` (a
+ * read when no action is named; TSK-0118: an organization access covers only its privileges' actions).
+ */
+export function hasProjectAccess(actor: Actor, resource: Resource, now: Date, action?: Action): boolean {
   if (actor.kind !== 'customer' || resource.projectId === undefined) return false
-  const t = now.getTime()
-  return actor.projectAccess.some(
-    (g) =>
-      g.projectId === resource.projectId &&
-      (g.revokedAt === undefined || g.revokedAt.getTime() > t) &&
-      (g.expiresAt === undefined || g.expiresAt.getTime() > t),
-  )
+  return actor.projectAccess.some((g) => g.projectId === resource.projectId && accessCovers(g, action, now))
 }
 
 /** Ownership: the record belongs to this staff user. */

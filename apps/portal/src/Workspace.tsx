@@ -27,6 +27,7 @@ import { ACTION_LABEL, SITUATION_LABEL, STEP_TEXT, t, TIMELINE_LABEL, WAITING_LA
 import { useLive } from './live'
 import { NotShown, RefreshLine } from './States'
 import { Questions } from './Questions'
+import { RepeatServiceSection } from './RepeatService'
 import { TAB_LABEL, TAB_ORDER, TabPanel, tabPath, type EstimateRoute, type Tab } from './Tabs'
 
 const usd = (c: number) => formatUsd(cents(c))
@@ -44,6 +45,10 @@ const ACTION_SCREENS: Partial<Record<NextAction, (reference: string) => string>>
   choose_work_appointment: (reference) => tabPath(reference, 'appointments'),
   // TSK-0059: Pay your deposit goes to the payment summary, where the amount due and Pay by Card are.
   pay_deposit: () => '#portal-payment',
+  // TSK-0150 (OWN-DEC-199): the change orders open for a decision are in the Documents tab, and an invoice's balance
+  // and its Pay by Card link are in the Payments tab.
+  review_change: (reference) => tabPath(reference, 'documents'),
+  pay_invoice: (reference) => tabPath(reference, 'payments'),
 }
 
 function NextStep({ o, questions }: { o: ProjectOverview; questions: QuestionList | null }) {
@@ -75,7 +80,26 @@ function NextStep({ o, questions }: { o: ProjectOverview; questions: QuestionLis
  * HandyHub entered the Square link, any check still pending, or the deposit received. Paying opens Square; nothing
  * here marks anything paid.
  */
-function PaymentSummary({ payment }: { payment: ProjectOverview['payment'] }) {
+function PaymentSummary({ o }: { o: ProjectOverview }) {
+  // TSK-0150 (OWN-DEC-199): an issued invoice's balance shows here too, so "Nothing to pay yet" is never said while
+  // one is owed.
+  const invoice =
+    o.invoiceBalanceCents > 0 ? (
+      <p data-testid="portal-invoice-balance">
+        {t('portal.payment.invoice.due', { amount: usd(o.invoiceBalanceCents) })}
+      </p>
+    ) : null
+  const deposit = <DepositSummary payment={o.payment} />
+  if (o.payment.state === 'none' && invoice) return invoice
+  return (
+    <>
+      {deposit}
+      {invoice}
+    </>
+  )
+}
+
+function DepositSummary({ payment }: { payment: ProjectOverview['payment'] }) {
   if (payment.state === 'deposit_due')
     return (
       <div className="portal-deposit" data-testid="portal-deposit">
@@ -97,6 +121,13 @@ function PaymentSummary({ payment }: { payment: ProjectOverview['payment'] }) {
     )
   if (payment.state === 'deposit_received')
     return <p data-testid="portal-deposit">{t('portal.payment.deposit.paid', { amount: usd(payment.amountCents) })}</p>
+  // TSK-0118 (HH-ID-13): an organization member without the pay privilege; never shown as "nothing to pay".
+  if (payment.state === 'not_shared')
+    return (
+      <StateView kind="blocked" title={t('portal.payment.notShared.title')}>
+        <p>{t('portal.payment.notShared.text')}</p>
+      </StateView>
+    )
   return (
     <StateView kind="empty" title={t('portal.payment.none.title')}>
       <p>{t('portal.payment.none.text')}</p>
@@ -167,7 +198,7 @@ function Overview({
         <h3 id="portal-payment" className="hh-h3">
           {t('portal.payment.title')}
         </h3>
-        <PaymentSummary payment={o.payment} />
+        <PaymentSummary o={o} />
       </section>
 
       <section {...section('portal-timeline')}>
@@ -310,6 +341,8 @@ export function Workspace({
                     />
                     <h2 className="hh-visually-hidden">{t('portal.overview.title')}</h2>
                     <CaseUpdatesSection reference={reference} fetchImpl={fetchImpl} />
+                    {/* TSK-0114: the repeat-service schedule the customer agreed to, which they change or stop. */}
+                    <RepeatServiceSection reference={reference} fetchImpl={fetchImpl} />
                     {/* TSK-0051: a project HandyHub asked questions on reads them too (its timeline says so). */}
                     {live.data.timeline.some((e) => e.kind === 'more_information') ? (
                       <OverviewWithQuestions

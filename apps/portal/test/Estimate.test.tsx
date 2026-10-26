@@ -36,6 +36,7 @@ const overview = {
   timeline: [{ kind: 'received', at: '2026-10-20T14:00:00.000Z', text: null }],
   appointment: null,
   payment: { state: 'none' },
+  invoiceBalanceCents: 0,
   refreshedAt: NOW,
   refreshSeconds: 0,
 }
@@ -136,6 +137,7 @@ function api(opts: { detail?: () => unknown; post?: (c: Call) => Response } = {}
             validUntil: '2026-11-05T04:59:59.999Z',
             totalCents: 127_500,
             receipt: documentsReceipt,
+            validUntilZone: { zone: 'America/Chicago', business: false },
           },
         ],
       })
@@ -284,6 +286,26 @@ describe('portal routes and parsers (TSK-0056)', () => {
   })
 })
 
+describe('terms changed after the version was sent (TSK-0150, OWN-DEC-199)', () => {
+  it('says why approval is unavailable instead of offering one the server refuses', async () => {
+    const changed = () =>
+      estimate({
+        terms: { documentId: 'estimate-terms-1', state: 'in_effect' },
+        approval: { ...estimate().approval, available: false, reasons: ['terms_not_current'] },
+      })
+    const { fetchImpl } = api({ detail: changed })
+    open(fetchImpl)
+    expect(
+      await screen.findByText(
+        "The estimate terms changed after this version was sent, so this version can't be approved.",
+        undefined,
+        { timeout: 5_000 },
+      ),
+    ).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Approve Estimate' })).toBeNull()
+  })
+})
+
 describe('[HH-EST-15] a requested discount pending verification (TSK-0125, OWN-DEC-165)', () => {
   it('marks the discount row pending, says why approval waits, and names nothing about verification', async () => {
     const pending = () =>
@@ -341,6 +363,9 @@ describe('the customer estimate view (TSK-0056, HH-EST-06, HH-EST-09)', () => {
     const item = link.closest('li') as HTMLElement
     expect(within(item).getByText('Current')).toBeTruthy()
     expect(within(item).getByText(/Total: \$1,275\.00/)).toBeTruthy()
+    // TSK-0150 (OWN-DEC-199): the list names the same end of validity as the estimate (11:59 PM in its zone on
+    // November 4), never the browser's date.
+    expect(within(item).getByText(/Valid until November 4, 2026.{1,5}10:59 PM CST/)).toBeTruthy()
     fireEvent.click(link)
     expect(await screen.findByRole('heading', { name: `Estimate ${NUMBER}` })).toBeTruthy()
     expect(window.location.pathname).toBe(`/portal/p/${REF}/documents/${NUMBER}/1`)
@@ -582,7 +607,7 @@ describe('Approve Estimate (TSK-0057, HH-EST-06, HH-EST-07, HH-ID-07, OWN-DEC-10
     // TSK-0058 (OWN-DEC-105): the next step in the owner's words, and the receipt being prepared.
     expect(await screen.findByText('Estimate approved—pay your deposit to proceed with scheduling.')).toBeTruthy()
     expect(within(screen.getByTestId('approval-receipt')).getByRole('status').textContent).toBe(
-      'Your approval receipt is being prepared. It appears here shortly.',
+      'Your approval receipt is being prepared. It appears here once it is ready.',
     )
     const approvals = posts.filter((p) => p.url.endsWith('/approve'))
     expect(approvals).toHaveLength(2)
@@ -694,7 +719,10 @@ describe('Approve Estimate (TSK-0057, HH-EST-06, HH-EST-07, HH-ID-07, OWN-DEC-10
     fireEvent.change(within(section).getByLabelText('Your full name'), { target: { value: 'Synthetic Customer' } })
     fireEvent.click(within(section).getByRole('button', { name: 'Approve Estimate' }))
     expect(
-      await within(section).findByText("This estimate can't be approved yet: the estimate terms are not in effect."),
+      // TSK-0150 (OWN-DEC-199): a 503 has more causes than the terms, so the sentence names none.
+      await within(section).findByText(
+        "This estimate can't be approved here yet. Please try again later or contact HandyHub.",
+      ),
     ).toBeTruthy()
     expect(screen.queryByText(/^Estimate approved/)).toBeNull()
     expect(screen.queryByTestId('approval-receipt')).toBeNull()

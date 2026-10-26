@@ -81,6 +81,10 @@ export const ACTIONS = [
   'visit.select_window',
   'visit.request_reschedule',
   'visit.request_cancellation',
+  // TSK-0114 (HH-SCH-10, OWN-DEC-113, OWN-DEC-148): staff record a repeat-service schedule the customer agreed to
+  // (change, stop, skip an occurrence, link an occurrence's request); the customer changes or stops their own.
+  'service_series.manage',
+  'service_series.change',
   'work.cancel_with_financial_review',
   // TSK-0140 (OWN-DEC-195 C6): Office processes a routine customer-authorized cancellation of a work visit that falls
   // within the approved policy; waivers, refunds, disputed charges and exceptions stay the Owner's.
@@ -503,6 +507,13 @@ export const MATRIX: readonly MatrixRow[] = [
   }),
   row(SCHEDULING, 'Select an offered window', ['visit.select_window'], { customer: V() }),
   row(SCHEDULING, 'Request reschedule or cancellation', ['visit.request_reschedule', 'visit.request_cancellation'], {
+    customer: V(),
+  }),
+  row(SCHEDULING, 'Record, change or stop a customer-agreed repeat-service schedule', ['service_series.manage'], {
+    owner: Y(),
+    office: Y('Y (P)', P),
+  }),
+  row(SCHEDULING, 'Change or stop their repeat-service schedule and its reminders', ['service_series.change'], {
     customer: V(),
   }),
   row(SCHEDULING, 'Cancel accepted, scheduled or paid work (financial review)', ['work.cancel_with_financial_review'], {

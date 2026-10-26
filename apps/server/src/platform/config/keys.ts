@@ -235,6 +235,9 @@ export const CONFIG_KEYS = {
     }),
     repeatService: shape({ schedule: exactly('customer_agreed'), release: exactly('staff') }),
   }),
+  // TSK-0114 (OWN-DEC-148, HH-SCH-10; migration 0124): a change to a customer-agreed repeat-service schedule applies to
+  // occurrences more than these hours away; one within them keeps its date and follows the cancellation rules.
+  'repeat_service.change_notice': shape({ hours, withinNotice: exactly('cancellation_rules') }),
   'request.reopen_period': shape({ days: int(0, 3660) }),
   // TSK-0122 (OWN-DEC-152 sections 3.3 and 3.4, OWN-DEC-154, OWN-DEC-207, HH-COM-15; migration 0075): when a message may
   // go out, by channel. Emails (automatic messages and released staff replies) at any hour; a non-urgent text only

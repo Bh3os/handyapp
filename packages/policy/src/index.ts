@@ -6,7 +6,9 @@ export { CAPABILITIES, MATRIX_ROLES, ROLE_HEADINGS, STAFF_ROLES } from './roles.
 export type { Capability, MatrixRole, StaffRole } from './roles.js'
 export { ACTIONS, MATRIX, rowFor } from './matrix.js'
 export type { Action, Cell, Condition, MatrixRow, RowDenyReason, Rule, Scope } from './matrix.js'
-export { hasProjectAccess, isAssigned, isOwnRecord } from './scope.js'
+export { accessCovers, hasProjectAccess, isAssigned, isOwnRecord } from './scope.js'
+export { ORGANIZATION_ACTIONS, ORGANIZATION_PRIVILEGES, organizationAllows } from './organization.js'
+export type { OrganizationPrivilege } from './organization.js'
 export type {
   Actor,
   AiActor,

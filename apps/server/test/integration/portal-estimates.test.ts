@@ -353,6 +353,9 @@ describe('[HH-PORT-10][HH-EST-06][T24] the customer reads the exact published ve
     expect(res.statusCode, res.body).toBe(200)
     expect(res.headers['cache-control']).toBe('private, no-store')
     const v = res.json<Record<string, unknown>>()
+    // TSK-0150 (OWN-DEC-199): the list shows the end of validity in the same zone as the estimate itself.
+    expect(v['validUntilZone']).toEqual(expect.objectContaining({ zone: expect.any(String) }))
+    expect(list.estimates[0]?.['validUntilZone']).toEqual(v['validUntilZone'])
     expect(v).toMatchObject({
       reference: e.reference,
       number: e.number,
@@ -465,6 +468,9 @@ describe('[HH-EST-09][T33] Request Changes and Decline keep history; silence nev
       state: 'published',
       row_version: before.row_version,
     })
+    // TSK-0150 (OWN-DEC-199, portal.estimate.changes.hint): asking for changes keeps the version's end of validity; it
+    // still expires then unless HandyHub sends a new version or withdraws it first.
+    expect(after.valid_until).toEqual(before.valid_until)
     const rows = await responsesOf(e.versionId)
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({

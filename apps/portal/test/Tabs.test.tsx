@@ -38,6 +38,7 @@ const overview = (refreshSeconds = 0) => ({
   timeline: [{ kind: 'received', at: SENT, text: null }],
   appointment: null,
   payment: { state: 'none' },
+  invoiceBalanceCents: 0,
   refreshedAt: NOW,
   refreshSeconds,
 })
@@ -102,8 +103,13 @@ describe('the six tabs (TSK-0039, HH-PORT-09, T69)', () => {
     expect(within(panel()).getByRole('region', { name: 'Status' })).toBeTruthy()
     // Only the Overview (with its released case updates, TSK-0093) is read until another tab is opened. The case
     // updates are read once the Overview has loaded, so wait for that second request rather than racing it.
+    // TSK-0114: so does the repeat-service schedule (none here, so nothing is shown).
     await waitFor(() =>
-      expect(urls).toEqual([`/api/v1/customer/projects/${REF}/overview`, `/api/v1/customer/projects/${REF}/cases`]),
+      expect(urls).toEqual([
+        `/api/v1/customer/projects/${REF}/overview`,
+        `/api/v1/customer/projects/${REF}/cases`,
+        `/api/v1/customer/projects/${REF}/repeat-service`,
+      ]),
     )
   })
 
@@ -145,14 +151,18 @@ describe('the six tabs (TSK-0039, HH-PORT-09, T69)', () => {
     // TSK-0050: an empty conversation says what will appear; it never invents a message.
     let p = await show('Messages')
     expect(within(p).getByText('No messages yet')).toBeTruthy()
-    expect(within(p).getByText('Messages between you and HandyHub about this project appear here.')).toBeTruthy()
+    expect(
+      within(p).getByText(
+        "Your conversation with HandyHub about this project appears here. Automatic notices aren't shown here.",
+      ),
+    ).toBeTruthy()
     expect(within(p).queryByRole('listitem')).toBeNull()
     p = await show('Documents')
     expect(within(p).getByText('No documents yet')).toBeTruthy()
     p = await show('Photos')
     expect(within(p).getByText('No photos yet')).toBeTruthy()
     p = await show('Appointments')
-    expect(within(p).getByText('No appointment yet')).toBeTruthy()
+    expect(within(p).getByText('No upcoming appointment')).toBeTruthy()
     p = await show('Payments')
     expect(within(p).getByText('Nothing to pay yet')).toBeTruthy()
     expect(within(p).getByText('A payment you make shows here once HandyHub records it.')).toBeTruthy()

@@ -17,6 +17,9 @@
 // with a code to that project's verified contact (claim-routes.ts, claims.ts).
 // TSK-0113 (HH-ID-12, OWN-DEC-113): the account's saved properties, its preferences and Request This Service Again
 // (saved-routes.ts, saved.ts).
+// TSK-0118 (HH-ID-13): organization accounts: an account sets one up, shares its own projects with it and invites exact
+// email addresses with a scope and privileges; members accept, reach their scope and leave (organization-routes.ts,
+// organizations.ts).
 // Enrollment and sign-in establish who the caller is, so they are authentication routes (like the staff sign-in and
 // the access link exchange). The receipt routes need the Receipt-Capability header of the tab that sent the request;
 // the guest-link routes need a live session started from that project's access grant; an unknown, expired or revoked
@@ -56,6 +59,7 @@ import {
   type SendResult,
 } from './accounts.js'
 import { claimRoutes } from './claim-routes.js'
+import { organizationRoutes } from './organization-routes.js'
 import { savedRoutes } from './saved-routes.js'
 import { securityRoutes } from './security-routes.js'
 
@@ -721,6 +725,8 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
       ...claimRoutes(deps),
       // TSK-0113: saved properties, preferences and Request This Service Again.
       ...savedRoutes(),
+      // TSK-0118 (HH-ID-13): organization accounts with explicit memberships and scopes.
+      ...organizationRoutes(),
     ],
   }
 }
