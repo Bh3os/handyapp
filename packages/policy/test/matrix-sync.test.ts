@@ -45,8 +45,8 @@ describe('policy data matches ROLE-MATRIX exactly (TSK-0006, RULE-SERVER-AUTHZ)'
     // Owner's extension of a worker's visit-day access; TSK-0095: the job-costs row; TSK-0135: the Owner's
     // audit-retention workflow; TSK-0140: Office's routine work-visit cancellation and the Owner's cancellation-fee
     // waiver; TSK-0131: the labor-rate and low-margin reason row; TSK-0145: the Owner's hazard-evaluation inspection
-    // and the follow-up visit authorization.
-    expect(md.rows.length).toBe(84)
+    // and the follow-up visit authorization; TSK-0114: staff's and the customer's repeat-service schedule rows.
+    expect(md.rows.length).toBe(86)
     expect(
       MATRIX.map((r) => ({
         section: r.section,

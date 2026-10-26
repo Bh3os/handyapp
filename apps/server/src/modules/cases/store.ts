@@ -39,6 +39,7 @@ import type { ObjectStorage } from '../../providers/index.js'
 import { contentProblems } from '../photos/content.js'
 import { photoLimits } from '../photos/photos.js'
 import { syncProjectFollowUps } from '../closeout/follow-ups.js'
+import { syncProjectRepeatReminders } from '../repeat-service/reminders.js'
 import { openQueueItem, resolveQueueItem } from '../queue/items.js'
 
 type Reader = Db | Tx
@@ -221,6 +222,8 @@ export async function syncCaseItems(tx: Tx, caseId: string): Promise<void> {
   // TSK-0092 (HH-QA-10, OWN-DEC-113): the project's satisfaction check and review requests pause while a case is
   // open and are offered again once every case is closed.
   await syncProjectFollowUps(tx, c.project_id)
+  // TSK-0114 (T67): so are the repeat-service reminders of a schedule on the project or one of its occurrences'.
+  await syncProjectRepeatReminders(tx, c.project_id)
   if (notifiesOwner(c.kind) && c.state === 'reported')
     await openQueueItem(tx, {
       type: 'incident_notification',

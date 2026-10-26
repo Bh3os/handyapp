@@ -30,6 +30,7 @@ describe('the notify.release registration (TSK-0050, TSK-0051, TSK-0060, TSK-006
     // TSK-0077 (OWN-DEC-152): the work-paused notice (its report, sent only while the report's hold still blocks).
     // TSK-0091 (OWN-DEC-210): unpaid-invoice reminders and follow-ups (their invoice).
     // TSK-0092 (OWN-DEC-157, OWN-DEC-113): the satisfaction check and review requests (their job).
+    // TSK-0114 (OWN-DEC-113): repeat-service reminders (their schedule).
     expect(Object.keys(RELEASE_RECORD_CHECKS).sort()).toEqual([
       'estimate_version',
       'hazard_report',
@@ -37,6 +38,7 @@ describe('the notify.release registration (TSK-0050, TSK-0051, TSK-0060, TSK-006
       'job',
       'project',
       'question',
+      'service_series',
       'visit',
     ])
     expect(RELEASE_RECORD_CHECKS['hazard_report']).toBe(workPausedRecordCheck)

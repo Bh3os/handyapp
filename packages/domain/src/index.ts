@@ -476,3 +476,5 @@ export * from './job-costs.js'
 export * from './job-margin.js'
 export * from './report-sources.js'
 export * from './owner-dashboard.js'
+// TSK-0114 (HH-SCH-10, OWN-DEC-113, OWN-DEC-148): the customer-agreed repeat-service schedule and its reminders.
+export * from './repeat-service.js'

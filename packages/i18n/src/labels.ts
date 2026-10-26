@@ -94,6 +94,8 @@ export const LABEL_FAMILIES = {
     'invoice_reminder_review',
     // TSK-0092: a job's prepared satisfaction check or review request waiting for staff release.
     'follow_up_release',
+    // TSK-0114: a project's prepared repeat-service reminder waiting for staff release.
+    'repeat_service_release',
     // TSK-0125: a published estimate whose requested discount failed verification needs revising.
     'discount_revision',
     // TSK-0149: a request for help signing in or getting a new project link.
@@ -262,6 +264,8 @@ export const LABEL_FAMILIES = {
     // TSK-0092: a follow-up to release; a job to close, or reopened.
     'satisfaction_check_ready',
     'review_request_ready',
+    // TSK-0114: a repeat-service reminder prepared on its date.
+    'repeat_reminder_ready',
     'closeout_pending',
     'job_reopened',
     // TSK-0125: a requested discount failed verification on a published estimate; or it waits for the Owner's review.
@@ -382,6 +386,8 @@ export const LABEL_FAMILIES = {
     'business.calendar',
     'privacy.request_targets',
     'reminders.cadences',
+    // TSK-0114: the notice for changing a customer-agreed repeat-service schedule (OWN-DEC-148).
+    'repeat_service.change_notice',
     'request.reopen_period',
     'messages.delivery_hours',
     'response.target',
@@ -1007,6 +1013,8 @@ export const LABEL_FAMILIES = {
     // TSK-0092: a job's close and reopen; the follow-ups after completion.
     'job',
     'follow_up',
+    // TSK-0114: customer-agreed repeat-service schedules and their reminders.
+    'repeat_service',
     // TSK-0149: requests for help signing in or getting a new project link.
     'access_help',
     // TSK-0094: return work of a case.
@@ -2538,6 +2546,54 @@ export const LABEL_FAMILIES = {
   /** TSK-0126 (OWN-DEC-167): what staff confirm a site contact may do, and who the customer designated. */
   siteContactAuthority: ['property_access', 'visit_coordination'],
   siteContactDesignation: ['customer', 'other'],
+  // TSK-0114 (HH-SCH-10, OWN-DEC-113, OWN-DEC-148): repeat-service schedules: how the customer agreed, the history's
+  // changes, an occurrence's state, why a reminder may not go, and the codes a refusal names.
+  seriesAgreement: ['phone', 'in_person', 'email', 'message'],
+  seriesChange: [
+    'recorded',
+    'changed',
+    'reminders_on',
+    'reminders_off',
+    'stopped',
+    'occurrence_skipped',
+    'occurrence_linked',
+  ],
+  seriesOccurrence: ['scheduled', 'kept', 'skipped', 'requested'],
+  repeatReminderBlock: [
+    'series_stopped',
+    'reminders_off',
+    'not_on_schedule',
+    'occurrence_skipped',
+    'occurrence_requested',
+    'no_email_address',
+    'follow_ups_opted_out',
+    'case_active',
+  ],
+  repeatRefusal: [
+    'CUSTOMER_AGREEMENT_REQUIRED',
+    'IN_THE_PAST',
+    'INVALID',
+    'TOO_LONG',
+    'PROPERTY_ZONE_UNKNOWN',
+    'SERIES_ACTIVE',
+    'SERIES_STOPPED',
+    'WITHIN_CHANGE_NOTICE',
+    'NOT_AN_OCCURRENCE',
+    'OCCURRENCE_REQUESTED',
+    'OCCURRENCE_PASSED',
+    'NOT_FOUND',
+    'NOT_THE_SAME_CUSTOMER',
+    'SAME_PROJECT',
+    'REQUEST_ALREADY_LINKED',
+    'NOT_A_DRAFT',
+    'TEMPLATE_NOT_CONFIGURED',
+    'CASE_ACTIVE',
+    'FOLLOW_UPS_OPTED_OUT',
+    'NO_EMAIL_ADDRESS',
+    'REMINDERS_OFF',
+    'NOT_ON_SCHEDULE',
+    'OCCURRENCE_SKIPPED',
+  ],
 } as const satisfies Record<string, readonly string[]>
 
 export type LabelFamily = keyof typeof LABEL_FAMILIES

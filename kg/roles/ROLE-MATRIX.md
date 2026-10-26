@@ -59,6 +59,8 @@ These are server rules, enforced by one policy point on every read, write, searc
 | Record a follow-up visit's authorization on a completed job | Y | Y (P) | — | — | — | — |
 | Select an offered window | — | — | — | — | V | — |
 | Request reschedule or cancellation | — | — | — | — | V | — |
+| Record, change or stop a customer-agreed repeat-service schedule | Y | Y (P) | — | — | — | — |
+| Change or stop their repeat-service schedule and its reminders | — | — | — | — | V | — |
 | Cancel accepted, scheduled or paid work (financial review) | Y | — | — | — | — | — |
 | Cancel a work visit for a routine customer-authorized cancellation within policy | Y | Y | — | — | — | — |
 | Set working days, hours and time off | Y | — | — | — | — | — |
@@ -141,6 +143,8 @@ These are server rules, enforced by one policy point on every read, write, searc
 **Built by [[TSK-0126]] (2026-10-25):** the row "Approve a service-area coverage exception, with a reason" is the Owner's explicit approval of [[OWN-DEC-167]] for a verified county outside the service area (`visit.approve_coverage_exception`); recording the address check, the site contact and a SERVED acceptance sits in "Offer windows; confirm, reschedule, reassign, cancel visits" (`visit.confirm`). PROPOSED details: [[OQ-SITE-CHECK-DETAILS]].
 
 **Changed by [[OWN-DEC-173]] (2026-10-21):** publishing an estimate or change order above [[FACT-OWNER-APPROVAL-THRESHOLD]] needs the Owner's approval first; the row "Approve or reject publishing over the Owner approval threshold" is the Owner's alone, and changing the threshold is "Change policy values" (F) ([[TSK-0130]]).
+
+**Built by [[TSK-0114]] (2026-10-26):** "Record, change or stop a customer-agreed repeat-service schedule" (`service_series.manage`: the Owner, Office P) also covers skipping an occurrence and linking the request that carries it; "Change or stop their repeat-service schedule and its reminders" (`service_series.change`) is the customer's, on a project their session opens. Releasing a repeat-service reminder is "Reply from a project, release drafts". PROPOSED details: [[OQ-REPEAT-SERVICE-DETAILS]].
 
 **Built by [[TSK-0092]] (2026-10-25):** closing a job (`job.close`) sits in the Owner's cell of "Quality review, punch items, self-review" (P: ENT-Job "the Owner reviews quality, closes and reopens"); reopening is "Reopen a closed job" (F). Releasing the satisfaction check and review requests, preparing a review request and recording the customer's answer are "Reply from a project, release drafts" on the project's records (the Owner, Office). PROPOSED details: [[OQ-CLOSEOUT-DETAILS]].
 

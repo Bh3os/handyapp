@@ -114,6 +114,10 @@ export const CLEARED_CATEGORIES = {
     'work.hazard_inspection_authorizations',
     'work.hazard_inspection_holds',
     'work.follow_up_authorizations',
+    // TSK-0114 (0124): customer-agreed repeat-service schedules, their history and their recorded dates.
+    'work.service_series',
+    'work.service_series_changes',
+    'work.service_series_occurrences',
   ],
   jobs: [
     'work.jobs',

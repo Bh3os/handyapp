@@ -143,6 +143,8 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       'invoice_reminder_review',
       // TSK-0092: a satisfaction check or review request to release (message.release_draft: the Owner and Office).
       'follow_up_release',
+      // TSK-0114: a repeat-service reminder to release (message.release_draft: the Owner and Office).
+      'repeat_service_release',
       // TSK-0097: appointments flagged for review (reassignment) are seen by the roles that reassign visits.
       'visit_flagged',
       // TSK-0078: recorded visit outcomes to follow up (visit.reschedule: the Owner and Office).
@@ -225,6 +227,8 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       'question_reminder',
       // TSK-0092: follow-ups to release on their own threads (message.release_draft; the items are never assigned).
       'follow_up_release',
+      // TSK-0114: repeat-service reminders to release, likewise.
+      'repeat_service_release',
       // TSK-0125: a published estimate whose requested discount was not verified needs revising (estimate.revise).
       'discount_revision',
     ])

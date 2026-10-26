@@ -105,7 +105,12 @@ export const MARKETING_MESSAGES: ReadonlySet<string> = new Set(['review.request'
  * TSK-0092 (OWN-DEC-157 item 6, OWN-DEC-113): optional follow-ups after a completed job. A customer who asked for no
  * optional follow-ups (service communication withdrawn on the channel) gets none of them.
  */
-export const OPTIONAL_FOLLOW_UPS: ReadonlySet<string> = new Set(['reminder.satisfaction_check', 'review.request'])
+export const OPTIONAL_FOLLOW_UPS: ReadonlySet<string> = new Set([
+  'reminder.satisfaction_check',
+  'review.request',
+  // TSK-0114 (OWN-DEC-113, PROPOSED): the repeat-service reminder the customer asked for is service communication too.
+  'reminder.repeat_service',
+])
 
 /** TSK-0134: the only message a consent to verification codes by text permits (identity CODE_MESSAGE_KEY). */
 export const VERIFICATION_CODE_MESSAGE = 'contact.verification_code'

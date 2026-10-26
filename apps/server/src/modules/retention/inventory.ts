@@ -1319,6 +1319,25 @@ export const TABLES = {
     classes: ['scheduling'],
     categories: [J],
   },
+  // TSK-0114 (0124): customer-agreed repeat-service schedules, their history (staff notes among it) and the dates kept,
+  // skipped or linked to their own request.
+  'work.service_series': {
+    holds:
+      "A project's customer-agreed repeat-service schedule: the next date, the interval, reminders, how it was agreed",
+    classes: ['scheduling'],
+    categories: [R, J],
+  },
+  'work.service_series_changes': {
+    holds:
+      'The history of a repeat-service schedule: who changed it (staff or the customer), the schedule then, staff notes',
+    classes: ['scheduling', 'request_details'],
+    categories: [R, J],
+  },
+  'work.service_series_occurrences': {
+    holds: 'Dates of a repeat-service schedule kept by a change, skipped, or linked to their own new request',
+    classes: ['scheduling'],
+    categories: [R, J],
+  },
   'work.visit_changes': {
     holds:
       'Committed reschedules, reassignments and cancellations: actor, reason, teams, and a cancellation outcome in cents',

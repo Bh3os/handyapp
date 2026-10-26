@@ -35,6 +35,12 @@ import {
   unpaidReminderValues,
 } from './modules/finance/index.js'
 import { deliveryStatusAutomation, linkHostsOf, releaseAutomation } from './modules/notifications/index.js'
+import {
+  repeatReminderFailureItem,
+  repeatReminderRecordCheck,
+  repeatReminderValues,
+  repeatServiceAutomations,
+} from './modules/repeat-service/index.js'
 import { photoProcessAutomation } from './modules/photos/index.js'
 import { fieldPhotoProcessAutomation } from './modules/field-photos/photos.js'
 import { queueAutomations } from './modules/queue/index.js'
@@ -109,6 +115,9 @@ export const RELEASE_RECORD_CHECKS: RecordChecks = {
   // TSK-0092 (OWN-DEC-157, OWN-DEC-113): a satisfaction check or review request is held while a case is open on the
   // project and cancelled for a reopened job.
   job: followUpRecordCheck,
+  // TSK-0114 (OWN-DEC-113): a repeat-service reminder is sent only for a date the customer still wants one for, and is
+  // held while a case is open on the schedule's projects.
+  service_series: repeatReminderRecordCheck,
 }
 
 /**
@@ -122,7 +131,8 @@ export const releaseFailureItem: ReleaseFailureItem = async (tx, row) =>
   (await appointmentReminderFailureItem(tx, row)) ??
   (await estimateReminderFailureItem(tx, row)) ??
   (await unpaidReminderFailureItem(tx, row)) ??
-  (await followUpFailureItem(tx, row))
+  (await followUpFailureItem(tx, row)) ??
+  (await repeatReminderFailureItem(tx, row))
 
 /**
  * The values notify.release reads at send time, by message (TSK-0120: the staff reply; TSK-0121: the three automatic
@@ -137,6 +147,7 @@ export function releaseValues(publicSiteUrl: string | undefined): ReleaseValues 
     appointmentReminderValues(publicSiteUrl),
     unpaidReminderValues(publicSiteUrl),
     followUpValues(publicSiteUrl),
+    repeatReminderValues(publicSiteUrl),
   ]
   return async (tx, row) => {
     for (const source of sources) {
@@ -256,6 +267,8 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     // TSK-0092 (OWN-DEC-157): the service-quality follow-up of every completed job is prepared 48 hours after the
     // Owner's review passed, for staff to release; notify.release rechecks it with the job entry of the record checks.
     ...closeoutAutomations(),
+    // TSK-0114 (OWN-DEC-113): each occurrence's repeat-service reminder is prepared on its date for staff to release.
+    ...repeatServiceAutomations(),
     // TSK-0032: the automatic receipt email, once per saved request (HH-INT-20); email only.
     receiptEmailAutomation({
       providers: { email: deps.providers.email, sms: null, replyAddress: deps.replyAddress ?? null, linkHosts },
