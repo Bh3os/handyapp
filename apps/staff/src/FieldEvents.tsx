@@ -3,6 +3,8 @@
 // state, a worker not assigned (then or now), or another account's evidence the Owner uploaded. Nothing here changes
 // the visit; the Owner corrects a worker's times on the visit's own page when needed, then records what was done,
 // once. Staff text in English and Spanish.
+// TSK-0115: a checklist step saved offline names its step, event and evidence; one kept for review was never applied,
+// so the worker records it again online when it still applies (nothing here applies it).
 import type { StaffKey } from '@handyhub/i18n'
 import { Button, Field, StateView } from '@handyhub/ui'
 import { useCallback, useEffect, useState } from 'react'
@@ -12,7 +14,7 @@ import { codeLabel } from './Requests'
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
 
 type Ref = { id: string; name: string | null }
-type FieldEventType = 'tap_on_my_way' | 'tap_arrived' | 'tap_finished'
+type FieldEventType = 'tap_on_my_way' | 'tap_arrived' | 'tap_finished' | 'checklist_step'
 type Outcome = 'applied' | 'already_recorded' | 'conflict' | 'not_assigned' | 'recovered'
 export type FieldEventView = {
   clientId: string
@@ -29,6 +31,15 @@ export type FieldEventView = {
   state: 'synchronized' | 'needs_review' | 'reviewed'
   outcome: Outcome
   detail: string | null
+  step: {
+    workPackageId: string
+    stepId: string
+    event: string
+    version: number
+    measurement: string | null
+    note: string | null
+    photoIds: string[]
+  } | null
   review: { by: Ref; at: string; note: string } | null
   actions: { review: boolean }
 }
@@ -37,6 +48,7 @@ const TYPE: Readonly<Record<FieldEventType, StaffKey>> = {
   tap_on_my_way: 'fieldEvent.type.tap_on_my_way',
   tap_arrived: 'fieldEvent.type.tap_arrived',
   tap_finished: 'fieldEvent.type.tap_finished',
+  checklist_step: 'fieldEvent.type.checklist_step',
 }
 const OUTCOME: Readonly<Record<Outcome, StaffKey>> = {
   applied: 'fieldEvent.outcome.applied',
@@ -119,10 +131,28 @@ export function FieldEventPage({
         <dt>{t('fieldEvent.result')}</dt>
         <dd data-testid="field-event-outcome">
           {t(OUTCOME[view.outcome])}
-          {view.detail ? ` ${t(DETAIL[view.detail] ?? 'fieldEvent.detail.other')}` : ''}
+          {view.detail
+            ? ` ${DETAIL[view.detail] ? t(DETAIL[view.detail] as StaffKey) : view.type === 'checklist_step' ? codeLabel(t, 'checklistRefusal', view.detail) : t('fieldEvent.detail.other')}`
+            : ''}
         </dd>
+        {view.step ? (
+          <>
+            <dt>{t('fieldEvent.step')}</dt>
+            <dd data-testid="field-event-step">
+              {t('fieldEvent.stepLine', {
+                step: view.step.stepId,
+                event: codeLabel(t, 'checklistEvent', view.step.event),
+                version: view.step.version,
+              })}
+              {view.step.measurement ? ` · ${view.step.measurement}` : ''}
+              {view.step.note ? ` · ${view.step.note}` : ''}
+            </dd>
+          </>
+        ) : null}
       </dl>
-      <p className="staff-request__hint">{t('fieldEvent.hint')}</p>
+      <p className="staff-request__hint">
+        {t(view.type === 'checklist_step' ? 'fieldEvent.stepHint' : 'fieldEvent.hint')}
+      </p>
       <p>
         <a href={href(`/visit-times/${view.visitId}`)}>{t('fieldEvent.visitTimes')}</a>
       </p>

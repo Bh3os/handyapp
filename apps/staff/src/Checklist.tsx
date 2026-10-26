@@ -11,12 +11,33 @@
 // - The SOP text is English as imported. A Spanish-reading worker sees the Spanish text of a version released as
 //   AI-reviewed after its separate comparison (TSK-0103, OWN-DEC-79), labelled as such; otherwise the English text
 //   with "Spanish safety review pending" (Start Work stays blocked for them, the server decides).
+// - TSK-0115 (HH-OFF-08, HH-OFF-03): only while the Owner has turned offline checklist steps on, the screen keeps a
+//   copy of the checklist on this phone; without a connection it shows that copy (labelled, with its time) and lets the
+//   worker start, pause, resume and complete steps as drafts saved on this phone, in the same stage order and with the
+//   same evidence (offline/checklist.ts). Skipping, reopening, handoffs and Finished need a connection. A Stop Work
+//   saved on this phone closes the offline checklist until it is sent. Otherwise, offline, the checklist needs a
+//   connection.
+import type { ChecklistStepEvent } from '@handyhub/domain'
 import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useState, type FormEvent } from 'react'
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
 import { CompletionPanel } from './Completion'
+import { DRAFT_STATE, DRAFT_TONE } from './MyDay'
+import {
+  isLocal,
+  offlineEvents,
+  readChecklistCopy,
+  saveStepDraft,
+  storeChecklistCopy,
+  withDrafts,
+  type OfflineChecklist,
+  type StepEvidence,
+} from './offline/checklist'
+import { offlineStore, type DraftState, type StoredDraft } from './offline/store'
+import { currentStaff, DRAFTS_CHANGED } from './offline/sync'
 import { codeLabel } from './Requests'
+import { stopSavedFor } from './StopWork'
 
 type T = (key: StaffKey, values?: Record<string, string | number | Date>) => string
 type StaffRef = { id: string; name: string | null }
@@ -88,6 +109,8 @@ export type ChecklistData = {
   }[]
   workers: StaffRef[]
   actions: { handoff: boolean }
+  /** TSK-0115: the step events this phone may save offline (none until the Owner turns them on) and their visit. */
+  offline?: { events: string[]; visitId: string | null }
 }
 
 export function checklistError(t: T, e: ApiErrorBody): string {
@@ -118,23 +141,81 @@ export function ChecklistPage({
   href: (to: string) => string
 }) {
   const [data, setData] = useState<ChecklistData | null | undefined>(undefined)
-  const [refused, setRefused] = useState<ApiErrorBody | null>(null)
+  const [refused, setRefused] = useState<ApiErrorBody | 'offline' | null>(null)
+  // TSK-0115: the copy on this phone, with its drafts, while the server cannot be reached.
+  const [offline, setOffline] = useState<(OfflineChecklist & { savedAt: string }) | null>(null)
   const base = `/staff/jobs/${encodeURIComponent(jobId)}/checklist`
+  /** The copy on this phone plus its drafts, or null when there is none (or offline steps are off). */
+  const offlineView = useCallback(async () => {
+    const store = offlineStore()
+    const copy = await readChecklistCopy(store, jobId)
+    if (!copy || offlineEvents(copy.view).length === 0) return null
+    const drafts = await store.listDrafts().catch(() => [] as StoredDraft[])
+    return { ...withDrafts(copy.view, drafts, { stopSaved: stopSavedFor(jobId) }), savedAt: copy.savedAt }
+  }, [jobId])
   const load = useCallback(async () => {
     const r = await call<ChecklistData>(fetchImpl, base)
-    if (r.ok) setData(r.data)
-    else {
-      setRefused(r.error)
-      setData(null)
+    if (r.ok) {
+      setOffline(null)
+      setData(r.data)
+      void storeChecklistCopy(offlineStore(), r.data)
+      return
     }
-  }, [fetchImpl, base])
+    if (r.status === 0) {
+      const o = await offlineView()
+      setOffline(o)
+      if (o) return setData(o.view)
+      setRefused('offline')
+      return setData(null)
+    }
+    setOffline(null)
+    setRefused(r.error)
+    setData(null)
+  }, [fetchImpl, base, offlineView])
   useEffect(() => {
     void load()
+    // A sync ran, or the connection came back: read the server (or the copy and its drafts) again.
+    const again = () => void load()
+    window.addEventListener(DRAFTS_CHANGED, again)
+    window.addEventListener('online', again)
+    return () => {
+      window.removeEventListener(DRAFTS_CHANGED, again)
+      window.removeEventListener('online', again)
+    }
   }, [load])
+  /** Saves a step on this phone (the server could not be reached); answers the refusal codes, or null once saved. */
+  const saveOffline = useCallback(
+    async (workPackageId: string, stepId: string, event: string, evidence: StepEvidence) => {
+      const o = await offlineView()
+      const step = o?.view.packages
+        .find((p) => p.workPackageId === workPackageId)
+        ?.stages.flatMap((st) => st.steps)
+        .find((x) => x.stepId === stepId)
+      const visitId = o?.view.offline?.visitId
+      if (!o || !step || !visitId) return ['NEEDS_CONNECTION']
+      const saved = await saveStepDraft(offlineStore(), o, {
+        visitId,
+        workPackageId,
+        step,
+        event: event as ChecklistStepEvent,
+        evidence,
+        staffUserId: currentStaff(),
+      })
+      if (!saved.ok) return saved.codes
+      // Every screen that shows the drafts (this one, the sync bar) reads them again.
+      window.dispatchEvent(new Event(DRAFTS_CHANGED))
+      return null
+    },
+    [offlineView],
+  )
 
   if (data === undefined) return <StateView kind="loading" title={t('common.loading')} />
   if (!data)
-    return (
+    return refused === 'offline' ? (
+      <StateView kind="offline" title={t('checklist.needsConnection')}>
+        <p data-testid="checklist-needs-connection">{t('offline.notSynced')}</p>
+      </StateView>
+    ) : (
       <StateView kind="blocked" title={refused?.code === 'NOT_FOUND' ? t('error.NOT_FOUND') : t('checklist.refused')} />
     )
   return (
@@ -149,6 +230,19 @@ export function ChecklistPage({
           {t('checklist.changeOrders')}
         </a>
       </p>
+      {offline ? (
+        <StateView kind="offline" title={t('checklist.offlineTitle')}>
+          <p data-testid="checklist-offline-copy">
+            {t('checklist.offlineBody', { at: new Date(offline.savedAt).toLocaleString() })}
+          </p>
+          <p>{t('offline.notSynced')}</p>
+          {stopSavedFor(jobId) ? (
+            <p role="alert" data-testid="checklist-stop-saved">
+              {codeLabel(t, 'checklistRefusal', 'STOP_SAVED_ON_PHONE')}
+            </p>
+          ) : null}
+        </StateView>
+      ) : null}
       {data.blockers.length ? (
         <StateView kind="blocked" title={t('checklist.blocked')}>
           <ul data-testid="checklist-blockers">
@@ -212,6 +306,10 @@ export function ChecklistPage({
                       spanish={spanish}
                       photos={data.photos.filter((f) => f.workPackageId === p.workPackageId)}
                       onDone={load}
+                      local={offline ? isLocal(offline, p.workPackageId, s.stepId) : null}
+                      offlineMode={offline !== null}
+                      canSaveOffline={offlineEvents(data).length > 0}
+                      saveOffline={(event, evidence) => saveOffline(p.workPackageId, s.stepId, event, evidence)}
                     />
                   ))}
                 </ol>
@@ -235,10 +333,12 @@ export function ChecklistPage({
             </li>
           ))}
         </ul>
-        {data.actions.handoff ? <Handoff t={t} fetchImpl={fetchImpl} base={base} data={data} onDone={load} /> : null}
+        {data.actions.handoff && !offline ? (
+          <Handoff t={t} fetchImpl={fetchImpl} base={base} data={data} onDone={load} />
+        ) : null}
       </section>
-      {/* TSK-0083: the walkthrough and Finished, below the checklist. */}
-      <CompletionPanel t={t} fetchImpl={fetchImpl} jobId={data.jobId} />
+      {/* TSK-0083: the walkthrough and Finished, below the checklist (it needs a connection: never from the copy). */}
+      {offline ? null : <CompletionPanel t={t} fetchImpl={fetchImpl} jobId={data.jobId} />}
     </section>
   )
 }
@@ -252,6 +352,10 @@ function Step({
   spanish,
   photos,
   onDone,
+  local,
+  offlineMode,
+  canSaveOffline,
+  saveOffline,
 }: {
   t: T
   fetchImpl: Fetch
@@ -261,6 +365,13 @@ function Step({
   spanish: boolean
   photos: ChecklistData['photos']
   onDone: () => Promise<void>
+  /** TSK-0115: the state of this step's latest draft on this phone, if any. */
+  local: DraftState | null
+  /** The screen shows the copy on this phone: actions are saved as drafts. */
+  offlineMode: boolean
+  /** Offline checklist steps are on: an action the server cannot be reached for is saved on this phone. */
+  canSaveOffline: boolean
+  saveOffline: (event: string, evidence: StepEvidence) => Promise<string[] | null>
 }) {
   const ids = useId()
   const [measurement, setMeasurement] = useState(step.measurement ?? '')
@@ -272,8 +383,27 @@ function Step({
   const needsReason = step.actions.some((a) => a === 'skip' || a === 'reopen')
   const canComplete = step.actions.includes('complete')
 
+  const evidence = (): StepEvidence => ({
+    ...(measurement.trim() ? { measurement } : {}),
+    ...(note.trim() ? { note } : {}),
+    ...(chosen.length ? { photoIds: chosen } : {}),
+  })
+  /** TSK-0115: saves the event on this phone; a refusal shows its reasons, nothing is saved then. */
+  async function saveHere(event: string) {
+    const codes = await saveOffline(event, event === 'complete' ? evidence() : {})
+    setPending(null)
+    if (codes)
+      return setProblem(
+        codes.includes('NEEDS_CONNECTION')
+          ? t('offline.needsConnection')
+          : codes.map((c) => codeLabel(t, 'checklistRefusal', c)).join(' '),
+      )
+    setProblem(null)
+  }
+
   async function send(event: string) {
     setPending(event)
+    if (offlineMode) return saveHere(event)
     const r = await call(fetchImpl, `${base}/steps/${event}`, {
       method: 'POST',
       body: {
@@ -287,8 +417,10 @@ function Step({
       },
       headers: { 'idempotency-key': idempotencyKey() },
     })
+    // No connection: with offline steps on, the event is saved on this phone instead (never shown as recorded).
+    if (!r.ok && r.status === 0 && canSaveOffline) return saveHere(event)
     setPending(null)
-    if (!r.ok) return setProblem(checklistError(t, r.error))
+    if (!r.ok) return setProblem(r.status === 0 ? t('offline.needsConnection') : checklistError(t, r.error))
     setProblem(null)
     setReason('')
     await onDone()
@@ -299,6 +431,11 @@ function Step({
       <p>
         <StatusBadge tone={tone(step.state)}>{codeLabel(t, 'checklistStepState', step.state)}</StatusBadge>{' '}
         {step.required ? <StatusBadge tone="info">{t('sop.required')}</StatusBadge> : null}{' '}
+        {local ? (
+          <span data-testid="checklist-step-local">
+            <StatusBadge tone={DRAFT_TONE[local]}>{t(DRAFT_STATE[local])}</StatusBadge>{' '}
+          </span>
+        ) : null}
         <span className="staff-request__hint">{t('sop.itemId', { id: step.stepId })}</span>
       </p>
       <p lang={spanish && step.textEs !== null ? 'es' : 'en'}>

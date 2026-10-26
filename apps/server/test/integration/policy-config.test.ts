@@ -173,6 +173,8 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
     expect(v('messages.delivery_hours')).toEqual({ email: 'any_hour', text: 'recipient_permitted_hours' })
     expect(v('sms.unknown_zone_hours')).toEqual({ open: '09:00', close: '21:00', zone: 'America/Kentucky/Louisville' })
     expect(v('sms.live_delivery')).toEqual({ enabled: false })
+    // TSK-0115 (HH-OFF-08): no offline action beyond the minimal set until the Owner turns one on.
+    expect(v('field.offline_actions')).toEqual({ actions: [] })
     expect(v('request.reopen_period')).toEqual({ days: 30 })
     // TSK-0131 (FACT-MARGIN-TARGET, OWN-DEC-189): the advisory target gross margin per job, 30%.
     expect(v('job_margin.target')).toEqual({ targetBps: 3000 })
