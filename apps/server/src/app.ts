@@ -125,6 +125,9 @@ export async function buildApp({
       ? createDb(config.databaseUrl, {
           applicationName: 'handyapp-api',
           connectionTimeoutMillis: SERVER_POOL_CONNECT_TIMEOUT_MS,
+          // TSK-0107: a lost connection is replaced; only its code is logged.
+          onConnectionLost: (err) =>
+            app.log.warn({ code: err.code ?? null }, 'database connection lost; it is replaced'),
         })
       : undefined)
   if (ownDb && db) app.addHook('onClose', async () => db.destroy())
