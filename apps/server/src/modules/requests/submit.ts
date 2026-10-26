@@ -32,6 +32,7 @@ import { createReceiptCapability } from '../verification/receipt-capability.js'
 import { issueGrant } from '../access/grants.js'
 import type { CodeKeySettings } from '../identity/index.js'
 import {
+  chosenWindowHours,
   localDate,
   normalizeUsPhone,
   offeredWindows,
@@ -199,11 +200,12 @@ export async function submitRequest(
       serviceQuestions(s.intake as { guideInputs: string[] }).map((q) => q.key),
     ]),
   )
+  const windows = formWindows(config)
   const problems = semanticProblems(body, {
     today: localDate(now, zone),
     knownServices: new Set(services.keys()),
     questions,
-    windows: formWindows(config).map((w) => w.code),
+    windows: windows.map((w) => w.code),
   })
   // The privacy policy version the page presented must be a published version (TSK-0024; HH-PRIV-04, HH-INT-19).
   if (!(await isLegalVersion(tx, 'legal.privacy_notice', body.privacyNoticeVersion)))
@@ -305,6 +307,8 @@ export async function submitRequest(
       flexible: body.timing.flexible,
       need_help_today: body.timing.needHelpToday,
       time_windows: body.timing.windows,
+      // TSK-0139 (OWN-DEC-170): the hours the form offered with the chosen windows, kept with the request.
+      time_window_hours: JSON.stringify(chosenWindowHours(windows, body.timing.windows)),
       estimate_preference: body.estimatePreference,
       preferred_channel: c.preferredChannel,
       sms_opt_in: body.smsOptIn,

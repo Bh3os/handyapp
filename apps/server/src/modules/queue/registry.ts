@@ -59,6 +59,8 @@ export const QUEUE_ACTIONS = [
   'review_permissions',
   // TSK-0149: help a customer who cannot sign in or get a new project link, after verifying their identity.
   'help_access',
+  // TSK-0092: close a job once nothing is left open (or see what still is).
+  'close_job',
 ] as const
 export type QueueAction = (typeof QUEUE_ACTIONS)[number]
 
@@ -403,6 +405,21 @@ export const QUEUE_ITEM_TYPES = [
     screen: 'payments',
     path: 'invoice-reminders',
   },
+  // TSK-0092 (HH-QA-10, OWN-DEC-157, OWN-DEC-113): a job's prepared satisfaction check (48 hours after the Owner's
+  // review passed) or review request waits for staff release; resolved when it is released or cancelled, and while a
+  // case on the project holds it (offered again once every case is closed). Seen by the roles that release drafts; the
+  // link opens the job's closeout page. Band PROPOSED.
+  {
+    id: 'follow_up_release',
+    section: 'queue',
+    subject: 'job',
+    band: 'other',
+    view: 'message.release_draft',
+    reasons: ['satisfaction_check_ready', 'review_request_ready'],
+    action: 'release_reminder',
+    screen: 'schedule',
+    path: 'closeout',
+  },
   // TSK-0125 (HH-EST-15, OWN-DEC-165): a published estimate carries the requested discount although its verification
   // failed (not verified, or declined by the Owner): it cannot be approved, and the estimator writes the revised
   // estimate the customer approves. One item per request while such a version is published. Seen by the roles that
@@ -574,6 +591,19 @@ export const QUEUE_ITEM_TYPES = [
     screen: 'schedule',
     path: 'quality-reviews',
   },
+  // TSK-0092 (HH-QA-09): a job operationally complete (or reopened) waits for the Owner's close; the screen names what is
+  // still open (the closeout obligations). Resolved when it closes. Seen by the Owner (job.close). Band PROPOSED.
+  {
+    id: 'job_closeout',
+    section: 'owner_decisions',
+    subject: 'job',
+    band: 'other',
+    view: 'job.close',
+    reasons: ['closeout_pending', 'job_reopened'],
+    action: 'close_job',
+    screen: 'schedule',
+    path: 'closeout',
+  },
   {
     id: 'start_work_exception',
     section: 'owner_decisions',
@@ -643,6 +673,28 @@ export const QUEUE_ITEM_TYPES = [
     reasons: ['deletion_requested'],
     action: 'decide',
     screen: 'customers',
+  },
+  // TSK-0136 (HH-PRIV-07, OWN-DEC-175 "Display pending privacy requests, deadlines, and overdue alerts"): one item per
+  // open privacy request, opened in the submission's transaction and resolved by the Owner's decision. Its due time is
+  // the request's next deadline (the end of that date in the business zone: the substantive acknowledgment, then the
+  // internal target or the legal deadline); its reason says which date is due or overdue, kept in line by a job at
+  // each deadline. Never closes the request. Seen by the Owner (privacy.decide). Band PROPOSED.
+  {
+    id: 'privacy_request',
+    section: 'owner_decisions',
+    subject: 'privacy_request',
+    band: 'time_sensitive',
+    view: 'privacy.decide',
+    reasons: [
+      'privacy_acknowledgment_due',
+      'privacy_acknowledgment_overdue',
+      'privacy_completion_due',
+      'privacy_completion_overdue',
+      'privacy_legal_deadline_overdue',
+      'privacy_dates_not_configured',
+    ],
+    action: 'decide',
+    screen: 'privacy',
   },
   // TSK-0091 (OWN-DEC-112, OWN-DEC-210, HH-FIN-19): the second automatic reminder was actually sent and the balance
   // remains. One item per invoice until the Owner decides, an arrangement is recorded or the balance is gone; the link

@@ -21,7 +21,13 @@ import {
   type RequestState,
   unqualifiedChecks,
 } from '@handyhub/domain'
-import { serviceQuestions } from '@handyhub/domain/request-form'
+import {
+  type ChosenWindowHours,
+  type DayWindow,
+  preferredWindowOn,
+  serviceQuestions,
+} from '@handyhub/domain/request-form'
+import { zoneFamily } from '@handyhub/domain/zones'
 import { customerTranslator } from '@handyhub/i18n'
 import { decide, readsVisibility, type Action, type Actor, type DataScope } from '@handyhub/policy'
 import { sql } from 'kysely'
@@ -158,12 +164,42 @@ type Submitted = {
   contact?: { fullName?: string; email?: string; phone?: string; preferredChannel?: string }
 }
 
+/**
+ * The chosen windows as staff read them (TSK-0139; OWN-DEC-170, OWN-DEC-159 items 4 and 6, HH-INT-02): the hours the
+ * form offered with each (kept with the request), which are wall-clock times of the property's zone as it is now
+ * (null: unknown, flagged for verification, never assumed Eastern). On a preferred date each window is also given as
+ * the instants of that date in that zone, so a day with a clock change shows its own offset. Preferences only.
+ */
+export function preferredWindowsView(
+  windows: readonly string[],
+  hours: ChosenWindowHours,
+  preferredDate: string | null,
+  zone: string | null,
+) {
+  return {
+    timeZone: zone,
+    family: zoneFamily(zone),
+    windows: windows.map((code) => {
+      const h = hours[code as DayWindow]
+      const on = h && preferredDate ? preferredWindowOn(preferredDate, h, zone) : null
+      return {
+        code,
+        start: h?.start ?? null,
+        end: h?.end ?? null,
+        startsAt: on?.startsAt.toISOString() ?? null,
+        endsAt: on?.endsAt.toISOString() ?? null,
+      }
+    }),
+  }
+}
+
 /** The full staff view of a request, or null when it does not exist or lies outside the caller's scope (TSK-0037). */
 export async function staffRequestView(db: Reader, scope: DataScope, requestId: string, actor: Actor) {
   const r = await db
     .selectFrom('intake.requests as r')
     .innerJoin('crm.projects as p', 'p.id', 'r.project_id')
     .innerJoin('crm.contacts as c', 'c.id', 'r.contact_id')
+    .innerJoin('crm.properties as pr', 'pr.id', 'r.property_id')
     // The customer record staff see the request under: its own, or the one a reviewed merge or relink linked it to
     // (TSK-0046, HH-CRM-04); the request itself keeps its original customer.
     .innerJoin('crm.customers as cu', (j) => j.on('cu.id', '=', sql<string>`crm.project_customer(r.project_id)`))
@@ -185,6 +221,8 @@ export async function staffRequestView(db: Reader, scope: DataScope, requestId: 
       'r.flexible',
       'r.need_help_today',
       'r.time_windows',
+      'r.time_window_hours',
+      'pr.time_zone as property_time_zone',
       'r.estimate_preference',
       'r.preferred_channel',
       'r.sms_opt_in',
@@ -362,6 +400,12 @@ export async function staffRequestView(db: Reader, scope: DataScope, requestId: 
     // The badges belong to the contact's current values: after a verified Change Contact the email differs from the
     // one sent, so the current value is shown with them (the original submission itself never changes).
     contactVerification: { ...badges, current: { email: r.contact_email, phone: r.contact_phone } },
+    preferredWindows: preferredWindowsView(
+      r.time_windows,
+      r.time_window_hours as ChosenWindowHours,
+      r.preferred_date,
+      r.property_time_zone,
+    ),
     // TSK-0127: the reason beside the outcome (null for a request recorded before reasons existed).
     coverage: {
       result: r.coverage_result,

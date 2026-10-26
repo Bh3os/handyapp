@@ -38,6 +38,7 @@ import { outbox } from '../../platform/outbox.js'
 import type { ObjectStorage } from '../../providers/index.js'
 import { contentProblems } from '../photos/content.js'
 import { photoLimits } from '../photos/photos.js'
+import { syncProjectFollowUps } from '../closeout/follow-ups.js'
 import { openQueueItem, resolveQueueItem } from '../queue/items.js'
 
 type Reader = Db | Tx
@@ -217,6 +218,9 @@ export async function syncCaseItems(tx: Tx, caseId: string): Promise<void> {
       openedAt: c.reported_at,
     })
   else await resolveQueueItem(tx, { type: 'case_open', subjectId: c.id, resolution: 'closed' })
+  // TSK-0092 (HH-QA-10, OWN-DEC-113): the project's satisfaction check and review requests pause while a case is
+  // open and are offered again once every case is closed.
+  await syncProjectFollowUps(tx, c.project_id)
   if (notifiesOwner(c.kind) && c.state === 'reported')
     await openQueueItem(tx, {
       type: 'incident_notification',
@@ -590,6 +594,12 @@ export async function applyEvent(
     .where('case_id', '=', c.id)
     .where('state', '=', 'open')
     .executeTakeFirstOrThrow()
+  // TSK-0094 (HH-QA-07, HH-QA-08): a case with return work closes once the Owner decided its coverage and price and
+  // every return-visit punch item is re-checked (migration 0102 checks the same).
+  if (name === 'close') {
+    const problems = await returnWorkCloseProblems(tx, c.id)
+    if (problems.length) throw conflict(problems.map((p) => field('returnWork', p)))
+  }
   const resolving = name === 'resolve' || name === 'submit_resolution'
   const facts: CaseFacts = {
     resolution: resolving ? (input.resolution ?? null) : c.resolution,
@@ -649,6 +659,23 @@ export async function applyEvent(
   await event(tx, c, name, c.state, to, actor.userId, note?.trim() || null)
   await syncCaseItems(tx, c.id)
   return { case: c, from: c.state, to, version: out.version }
+}
+
+/** What the case's return work still needs before the case closes (TSK-0094). */
+async function returnWorkCloseProblems(tx: Tx, caseId: string): Promise<string[]> {
+  const r = await tx
+    .selectFrom('quality.return_work')
+    .select(['id', 'decided_at'])
+    .where('case_id', '=', caseId)
+    .executeTakeFirst()
+  if (!r) return []
+  const open = await tx
+    .selectFrom('quality.return_work_items')
+    .select('id')
+    .where('return_work_id', '=', r.id)
+    .where('state', '<>', 'rechecked')
+    .executeTakeFirst()
+  return [...(r.decided_at === null ? ['RETURN_WORK_UNDECIDED'] : []), ...(open ? ['RETURN_ITEMS_OPEN'] : [])]
 }
 
 export async function recordRecheck(tx: Tx, actor: StaffActor, caseId: string, expected: number, note: string) {

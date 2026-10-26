@@ -141,6 +141,8 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       'reconciliation_item',
       // TSK-0091: invoice reminders a payment suspended (payment_reminder.release: the Owner and Office).
       'invoice_reminder_review',
+      // TSK-0092: a satisfaction check or review request to release (message.release_draft: the Owner and Office).
+      'follow_up_release',
       // TSK-0097: appointments flagged for review (reassignment) are seen by the roles that reassign visits.
       'visit_flagged',
       // TSK-0078: recorded visit outcomes to follow up (visit.reschedule: the Owner and Office).
@@ -166,6 +168,8 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       'deposit_waiver',
       // TSK-0084: a job awaiting the Owner's quality review (quality.review).
       'quality_review',
+      // TSK-0092: a job operationally complete or reopened, waiting for the Owner's close (job.close).
+      'job_closeout',
       'start_work_exception',
       // TSK-0086: a job's unallocated money (an overpayment) for the Owner's credit or refund decision.
       'unallocated_credit',
@@ -174,6 +178,8 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       'refund_request',
       'cancellation_outcome',
       'deletion_request',
+      // TSK-0136: an open privacy request with its deadlines (privacy.decide).
+      'privacy_request',
       'invoice_overdue_decision',
       // TSK-0125: a requested discount waiting for the Owner's review (discount.decide).
       'discount_owner_review',
@@ -215,6 +221,8 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       // TSK-0051: replies to staff questions (request.view) and reminders on their own requests (own threads).
       'question_replied',
       'question_reminder',
+      // TSK-0092: follow-ups to release on their own threads (message.release_draft; the items are never assigned).
+      'follow_up_release',
       // TSK-0125: a published estimate whose requested discount was not verified needs revising (estimate.revise).
       'discount_revision',
     ])

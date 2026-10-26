@@ -141,7 +141,17 @@ async function blockers(db: Reader, actor: StaffActor, jobId: string): Promise<s
     .where('staff_user_id', '=', actor.userId)
     .executeTakeFirst()
   if (!started) out.push('WORK_NOT_STARTED')
+  // TSK-0094 (HH-INC-03): after a pause, the worker resumes through the Start Work gate before working again.
+  else if (!(await workerCurrent(db, jobId, actor.userId))) out.push('RESUME_REQUIRED')
   return out
+}
+
+/** Whether the worker started or resumed through the gate since the job's latest pause (migration 0102). */
+export async function workerCurrent(db: Reader, jobId: string, staffUserId: string): Promise<boolean> {
+  const r = await sql<{
+    ok: boolean
+  }>`SELECT work.worker_current_on_job(${jobId}::uuid, ${staffUserId}::uuid) AS ok`.execute(db)
+  return r.rows[0]?.ok === true
 }
 
 /** Per work package: the checklist summary the reviewer and Finished read (TSK-0083, TSK-0084). */

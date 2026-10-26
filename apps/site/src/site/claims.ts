@@ -112,6 +112,16 @@ export const CLAIMS: readonly Claim[] = [
       decision: 'OWN-DEC-145',
     },
   ])
+  // The notice below the request form's preferred times, the owner's exact sentences (TSK-0139; OWN-DEC-170, HH-INT-02):
+  // it says that nothing is confirmed, which is not an availability claim. It replaces the notice of OWN-DEC-92.
+  .concat([
+    {
+      key: 'request.timing.note',
+      text: 'These are your preferred times only. Your appointment is not confirmed until HandyHub sends you a confirmed date and arrival window.',
+      source: 'owner, 2026-10-21',
+      decision: 'OWN-DEC-170',
+    },
+  ])
   // The discount a customer may request on the request form and its pending verification (TSK-0125; HH-EST-15,
   // OWN-DEC-165, FACT-PRICING-DISCOUNTS): the owner's discounts and verification rules, the share and the eligibility
   // values filled in from configuration. The sentences are PROPOSED wording (OQ-DISCOUNT-REQUEST-DETAILS).

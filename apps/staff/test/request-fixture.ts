@@ -65,6 +65,20 @@ export function requestDetail(over: Partial<RequestDetail> = {}): RequestDetail 
       phone: 'unverified',
       current: { email: 'synthetic@example.test', phone: '+15025550101' },
     },
+    // TSK-0139: Mornings on the preferred date in a synthetic Central property (8:00 AM CDT is 13:00 UTC).
+    preferredWindows: {
+      timeZone: 'America/Chicago',
+      family: 'central',
+      windows: [
+        {
+          code: 'mornings',
+          start: '08:00',
+          end: '12:00',
+          startsAt: '2026-10-30T13:00:00.000Z',
+          endsAt: '2026-10-30T17:00:00.000Z',
+        },
+      ],
+    },
     coverage: { result: 'out_of_coverage', ruleSet: 1 },
     responsibleStaff: null,
     assignments: [],

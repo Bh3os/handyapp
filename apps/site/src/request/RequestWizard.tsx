@@ -835,8 +835,6 @@ export default function RequestWizard() {
             radio('propertyType', p, t(PROPERTY_LABEL[p]), values.propertyType, (v) => set('propertyType', v)),
           ),
         )}
-        {/* Preferences only, never a slot or an appointment (HH-INT-02, HH-INT-17, OWN-DEC-92). */}
-        <p className="hh-muted">{t('request.timing.note')}</p>
         {settings.visitHours ? (
           <p className="hh-small hh-muted">
             {t('request.timing.visitHours', {
@@ -902,6 +900,9 @@ export default function RequestWizard() {
             {t('request.timing.weekendsCombined')}
           </p>
         ) : null}
+        {/* Preferences only, never a slot or an appointment, in the owner's words below the choices (HH-INT-02,
+            HH-INT-17, OWN-DEC-170). */}
+        <p className="hh-muted">{t('request.timing.note')}</p>
       </>
     ),
     contact: (

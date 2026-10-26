@@ -110,6 +110,9 @@ export const ACTIONS = [
   'quality.manage_punch_items',
   'quality.self_review',
   'quality.correct_punch_item',
+  // PROPOSED (TSK-0092): closing a job once nothing is left open is the Owner's (ENT-Job: "the Owner reviews quality,
+  // closes and reopens"), so it sits in the Owner's quality-review row with the same cell.
+  'job.close',
   'job.reopen',
   // Finance
   'invoice.issue',
@@ -529,13 +532,14 @@ export const MATRIX: readonly MatrixRow[] = [
   row(
     FIELD,
     'Quality review, punch items, self-review',
-    ['quality.review', 'quality.manage_punch_items', 'quality.self_review', 'quality.correct_punch_item'],
+    ['quality.review', 'quality.manage_punch_items', 'quality.self_review', 'quality.correct_punch_item', 'job.close'],
     {
       // The verifier is never the corrector (OWN-DEC-28): the Owner reviews; assigned workers correct.
       owner: only('Y', {
         'quality.review': { scope: 'any' },
         'quality.manage_punch_items': { scope: 'any' },
         'quality.self_review': { scope: 'any' },
+        'job.close': { scope: 'any' },
       }),
       worker: only('Correct assigned punch items', { 'quality.correct_punch_item': { scope: 'assigned' } }),
     },
