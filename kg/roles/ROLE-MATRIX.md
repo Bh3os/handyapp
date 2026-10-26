@@ -5,7 +5,7 @@ title: "Permission matrix: every action by role"
 status: active
 area: security
 links:
-  decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-118]]", "[[OWN-DEC-123]]", "[[OWN-DEC-67]]", "[[OWN-DEC-68]]", "[[OWN-DEC-69]]", "[[OWN-DEC-70]]", "[[OWN-DEC-71]]", "[[OWN-DEC-76]]", "[[OWN-DEC-77]]", "[[OWN-DEC-38]]", "[[OWN-DEC-64]]", "[[OWN-DEC-81]]", "[[OWN-DEC-100]]", "[[OWN-DEC-111]]", "[[OWN-DEC-115]]", "[[OWN-DEC-117]]", "[[OWN-DEC-119]]", "[[OWN-DEC-121]]", "[[OWN-DEC-124]]", "[[OWN-DEC-125]]", "[[OWN-DEC-134]]", "[[OWN-DEC-137]]", "[[OWN-DEC-138]]", "[[OWN-DEC-143]]"]
+  decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-118]]", "[[OWN-DEC-123]]", "[[OWN-DEC-67]]", "[[OWN-DEC-68]]", "[[OWN-DEC-69]]", "[[OWN-DEC-70]]", "[[OWN-DEC-71]]", "[[OWN-DEC-76]]", "[[OWN-DEC-77]]", "[[OWN-DEC-38]]", "[[OWN-DEC-64]]", "[[OWN-DEC-81]]", "[[OWN-DEC-100]]", "[[OWN-DEC-111]]", "[[OWN-DEC-115]]", "[[OWN-DEC-117]]", "[[OWN-DEC-119]]", "[[OWN-DEC-121]]", "[[OWN-DEC-124]]", "[[OWN-DEC-125]]", "[[OWN-DEC-134]]", "[[OWN-DEC-137]]", "[[OWN-DEC-138]]", "[[OWN-DEC-143]]", "[[OWN-DEC-171]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]", "[[RULE-SAFETY-GATES]]", "[[RULE-AI-WAVE2]]"]
   uses: ["[[ROLE-OWNER]]", "[[ROLE-OFFICE]]", "[[ROLE-ESTIMATOR]]", "[[ROLE-WORKER]]", "[[ROLE-CUSTOMER]]", "[[ROLE-GUEST]]", "[[ENT-RoleGrant]]", "[[ENT-AuditEvent]]"]
   tested_by: ["[[T26]]", "[[T64]]", "[[T19]]", "[[T68]]", "[[T28]]"]
@@ -54,11 +54,13 @@ These are server rules, enforced by one policy point on every read, write, searc
 | --- | --- | --- | --- | --- | --- | --- |
 | View scheduling board | Y | Y | View (P) | Own My Day only | — | — |
 | Offer windows; confirm, reschedule, reassign, cancel visits | Y | Y | Offer estimate-visit windows (P) | — | — | — |
+| Approve a service-area coverage exception, with a reason | Y | — | — | — | — | — |
 | Select an offered window | — | — | — | — | V | — |
 | Request reschedule or cancellation | — | — | — | — | V | — |
 | Cancel accepted, scheduled or paid work (financial review) | Y | — | — | — | — | — |
 | Set working days, hours and time off | Y | — | — | — | — | — |
 | Tap On my way, Arrived, Finished | A | — | — | A | — | — |
+| Extend a worker's visit-day access | Y (reason) | — | — | — | — | — |
 
 ### Field work and safety
 | Action | Owner | Office | Estimator | Worker | Customer | Guest |
@@ -125,6 +127,8 @@ These are server rules, enforced by one policy point on every read, write, searc
 **Changed by [[OWN-DEC-164]], [[OWN-DEC-195]], [[OWN-DEC-200]] (2026-10-21):** audit editing stays refused for every role, and an owner-only audit-retention action is added by [[TSK-0135]]; routine customer-authorized work-visit cancellations within policy move to Office by [[TSK-0140]]; cash collection needs an explicit Owner grant to a trained Worker by [[TSK-0151]]. Each change updates this table and the policy data in the same pull request.
 
 **Built by [[TSK-0151]] (2026-10-24, migration 0098):** the Worker's cell of "Record a verified payment" reads "with the Owner's collect grant recording their training": the `collect` grant records the date the training was completed and what it covered, and the database refuses a live collect grant without it (collect grants from before 0098 without a training record were ended). The Owner's dismissal of a working-hours or equipment flag (`visit.dismiss_flag`, with a reason) sits in "Set working days, hours and time off" (P); a mandatory restriction is never dismissed ([[OWN-DEC-200]] H7). Restoring an earlier grant in a reactivated account's permission review is "grant roles or capabilities" (F); declining one is protective, in the disable row. PROPOSED details: [[OQ-STAFF-AMENDMENT-DETAILS]].
+
+**Built by [[TSK-0126]] (2026-10-25):** the row "Approve a service-area coverage exception, with a reason" is the Owner's explicit approval of [[OWN-DEC-167]] for a verified county outside the service area (`visit.approve_coverage_exception`); recording the address check, the site contact and a SERVED acceptance sits in "Offer windows; confirm, reschedule, reassign, cancel visits" (`visit.confirm`). PROPOSED details: [[OQ-SITE-CHECK-DETAILS]].
 
 **Changed by [[OWN-DEC-173]] (2026-10-21):** publishing an estimate or change order above [[FACT-OWNER-APPROVAL-THRESHOLD]] needs the Owner's approval first; the row "Approve or reject publishing over the Owner approval threshold" is the Owner's alone, and changing the threshold is "Change policy values" (F) ([[TSK-0130]]).
 

@@ -262,6 +262,35 @@ export interface CrmCustomersTable {
   version: Generated<number>
 }
 
+export interface CrmProjectCoverageAcceptancesTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  project_id: string
+  county_verification_id: string
+  outcome: string
+  exception_reason: string | null
+  accepted_by: string
+  accepted_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CrmProjectSiteContactsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  project_id: string
+  version: number
+  designation: string
+  contact_id: string | null
+  full_name: string
+  role: string | null
+  phone_e164: string | null
+  email: string | null
+  authority: string[]
+  source: string
+  note: string | null
+  recorded_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface CrmProjectsTable {
   id: Generated<string>
   reference: string
@@ -1798,7 +1827,7 @@ export interface PrivacyRetentionReviewsTable {
   project_id: string | null
   policy_key: string
   policy_version: number
-  period_years: number
+  period_years: number | null
   retention_started_at: Timestamp
   period_ends_at: Timestamp
   hold_checks: Json
@@ -1806,6 +1835,8 @@ export interface PrivacyRetentionReviewsTable {
   opened_by: string
   opened_at: ColumnType<Date, Date | string | undefined, Date | string>
   request_id: string
+  period_days: number | null
+  record_count: number | null
 }
 
 export interface QualityCaseAttachmentsTable {
@@ -2716,6 +2747,21 @@ export interface WorkTimeStampsTable {
   device_recorded_at: Timestamp | null
 }
 
+export interface WorkVisitAccessExtensionsTable {
+  id: Generated<string>
+  visit_id: string
+  reservation_id: string
+  staff_user_id: string
+  reason: string
+  granted_by: string
+  starts_at: ColumnType<Date, Date | string | undefined, Date | string>
+  expires_at: Timestamp
+  ended_at: Timestamp | null
+  ended_by: string | null
+  end_reason: string | null
+  request_id: string
+}
+
 export interface WorkVisitChangeRequestsTable {
   id: Generated<string>
   visit_id: string
@@ -2831,6 +2877,8 @@ export interface WorkVisitsTable {
   updated_at: ColumnType<Date, Date | string | undefined, Date | string>
   number: Generated<number>
   county_verification_id: string | null
+  site_contact_id: string | null
+  coverage_acceptance_id: string | null
 }
 
 export interface WorkWalkthroughsTable {
@@ -2989,6 +3037,8 @@ export interface Database {
   'crm.customer_notes': CrmCustomerNotesTable
   'crm.customer_properties': CrmCustomerPropertiesTable
   'crm.customers': CrmCustomersTable
+  'crm.project_coverage_acceptances': CrmProjectCoverageAcceptancesTable
+  'crm.project_site_contacts': CrmProjectSiteContactsTable
   'crm.projects': CrmProjectsTable
   'crm.properties': CrmPropertiesTable
   'crm.property_addresses': CrmPropertyAddressesTable
@@ -3149,6 +3199,7 @@ export interface Database {
   'work.time_off': WorkTimeOffTable
   'work.time_stamp_corrections': WorkTimeStampCorrectionsTable
   'work.time_stamps': WorkTimeStampsTable
+  'work.visit_access_extensions': WorkVisitAccessExtensionsTable
   'work.visit_change_requests': WorkVisitChangeRequestsTable
   'work.visit_changes': WorkVisitChangesTable
   'work.visit_departures': WorkVisitDeparturesTable

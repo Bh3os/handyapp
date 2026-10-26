@@ -12,7 +12,14 @@
 import { randomUUID } from 'node:crypto'
 import { createDb, loadServiceSeed, loadSopSeed, syncServices, syncSops, withTx, type Db } from '@handyhub/db'
 import { createTestDatabase, type TestDatabase } from '@handyhub/db/testing'
-import { addLocalDays, localDateOf, packetChanges, resolveWindow, type PacketContent } from '@handyhub/domain'
+import {
+  addLocalDays,
+  localDateOf,
+  packetChanges,
+  resolveLocalTime,
+  resolveWindow,
+  type PacketContent,
+} from '@handyhub/domain'
 import { ESTIMATE_TERMS } from '@handyhub/domain/legal'
 import { decide, type StaffActor } from '@handyhub/policy'
 import type { FastifyInstance } from 'fastify'
@@ -638,17 +645,24 @@ describe('[HH-PKT-01][HH-PKT-02][HH-PKT-07] the versioned job packet', () => {
     expect((await reveal('ann', p.propertyId, codeId)).statusCode).toBe(403)
     expect((await packet('ann', jobId)).actions.revealAccessCodes).toBe(false)
     expect((await packet('owner', jobId)).actions.revealAccessCodes).toBe(true)
-    // The policy's facts: assigned, inside the window, refused on any other date than the visit's.
+    // The policy's facts: assigned only on the visit's own local day (TSK-0128, OWN-DEC-171), refused on any other
+    // date than the visit's, read in the visit's zone. Noon of the visit day is a fixed instant inside it.
     const facts = await propertyVisitFacts(t.db, p.propertyId, actors.ann)
-    expect(facts.visitDate).toBe(day(5))
+    expect(facts).toMatchObject({ visitDate: day(5), visitToday: localDateOf(new Date(), ZONE) })
     const ctx = { now: new Date(), online: true }
-    expect(decide(actors.ann, 'access_code.reveal', facts, { ...ctx, today: day(5) }).effect).toBe('allow')
-    expect(decide(actors.ann, 'access_code.reveal', facts, { ...ctx, today: day(4) })).toMatchObject({
+    expect(decide(actors.ann, 'access_code.reveal', facts, { ...ctx, today: day(5) })).toMatchObject({
+      reason: 'NOT_ASSIGNED',
+    })
+    const noon = resolveLocalTime(day(5), '12:00', ZONE)
+    if (noon.kind !== 'unique') throw new Error('fixture noon')
+    const onDay = { ...ctx, now: noon.at.instant }
+    expect(decide(actors.ann, 'access_code.reveal', { ...facts, visitToday: day(5) }, onDay).effect).toBe('allow')
+    expect(decide(actors.ann, 'access_code.reveal', { ...facts, visitToday: day(4) }, onDay)).toMatchObject({
       reason: 'NOT_VISIT_DATE',
     })
-    expect(decide(actors.ann, 'access_code.reveal', facts, { ...ctx, today: day(5), online: false })).toMatchObject({
-      reason: 'OFFLINE',
-    })
+    expect(
+      decide(actors.ann, 'access_code.reveal', { ...facts, visitToday: day(5) }, { ...onDay, online: false }),
+    ).toMatchObject({ reason: 'OFFLINE' })
     const benFacts = await propertyVisitFacts(t.db, p.propertyId, actors.ben)
     expect(decide(actors.ben, 'access_code.reveal', benFacts, { ...ctx, today: day(5) })).toMatchObject({
       reason: 'NOT_ASSIGNED',

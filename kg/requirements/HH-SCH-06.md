@@ -29,3 +29,5 @@ Missing job-start materials or tools may still allow a planning appointment; the
 A refusal names every unmet precondition.
 
 **Changed by [[OWN-DEC-167]], [[OWN-DEC-179]], [[OWN-DEC-193]] (2026-10-21):** the three site checks are recorded checkboxes; SERVED needs no owner approval, EDGE and OUTSIDE need an owner exception; estimate visits need no approved job; follow-up visits on completed jobs need a recorded authorization.
+
+**Built by [[TSK-0126]] (2026-10-25, migration 0106):** "verified property address", "an authorized site contact" and "coverage accepted by staff" are the three recorded site checks: the address-and-county check of the current address version, the project's site contact with confirmed authority (give access, coordinate the visit), and the coverage of the verified county accepted by staff (SERVED) or the Owner's exception with a reason (OUTSIDE). Each confirmation names every missing one, and the database refuses a confirmation without them. PROPOSED details: [[OQ-SITE-CHECK-DETAILS]].

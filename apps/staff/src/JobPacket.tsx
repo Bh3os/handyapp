@@ -20,6 +20,10 @@
 //   changed since the acknowledged version, and, for an assigned worker, a personal acknowledgment of this exact
 //   version (a checkbox, then the button; the server refuses anyone not assigned and a version that changed). Each
 //   assigned worker's state is listed; nobody acknowledges for another person. It releases no hold.
+// - TSK-0128 (HH-PKT-08, OWN-DEC-171): a worker sees the customer's first name, the address and directions, the
+//   site-access details, the site contact and the access codes only during their visit-day access (the visit's own
+//   local day, or an Owner extension until the time shown); before it the general service area and when it opens.
+//   The server leaves the rest out; the screen says so, and that removing access cannot erase screenshots or copies.
 import type { OwnerContact } from '@handyhub/domain/escalation'
 import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { Button, StateView, StatusBadge } from '@handyhub/ui'
@@ -96,10 +100,16 @@ export type JobPacketView = {
     propertyId: string
     address: { street: string; unit: string | null; city: string; state: string; zip: string } | null
     directionsUrl: string | null
+    /** TSK-0128: the general service area; absent from an offline copy saved before it existed. */
+    serviceArea?: { city: string; state: string } | null
     propertyType: string
     details: Detail[]
     accessCodes: { id: string; kind: string; label: string | null; confirmedAt: string }[]
   }
+  /** TSK-0128: the customer's first name, only while the visit-day data is shown. */
+  customer?: { firstName: string | null }
+  /** TSK-0128: how the reader stands on the visit-day data (absent from an offline copy saved before it existed). */
+  access?: PacketAccess
   occupants: Detail[]
   scope: {
     version: number | null
@@ -177,6 +187,44 @@ export type JobPacketView = {
   actions: { revealAccessCodes: boolean; acknowledge: boolean }
 }
 type AckState = 'acknowledged' | 'required' | 'invalidated' | 'not_assigned'
+export type PacketAccess = {
+  mode: 'full' | 'visit_day' | 'closed'
+  basis: 'visit_day' | 'extension' | null
+  endsAt: string | null
+  opensAt: string | null
+}
+
+/**
+ * TSK-0128: what the reader is told about the visit-day data: when it opens (before the day), that the day is over,
+ * until when it shows (and whether by an Owner extension), and that removing access cannot erase copies.
+ */
+export function VisitDayNotice({
+  t,
+  access,
+  when,
+}: {
+  t: T
+  access: PacketAccess | undefined
+  when: (iso: string) => string
+}) {
+  if (!access || access.mode === 'full') return null
+  if (access.mode === 'closed')
+    return (
+      <p className="staff-request__hint" data-testid="visit-day-closed">
+        {access.opensAt ? t('packet.visitDay.before', { time: when(access.opensAt) }) : t('packet.visitDay.after')}
+      </p>
+    )
+  return (
+    <div data-testid="visit-day-open">
+      <p className="staff-request__hint">
+        {access.basis === 'extension'
+          ? t('packet.visitDay.extended', { time: when(access.endsAt ?? '') })
+          : t('packet.visitDay.until', { time: when(access.endsAt ?? '') })}
+      </p>
+      <p className="staff-request__hint">{t('packet.visitDay.copies')}</p>
+    </div>
+  )
+}
 
 const bcp47 = (locale: StaffLocale) => (locale === 'es' ? 'es-US' : 'en-US')
 
@@ -749,7 +797,9 @@ export function JobPacketPage({
                     v.site.address.city,
                     `${v.site.address.state} ${v.site.address.zip}`,
                   ].join(', ')
-                : t('packet.addressUnavailable')}
+                : v.access?.mode === 'closed' && v.site.serviceArea
+                  ? t('packet.addressVisitDay', { city: v.site.serviceArea.city, state: v.site.serviceArea.state })
+                  : t('packet.addressUnavailable')}
               {v.site.directionsUrl ? (
                 <>
                   {' '}
@@ -765,15 +815,25 @@ export function JobPacketPage({
               ) : null}
             </dd>
           </div>
+          {v.customer?.firstName ? (
+            <div>
+              <dt>{t('packet.field.customer')}</dt>
+              <dd data-testid="packet-customer">{v.customer.firstName}</dd>
+            </div>
+          ) : null}
           <div>
             <dt>{t('packet.field.propertyType')}</dt>
             <dd>{codeLabel(t, 'propertyType', v.site.propertyType)}</dd>
           </div>
         </dl>
-        <Details t={t} items={v.site.details} when={when} />
+        <VisitDayNotice t={t} access={v.access} when={when} />
+        {/* TSK-0128: outside the visit-day access the server sends none of these; nothing claims they are missing. */}
+        {v.access?.mode === 'closed' ? null : <Details t={t} items={v.site.details} when={when} />}
         <h3 className="hh-h5">{t('packet.field.accessCodes')}</h3>
         <p className="staff-request__hint">{t('packet.accessCodesNotice')}</p>
-        {v.site.accessCodes.length === 0 ? (
+        {v.access?.mode === 'closed' ? (
+          <p>{t('packet.visitDayOnly')}</p>
+        ) : v.site.accessCodes.length === 0 ? (
           <p>{t('packet.noAccessCodes')}</p>
         ) : (
           <ul className="staff-request__list">
@@ -1020,7 +1080,10 @@ export function JobPacketPage({
         <dl className="staff-system__fields">
           <div>
             <dt>{t('packet.field.siteContact')}</dt>
-            <dd>{v.communication.siteContact?.value ?? t('packet.nothingRecorded')}</dd>
+            <dd>
+              {v.communication.siteContact?.value ??
+                t(v.access?.mode === 'closed' ? 'packet.visitDayOnly' : 'packet.nothingRecorded')}
+            </dd>
           </div>
           <div>
             <dt>{t('packet.field.escalation')}</dt>

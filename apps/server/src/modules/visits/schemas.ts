@@ -1,15 +1,20 @@
 // JSON schemas of the staff visit routes (TSK-0061; HH-API-01, HH-ARC-04). Input objects refuse unknown fields;
 // response objects list every field.
 import {
+  ADDRESS_PROBLEMS,
   CANCELLATION_INITIATORS,
   CANCELLATION_OUTCOMES,
   HANDYHUB_CAUSES,
+  SITE_CONTACT_AUTHORITIES,
+  SITE_CONTACT_DESIGNATIONS,
+  STAFF_DETAIL_SOURCES,
   VISIT_PURPOSES,
   VISIT_STATES,
 } from '@handyhub/domain'
 import { BOARD_VIEWS } from './board.js'
 import { CHANGE_KINDS, CHANGE_LIMITS, REQUEST_KINDS } from './changes.js'
 import { OFFER_LIMITS } from './offers.js'
+import { SITE_CONTACT_LIMITS } from './site-checks.js'
 import { CONFIRM_LIMITS, VISIT_LIMITS } from './visits.js'
 
 const UUID = {
@@ -602,6 +607,199 @@ export const COUNTY_VERIFICATION = {
   ],
 } as const
 
+const nullable = (o: object) => ({ anyOf: [o, { type: 'null' }] })
+
+/** TSK-0126 (OWN-DEC-167): the three site checks of a project, each with what it rests on. */
+export const SITE_CHECKS = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['property', 'address', 'siteContact', 'coverage', 'actions'],
+  properties: {
+    property: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['id', 'version', 'addressVersion', 'address'],
+      properties: {
+        id: { type: 'string' },
+        version: { type: 'integer' },
+        addressVersion: { type: 'integer' },
+        address: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['street', 'unit', 'city', 'state', 'zip'],
+          properties: {
+            street: { type: 'string' },
+            unit: NULLABLE_STRING,
+            city: { type: 'string' },
+            state: { type: 'string' },
+            zip: { type: 'string' },
+          },
+        },
+      },
+    },
+    address: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['done', 'problems', 'verification'],
+      properties: {
+        done: { type: 'boolean' },
+        problems: { type: 'array', items: { type: 'string', enum: [...ADDRESS_PROBLEMS] } },
+        verification: nullable({
+          type: 'object',
+          additionalProperties: false,
+          required: ['id', 'state', 'county', 'inArea', 'addressVersion', 'verifiedBy', 'verifiedAt'],
+          properties: {
+            id: { type: 'string' },
+            state: { type: 'string' },
+            county: { type: 'string' },
+            inArea: { type: 'boolean' },
+            addressVersion: { type: 'integer' },
+            verifiedBy: STAFF_REF,
+            verifiedAt: { type: 'string' },
+          },
+        }),
+      },
+    },
+    siteContact: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['done', 'problem', 'current', 'customer'],
+      properties: {
+        done: { type: 'boolean' },
+        problem: {
+          type: ['string', 'null'],
+          enum: ['SITE_CONTACT_MISSING', 'SITE_CONTACT_NOT_AUTHORIZED', 'SITE_CONTACT_CHANGED', null],
+        },
+        current: nullable({
+          type: 'object',
+          additionalProperties: false,
+          required: [
+            'version',
+            'designation',
+            'name',
+            'role',
+            'phone',
+            'email',
+            'authority',
+            'source',
+            'note',
+            'recordedBy',
+            'recordedAt',
+          ],
+          properties: {
+            version: { type: 'integer' },
+            designation: { type: 'string', enum: [...SITE_CONTACT_DESIGNATIONS] },
+            name: { type: 'string' },
+            role: NULLABLE_STRING,
+            phone: NULLABLE_STRING,
+            email: NULLABLE_STRING,
+            authority: { type: 'array', items: { type: 'string', enum: [...SITE_CONTACT_AUTHORITIES] } },
+            source: { type: 'string' },
+            note: NULLABLE_STRING,
+            recordedBy: STAFF_REF,
+            recordedAt: { type: 'string' },
+          },
+        }),
+        // The customer's own contact, to designate them without typing anything again.
+        customer: nullable({
+          type: 'object',
+          additionalProperties: false,
+          required: ['name', 'phone', 'email'],
+          properties: { name: { type: 'string' }, phone: NULLABLE_STRING, email: NULLABLE_STRING },
+        }),
+      },
+    },
+    coverage: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['done', 'outcome', 'countyVerificationId', 'acceptance'],
+      properties: {
+        done: { type: 'boolean' },
+        outcome: { type: ['string', 'null'], enum: ['served', 'outside', null] },
+        countyVerificationId: NULLABLE_STRING,
+        acceptance: nullable({
+          type: 'object',
+          additionalProperties: false,
+          required: ['outcome', 'exceptionReason', 'acceptedBy', 'acceptedAt'],
+          properties: {
+            outcome: { type: 'string', enum: ['served', 'outside'] },
+            exceptionReason: NULLABLE_STRING,
+            acceptedBy: STAFF_REF,
+            acceptedAt: { type: 'string' },
+          },
+        }),
+      },
+    },
+    actions: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['verifyAddress', 'recordSiteContact', 'acceptCoverage', 'approveException'],
+      properties: {
+        verifyAddress: { type: 'boolean' },
+        recordSiteContact: { type: 'boolean' },
+        acceptCoverage: { type: 'boolean' },
+        approveException: { type: 'boolean' },
+      },
+    },
+  },
+} as const
+
+/** TSK-0126: the project's site contact as its next version, with the authority staff confirmed. */
+export const SITE_CONTACT_BODY = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['currentVersion', 'designation', 'authority', 'source'],
+  properties: {
+    currentVersion: { type: 'integer', minimum: 0 },
+    designation: { type: 'string', enum: [...SITE_CONTACT_DESIGNATIONS] },
+    fullName: { type: ['string', 'null'], maxLength: SITE_CONTACT_LIMITS.name },
+    role: { type: ['string', 'null'], maxLength: SITE_CONTACT_LIMITS.role },
+    phone: { type: ['string', 'null'], maxLength: 40 },
+    email: { type: ['string', 'null'], maxLength: SITE_CONTACT_LIMITS.email },
+    authority: {
+      type: 'array',
+      uniqueItems: true,
+      maxItems: SITE_CONTACT_AUTHORITIES.length,
+      items: { type: 'string', enum: [...SITE_CONTACT_AUTHORITIES] },
+    },
+    source: { type: 'string', enum: [...STAFF_DETAIL_SOURCES] },
+    note: { type: ['string', 'null'], maxLength: SITE_CONTACT_LIMITS.note },
+  },
+} as const
+
+export const SITE_CONTACT_RESULT = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['id', 'version', 'authorized'],
+  properties: { id: { type: 'string' }, version: { type: 'integer' }, authorized: { type: 'boolean' } },
+} as const
+
+/** TSK-0126: SERVED coverage accepted on the county check the caller saw. */
+export const COVERAGE_ACCEPT_BODY = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['countyVerificationId'],
+  properties: { countyVerificationId: UUID },
+} as const
+
+/** TSK-0126: the Owner's exception for an OUTSIDE county, with the reason. */
+export const COVERAGE_EXCEPTION_BODY = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['countyVerificationId', 'reason'],
+  properties: {
+    countyVerificationId: UUID,
+    reason: { type: 'string', minLength: 1, maxLength: SITE_CONTACT_LIMITS.reason },
+  },
+} as const
+
+export const COVERAGE_RESULT = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['id', 'outcome'],
+  properties: { id: { type: 'string' }, outcome: { type: 'string', enum: ['served', 'outside'] } },
+} as const
+
 export const PROJECT_VISITS = {
   type: 'object',
   additionalProperties: false,
@@ -610,6 +808,7 @@ export const PROJECT_VISITS = {
     'projectState',
     'timeZone',
     'coverage',
+    'siteChecks',
     'businessTimeZone',
     'visitHours',
     'windowOffers',
@@ -617,6 +816,7 @@ export const PROJECT_VISITS = {
     'schedulingTask',
     'actions',
     'visitTimes',
+    'workerAccess',
     'dismissFlags',
     'visits',
   ],
@@ -636,6 +836,7 @@ export const PROJECT_VISITS = {
         countyVerification: COUNTY_VERIFICATION,
       },
     },
+    siteChecks: SITE_CHECKS,
     businessTimeZone: {
       anyOf: [
         {
@@ -704,6 +905,8 @@ export const PROJECT_VISITS = {
     },
     // TSK-0070: the caller may open each started visit's Arrived and Finished times (visit.correct_timestamps).
     visitTimes: { type: 'boolean' },
+    // TSK-0128: the caller may extend a worker's visit-day access on each live visit (visit.extend_worker_access).
+    workerAccess: { type: 'boolean' },
     // TSK-0151: the caller may keep an appointment as it is despite a working-hours or equipment flag (the Owner).
     dismissFlags: { type: 'boolean' },
     visits: { type: 'array', items: VISIT },

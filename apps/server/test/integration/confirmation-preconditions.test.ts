@@ -27,7 +27,7 @@ import { portalModule } from '../../src/modules/portal/index.js'
 import { visitsModule, type WorkVisitGate } from '../../src/modules/visits/index.js'
 import { recordPolicyVersion } from '../../src/platform/config/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
-import { verifyCountyOf } from '../fixtures/county.js'
+import { recordSiteChecksOf, verifyCountyOf } from '../fixtures/county.js'
 import { testConfig } from '../fixtures/env.js'
 import { verifyPropertyZone } from '../fixtures/zones.js'
 import { signInWithMfa, TEST_MFA_KEY } from '../fixtures/staff-mfa.js'
@@ -483,12 +483,19 @@ describe('[HH-CUS-03][HH-SCH-06][OWN-DEC-179][OWN-DEC-167] a ZIP check is screen
     expect(await property(p)).toMatchObject({ coverage_result: 'in_coverage', coverage_reason: 'dataset_one_county' })
     const v = await planVisit(p, 'site_estimate', day(12))
     const listed = await visitOf(p.projectId, v.id)
-    expect(listed.confirmationBlockers).toEqual([{ field: 'coverage', code: 'COUNTY_NOT_VERIFIED' }])
+    // TSK-0126: beside the address check, the site contact is missing too (the third check waits for the county).
+    expect(listed.confirmationBlockers).toEqual([
+      { field: 'coverage', code: 'COUNTY_NOT_VERIFIED' },
+      { field: 'siteContact', code: 'SITE_CONTACT_MISSING' },
+    ])
     expect(listed.actions).toMatchObject({ confirm: false, offerWindows: false })
     for (const who of ['owner', 'office'] as const) {
       const refused = await confirm(who, v)
       expect(refused.statusCode, refused.body).toBe(409)
-      expect(codes(refused.body)).toEqual([['coverage', 'COUNTY_NOT_VERIFIED']])
+      expect(codes(refused.body)).toEqual([
+        ['coverage', 'COUNTY_NOT_VERIFIED'],
+        ['siteContact', 'SITE_CONTACT_MISSING'],
+      ])
     }
     // No times are offered either (the selection could not confirm them).
     const notOffered = await offerWindows(v, day(12), 'ben')
@@ -503,6 +510,7 @@ describe('[HH-CUS-03][HH-SCH-06][OWN-DEC-179][OWN-DEC-167] a ZIP check is screen
     const pr = await property(p)
     const outside = await verify('office', pr, { state: 'IN', county: 'Synthetic' })
     expect(outside.json()).toMatchObject({ inArea: false })
+    await recordSiteChecksOf(t.db, p.projectId)
     expect(codes((await confirm('office', v)).body)).toEqual([['coverage', 'COUNTY_OUTSIDE_AREA']])
     await expect(
       sql`UPDATE work.visits SET state = 'confirmed', version = version + 1 WHERE id = ${v.id}`.execute(t.db),
@@ -563,6 +571,7 @@ describe('[HH-CUS-03][HH-SCH-06][OWN-DEC-179][OWN-DEC-167] a ZIP check is screen
     const v = await planVisit(p, 'site_estimate', day(13))
     const outside = await verify('office', pr, { state: 'KY', county: 'Synthetic' })
     expect(outside.json()).toMatchObject({ inArea: false })
+    await recordSiteChecksOf(t.db, p.projectId)
     expect((await visitOf(p.projectId, v.id)).confirmationBlockers).toEqual([
       { field: 'coverage', code: 'COUNTY_OUTSIDE_AREA' },
     ])
@@ -570,6 +579,14 @@ describe('[HH-CUS-03][HH-SCH-06][OWN-DEC-179][OWN-DEC-167] a ZIP check is screen
     // A new verification is a new row; the newest of the current address version counts.
     const inside = await verify('office', pr, { state: 'KY', county: 'Oldham' })
     expect(inside.json()).toMatchObject({ inArea: true, county: 'Oldham' })
+    // TSK-0126: a county inside the area is SERVED; staff accept it on that check (no owner approval).
+    expect((await visitOf(p.projectId, v.id)).confirmationBlockers).toEqual([
+      { field: 'coverage', code: 'COVERAGE_NOT_ACCEPTED' },
+    ])
+    const accepted = await staffWrite('office', 'POST', `/api/v1/staff/projects/${p.projectId}/coverage-acceptance`, {
+      countyVerificationId: inside.json().id,
+    })
+    expect(accepted.statusCode, accepted.body).toBe(200)
     const ready = await visitOf(p.projectId, v.id)
     expect(ready.confirmationBlockers).toEqual([])
     expect((await confirm('office', ready)).statusCode).toBe(200)
@@ -613,6 +630,305 @@ describe('[HH-CUS-03][HH-SCH-06][OWN-DEC-179][OWN-DEC-167] a ZIP check is screen
     expect((await visitOf(p.projectId, v.id)).confirmationBlockers).toEqual([
       { field: 'coverage', code: 'COUNTY_NOT_VERIFIED' },
     ])
+  })
+})
+
+describe('[HH-SCH-06][OWN-DEC-167] the three site checks gate a first confirmation (TSK-0126)', () => {
+  type SiteChecks = {
+    property: { id: string; version: number; addressVersion: number }
+    address: { done: boolean; problems: string[]; verification: { id: string; inArea: boolean } | null }
+    siteContact: {
+      done: boolean
+      problem: string | null
+      current: { version: number; designation: string; name: string; authority: string[] } | null
+      customer: { name: string; phone: string | null; email: string | null } | null
+    }
+    coverage: {
+      done: boolean
+      outcome: string | null
+      countyVerificationId: string | null
+      acceptance: { outcome: string; exceptionReason: string | null; acceptedBy: { id: string } } | null
+    }
+    actions: { verifyAddress: boolean; recordSiteContact: boolean; acceptCoverage: boolean; approveException: boolean }
+  }
+  const checksOf = async (p: Project, who: Person = 'office') => {
+    const res = await staffGet(who, `/api/v1/staff/projects/${p.projectId}/visits`)
+    expect(res.statusCode, res.body).toBe(200)
+    return res.json<{ siteChecks: SiteChecks }>().siteChecks
+  }
+  const verifyCounty = async (p: Project, county: string, who: Person = 'office') => {
+    const c = await checksOf(p)
+    return staffWrite(
+      who,
+      'POST',
+      `/api/v1/staff/properties/${c.property.id}/county-verification`,
+      { addressVersion: c.property.addressVersion, addressChecked: true, state: 'KY', county },
+      c.property.version,
+    )
+  }
+  const siteContact = (p: Project, body: object, who: Person = 'office') =>
+    staffWrite(who, 'POST', `/api/v1/staff/projects/${p.projectId}/site-contact`, { source: 'customer_call', ...body })
+  const accept = async (p: Project, who: Person = 'office') =>
+    staffWrite(who, 'POST', `/api/v1/staff/projects/${p.projectId}/coverage-acceptance`, {
+      countyVerificationId: (await checksOf(p)).coverage.countyVerificationId,
+    })
+  const exception = async (p: Project, reason: string, who: Person = 'owner', id?: string) =>
+    staffWrite(who, 'POST', `/api/v1/staff/projects/${p.projectId}/coverage-exception`, {
+      countyVerificationId: id ?? (await checksOf(p)).coverage.countyVerificationId,
+      reason,
+    })
+  const editAddress = async (p: Project, address: { street: string; state: string; zip: string }) => {
+    const c = await checksOf(p)
+    const res = await staffWrite(
+      'owner',
+      'PUT',
+      `/api/v1/staff/properties/${c.property.id}/address`,
+      { ...address, city: 'Testville', source: 'customer_call', reason: 'Synthetic: the customer corrected it.' },
+      c.property.version,
+    )
+    expect(res.statusCode, res.body).toBe(200)
+  }
+  const forceConfirm = (v: VisitView) =>
+    sql`UPDATE work.visits SET state = 'confirmed', version = version + 1 WHERE id = ${v.id}`.execute(t.db)
+  const auditsOf = (action: string, projectId: string) =>
+    t.db
+      .selectFrom('platform.audit_events')
+      .select(['actor_id', 'summary', 'reason'])
+      .where('action', '=', action)
+      .where('target_id', '=', projectId)
+      .orderBy('occurred_at')
+      .execute()
+
+  it('[HH-SCH-06][HH-CRM-02][OWN-DEC-167][OWN-DEC-179] valid and invalid addresses: the pre-validation stops a PO box, a mailing ZIP and a ZIP of another state', async () => {
+    // 40201: a PO Box ZIP of the owner's dataset; the address check cannot be recorded on it.
+    const p = await siteVisitProject({ zip: '40201', countyVerified: false })
+    expect((await checksOf(p)).address).toMatchObject({ done: false, problems: ['ADDRESS_MAILING_ZIP'] })
+    const mailing = await verifyCounty(p, 'Jefferson')
+    expect(mailing.statusCode, mailing.body).toBe(409)
+    expect(codes(mailing.body)).toEqual([['address', 'ADDRESS_MAILING_ZIP']])
+    await editAddress(p, { street: 'PO Box 164', state: 'KY', zip: '40202' })
+    expect(codes((await verifyCounty(p, 'Jefferson')).body)).toEqual([['address', 'ADDRESS_PO_BOX']])
+    // 47150: a Standard ZIP of Floyd County, Indiana, with a Kentucky address.
+    await editAddress(p, { street: `${++seq} Synthetic Check Row`, state: 'KY', zip: '47150' })
+    expect(codes((await verifyCounty(p, 'Jefferson')).body)).toEqual([['address', 'ADDRESS_ZIP_STATE_MISMATCH']])
+    const property = (await checksOf(p)).property.id
+    expect(
+      await t.db
+        .selectFrom('crm.property_county_verifications')
+        .select('id')
+        .where('property_id', '=', property)
+        .execute(),
+    ).toEqual([])
+    // Corrected: a physical address in its ZIP's state is verified, with who and which address version.
+    await editAddress(p, { street: `${++seq} Synthetic Check Row`, state: 'KY', zip: '40202' })
+    const ok = await verifyCounty(p, 'Jefferson')
+    expect(ok.statusCode, ok.body).toBe(200)
+    const c = await checksOf(p)
+    expect(c.address).toMatchObject({ done: true, problems: [], verification: { inArea: true } })
+    expect(c.coverage).toMatchObject({ done: false, outcome: 'served', acceptance: null })
+    expect(c.actions).toEqual({
+      verifyAddress: true,
+      recordSiteContact: true,
+      acceptCoverage: true,
+      approveException: false,
+    })
+  })
+
+  it('[HH-SCH-06][HH-CRM-02][OWN-DEC-167][RULE-SERVER-AUTHZ] a missing, unauthorized or changed site contact blocks confirmation; the customer is prefilled', async () => {
+    const p = await siteVisitProject({ zip: '40202', countyVerified: false })
+    expect((await verifyCounty(p, 'Jefferson')).statusCode).toBe(200)
+    expect((await accept(p)).statusCode).toBe(200)
+    const v = await planVisit(p, 'site_estimate', day(41))
+    expect((await visitOf(p.projectId, v.id)).confirmationBlockers).toEqual([
+      { field: 'siteContact', code: 'SITE_CONTACT_MISSING' },
+    ])
+    expect(codes((await confirm('office', v)).body)).toEqual([['siteContact', 'SITE_CONTACT_MISSING']])
+    expect(codes((await offerWindows(v, day(41), 'ben')).body)).toContainEqual(['siteContact', 'SITE_CONTACT_MISSING'])
+    await expect(forceConfirm(v)).rejects.toThrow(/record the authorized site contact/)
+    expect((await checksOf(p)).siteContact).toMatchObject({
+      done: false,
+      problem: 'SITE_CONTACT_MISSING',
+      current: null,
+      customer: { name: 'Synthetic Confirmation Customer', phone: '+15025550164' },
+    })
+    // Who may record it: the confirming roles only.
+    for (const who of ['estimator', 'worker'] as const) {
+      const refused = await siteContact(p, { currentVersion: 0, designation: 'customer', authority: [] }, who)
+      expect(refused.statusCode, who).toBe(403)
+    }
+    // Another person needs a name, a role and a way to reach them; the customer's details are never typed again.
+    const missing = await siteContact(p, { currentVersion: 0, designation: 'other', authority: ['property_access'] })
+    expect(missing.statusCode).toBe(400)
+    expect(codes(missing.body)).toEqual([
+      ['body.fullName', 'NAME_REQUIRED'],
+      ['body.role', 'ROLE_REQUIRED'],
+      ['body.phone', 'CONTACT_REQUIRED'],
+    ])
+    const typed = await siteContact(p, { currentVersion: 0, designation: 'customer', fullName: 'X', authority: [] })
+    expect(codes(typed.body)).toEqual([['body.fullName', 'NOT_FOR_CUSTOMER']])
+    // A person the customer named, whose authority is not confirmed yet: recorded, still unmet.
+    const unauthorized = await siteContact(p, {
+      currentVersion: 0,
+      designation: 'other',
+      fullName: 'Synthetic Tenant',
+      role: 'Tenant',
+      phone: '(502) 555-0165',
+      authority: [],
+      note: 'Synthetic: the customer named the tenant.',
+    })
+    expect(unauthorized.statusCode, unauthorized.body).toBe(200)
+    expect(unauthorized.json()).toMatchObject({ version: 1, authorized: false })
+    expect((await visitOf(p.projectId, v.id)).confirmationBlockers).toEqual([
+      { field: 'siteContact', code: 'SITE_CONTACT_NOT_AUTHORIZED' },
+    ])
+    await expect(forceConfirm(v)).rejects.toThrow(/authority is not confirmed/)
+    // The version the caller saw.
+    const stale = await siteContact(p, { currentVersion: 0, designation: 'customer', authority: ['property_access'] })
+    expect(stale.statusCode, stale.body).toBe(409)
+    expect(stale.json().error.code).toBe('STALE_VERSION')
+    // The customer designates themselves; staff confirm they may coordinate the visit.
+    const self = await siteContact(p, { currentVersion: 1, designation: 'customer', authority: ['visit_coordination'] })
+    expect(self.statusCode, self.body).toBe(200)
+    expect((await visitOf(p.projectId, v.id)).confirmationBlockers).toEqual([])
+    // A changed contact record needs the check again.
+    const contact = await t.db
+      .selectFrom('crm.projects as pj')
+      .innerJoin('crm.contacts as c', 'c.customer_id', 'pj.customer_id')
+      .select(['c.id', 'c.customer_id', 'c.version', 'c.email'])
+      .where('pj.id', '=', p.projectId)
+      .executeTakeFirstOrThrow()
+    const edited = await staffWrite(
+      'owner',
+      'PUT',
+      `/api/v1/staff/customers/${contact.customer_id}/contacts/${contact.id}`,
+      {
+        fullName: 'Synthetic Confirmation Customer',
+        email: contact.email,
+        phone: '(502) 555-0166',
+        preferredChannel: 'email',
+        reason: 'Synthetic: a new phone number.',
+      },
+      contact.version,
+    )
+    expect(edited.statusCode, edited.body).toBe(200)
+    expect((await visitOf(p.projectId, v.id)).confirmationBlockers).toEqual([
+      { field: 'siteContact', code: 'SITE_CONTACT_CHANGED' },
+    ])
+    await expect(forceConfirm(v)).rejects.toThrow(/site contact changed/)
+    const again = await siteContact(p, { currentVersion: 2, designation: 'customer', authority: ['property_access'] })
+    expect(again.statusCode, again.body).toBe(200)
+    const ready = await visitOf(p.projectId, v.id)
+    expect(ready.confirmationBlockers).toEqual([])
+    expect((await confirm('office', ready)).statusCode).toBe(200)
+    const visit = await t.db
+      .selectFrom('work.visits as v')
+      .innerJoin('crm.project_site_contacts as s', 's.id', 'v.site_contact_id')
+      .select(['s.version', 's.phone_e164', 'v.coverage_acceptance_id'])
+      .where('v.id', '=', v.id)
+      .executeTakeFirstOrThrow()
+    expect(visit).toMatchObject({ version: 3, phone_e164: '+15025550166' })
+    expect(visit.coverage_acceptance_id).not.toBeNull()
+    // Audited without the contact's phone or email; never changed afterwards.
+    const audits = await auditsOf('visit.site_contact', p.projectId)
+    const summary = (version: number, designation: string, authority: string[]) => ({
+      siteContactVersion: version,
+      designation,
+      authority,
+      authorized: authority.length > 0,
+      source: 'customer_call',
+    })
+    expect(audits.map((a) => a.summary)).toEqual([
+      summary(1, 'other', []),
+      summary(2, 'customer', ['visit_coordination']),
+      summary(3, 'customer', ['property_access']),
+    ])
+    expect(audits.every((a) => a.actor_id === ids.office)).toBe(true)
+    expect(JSON.stringify(audits)).not.toMatch(/555|@/)
+    await expect(sql`UPDATE crm.project_site_contacts SET authority = '{}'`.execute(t.db)).rejects.toThrow(
+      /APPEND_ONLY/,
+    )
+  })
+
+  it('[HH-SCH-06][T40][OWN-DEC-167][RULE-SAFETY-GATES][RULE-SERVER-AUTHZ] an outside county needs the Owner’s exception with a reason; holds still block after it', async () => {
+    const p = await siteVisitProject({ zip: '40202', countyVerified: false })
+    await recordSiteChecksOf(t.db, p.projectId)
+    expect((await verifyCounty(p, 'Synthetic')).json()).toMatchObject({ inArea: false })
+    const v = await planVisit(p, 'site_estimate', day(42))
+    expect((await visitOf(p.projectId, v.id)).confirmationBlockers).toEqual([
+      { field: 'coverage', code: 'COUNTY_OUTSIDE_AREA' },
+    ])
+    expect((await checksOf(p, 'office')).actions).toMatchObject({ acceptCoverage: false, approveException: false })
+    expect((await checksOf(p, 'owner')).actions).toMatchObject({ acceptCoverage: false, approveException: true })
+    expect((await checksOf(p)).coverage).toMatchObject({ outcome: 'outside', done: false })
+    // Staff cannot accept an outside county; only the Owner approves an exception, with a reason.
+    expect(codes((await accept(p)).body)).toEqual([['coverage', 'COUNTY_OUTSIDE_AREA']])
+    for (const who of ['office', 'estimator', 'worker'] as const)
+      expect((await exception(p, 'Synthetic: a reason.', who)).statusCode, who).toBe(403)
+    expect((await exception(p, '')).statusCode).toBe(400)
+    expect(codes((await exception(p, '   ')).body)).toEqual([['body.reason', 'REASON_REQUIRED']])
+    expect(codes((await exception(p, 'Synthetic.', 'owner', randomUUID())).body)).toEqual([
+      ['body.countyVerificationId', 'COUNTY_CHECK_CHANGED'],
+    ])
+    // The database refuses an exception written by anyone but the Owner.
+    const check = (await checksOf(p)).coverage.countyVerificationId
+    await expect(
+      sql`INSERT INTO crm.project_coverage_acceptances
+            (project_id, county_verification_id, outcome, exception_reason, accepted_by)
+          VALUES (${p.projectId}, ${check}, 'outside', 'Synthetic.', ${ids.office})`.execute(t.db),
+    ).rejects.toThrow(/only the Owner/)
+    // A licensing hold is open: the exception lifts the coverage check only, never the hold.
+    const [hold] = await raiseHold(p, ['licensed_trade'], 'Synthetic: the scope includes licensed trade work.')
+    const approved = await exception(p, 'Synthetic: the Owner serves this nearby property.')
+    expect(approved.statusCode, approved.body).toBe(200)
+    expect(approved.json()).toMatchObject({ outcome: 'outside' })
+    expect(codes((await exception(p, 'Synthetic: again.')).body)).toEqual([['coverage', 'COVERAGE_ACCEPTED']])
+    expect((await checksOf(p)).coverage).toMatchObject({
+      done: true,
+      acceptance: {
+        outcome: 'outside',
+        exceptionReason: 'Synthetic: the Owner serves this nearby property.',
+        acceptedBy: { id: ids.owner },
+      },
+    })
+    expect((await visitOf(p.projectId, v.id)).confirmationBlockers).toEqual([
+      { field: `holds.${hold}`, code: 'REVIEW_HOLD_OPEN' },
+    ])
+    for (const who of ['owner', 'office'] as const)
+      expect(codes((await confirm(who, v)).body)).toEqual([[`holds.${hold}`, 'REVIEW_HOLD_OPEN']])
+    await resolveHold(hold as string)
+    const ready = await visitOf(p.projectId, v.id)
+    expect(ready.confirmationBlockers).toEqual([])
+    expect((await confirm('office', ready)).statusCode).toBe(200)
+    const [audit] = await auditsOf('visit.coverage_exception', p.projectId)
+    expect(audit).toMatchObject({
+      actor_id: ids.owner,
+      reason: 'Synthetic: the Owner serves this nearby property.',
+      summary: { outcome: 'outside', state: 'KY', county: 'Synthetic' },
+    })
+  })
+
+  it('[HH-SCH-06][HH-CRM-02][OWN-DEC-167] a changed address makes the address and coverage checks missing again; the site contact stays', async () => {
+    const p = await siteVisitProject({ zip: '40202' })
+    expect((await checksOf(p)).coverage).toMatchObject({ done: true, outcome: 'served' })
+    // An exception is never needed (nor recorded) for a county inside the area.
+    expect(codes((await exception(p, 'Synthetic.')).body)).toEqual([['coverage', 'EXCEPTION_NOT_NEEDED']])
+    await editAddress(p, { street: `${++seq} Synthetic Moved Row`, state: 'KY', zip: '40202' })
+    await verifyPropertyZone(t.db, { projectId: p.projectId })
+    const v = await planVisit(p, 'site_estimate', day(43))
+    expect((await visitOf(p.projectId, v.id)).confirmationBlockers).toEqual([
+      { field: 'coverage', code: 'COUNTY_NOT_VERIFIED' },
+    ])
+    expect((await verifyCounty(p, 'Jefferson')).statusCode).toBe(200)
+    expect((await visitOf(p.projectId, v.id)).confirmationBlockers).toEqual([
+      { field: 'coverage', code: 'COVERAGE_NOT_ACCEPTED' },
+    ])
+    await expect(forceConfirm(v)).rejects.toThrow(/accept the service-area coverage/)
+    for (const who of ['estimator', 'worker'] as const) expect((await accept(p, who)).statusCode, who).toBe(403)
+    expect((await accept(p)).statusCode).toBe(200)
+    expect(codes((await accept(p)).body)).toEqual([['coverage', 'COVERAGE_ACCEPTED']])
+    expect((await visitOf(p.projectId, v.id)).confirmationBlockers).toEqual([])
+    const [audit] = await auditsOf('visit.accept_coverage', p.projectId)
+    expect(audit).toMatchObject({ actor_id: ids.office, summary: { outcome: 'served', county: 'Jefferson' } })
   })
 })
 

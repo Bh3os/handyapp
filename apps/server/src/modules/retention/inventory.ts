@@ -7,7 +7,9 @@
 // committed file differs). The document quotes the decided wording (schedule.ts) and names each category's
 // configuration key; the periods in use are the active retention.* configuration, never a value written here.
 // PROPOSED: the mapping of tables to classes and categories, the classes marked PROPOSED, and the end-of-life method
-// of tables the schedule does not name.
+// of tables the schedule does not name. TSK-0138 (OWN-DEC-177): staff accounts, consent records, settings and content
+// history and expired sessions and links have their categories now; rate-limit buckets are technical records other
+// than logs, which stay NOT CONFIGURED.
 import type { Database } from '@handyhub/db'
 import { CATEGORY_DEFINITIONS, HOLD_CHECKS, RETENTION_CATEGORIES, type RetentionCategory } from './schedule.js'
 
@@ -154,35 +156,39 @@ const S = 'safety_records'
 const AU = 'audit_log'
 const SL = 'sessions_and_links'
 const NS = 'not_scheduled'
+// TSK-0138 (OWN-DEC-177).
+const ST = 'staff_accounts'
+const CO = 'consent_records'
+const SH = 'settings_history'
 
 export const TABLES = {
   'catalog.service_versions': {
     holds: 'Approved service content versions (descriptions, intake questions, SOP link)',
     classes: ['configuration'],
-    categories: [NS],
+    categories: [SH],
     protectedEvidence: true,
   },
   'catalog.services': {
     holds: 'The 26 services and their published version',
     classes: ['configuration'],
-    categories: [NS],
+    categories: [SH],
   },
   'catalog.loadout_versions': {
     holds: 'Imported loadout lists per service: the vault inventory groups, items and review notes, verbatim',
     classes: ['configuration'],
-    categories: [NS],
+    categories: [SH],
     protectedEvidence: true,
   },
   'catalog.sop_versions': {
     holds: 'Imported SOP versions: checklist stages, stop-work section, hazard and quality digests, competent review',
     classes: ['configuration'],
-    categories: [NS],
+    categories: [SH],
     protectedEvidence: true,
   },
   'catalog.sop_spanish_versions': {
     holds: 'Spanish SOP versions with the separate comparison against their English version and its release status',
     classes: ['configuration'],
-    categories: [NS],
+    categories: [SH],
     protectedEvidence: true,
   },
   'comms.conversations': {
@@ -265,6 +271,18 @@ export const TABLES = {
   'crm.property_changes': {
     holds: 'Staff changes and confirmations of property details, with the reason and the values before and after',
     classes: ['service_address'],
+    categories: [C, R],
+  },
+  'crm.project_coverage_acceptances': {
+    holds:
+      'Staff acceptance of a project’s service-area coverage on a county check, or the Owner’s exception with its reason (TSK-0126)',
+    classes: ['service_address'],
+    categories: [C, R],
+  },
+  'crm.project_site_contacts': {
+    holds:
+      'The authorized site contact of a project: name, role, phone or email, the authority staff confirmed, source (TSK-0126)',
+    classes: ['contact', 'service_address'],
     categories: [C, R],
   },
   'crm.property_county_verifications': {
@@ -494,7 +512,7 @@ export const TABLES = {
   'identity.auth_identities': {
     holds: 'Staff password hashes',
     classes: ['staff_account'],
-    categories: [NS],
+    categories: [ST],
   },
   // TSK-0149 (0100): requests for help signing in or getting a new link, and the Owner's outcome.
   'identity.access_help_requests': {
@@ -534,23 +552,23 @@ export const TABLES = {
   'identity.rate_limits': {
     holds: 'Sign-in and code rate-limit buckets (hashed keys)',
     classes: ['technical'],
-    categories: [SL],
+    categories: [NS],
   },
   // TSK-0151 (0098): the Owner's permission review of a reactivated staff account, and each earlier grant's decision.
   'identity.permission_reviews': {
     holds: 'Permission reviews of re-enabled staff accounts: who opened them, when, and how they closed',
     classes: ['staff_account'],
-    categories: [NS],
+    categories: [ST],
   },
   'identity.permission_review_items': {
     holds: "Each earlier grant of a permission review: the Owner's decision (restored or declined), when and why",
     classes: ['staff_account'],
-    categories: [NS],
+    categories: [ST],
   },
   'identity.role_grants': {
     holds: 'Staff role and capability grants with reasons (a collect grant with the training it records)',
     classes: ['staff_account'],
-    categories: [NS],
+    categories: [ST],
   },
   'identity.staff_links': {
     holds: 'Staff invite and password-reset links (token hashes)',
@@ -561,32 +579,36 @@ export const TABLES = {
   'identity.staff_mfa': {
     holds: 'Staff second factors (sealed secrets)',
     classes: ['staff_account'],
-    categories: [NS],
+    categories: [ST],
   },
   'identity.staff_recovery_codes': {
     holds: 'Staff recovery codes (hashes)',
     classes: ['staff_account'],
-    categories: [NS],
+    categories: [ST],
   },
   'identity.staff_sessions': { holds: 'Staff sessions (token hashes)', classes: ['technical'], categories: [SL] },
   'identity.staff_status_changes': {
     holds: 'Disabling and re-enabling of staff accounts',
     classes: ['staff_account'],
-    categories: [NS],
+    categories: [ST],
   },
   // TSK-0129 (HH-PKT-09, OWN-DEC-172): the Owner's escalation number, entered by the Owner in their own profile.
   'identity.staff_escalation_phones': {
     holds:
       "The Owner's escalation phone number (Call Owner in every job packet), entered by the Owner; cleared, never deleted",
     classes: ['staff_account', 'contact'],
-    categories: [NS],
+    categories: [ST],
   },
   'identity.staff_users': {
     holds: 'Staff accounts: name, email, language, status',
     classes: ['staff_account'],
-    categories: [NS],
+    categories: [ST],
   },
-  'identity.verification_attempts': { holds: 'Verification code attempts', classes: ['technical'], categories: [SL] },
+  'identity.verification_attempts': {
+    holds: 'Verification code attempts (reviewed with their codes, PROPOSED)',
+    classes: ['technical'],
+    categories: [SL],
+  },
   'identity.verification_codes': {
     holds: 'One-time codes (digests) and their destination',
     classes: ['contact', 'technical'],
@@ -688,28 +710,27 @@ export const TABLES = {
   'platform.consent_records': {
     holds: 'Append-only consent per destination and purpose',
     classes: ['contact'],
-    categories: [NS],
-    protectedEvidence: true,
+    categories: [CO],
   },
   'platform.coverage_rule_sets': {
     holds: 'Versioned ZIP coverage rule sets',
     classes: ['configuration'],
-    categories: [NS],
+    categories: [SH],
   },
   'platform.coverage_rules': {
     holds: 'One coverage disposition per ZIP',
     classes: ['configuration'],
-    categories: [NS],
+    categories: [SH],
   },
   'platform.coverage_zip_datasets': {
     holds: "Versions of the owner's candidate service-area ZIP dataset (TSK-0127)",
     classes: ['configuration'],
-    categories: [NS],
+    categories: [SH],
   },
   'platform.coverage_zip_entries': {
     holds: 'One ZIP of a candidate dataset with its category and service counties',
     classes: ['configuration'],
-    categories: [NS],
+    categories: [SH],
   },
   'platform.idempotency_keys': {
     holds: 'Idempotency keys with the stored response (24 hours, PROPOSED engineering default)',
@@ -737,20 +758,20 @@ export const TABLES = {
   'platform.message_template_versions': {
     holds: 'Approved message wording per language',
     classes: ['configuration'],
-    categories: [NS],
+    categories: [SH],
   },
-  'platform.message_templates': { holds: 'Message types', classes: ['configuration'], categories: [NS] },
+  'platform.message_templates': { holds: 'Message types', classes: ['configuration'], categories: [SH] },
   'platform.outbox_events': { holds: 'Committed events awaiting their jobs', classes: ['technical'], categories: [NS] },
   'platform.policy_version': {
     holds: 'Versioned configuration values with their sources',
     classes: ['configuration'],
-    categories: [NS],
+    categories: [SH],
     protectedEvidence: true,
   },
   'platform.rate_counters': {
     holds: 'Request-form and API rate counters (hashed keys)',
     classes: ['technical'],
-    categories: [SL],
+    categories: [NS],
   },
   'platform.schema_migration': {
     holds: 'Applied migrations and their checksums',
@@ -966,6 +987,14 @@ export const TABLES = {
     classes: ['request_details'],
     categories: [J],
   },
+  // TSK-0128 (0107): the Owner's temporary extensions of one worker's visit-day access (access history).
+  'work.visit_access_extensions': {
+    holds:
+      "Owner extensions of a worker's visit-day access: the visit, the worker's reservation, the Owner's reason, " +
+      'when it started and expires, and an early end with its reason (never an address, phone or code)',
+    classes: ['scheduling', 'logs_audit'],
+    categories: [J],
+  },
   // TSK-0082 (0088): the identified customer's approval or rejection of one exact change-order version.
   'work.change_order_decisions': {
     holds:
@@ -1129,7 +1158,7 @@ export const TABLES = {
     categories: [R, J],
   },
   'work.scheduling_tasks': { holds: 'Scheduling tasks of a job', classes: ['scheduling'], categories: [J] },
-  'work.time_off': { holds: 'Recorded staff time off', classes: ['staff_account'], categories: [NS] },
+  'work.time_off': { holds: 'Recorded staff time off', classes: ['staff_account'], categories: [ST] },
   // TSK-0070 (HH-WORK-06, ENT-TimeStamp): Arrived and Finished per worker; the Owner's corrections keep the original.
   'work.time_stamp_corrections': {
     holds:
@@ -1244,19 +1273,21 @@ export const TABLES = {
   'work.worker_schedules': {
     holds: "A staff member's schedule time zone",
     classes: ['staff_account'],
-    categories: [NS],
+    categories: [ST],
   },
-  'work.working_hours': { holds: 'Staff working hours', classes: ['staff_account'], categories: [NS] },
+  'work.working_hours': { holds: 'Staff working hours', classes: ['staff_account'], categories: [ST] },
 } as const satisfies Record<keyof Database, TableAnnotation>
 
 /** How a table's rows end their life, from its annotation. */
 export function endOfLife(a: TableAnnotation): string {
   const evidence = 'Archive, Void or audited correction; never ordinary deletion'
   if (a.protectedEvidence === true) return evidence
+  // TSK-0138 (OWN-DEC-177): settings and content history has no period of its own.
+  if (a.categories.includes(SH))
+    return "Kept while retained records depend on it; unreferenced history only after the Owner's review"
   const review = "Owner's deletion review after the period; nothing deleted automatically"
   if (typeof a.protectedEvidence === 'string') return `${review}. ${a.protectedEvidence}: ${evidence}`
   if (a.categories.some((c) => CATEGORY_DEFINITIONS[c].configKey !== null)) return review
-  if (a.categories.includes(SL)) return 'Expires per its security settings; keeping expired rows NOT CONFIGURED'
   if (a.categories.includes('access_codes'))
     return 'Staff remove it when no longer needed (the sealed value erased at once, the row kept); nothing automatic'
   return 'NOT CONFIGURED: kept, never deleted automatically'
@@ -1279,8 +1310,10 @@ export function renderDataInventory(): string {
     '',
     'The rules below quote the decided schedule (FACT-RETENTION-SCHEDULE, OWN-DEC-70, OWN-DEC-142). The periods in use',
     "are the active versions of each category's configuration key (seeded from those decisions by migrations 0055 and",
-    '0056; the Owner may extend them), which the staff app shows under Retention reviews. The periods await CPA and',
-    'attorney confirmation (OQ-RETENTION-REVIEW). Nothing is deleted automatically.',
+    '0056; the Owner may extend them), which the staff app shows under Retention reviews. The provisional defaults for',
+    'staff accounts, consent records, settings and content history, technical logs and expired sessions and links',
+    '(OWN-DEC-177) are seeded by migration 0108. The periods await CPA and attorney confirmation (OQ-RETENTION-REVIEW).',
+    'Nothing is deleted automatically.',
     '',
     'PROPOSED: the mapping of tables to classes and categories, the classes marked PROPOSED, and the end-of-life method of',
     'data the schedule does not name (OQ-RETENTION-UNSCHEDULED).',
@@ -1306,7 +1339,11 @@ export function renderDataInventory(): string {
     '- Square: payment links and Tap to Pay are used outside the software; payments are recorded manually, and no card',
     '  data is stored (INT-Square).',
     '- The vendors keep their own copies (sent messages, delivery logs, stored objects) under their own terms; how long',
-    '  is NOT CONFIGURED (OQ-RETENTION-UNSCHEDULED).',
+    '  is NOT CONFIGURED (OWN-DEC-177, OQ-RETENTION-UNSCHEDULED).',
+    '- Technical logs (OWN-DEC-177): the server writes redacted JSON lines to its output, which Render keeps; no log is',
+    '  stored in the database. `retention.technical_logs` says how long ordinary logs are kept; the retention Render',
+    '  applies on the plan in use is NOT CONFIGURED and must not exceed it (OQ-RETENTION-DEFAULTS-DETAILS). Security-',
+    '  incident evidence is kept longer only when justified, outside the ordinary logs.',
     '',
     '## Retention schedule',
     '',
@@ -1315,7 +1352,13 @@ export function renderDataInventory(): string {
     row(['Category', 'Rule (FACT-RETENTION-SCHEDULE)', 'Configuration', 'Retention job', 'Sources']),
     row(['---', '---', '---', '---', '---']),
   )
-  const JOB = { scanned: 'Scanned daily', start_not_recorded: 'Start not recorded yet', no_period: 'No period' }
+  const JOB = {
+    scanned: 'Scanned daily',
+    start_not_recorded: 'Start not recorded yet',
+    no_period: 'No period',
+    while_referenced: 'Kept while referenced',
+    not_stored: 'Not in the database',
+  }
   for (const id of RETENTION_CATEGORIES) {
     const d = CATEGORY_DEFINITIONS[id]
     push(
@@ -1357,6 +1400,11 @@ export function renderDataInventory(): string {
     '  excluded (other contacts). Response deadlines and the outcome notice are NOT CONFIGURED (OQ-PRIVACY-REQUESTS).',
     '- Regulated employee medical or exposure records are excluded from routine deletion; their schedule is human review',
     '  (OQ-RETENTION-REVIEW).',
+    '- TSK-0138 (OWN-DEC-177): a disabled staff account, the history of a withdrawn consent (never while it is granted',
+    '  again or its destination is on file) and the expired sessions and links of one kind and month get review entries;',
+    '  their Delete is not performed by the software until the CPA and the attorney confirm the periods, so the Owner',
+    '  archives or keeps them longer. Offboarding disables the account at once and revokes its sessions, links, password',
+    '  and authenticator; its job history stays.',
     '',
     '## Backups',
     '',

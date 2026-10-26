@@ -18,6 +18,7 @@
 import { randomUUID } from 'node:crypto'
 import type { Db, Tx } from '@handyhub/db'
 import {
+  addressProblems,
   countyRef,
   looksLikeAccessCode,
   looksLikeCardNumber,
@@ -105,10 +106,11 @@ const propertyExists: NonNullable<RouteDef['resource']> = async ({ req, db }) =>
 }
 
 /**
- * The visit facts a worker's reveal is decided on (T28, OWN-DEC-121, OWN-DEC-40): the worker's active confirmed
- * reservations on live visits at the property, each with its access window, and the visit date in the business time
- * zone (TSK-0069, packets/assignments.ts). A worker removed by a reassignment holds no assignment there any more and
- * the policy refuses the reveal (NOT_ASSIGNED); another day is NOT_VISIT_DATE. The Owner and Office need no facts.
+ * The visit facts a worker's reveal is decided on (T28, OWN-DEC-121, OWN-DEC-171): the worker's active confirmed
+ * reservations on live visits at the property, each with its visit-day window, and the visit date with today's date in
+ * the visit's own zone, or the Owner extension in force (TSK-0128, packets/assignments.ts). A worker removed by a
+ * reassignment holds no assignment there any more and the policy refuses the reveal (NOT_ASSIGNED), as it does on any
+ * other day. The Owner and Office need no facts.
  */
 export async function visitAccessFacts(db: Db | Tx, propertyId: string, actor: Actor): Promise<Resource> {
   return propertyVisitFacts(db, propertyId, actor)
@@ -418,7 +420,8 @@ const editAddress = writeRoute({
 // TSK-0127 (final owner amendments 2026-10-22; OWN-DEC-179, OWN-DEC-167): a ZIP-only coverage outcome is preliminary
 // screening. Staff verify the complete property address and its county for the current address version before any
 // visit is confirmed (visits/preconditions.ts; migration 0067 refuses it in the database). The county is compared
-// with coverage.area: inside, the confirmation may go ahead; outside, it needs the Owner's exception (TSK-0126). The
+// with coverage.area: inside, staff accept the coverage; outside, it needs the Owner's exception (TSK-0126,
+// visits/site-checks.ts). TSK-0126: the address is pre-validated first (@handyhub/domain addressProblems). The
 // verification is a new row each time; nothing is overwritten. The county is what staff checked against an official
 // record of their choice: no geographic source is configured in the software (coverage.verification_source).
 const verifyCounty = writeRoute({
@@ -429,9 +432,12 @@ const verifyCounty = writeRoute({
   description:
     'Staff with visit.confirm (Owner, Office). Records that staff checked the complete address of the current ' +
     'address version (addressChecked) and the county it lies in, with an optional note on how. The county is ' +
-    'compared with the service area (coverage.area): inArea. A first visit is confirmed only after this, with the ' +
-    'county inside the area; a later address change needs a new verification. If-Match is the property version; ' +
-    'addressVersion must be the current one (ADDRESS_VERSION_CHANGED). The property version does not change.',
+    'compared with the service area (coverage.area): inArea. A first visit is confirmed only after this (the address ' +
+    'check of the three site checks, TSK-0126), with its coverage accepted (inside the area) or the Owner’s exception ' +
+    '(outside it); a later address change needs a new verification. The address is pre-validated first (TSK-0126, ' +
+    'PROPOSED; address: ADDRESS_PO_BOX, ADDRESS_MAILING_ZIP, ADDRESS_ZIP_STATE_MISMATCH): corrected on the address ' +
+    'before it can be verified. If-Match is the property version; addressVersion must be the current one ' +
+    '(ADDRESS_VERSION_CHANGED). The property version does not change.',
   permission: 'visit.confirm',
   audit: 'property.verify_county',
   expectedVersion: 'required',
@@ -448,6 +454,12 @@ const verifyCounty = writeRoute({
       throw new ApiError('CONFLICT', {
         fieldErrors: [{ field: 'body.addressVersion', code: 'ADDRESS_VERSION_CHANGED', message: '' }],
       })
+    // TSK-0126 (OWN-DEC-167, OWN-DEC-179 rule 8): the automated pre-validation comes first; a PO box street, a
+    // mailing ZIP or a ZIP of another state is corrected on the address before staff can verify it.
+    const zipRule = await coverageOrUnknown(tx, p.zip)
+    const problems = addressProblems(p, { category: zipRule.zipCategory, counties: zipRule.counties })
+    if (problems.length > 0)
+      throw new ApiError('CONFLICT', { fieldErrors: problems.map((code) => ({ field: 'address', code, message: '' })) })
     const note = (b.note ?? '').trim()
     if (note && (looksLikeAccessCode(note) || looksLikeCardNumber(note)))
       throw invalid('body.note', 'looks_like_access_code')
@@ -945,8 +957,9 @@ const revealCode = (deps: PropertiesDeps) =>
     summary: 'Reveal an access code',
     description:
       'Staff with access_code.reveal: the Owner; Office (PROPOSED cell); a worker only when assigned to a visit at ' +
-      'the property (an active confirmed reservation on a live visit there, TSK-0069), on the visit date (business ' +
-      'time zone), online (T28); every other worker is refused. Returns the value once, with when the staff app ' +
+      "the property (an active confirmed reservation on a live visit there, TSK-0069), on that visit's own local " +
+      "service day in the property's zone or while an Owner extension is in force (TSK-0128, OWN-DEC-171), online " +
+      '(T28); every other worker is refused. Returns the value once, with when the staff app ' +
       'hides it again; the reveal is recorded and audited (who, when, which code; never the value). The response is never cached, never kept for ' +
       'idempotency and never logged. A removed code is not found. NOT_CONFIGURED while ' +
       'ACCESS_CODE_ENCRYPTION_KEY is unset. PROPOSED limit: 30 reveals per staff member per hour.',

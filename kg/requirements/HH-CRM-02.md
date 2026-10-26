@@ -19,3 +19,5 @@ source: "guide 12.1 HH-CRM-02; OWN-DEC-117, OWN-DEC-92, OWN-DEC-40"
 - Access codes are not stored here but in the protected store of [[HH-CRM-03]].
 - When a property address changes, historic requests, estimates, jobs and invoices keep the address they were made with, and the record shows the old address as a former address.
 - Field workers see a job's service address from visit confirmation through the service day; afterwards it is hidden from them.
+
+**Built by [[TSK-0126]] (2026-10-25):** the site contact and their authority are recorded per project for visit confirmation: the customer (from their contact record) or a person they named, with name, role, a phone or email, how they were named, and what staff confirmed they may do (give access to the property, coordinate the visit; never money or contract changes). Each change is a new version, kept with who recorded it and when. PROPOSED details: [[OQ-SITE-CHECK-DETAILS]].

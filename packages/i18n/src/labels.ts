@@ -402,6 +402,11 @@ export const LABEL_FAMILIES = {
     'retention.financial_records',
     'retention.job_records',
     'retention.safety_records',
+    'retention.staff_accounts',
+    'retention.consent_records',
+    'retention.settings_history',
+    'retention.technical_logs',
+    'retention.sessions_and_links',
     'scheduling.window_offers',
     'visit.on_my_way',
     'geo.county_time_zones',
@@ -842,6 +847,25 @@ export const LABEL_FAMILIES = {
     'COUNTY_NOT_VERIFIED',
     'COUNTY_OUTSIDE_AREA',
     'ADDRESS_VERSION_CHANGED',
+    // TSK-0126 (OWN-DEC-167): the three first-visit site checks (apps/server/src/modules/visits/site-checks.ts).
+    'SITE_CONTACT_MISSING',
+    'SITE_CONTACT_NOT_AUTHORIZED',
+    'SITE_CONTACT_CHANGED',
+    'COVERAGE_NOT_ACCEPTED',
+    'COVERAGE_ACCEPTED',
+    'COUNTY_CHECK_CHANGED',
+    'EXCEPTION_NOT_NEEDED',
+    'ADDRESS_PO_BOX',
+    'ADDRESS_MAILING_ZIP',
+    'ADDRESS_ZIP_STATE_MISMATCH',
+    'NAME_REQUIRED',
+    'ROLE_REQUIRED',
+    'CONTACT_REQUIRED',
+    'PHONE_INVALID',
+    'EMAIL_INVALID',
+    'NOT_FOR_CUSTOMER',
+    'NO_CUSTOMER_CONTACT',
+    'sensitive_content',
     // TSK-0066: reschedule, reassign, cancel and the customer's change requests (apps/server/src/modules/visits/changes.ts).
     'INITIATOR_REQUIRED',
     'CAUSE_REQUIRED',
@@ -1009,9 +1033,13 @@ export const LABEL_FAMILIES = {
     'financial_records',
     'job_records',
     'safety_records',
-    'audit_log',
-    'access_codes',
+    'staff_accounts',
+    'consent_records',
     'sessions_and_links',
+    'audit_log',
+    'settings_history',
+    'technical_logs',
+    'access_codes',
     'regulated_employee_records',
     'not_scheduled',
   ],
@@ -1024,10 +1052,13 @@ export const LABEL_FAMILIES = {
     'financial_records',
     'job_records',
     'safety_records',
+    'staff_accounts',
+    'consent_records',
+    'sessions_and_links',
     'audit_log',
   ],
   /** The rule of a category without a period (FACT-RETENTION-SCHEDULE; not_scheduled: OQ-RETENTION-UNSCHEDULED). */
-  retentionNoPeriod: ['access_codes', 'sessions_and_links', 'regulated_employee_records', 'not_scheduled'],
+  retentionNoPeriod: ['access_codes', 'regulated_employee_records', 'not_scheduled'],
   /** What starts a period (the `after` field of the retention.* values; audit records: when recorded). */
   retentionStart: [
     'request_closed',
@@ -1037,10 +1068,14 @@ export const LABEL_FAMILIES = {
     'tax_return_filed_or_tax_paid',
     'job_closeout',
     'closure',
+    // TSK-0138 (OWN-DEC-177).
+    'staff_departure',
+    'last_relevant_use',
+    'expired_or_ended',
     'recorded',
   ],
-  /** Whether the daily review finds a category's records yet (TSK-0099 ScanState). */
-  retentionScan: ['scanned', 'start_not_recorded', 'no_period'],
+  /** Whether the daily review finds a category's records yet (TSK-0099 ScanState; TSK-0138 the last two). */
+  retentionScan: ['scanned', 'start_not_recorded', 'no_period', 'while_referenced', 'not_stored'],
   /** The hold checks of a deletion-review entry (ENT-RetentionReview "holds found"). */
   retentionHoldCheck: [
     'open_holds',
@@ -1055,7 +1090,21 @@ export const LABEL_FAMILIES = {
   ],
   retentionHoldResult: ['found', 'none_found', 'not_applicable', 'not_recorded'],
   /** The record types the review opens entries for. */
-  retentionRecordType: ['request', 'estimate', 'audit_event'],
+  retentionRecordType: [
+    'request',
+    'estimate',
+    'audit_event',
+    // TSK-0138: a staff account, a consent history, and the batches of expired sessions and links (one per month).
+    'staff_account',
+    'consent_history',
+    'expired_staff_sessions',
+    'expired_customer_sessions',
+    'expired_guest_links',
+    'expired_staff_links',
+    'expired_receipt_links',
+    'expired_upload_links',
+    'expired_verification_codes',
+  ],
   /** TSK-0100: an entry's status from the Owner's latest decision (privacy.retention_decisions). */
   retentionEntryState: ['pending', 'archived', 'kept', 'deleted'],
   /** TSK-0100: the checks of a deletion (apps/server/src/modules/privacy/targets.ts DELETION_CHECKS). */
@@ -2190,6 +2239,9 @@ export const LABEL_FAMILIES = {
     'REASON_REQUIRED',
     'INVALID_STATE',
   ],
+  /** TSK-0126 (OWN-DEC-167): what staff confirm a site contact may do, and who the customer designated. */
+  siteContactAuthority: ['property_access', 'visit_coordination'],
+  siteContactDesignation: ['customer', 'other'],
 } as const satisfies Record<string, readonly string[]>
 
 export type LabelFamily = keyof typeof LABEL_FAMILIES

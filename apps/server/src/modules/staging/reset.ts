@@ -56,6 +56,9 @@ export const CLEARED_CATEGORIES = {
     // TSK-0123 (0066): the zone history of each property; TSK-0127 (0067): staff's address-and-county checks.
     'crm.property_time_zones',
     'crm.property_county_verifications',
+    // TSK-0126 (0106): the site contacts and coverage acceptances of first-visit confirmation.
+    'crm.project_site_contacts',
+    'crm.project_coverage_acceptances',
   ],
   requests: [
     'crm.projects',
@@ -215,6 +218,8 @@ export const CLEARED_CATEGORIES = {
     'work.change_order_decisions',
     // TSK-0078 (0089): visit outcomes and their follow-up.
     'work.visit_outcomes',
+    // TSK-0128 (0107): the Owner's extensions of a worker's visit-day access.
+    'work.visit_access_extensions',
   ],
   attachments: [
     'intake.photos',
