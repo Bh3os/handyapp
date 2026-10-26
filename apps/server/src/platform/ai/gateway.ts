@@ -10,19 +10,21 @@
 // - The audit entry names the use, the reasons and the input field names, never input values (RULE-SERVER-AUTHZ).
 import { type Db, type Tx, withTx } from '@handyhub/db'
 import { decide, type DecisionContext, type DenyReason, type Resource, type StaffActor } from '@handyhub/policy'
-import { audit } from '../audit.js'
+import { audit, type AuditEventInput } from '../audit.js'
 import { aiModule, type Config, loadConfig } from '../config/index.js'
 import type { AiInputValue } from './input.js'
 import { aiUse } from './registry.js'
 
-export type AssistRefusal =
-  | 'AI_DISABLED'
-  | 'UNKNOWN_USE'
-  | 'NOT_PERMITTED'
-  | 'REVIEW_NOT_CONFIGURED'
-  | 'BOUNDS_NOT_CONFIGURED'
-  | 'DESTINATION_NOT_CONFIGURED'
-  | 'INSTRUCTIONS_NOT_CONFIGURED'
+export const ASSIST_REFUSALS = [
+  'AI_DISABLED',
+  'UNKNOWN_USE',
+  'NOT_PERMITTED',
+  'REVIEW_NOT_CONFIGURED',
+  'BOUNDS_NOT_CONFIGURED',
+  'DESTINATION_NOT_CONFIGURED',
+  'INSTRUCTIONS_NOT_CONFIGURED',
+] as const
+export type AssistRefusal = (typeof ASSIST_REFUSALS)[number]
 
 /** The gateway's only outcome while AI is wave 2: nothing was sent, and the manual path stays the way to do it. */
 export type AssistRefused = {
@@ -67,28 +69,50 @@ export function assessAssist(
   return { reasons, ...(policyReason !== undefined ? { policyReason } : {}), manualPath: use.manualPath }
 }
 
+/** The audit entry of a refused request, without its actor and request ID (whoever records it adds them). */
+export type AssistAuditEvent = Omit<AuditEventInput, 'actor' | 'requestId'>
+
+/** The `ai.assist` entry for `assessed`: the use, the reasons and the input field names, never input values. */
+export function assistAuditEvent(
+  req: Pick<AssistRequest, 'use' | 'inputs'>,
+  assessed: Omit<AssistRefused, 'outcome'>,
+): AssistAuditEvent {
+  return {
+    action: 'ai.assist',
+    target: { type: 'ai_use', id: req.use.slice(0, 100) },
+    result: 'denied',
+    reason: assessed.reasons.join(', '),
+    summary: {
+      use: req.use.slice(0, 100),
+      reasons: [...assessed.reasons],
+      ...(assessed.policyReason !== undefined ? { policyReason: assessed.policyReason } : {}),
+      inputFields: Object.keys(req.inputs).map((k) => k.slice(0, 100)),
+    },
+  }
+}
+
 /**
  * Asks for AI assistance. Always refused while AI is wave 2, and always audited (result `denied`) in its own
- * transaction, or in the caller's when `db` is one. `config` may be passed when already loaded.
+ * transaction, or in the caller's when `db` is one. `config` may be passed when already loaded. `record`, when given,
+ * writes the audit entry instead: an API route's own audit (TSK-0117), so the entry commits with the route.
  */
-export async function requestAssist(db: Db | Tx, req: AssistRequest, config?: Config): Promise<AssistRefused> {
+export async function requestAssist(
+  db: Db | Tx,
+  req: AssistRequest,
+  config?: Config,
+  record?: (event: AssistAuditEvent) => Promise<void>,
+): Promise<AssistRefused> {
   const state = aiModule(config ?? (await loadConfig(db)))
   const assessed = assessAssist(state, req.use, req.actor, req.resource, req.ctx)
-  await withTx(db, (tx) =>
-    audit.record(tx, {
-      actor: { kind: 'staff', id: req.actor.userId, roles: req.actor.roles },
-      action: 'ai.assist',
-      target: { type: 'ai_use', id: req.use.slice(0, 100) },
-      result: 'denied',
-      reason: assessed.reasons.join(', '),
-      summary: {
-        use: req.use.slice(0, 100),
-        reasons: [...assessed.reasons],
-        ...(assessed.policyReason !== undefined ? { policyReason: assessed.policyReason } : {}),
-        inputFields: Object.keys(req.inputs).map((k) => k.slice(0, 100)),
-      },
-      ...(req.requestId !== undefined ? { requestId: req.requestId } : {}),
-    }),
-  )
+  const event = assistAuditEvent(req, assessed)
+  if (record) await record(event)
+  else
+    await withTx(db, (tx) =>
+      audit.record(tx, {
+        ...event,
+        actor: { kind: 'staff', id: req.actor.userId, roles: req.actor.roles },
+        ...(req.requestId !== undefined ? { requestId: req.requestId } : {}),
+      }),
+    )
   return { outcome: 'refused', ...assessed }
 }

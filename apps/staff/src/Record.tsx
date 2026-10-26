@@ -13,6 +13,7 @@
 import { customerTranslator, type StaffKey, type StaffLocale } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
+import { AiAssistOff } from './AiAssist'
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
 import { spanText } from './Capacity'
 import { ProjectCases } from './Cases'
@@ -775,6 +776,7 @@ function Qualification({ t, fetchImpl, view, onChanged, when }: Props & { when: 
   return (
     <Section id={`${ids}-qualification`} title={t('request.qualification')}>
       <p className="staff-request__hint">{t('request.qualificationHint')}</p>
+      <AiAssistOff t={t} use="request.classify" />
       {view.qualification ? (
         <p className="staff-request__hint">
           {t('request.qualificationRecorded', {

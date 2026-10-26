@@ -30,5 +30,22 @@ export {
   type SuggestionContext,
   type SuggestionStatus,
 } from './output.js'
-export { decideReview, type ReviewDecision } from './review.js'
-export { assessAssist, requestAssist, type AssistRefusal, type AssistRefused, type AssistRequest } from './gateway.js'
+export {
+  decideReview,
+  reviewSuggestion,
+  type ReviewDecision,
+  type ReviewedSuggestion,
+  type ReviewOutcome,
+  type ReviewRefusal,
+  type ReviewVerdict,
+} from './review.js'
+export {
+  ASSIST_REFUSALS,
+  assessAssist,
+  assistAuditEvent,
+  requestAssist,
+  type AssistAuditEvent,
+  type AssistRefusal,
+  type AssistRefused,
+  type AssistRequest,
+} from './gateway.js'

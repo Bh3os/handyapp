@@ -11,6 +11,7 @@
 import type { StaffKey } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useState, type FormEvent, type ReactNode } from 'react'
+import { AiAssistOff } from './AiAssist'
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
 import { codeLabel } from './Requests'
 
@@ -714,6 +715,7 @@ function Decide({
     >
       <h2 className="staff-queue__heading">{t('quality.decide')}</h2>
       <p className="staff-request__hint">{t('quality.decideHint')}</p>
+      <AiAssistOff t={t} use="evidence.point_out" />
       {AREAS.map((a) => (
         <Select
           key={a}
