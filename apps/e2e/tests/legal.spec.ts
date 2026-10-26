@@ -12,7 +12,7 @@ const NO_SHARING =
   'Mobile numbers and SMS opt-in data are never shared with or sold to third parties for marketing purposes.'
 const PAGES = [
   { path: '/privacy', link: 'Privacy Policy', title: 'Privacy Policy', id: 'privacy-notice-1' },
-  { path: '/sms-terms', link: 'SMS Terms', title: 'SMS Terms', id: 'sms-terms-1' },
+  { path: '/sms-terms', link: 'SMS Terms', title: 'SMS Terms', id: 'sms-terms-2' },
   { path: '/terms', link: 'Website Terms', title: 'Website Terms', id: 'website-terms-1' },
 ]
 
@@ -84,15 +84,16 @@ test.describe('A2P 10DLC checklist (TSK-0024, HH-COM-12, OWN-DEC-147, T76)', () 
     const main = page.getByRole('main')
     const checklist: [string, RegExp][] = [
       ['program name', /Program name: HandyHub Service Texts\./],
-      ['message types', /A receipt for your request/],
+      ['message types', /A notice that your estimate is ready\./],
       ['message types: codes', /One-time verification codes\./],
-      ['message types: reminders', /Up to two reminders about an estimate you have not answered\./],
+      ['message types: reminders', /One reminder about an estimate you have not answered\./],
       ['message frequency', /Message frequency varies with your request and project\./],
       ['rates', /Message and data rates may apply\./],
       ['stop', /Reply STOP to opt out\./],
       ['help', /Reply HELP for help\./],
       ['start', /Reply START to receive texts again\./],
       ['opt-in', /The box is not checked in advance/],
+      ['opt-in on the receipt', /agree to receive a one-time verification code by text/],
       ['marketing separate', /Marketing texts are sent only if you also gave separate marketing permission\./],
       ['no sharing', new RegExp(NO_SHARING.replace(/[.]/g, '\\.'))],
     ]

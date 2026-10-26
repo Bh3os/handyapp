@@ -1,6 +1,6 @@
-// The contact step with the SMS opt-in and the separate marketing permission in a real browser (TSK-0029; HH-INT-18,
-// HH-INT-22, HH-COM-12, OWN-DEC-147, T10, T76). The disclosure checklist below is the A2P 10DLC opt-in list of
-// OWN-DEC-147, typed out independently of the site catalog. Every visitor, address and number is synthetic
+// The contact step with the SMS opt-in and the separate marketing permission in a real browser (TSK-0029, TSK-0133;
+// HH-INT-18, HH-INT-22, HH-COM-12, OWN-DEC-190, T10, T76). The label and the disclosure below are the owner's opt-in
+// point A of OWN-DEC-190, typed out independently of the site catalog. Every visitor, address and number is synthetic
 // (RULE-SYNTHETIC-DATA); the support contact is NOT CONFIGURED (OWN-DEC-131), so it shows labelled placeholders.
 import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
@@ -9,7 +9,10 @@ import { expect, test, type Page } from '@playwright/test'
 const databaseUrl = process.env['E2E_DATABASE_URL']
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const future = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10)
-const SMS_LABEL = 'I agree to receive HandyHub Service Texts at the phone number above.'
+const SMS_LABEL =
+  'I agree to receive text messages from HandyHub about my service requests, estimates, appointments, and project updates at the phone number provided.'
+const DISCLOSURE =
+  'Message frequency varies. Message and data rates may apply. Reply STOP to opt out or HELP for assistance. Consent is not required to purchase services.'
 const MARKETING_LABEL = 'Yes, HandyHub may send me marketing messages.'
 
 async function axe(page: Page) {
@@ -99,19 +102,12 @@ test.describe('contact step: SMS opt-in and separate marketing permission (TSK-0
     await expect(sms).not.toBeChecked()
     await marketing.uncheck()
 
-    // The disclosure next to the box: program and message types, frequency, rates, STOP, HELP, support, links.
+    // The disclosure next to the box (OWN-DEC-190): frequency, rates, STOP, HELP, not a condition of purchase, the
+    // support contact and the links.
     const disclosure = page.getByTestId('sms-disclosure')
-    for (const text of [
-      /HandyHub Service Texts are messages about your estimate requests, projects, appointments and invoices/,
-      /^Message frequency varies/,
-      'Message and data rates may apply.',
-      'Reply STOP to opt out.',
-      'Reply HELP for help.',
-      'Support contact:',
-    ])
-      await expect(disclosure.getByText(text)).toBeVisible()
+    for (const text of [DISCLOSURE, 'Support contact:']) await expect(disclosure.getByText(text)).toBeVisible()
     await expect(disclosure.getByText('Placeholder — not provided yet')).toHaveCount(2)
-    await expect(sms).toHaveAccessibleDescription(/Reply STOP to opt out\. Reply HELP for help\./)
+    await expect(sms).toHaveAccessibleDescription(/Reply STOP to opt out or HELP for assistance\./)
     await expect(disclosure.getByRole('link', { name: /SMS Terms/ })).toHaveAttribute('href', '/sms-terms')
     await expect(disclosure.getByRole('link', { name: /Privacy Policy/ })).toHaveAttribute('href', '/privacy')
     await axe(page)
@@ -154,7 +150,7 @@ test.describe('contact step: SMS opt-in and separate marketing permission (TSK-0
     const { request, rows } = await consents(reference)
     expect(request).toMatchObject({ sms_opt_in: true, marketing_opt_in: false })
     expect(rows.map((r) => [r.purpose, r.channel, r.granted, r.disclosure_version, r.source])).toEqual([
-      ['transactional_sms', 'sms', true, 'sms-disclosure-1', 'request_form'],
+      ['transactional_sms', 'sms', true, 'sms-disclosure-2', 'request_form'],
     ])
     expect(rows[0]?.recorded_at.getTime()).toBeGreaterThanOrEqual(started - 60_000)
   })

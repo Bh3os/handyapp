@@ -219,7 +219,11 @@ export const PRIVACY_NOTICE: LegalDocument = {
   ],
 }
 
-export const SMS_TERMS: LegalDocument = {
+/**
+ * SMS terms version 1 (TSK-0024), superseded by version 2 (TSK-0133). Kept with its catalog keys so its recorded hash
+ * still reproduces the exact wording that was published (ENT-PolicyVersion); no page shows it.
+ */
+export const SMS_TERMS_V1: LegalDocument = {
   code: 'sms_terms',
   configKey: 'legal.sms_terms',
   documentId: 'sms-terms-1',
@@ -295,6 +299,73 @@ export const SMS_TERMS: LegalDocument = {
   values: {},
   contentSha256: '8c517ebdef86604da2cf6891d8231285c7c4909f39ccb2f2935271695c205948',
   sources: ['HH-COM-12', 'OWN-DEC-147', 'FACT-AUTOMATIC-MESSAGES', 'FACT-REMINDER-CADENCES', 'HH-INT-22', 'HH-COM-05'],
+}
+
+/**
+ * SMS terms version 2 (TSK-0133; HH-COM-12, OWN-DEC-190, OWN-DEC-178, FACT-AUTOMATIC-MESSAGES, FACT-REMINDER-CADENCES):
+ * version 1 with the real message types and both opt-in points.
+ * - "How you agree to texts" adds the receipt's separate consent to a one-time verification code (opt-in point B).
+ * - "Messages you may receive" lists the customer messages the message registry may send by text: the automatic ones
+ *   (now including the three routine reminders, OWN-DEC-153) and those staff or the Owner release. Email-only messages
+ *   (the request receipt, the payment receipt and the unpaid-invoice reminders) are no longer listed. A unit test keeps
+ *   the list equal to the registry (apps/server/test/unit/tendlc-package.test.ts).
+ * - Every other sentence is version 1's, by the same catalog key. A draft awaiting attorney review (OQ-ATTORNEY-PRIVACY);
+ *   the new sentences are PROPOSED (OQ-10DLC-PACKAGE-DETAILS).
+ */
+export const SMS_TERMS: LegalDocument = {
+  ...SMS_TERMS_V1,
+  documentId: 'sms-terms-2',
+  version: 2,
+  preparedOn: '2026-10-26',
+  sections: SMS_TERMS_V1.sections.map((s): LegalSection => {
+    if (s.id === 'opt-in')
+      return {
+        ...s,
+        blocks: [
+          p('legal.sms.optIn.how'),
+          p('legal.sms.optIn.receipt'),
+          p('legal.sms.optIn.optional'),
+          p('legal.sms.optIn.marketing'),
+        ],
+      }
+    if (s.id === 'messages')
+      return {
+        ...s,
+        blocks: [
+          p('legal.sms.messages.automaticIntro'),
+          list(
+            'legal.sms.messages.code',
+            'legal.sms.messages.access',
+            'legal.sms.messages.question',
+            'legal.sms.messages.visitOptions',
+            'legal.sms.messages.notAFit',
+            'legal.sms.messages.estimateReady',
+            'legal.sms.messages.estimateAnswered',
+            'legal.sms.messages.approvalReceipt',
+            'legal.sms.messages.workOptions',
+            'legal.sms.messages.appointment',
+            'legal.sms.messages.visitCancelled',
+            'legal.sms.messages.onMyWay',
+            'legal.sms.messages.depositInvoice',
+            'legal.sms.messages.proposedChange',
+            'legal.sms.messages.invoiceReady',
+            'legal.sms.messages.jobComplete',
+            'legal.sms.messages.accountChanged',
+            'legal.sms.messages.reminderEstimateOne',
+            'legal.sms.messages.reminderQuestionOne',
+            'legal.sms.messages.reminderAppointmentAutomatic',
+          ),
+          p('legal.sms.messages.remindersIntro'),
+          list('legal.sms.messages.reminderSatisfaction', 'legal.sms.messages.reminderRepeat'),
+          p('legal.sms.messages.workPaused'),
+          p('legal.sms.messages.replies'),
+          p('legal.sms.messages.content'),
+        ],
+      }
+    return s
+  }),
+  contentSha256: '696005c75e1f90739d1e346438dcd883f47aa05e8ae028c808194f3ec6dcc6ad',
+  sources: [...SMS_TERMS_V1.sources, 'OWN-DEC-190', 'OWN-DEC-178', 'OWN-DEC-153'],
 }
 
 export const WEBSITE_TERMS: LegalDocument = {
@@ -487,7 +558,8 @@ export type LegalText = {
   readonly sources: readonly string[]
 }
 
-export const SMS_DISCLOSURE: LegalText = {
+/** Version 1 of the request form's SMS disclosure (TSK-0029), superseded by version 2; kept so its hash reproduces. */
+export const SMS_DISCLOSURE_V1: LegalText = {
   code: 'sms_disclosure',
   configKey: 'legal.sms_disclosure',
   documentId: 'sms-disclosure-1',
@@ -511,6 +583,39 @@ export const SMS_DISCLOSURE: LegalText = {
   ],
   contentSha256: '56dab52f3acdc48150550556dea7a3551e545213f137f22b7c6cdfca59edac2d',
   sources: ['HH-INT-22', 'HH-COM-12', 'OWN-DEC-147', 'HH-INT-18', 'ENT-ConsentPreference'],
+}
+
+/**
+ * TSK-0133 (OWN-DEC-190 opt-in point A, HH-INT-22, HH-COM-12, ENT-ConsentPreference): version 2 of the request form's
+ * SMS opt-in, the owner's wording.
+ * - The label is opt-in point A of OWN-DEC-190 and the first paragraph is the disclosure the owner put beside each
+ *   checkbox, word for word (the same sentence as the receipt's, SMS_VERIFICATION_DISCLOSURE); the links open the
+ *   Privacy Policy and the SMS Terms, as OWN-DEC-190 names them.
+ * - HH-INT-22 also asks for the support contact beside the box: version 1's "Support contact:" sentence (an SMS terms
+ *   key) and the configured public contact, a labelled placeholder while not provided (FACT-PUBLIC-CONTACT). Keeping it
+ *   is PROPOSED (OQ-10DLC-PACKAGE-DETAILS); nothing else is added to the owner's wording.
+ * - Checking the box records the SMS opt-in (transactional_sms) with this text's `documentId` as the disclosure version
+ *   (legal.sms_disclosure version 2, migration 0126). Consents recorded under version 1 keep naming sms-disclosure-1,
+ *   which stays a published version. A draft until the attorney review (OQ-ATTORNEY-PRIVACY).
+ */
+export const SMS_DISCLOSURE: LegalText = {
+  code: 'sms_disclosure',
+  configKey: 'legal.sms_disclosure',
+  documentId: 'sms-disclosure-2',
+  version: 2,
+  status: 'draft',
+  attorneyReviewed: false,
+  preparedOn: '2026-10-26',
+  label: 'legal.smsOptInDisclosure.label',
+  blocks: [
+    p('legal.smsOptInDisclosure.disclosure'),
+    p('legal.sms.help.contact'),
+    contact,
+    link('legal.link.privacy', 'privacy_notice'),
+    link('legal.link.smsTerms', 'sms_terms'),
+  ],
+  contentSha256: 'e97e5c3a0259a394e76fb493667bf9616c3569065ac7e4280e1f987edc1018a5',
+  sources: ['OWN-DEC-190', 'HH-INT-22', 'HH-COM-12', 'HH-INT-18', 'ENT-ConsentPreference'],
 }
 
 /**

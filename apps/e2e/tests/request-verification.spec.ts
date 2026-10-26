@@ -10,7 +10,8 @@ import { codeFor } from '../codes.js'
 const databaseUrl = process.env['E2E_DATABASE_URL']
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const future = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10)
-const SMS_LABEL = 'I agree to receive HandyHub Service Texts at the phone number above.'
+const SMS_LABEL =
+  'I agree to receive text messages from HandyHub about my service requests, estimates, appointments, and project updates at the phone number provided.'
 
 async function axe(page: Page) {
   const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
