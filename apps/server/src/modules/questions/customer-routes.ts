@@ -13,7 +13,10 @@
 //   question of a request waiting on the customer, the request goes back to HandyHub's review. A reply to a "Closed—no
 //   response" request within the reopen period reopens the same request (and its project) for review with its history;
 //   nothing else is restored (no expired estimate or appointment). After the period it is refused
-//   (REOPEN_PERIOD_ENDED): a new request is the way (FACT-REOPEN-PERIOD, PROPOSED handling).
+//   (REOPEN_PERIOD_ENDED): a new request is the way (FACT-REOPEN-PERIOD, PROPOSED handling), unless staff reopen it
+//   (TSK-0148, OWN-DEC-197 E5).
+// - TSK-0148 (OWN-DEC-197 E2): "I'm not sure" is offered on every question staff marked for it (notSureAllowed), not
+//   only on measurements; elsewhere it is refused (not_sure_not_offered), so a customer is never forced to guess.
 // - The reply notifies staff: the request's "question replied" queue item (assigned to its responsible staff member)
 //   and question.customer_replied for the automatic staff notification.
 // - Photos: the reply's own upload capability (Upload-Capability header) and its uploaded photos, checked like
@@ -141,7 +144,8 @@ export function questionCustomerRoutes(deps: { now?: () => Date } = {}): RouteDe
     summary: 'Questions from HandyHub',
     description:
       'The questions HandyHub published in a project the caller’s session opens (HH-LEAD-03), oldest first: each ' +
-      'text exactly as staff wrote it, whether it is a measurement (a reply may say "I’m not sure"), when it was ' +
+      'text exactly as staff wrote it, whether it is a measurement, whether a reply may say "I’m not sure" ' +
+      '(notSureAllowed, TSK-0148), when it was ' +
       'asked, whether it waits on the customer and whether a reply can be sent now, and the customer’s own reply ' +
       '(text as written, "I’m not sure", attached photos counted by state). replyWindow says whether replies are ' +
       'open, reopen a "Closed—no response" request (until reopenUntil), or are no longer possible. Never an author, ' +
@@ -171,6 +175,7 @@ export function questionCustomerRoutes(deps: { now?: () => Date } = {}): RouteDe
         .select([
           'q.id',
           'q.kind',
+          'q.not_sure_allowed',
           'q.body',
           'q.published_at',
           'q.state',
@@ -199,6 +204,7 @@ export function questionCustomerRoutes(deps: { now?: () => Date } = {}): RouteDe
         return {
           id: r.id,
           kind: r.kind as QuestionRecord['kind'],
+          notSureAllowed: r.not_sure_allowed,
           text: r.body,
           askedAt: r.published_at,
           state: r.state === 'answered' ? 'answered' : 'waiting',
@@ -239,7 +245,7 @@ export function questionCustomerRoutes(deps: { now?: () => Date } = {}): RouteDe
     if (!UUID_RE.test(questionId)) throw new ApiError('NOT_FOUND')
     const q = await tx
       .selectFrom('intake.questions')
-      .select(['id', 'kind', 'state', 'request_id'])
+      .select(['id', 'kind', 'not_sure_allowed', 'state', 'request_id'])
       .where('id', '=', questionId.toLowerCase())
       .where('project_id', '=', project.id)
       .where('request_id', '=', request.id)
@@ -305,7 +311,8 @@ export function questionCustomerRoutes(deps: { now?: () => Date } = {}): RouteDe
     summary: 'Reply to a question',
     description:
       'For the verified customer of the project (request.reply). The reply to one open question: text exactly as ' +
-      'written, "I’m not sure" (measurement questions only), and the photos uploaded under this reply’s capability ' +
+      'written, "I’m not sure" (only where staff offered it, notSureAllowed; TSK-0148), and the photos uploaded under ' +
+      'this reply’s capability ' +
       '(Upload-Capability header; received or still processing; a rejected or unknown photo is refused). At least ' +
       'one of them. Card numbers are refused. The question is answered and its reminders stop; other questions stay ' +
       'open. The last open question answered moves a request waiting on the customer back to HandyHub’s review; a ' +
@@ -329,7 +336,7 @@ export function questionCustomerRoutes(deps: { now?: () => Date } = {}): RouteDe
       const photoIds = (b.photoIds ?? []).map((p) => p.toLowerCase())
       if (text === null && !b.notSure && photoIds.length === 0) throw invalid('body', 'empty')
       const { project, request, question, window, config } = await openQuestion(ctx, tx)
-      if (b.notSure && question.kind !== 'measurement') throw invalid('body.notSure', 'not_a_measurement')
+      if (b.notSure && !question.not_sure_allowed) throw invalid('body.notSure', 'not_sure_not_offered')
       // The author is the session's verified contact, and it must be a contact of the project's customer.
       const contact = await tx
         .selectFrom('crm.contacts as c')

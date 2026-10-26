@@ -51,12 +51,14 @@ describe('the account answers are read defensively (TSK-0036)', () => {
 
   it('[HH-INT-14][HH-ID-10] the receipt offers only the verified values; the phone only when it can be texted', () => {
     const row = (state: string, available = true) => ({ destination: 'masked', state, available, change: null })
-    const status = (email: string, phone: string, texts = true) =>
-      ({ email: row(email), phone: row(phone, texts) }) as unknown as ContactStatus
+    const status = (email: string, phone: string, texts = true, smsCodeConsent = 'not_needed') =>
+      ({ email: row(email), phone: row(phone, texts), smsCodeConsent }) as unknown as ContactStatus
     expect(enrollChannels(status('verified', 'unverified'))).toEqual([{ channel: 'email', destination: 'masked' }])
     expect(enrollChannels(status('pending', 'verified')).map((c) => c.channel)).toEqual(['phone'])
     expect(enrollChannels(status('verified', 'verified', false)).map((c) => c.channel)).toEqual(['email'])
     expect(enrollChannels(status('expired', 'failed'))).toEqual([])
+    // TSK-0134 (OWN-DEC-178): a phone verified on the receipt's consent to codes has no SMS opt-in for sign-in codes.
+    expect(enrollChannels(status('verified', 'verified', true, 'recorded')).map((c) => c.channel)).toEqual(['email'])
   })
 })
 

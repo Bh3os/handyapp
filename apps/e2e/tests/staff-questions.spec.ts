@@ -3,8 +3,10 @@
 // link and an emailed code (TSK-0034); Office staff, in a browser of their own, publish two questions from the request
 // record; the customer answers one in the portal with a photo and "I'm not sure", the other stays open, and writes in
 // Messages. The e2e servers send through the provider fakes, which hand a message over without reporting it sent, so
-// the notice reads truthfully as not sent yet and no reminder starts. Every visitor, address and account is synthetic
-// (RULE-SYNTHETIC-DATA); nothing reaches a real provider.
+// the notice reads truthfully as not sent yet and no reminder starts. TSK-0148 (OWN-DEC-197 E2, E5): the second,
+// general question offers "I'm not sure" too, and a "Closed—no response" request past its reopen period is reopened by
+// Office with a written reason. Every visitor, address and account is synthetic (RULE-SYNTHETIC-DATA); nothing reaches
+// a real provider.
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { deflateSync } from 'node:zlib'
@@ -221,6 +223,10 @@ test.describe('staff questions and customer replies (TSK-0051, HH-LEAD-03, HH-LE
       await expect(staff.getByRole('definition').filter({ hasText: 'Needs information' }).first()).toBeVisible()
       const composer2 = section.getByRole('form', { name: 'Ask the customer a question' })
       await composer2.getByLabel(/^Question/).fill(second)
+      // TSK-0148 (E2): any question may offer "I'm not sure" / "I don't know", not only a measurement.
+      await composer2
+        .getByRole('checkbox', { name: /The customer may answer “I'm not sure” or “I don't know”/ })
+        .check()
       await composer2.getByLabel('This question does not ask the customer to inspect a hazardous area.').check()
       await composer2.getByRole('button', { name: 'Publish question' }).click()
       await expect(section.getByText(second)).toBeVisible()
@@ -252,16 +258,20 @@ test.describe('staff questions and customer replies (TSK-0051, HH-LEAD-03, HH-LE
       await form.getByRole('button', { name: 'Send reply' }).click()
       await expect(questions.getByText('Reply received—HandyHub will review it')).toBeVisible()
       await expect(questions.getByText(answer)).toBeVisible()
-      // The other question stays open.
+      // The other question stays open, and offers "I'm not sure" too (TSK-0148).
       await expect(questions.getByRole('button', { name: 'Reply' })).toHaveCount(1)
       await expect(questions.getByText('Answered')).toBeVisible()
+      await questions.getByRole('button', { name: 'Reply' }).click()
+      await expect(
+        questions.getByRole('form', { name: "Reply to HandyHub's question" }).getByLabel("I'm not sure"),
+      ).toBeVisible()
       await axe(page)
 
       // Staff see the reply exactly as written, with "I'm not sure" and its photo, on the same request.
       await staff.reload()
       const reply = section.getByRole('listitem', { name: /^Question published/ }).first()
       await expect(reply.getByText(answer)).toBeVisible()
-      await expect(reply.getByText("I'm not sure")).toBeVisible()
+      await expect(reply.getByText("I'm not sure", { exact: true })).toBeVisible()
       await expect(reply.getByText(/1 photo:/)).toBeVisible()
       await section.getByRole('button', { name: 'Mark replies reviewed' }).click()
       await expect(section.getByText('Replies marked reviewed.')).toBeVisible()
@@ -276,6 +286,74 @@ test.describe('staff questions and customer replies (TSK-0051, HH-LEAD-03, HH-LE
       const list = page.getByRole('list', { name: 'Project conversation' })
       await expect(list.getByRole('listitem', { name: 'You, Project page' }).getByText(note)).toBeVisible()
       await axe(page)
+    } finally {
+      await office.close()
+    }
+  })
+
+  test('[HH-LEAD-06][T30][OWN-DEC-197] after the reopen period Office reopens a "Closed—no response" request with a reason (TSK-0148)', async ({
+    request,
+    browser,
+  }) => {
+    const run = Date.now()
+    const link = await sendRequest(request, `e2e-questions-reopen-${run}@example.test`)
+    const office = await officeSession(browser)
+    // Closed "Closed—no response" 40 days ago (the closing rules have their own integration tests): written straight to
+    // the database, as the close route records it.
+    await withDb(async (db) => {
+      const author = await db
+        .selectFrom('identity.staff_users')
+        .select('id')
+        .where('email', '=', OFFICE)
+        .executeTakeFirstOrThrow()
+      const r = await db
+        .updateTable('intake.requests')
+        .set((eb) => ({ state: 'closed_no_response', state_version: eb('state_version', '+', 1) }))
+        .where('id', '=', link.requestId)
+        .returning(['project_id', 'state_version'])
+        .executeTakeFirstOrThrow()
+      await db
+        .updateTable('crm.projects')
+        .set((eb) => ({ state: 'closed', state_version: eb('state_version', '+', 1) }))
+        .where('id', '=', r.project_id)
+        .execute()
+      await db
+        .insertInto('intake.request_decisions')
+        .values({
+          request_id: link.requestId,
+          project_id: r.project_id,
+          action: 'close_no_response',
+          event: 'close_no_response',
+          from_state: 'needs_information',
+          to_state: 'closed_no_response',
+          project_from_state: 'open',
+          project_to_state: 'closed',
+          decided_by: author.id,
+          decided_at: new Date(run - 40 * 86_400_000),
+          request_version: r.state_version,
+        })
+        .execute()
+    })
+    try {
+      const staff = office.page
+      await staff.goto(`/staff/requests/${link.requestId}`)
+      const section = staff.getByRole('region', { name: 'Questions to the customer' })
+      await expect(
+        section.getByText(/The reopen period ended .+: a customer reply no longer reopens this request/),
+      ).toBeVisible()
+      await section.getByRole('button', { name: 'Reopen request' }).click()
+      const form = section.getByRole('form', { name: 'Reopen request' })
+      await expect(form.getByText(/Nothing else is restored/)).toBeVisible()
+      await expect(form.getByRole('button', { name: 'Confirm: Reopen request' })).toBeDisabled()
+      await axe(staff)
+      await form
+        .getByLabel(/^Why it is reopened/)
+        .fill(`Synthetic e2e reason ${run.toString(36)}: the customer called back.`)
+      await form.getByRole('button', { name: 'Confirm: Reopen request' }).click()
+      await expect(section.getByText('Request reopened for review.')).toBeVisible()
+      await expect(staff.getByRole('definition').filter({ hasText: 'Reviewing' }).first()).toBeVisible()
+      await expect(section.getByRole('button', { name: 'Reopen request' })).toHaveCount(0)
+      await axe(staff)
     } finally {
       await office.close()
     }

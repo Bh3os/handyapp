@@ -507,9 +507,20 @@ describe('archive, deletion, the trail and the chain (TSK-0135, HH-SEC-08, T74)'
     expect(JSON.stringify(audited)).not.toContain(MARKER)
     // The review entries of the deleted entries read as deleted.
     const deleted = (await get('owner', '/staff/retention-reviews?category=audit_log&status=deleted&limit=100')).json<{
-      items: { record: { reference: string } }[]
+      items: { id: string; record: { reference: string } }[]
     }>()
     for (const s of doomed) expect(deleted.items.some((i) => i.record.reference === `#${s} synthetic.probe`)).toBe(true)
+    // So does the entry's Delete confirmation, with the deletion's time and reason; nothing more can be decided on it.
+    const reviewed = deleted.items.find((i) => i.record.reference === `#${doomed[0]} synthetic.probe`) as { id: string }
+    const detail = (await get('owner', `/staff/retention-reviews/${reviewed.id}/deletion`)).json<{
+      status: { state: string; reason: string | null; decidedAt: string | null }
+      target: { blockers: string[] }
+    }>()
+    expect(detail.status).toMatchObject({ state: 'deleted', reason: REASON })
+    expect(detail.status.decidedAt).not.toBeNull()
+    expect(detail.target.blockers).toContain('already_deleted')
+    const archiveAfter = await post('owner', `/staff/retention-reviews/${reviewed.id}/archive`, { reason: REASON })
+    expect(archiveAfter.statusCode).toBe(409)
     // No second deletion over the same range; seqs are never renumbered.
     const remaining = await t.db
       .selectFrom('platform.audit_events')

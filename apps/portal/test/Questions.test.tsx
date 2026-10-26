@@ -54,6 +54,7 @@ const questions = (over: Record<string, unknown> = {}) => ({
     {
       id: Q1,
       kind: 'measurement',
+      notSureAllowed: true,
       text: 'Synthetic: how tall is the ceiling?',
       askedAt: NOW,
       state: 'waiting',
@@ -63,6 +64,7 @@ const questions = (over: Record<string, unknown> = {}) => ({
     {
       id: Q2,
       kind: 'general',
+      notSureAllowed: false,
       text: 'Synthetic: when was it painted?',
       askedAt: NOW,
       state: 'waiting',
@@ -132,7 +134,7 @@ describe('questions from HandyHub in the portal (TSK-0051, HH-LEAD-03, OWN-DEC-9
     const section = await screen.findByRole('region', { name: 'Questions from HandyHub' }, LOADED)
     fireEvent.click(within(section).getAllByRole('button', { name: 'Reply' })[1] as HTMLElement)
     const form = within(section).getByRole('form', { name: "Reply to HandyHub's question" })
-    // Not a measurement: no "I'm not sure".
+    // Not offered by HandyHub for this question: no "I'm not sure".
     expect(within(form).queryByLabelText("I'm not sure")).toBeNull()
     const text = '  Synthetic: last spring, I think.\n'
     fireEvent.change(within(form).getByLabelText('Your reply'), { target: { value: text } })
@@ -182,8 +184,60 @@ describe('questions from HandyHub in the portal (TSK-0051, HH-LEAD-03, OWN-DEC-9
     expect(within(closed).queryByRole('button', { name: 'Reply' })).toBeNull()
   })
 
+  it('[HH-LEAD-03][OWN-DEC-197] "I\'m not sure" on any question HandyHub offered it for, not only a measurement (TSK-0148, E2)', async () => {
+    const replies: string[] = []
+    const write: Handler = (url, init) => {
+      if (!url.endsWith(`/questions/${Q2}/replies`) || init?.method !== 'POST') return undefined
+      replies.push(String(init.body))
+      return json(201, { questionId: Q2, state: 'answered', at: NOW, photos: 0, reopened: false })
+    }
+    const offered = () => ({
+      ...questions(),
+      questions: (questions().questions as { id: string }[]).map((q) =>
+        q.id === Q2 ? { ...q, notSureAllowed: true } : q,
+      ),
+    })
+    const { fetchImpl } = api([write, reads(offered)])
+    render(<App path={`/portal/p/${REF}`} fetchImpl={fetchImpl} />)
+    const section = await screen.findByRole('region', { name: 'Questions from HandyHub' }, LOADED)
+    fireEvent.click(within(section).getAllByRole('button', { name: 'Reply' })[1] as HTMLElement)
+    const form = within(section).getByRole('form', { name: "Reply to HandyHub's question" })
+    fireEvent.click(within(form).getByLabelText("I'm not sure"))
+    fireEvent.click(within(form).getByRole('button', { name: 'Send reply' }))
+    await waitFor(() => expect(replies).toEqual([JSON.stringify({ notSure: true })]))
+  })
+
+  it('[HH-LEAD-06][OWN-DEC-197] the period ending while the reply is written: the reply is kept and a new request is the way (TSK-0148, E5)', async () => {
+    const write: Handler = (url, init) => {
+      if (!url.endsWith(`/questions/${Q1}/replies`) || init?.method !== 'POST') return undefined
+      return json(409, {
+        error: { code: 'CONFLICT', fieldErrors: [{ field: 'state', code: 'REOPEN_PERIOD_ENDED', message: '' }] },
+      })
+    }
+    const { fetchImpl } = api([
+      write,
+      reads(
+        () => questions({ replyWindow: 'reopen', reopenUntil: NOW }),
+        () => overview({ situation: 'closed_no_response', step: 'closed' }),
+      ),
+    ])
+    render(<App path={`/portal/p/${REF}`} fetchImpl={fetchImpl} />)
+    const section = await screen.findByRole('region', { name: 'Questions from HandyHub' }, LOADED)
+    fireEvent.click(within(section).getAllByRole('button', { name: 'Reply' })[0] as HTMLElement)
+    const form = within(section).getByRole('form', { name: "Reply to HandyHub's question" })
+    fireEvent.change(within(form).getByLabelText('Your reply'), { target: { value: 'Synthetic: late answer.' } })
+    fireEvent.click(within(form).getByRole('button', { name: 'Send reply' }))
+    const alert = await within(form).findByRole('alert')
+    expect(alert.textContent).toContain('This request is closed. To continue, send a new request.')
+    expect(within(alert).getByRole('link', { name: 'Send a new request' }).getAttribute('href')).toBe('/request')
+    expect((within(form).getByLabelText('Your reply') as HTMLTextAreaElement).value).toBe('Synthetic: late answer.')
+  })
+
   it('[HH-LEAD-03] an answer the view does not declare is a failure, never shown', () => {
     expect(parseQuestions(questions())).not.toBeNull()
+    expect(
+      parseQuestions({ ...questions(), questions: [{ ...questions().questions[0], notSureAllowed: 'yes' }] }),
+    ).toBeNull()
     expect(parseQuestions({ ...questions(), replyWindow: 'maybe' })).toBeNull()
     expect(parseQuestions({ ...questions(), questions: [{ id: Q1, text: 'x' }] })).toBeNull()
   })

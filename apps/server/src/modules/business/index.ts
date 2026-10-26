@@ -24,6 +24,7 @@ import {
   estimateTermsInEffect,
   LEGAL_DOCUMENTS,
   SMS_DISCLOSURE,
+  SMS_VERIFICATION_DISCLOSURE,
   type LegalConfigKey,
 } from '@handyhub/domain/legal'
 import { sql } from 'kysely'
@@ -82,6 +83,12 @@ type Held = { key: LegalConfigKey; documentId: string; contentSha256: string }
 const HELD: readonly Held[] = [
   ...LEGAL_DOCUMENTS.map((d) => ({ key: d.configKey, documentId: d.documentId, contentSha256: d.contentSha256 })),
   { key: SMS_DISCLOSURE.configKey, documentId: SMS_DISCLOSURE.documentId, contentSha256: SMS_DISCLOSURE.contentSha256 },
+  // TSK-0134: the receipt's consent to verification codes by text.
+  {
+    key: SMS_VERIFICATION_DISCLOSURE.configKey,
+    documentId: SMS_VERIFICATION_DISCLOSURE.documentId,
+    contentSha256: SMS_VERIFICATION_DISCLOSURE.contentSha256,
+  },
   { key: ESTIMATE_TERMS.configKey, documentId: ESTIMATE_TERMS.documentId, contentSha256: ESTIMATE_TERMS.contentSha256 },
 ]
 const LEGAL_KEYS: readonly LegalConfigKey[] = [...new Set(HELD.map((h) => h.key))]

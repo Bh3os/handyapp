@@ -7,6 +7,9 @@
 //   terminal: declined ("Not a fit" with a reason category), outside_scope, not_served, withdrawn
 //   closed_no_response: only 24 h after the final unanswered-question reminder was actually sent; a customer reply
 //   within the reopen period reopens the same request for review (never restoring an expired estimate or appointment).
+//   TSK-0148 (OWN-DEC-197 E4, E5; OWN-DEC-208): never while a customer response stands (a reply or message since the
+//   reminder, or one staff have not reviewed yet); an authorized staff member may reopen it with a written reason, also
+//   after the reopen period.
 //
 // The original submission is never edited: these events change only the request's state. Declining, marking out of
 // scope or not served, withdrawing and closing are refused when work was accepted, an appointment exists or money was
@@ -57,6 +60,11 @@ export type RequestFacts = ObligationFacts & {
   readonly finalReminderSentAt?: Date
   /** Configured: hours after the final reminder before "Closed—no response" (24, OWN-DEC-101). */
   readonly noResponseCloseHours?: number
+  /**
+   * TSK-0148 (OWN-DEC-208): the customer responded (a reply or message since the reminder was sent, or one staff have
+   * not reviewed yet); the server reads it.
+   */
+  readonly customerResponded?: boolean
   /** When the request was closed "Closed—no response". */
   readonly closedAt?: Date
   /** When the customer's reply arrived. */
@@ -102,6 +110,13 @@ const noReviewHold: G = (f) => {
 }
 const finalReminderWaited: G = (f, now) =>
   hoursPassed(f.finalReminderSentAt, f.noResponseCloseHours, now, 'the final reminder was sent')
+const noCustomerResponse: G = (f) => {
+  if (f.customerResponded === undefined)
+    return { code: 'FACTS_MISSING', message: 'The server must check: customer responses.' }
+  return f.customerResponded
+    ? { code: 'CUSTOMER_REPLIED', message: 'The customer responded; review the response instead of closing.' }
+    : null
+}
 const replyWithinReopenPeriod: G = (f) =>
   withinDays(f.closedAt, f.customerReplyAt, f.reopenPeriodDays, 'reopening by a reply')
 
@@ -182,7 +197,7 @@ export const REQUEST_MACHINE = defineMachine({
       from: ['needs_information'],
       to: 'closed_no_response',
       actors: ['staff'],
-      guards: [finalReminderWaited, noObligation],
+      guards: [finalReminderWaited, noCustomerResponse, noObligation],
     },
     {
       event: 'reopen_by_reply',
@@ -192,5 +207,8 @@ export const REQUEST_MACHINE = defineMachine({
       guards: [replyWithinReopenPeriod],
       effects: ['staff_review.queue'],
     },
+    // TSK-0148 (OWN-DEC-197 E5): an authorized staff member reopens it with a written reason, within the reopen period
+    // or after it; nothing else is restored.
+    { event: 'reopen_by_staff', from: ['closed_no_response'], to: 'reviewing', actors: ['staff'], guards: [reason] },
   ],
 })

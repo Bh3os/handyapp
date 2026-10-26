@@ -20,6 +20,7 @@ const OK: RequestFacts = {
   blockingReviewHolds: 0,
   finalReminderSentAt: HOURS(25),
   noResponseCloseHours: 24,
+  customerResponded: false,
   closedAt: DAYS(10),
   customerReplyAt: HOURS(1),
   reopenPeriodDays: 30,
@@ -171,6 +172,28 @@ describe('request: Closed—no response and reopening (OWN-DEC-101, FACT-REOPEN-
       problems: [{ code: 'PERIOD_ENDED' }],
     })
     expect(run('closed_no_response', 'reopen_by_reply', OK, 'staff')).toMatchObject({ code: 'ACTOR_NOT_ALLOWED' })
+  })
+
+  it('[HH-LEAD-06][OWN-DEC-208] never closes while a customer response stands (TSK-0148, OWN-DEC-197 E4)', () => {
+    expect(run('needs_information', 'close_no_response', { ...OK, customerResponded: true })).toMatchObject({
+      ok: false,
+      problems: [{ code: 'CUSTOMER_REPLIED' }],
+    })
+    expect(run('needs_information', 'close_no_response', without('customerResponded'))).toMatchObject({
+      problems: [{ code: 'FACTS_MISSING' }],
+    })
+  })
+
+  it('[HH-LEAD-06][OWN-DEC-197] staff reopen with a written reason, also after the reopen period (TSK-0148, E5)', () => {
+    expect(run('closed_no_response', 'reopen_by_staff', { ...OK, closedAt: DAYS(45) })).toMatchObject({
+      ok: true,
+      to: 'reviewing',
+    })
+    expect(run('closed_no_response', 'reopen_by_staff', { ...OK, reason: ' ' })).toMatchObject({
+      problems: [{ code: 'REASON_REQUIRED' }],
+    })
+    expect(run('closed_no_response', 'reopen_by_staff', OK, 'customer')).toMatchObject({ code: 'ACTOR_NOT_ALLOWED' })
+    expect(run('declined', 'reopen_by_staff')).toMatchObject({ ok: false, code: 'INVALID_TRANSITION' })
   })
 
   it('a customer reply to an open question returns the request to review and stops reminders', () => {

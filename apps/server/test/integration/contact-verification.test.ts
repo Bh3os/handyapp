@@ -203,6 +203,8 @@ describe('the receipt capability (TSK-0033, HH-INT-13, RULE-SERVER-AUTHZ)', () =
       email: { destination: 'c***@example.test', state: 'unverified', available: true, change: null },
       // No SMS opt-in on this request: its phone cannot be verified by text (HH-INT-22).
       phone: { destination: '***0143', state: 'unverified', available: false, change: null },
+      // TSK-0134: the receipt offers the separate consent to a verification code by text instead (OWN-DEC-178).
+      smsCodeConsent: 'offered',
     })
     // Only the token's hash is stored, and the body (kept for idempotent replays) never carries it.
     const rows = await t.db
@@ -307,6 +309,7 @@ describe('email and phone verified separately (TSK-0033, HH-INT-13, OWN-DEC-96)'
     expect(await status(s.cap)).toEqual({
       email: { destination: 'e***@example.test', state: 'verified', available: true, change: null },
       phone: { destination: '***0143', state: 'unverified', available: false, change: null },
+      smsCodeConsent: 'offered',
     })
     expect(await contactRow(s.contactId)).toMatchObject({
       email_verification: 'verified',

@@ -151,9 +151,13 @@ test.describe('contact verification on the receipt (TSK-0033)', () => {
     await expect(page.locator('main')).not.toContainText(
       new RegExp(`${earlierRef}|Earlier|already have|welcome back|earlier project|previous`, 'i'),
     )
-    // Without the SMS opt-in the phone is not texted; the page says why.
-    await expect(channelGroup(page, 'Phone')).toContainText('We verify phone numbers by text message only.')
-    await expect(channelGroup(page, 'Phone').getByRole('button')).toHaveCount(0)
+    // Without the SMS opt-in the phone is not texted; TSK-0134: the receipt offers the separate, unchecked consent to
+    // a verification code by text instead (request-verification-sms.spec.ts).
+    await expect(
+      channelGroup(page, 'Phone').getByRole('checkbox', {
+        name: 'I agree to receive a one-time SMS verification code from HandyHub at the phone number provided.',
+      }),
+    ).not.toBeChecked()
     // No account offer before a contact is verified.
     await expect(page.getByRole('region', { name: 'Keep your project history' })).toHaveCount(0)
     await axe(page)

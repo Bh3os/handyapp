@@ -19,8 +19,17 @@
 // - Nothing here looks at other customers, contacts, projects or accounts with the same email or phone: the request's
 //   contact is its own record (TSK-0025), its verification proves that value for that contact only, and it links
 //   nothing (HH-ID-03; linking is staff review, HH-ID-02, HH-CRM-04).
+// - TSK-0134 (OWN-DEC-178, OWN-DEC-190 opt-in point B): without a current SMS opt-in from this request, the receipt
+//   offers a separate, unchecked consent to a one-time verification code by text. Agreeing records a consent of purpose
+//   sms_verification (the number, the disclosure version shown, the time, and as evidence this request, the receipt
+//   capability and the HTTP request) before any code can be asked for; it permits that code message only, never another
+//   text and never marketing (notifications/consent.ts). The receipt reads only the consent its own request recorded
+//   for the current number, still current (no STOP since). Declining records nothing: the phone stays unverified and
+//   the email is verified as before; the request is never blocked.
 import type { Db, Tx } from '@handyhub/db'
-import { currentConsent } from '../notifications/index.js'
+import { sql } from 'kysely'
+import { isLegalVersion } from '../legal/index.js'
+import { currentConsent, recordConsent } from '../notifications/index.js'
 import {
   issueCode,
   maskForCustomer,
@@ -44,7 +53,14 @@ export type ChannelStatus = {
   /** An email change waiting for its code: the new value, masked, and the state of its code. */
   change: { destination: string; state: ChangeState } | null
 }
-export type ContactStatus = { email: ChannelStatus; phone: ChannelStatus }
+/**
+ * TSK-0134: the receipt's consent to a verification code by text for the phone. `not_needed`: this request's own SMS
+ * opt-in is current. `recorded`: this request's receipt consent for the current number is current. `offered`: neither,
+ * so the receipt offers the checkbox (also after a STOP ended an earlier consent).
+ */
+export const SMS_CODE_CONSENT_STATES = ['not_needed', 'offered', 'recorded'] as const
+export type SmsCodeConsentState = (typeof SMS_CODE_CONSENT_STATES)[number]
+export type ContactStatus = { email: ChannelStatus; phone: ChannelStatus; smsCodeConsent: SmsCodeConsentState }
 
 export type SendProblem = 'already_verified' | 'sms_not_permitted' | 'invalid_destination' | 'change_not_available'
 export type SendResult =
@@ -90,6 +106,8 @@ export function effectiveState(
 
 type ContactRow = {
   contact_id: string
+  /** The request whose contact this is (null for the staff badges, which read no consent). */
+  request_id: string | null
   email: string
   phone_e164: string
   email_verification: string
@@ -114,7 +132,7 @@ async function contactOf(db: Db | Tx, requestId: string, lock: boolean): Promise
     .select(['id as contact_id', 'email', 'phone_e164', 'email_verification', 'phone_verification'])
     .where('id', '=', request.contact_id)
   const contact = await (lock ? q.forUpdate() : q).executeTakeFirst()
-  return contact ? { ...contact, sms_opt_in: request.sms_opt_in } : undefined
+  return contact ? { ...contact, request_id: requestId, sms_opt_in: request.sms_opt_in } : undefined
 }
 
 const CODE_COLUMNS = ['destination', 'consumed_at', 'superseded_at', 'expires_at', 'attempts', 'max_attempts'] as const
@@ -129,9 +147,44 @@ async function latestCode(db: Db | Tx, subject: string, destination?: string): P
   return q.orderBy('created_at', 'desc').limit(1).executeTakeFirst()
 }
 
-/** Texts reach the phone only with this request's own SMS opt-in, still current (no STOP since). */
-async function textAvailable(db: Db | Tx, c: ContactRow): Promise<boolean> {
+/** Whether this request's own SMS opt-in is current (no STOP since). */
+async function optInCurrent(db: Db | Tx, c: ContactRow): Promise<boolean> {
   return c.sms_opt_in && (await currentConsent(db, 'sms', c.phone_e164, 'transactional_sms')) === 'granted'
+}
+
+/**
+ * TSK-0134: whether this request's receipt recorded a consent to verification codes by text for the current number
+ * that no withdrawal followed (a STOP, or staff recording the customer's opt-out). Another request's consent for the
+ * same number is never read here, so it neither enables nor reveals anything (HH-ID-03).
+ */
+async function receiptConsentCurrent(db: Db | Tx, c: ContactRow): Promise<boolean> {
+  if (!c.request_id) return false
+  const records = db
+    .selectFrom('platform.consent_records')
+    .select('seq')
+    .where('destination', '=', c.phone_e164)
+    .where('channel', '=', 'sms')
+    .where('purpose', '=', 'sms_verification')
+    .orderBy('seq', 'desc')
+    .limit(1)
+  const own = await records
+    .where('source', '=', 'receipt')
+    .where('granted', '=', true)
+    .where(sql<string>`evidence->>'requestId'`, '=', c.request_id)
+    .executeTakeFirst()
+  if (!own) return false
+  const withdrawn = await records.where('granted', '=', false).executeTakeFirst()
+  return !withdrawn || BigInt(withdrawn.seq) < BigInt(own.seq)
+}
+
+async function smsCodeConsent(db: Db | Tx, c: ContactRow): Promise<SmsCodeConsentState> {
+  if (await optInCurrent(db, c)) return 'not_needed'
+  return (await receiptConsentCurrent(db, c)) ? 'recorded' : 'offered'
+}
+
+/** Texts reach the phone with this request's own SMS opt-in or its receipt consent to codes, still current. */
+async function textAvailable(db: Db | Tx, c: ContactRow): Promise<boolean> {
+  return (await smsCodeConsent(db, c)) !== 'offered'
 }
 
 async function channelStatus(db: Db | Tx, c: ContactRow, channel: ContactChannel, now: Date): Promise<ChannelStatus> {
@@ -160,7 +213,11 @@ export async function contactStatus(
 ): Promise<ContactStatus | null> {
   const c = await contactOf(db, requestId, false)
   if (!c) return null
-  return { email: await channelStatus(db, c, 'email', now), phone: await channelStatus(db, c, 'phone', now) }
+  return {
+    email: await channelStatus(db, c, 'email', now),
+    phone: await channelStatus(db, c, 'phone', now),
+    smsCodeConsent: await smsCodeConsent(db, c),
+  }
 }
 
 /** The shown verification state of a contact's two channels, for staff (HH-LEAD-01 badges). */
@@ -169,7 +226,7 @@ export async function contactBadges(
   contact: { id: string; email: string; phone_e164: string; email_verification: string; phone_verification: string },
   now: Date = new Date(),
 ): Promise<{ email: VerificationState; phone: VerificationState }> {
-  const c: ContactRow = { ...contact, contact_id: contact.id, sms_opt_in: false }
+  const c: ContactRow = { ...contact, contact_id: contact.id, request_id: null, sms_opt_in: false }
   const out = {} as Record<ContactChannel, VerificationState>
   for (const channel of CONTACT_CHANNELS)
     out[channel] = effectiveState(
@@ -223,6 +280,59 @@ async function supersedeOthers(tx: Tx, subject: string, keep: string | null, now
     .where('superseded_at', 'is', null)
   if (keep) q = q.where('destination', '<>', keep)
   await q.execute()
+}
+
+export type SmsConsentInput = {
+  requestId: string
+  /** The disclosure version the receipt showed beside the checkbox (a published legal.sms_verification_disclosure). */
+  disclosureVersion: string
+  /** Evidence: the receipt capability the agreement came through and the HTTP request ID (never the token itself). */
+  capabilityId: string
+  httpRequestId: string
+  now?: Date
+}
+export type SmsConsentResult =
+  | { status: 'recorded'; recorded: boolean }
+  | { status: 'refused'; problem: 'already_verified' | 'not_needed' | 'unknown_version' }
+
+/**
+ * TSK-0134 (OWN-DEC-178): records the receipt's consent to a one-time verification code by text for the request's
+ * current phone number, inside the route's transaction. Offered only while the phone is unverified and this request
+ * has no current SMS opt-in; agreeing again while the consent is current records nothing new. No code is sent here:
+ * the customer asks for it next, and it can be asked for only once this record exists.
+ */
+export async function recordReceiptSmsConsent(tx: Tx, input: SmsConsentInput): Promise<SmsConsentResult> {
+  const c = await contactOf(tx, input.requestId, true)
+  if (!c) throw new Error('the request of a live receipt capability always exists')
+  if (storedState(c, 'phone') === 'verified') return { status: 'refused', problem: 'already_verified' }
+  if (!(await isLegalVersion(tx, 'legal.sms_verification_disclosure', input.disclosureVersion)))
+    return { status: 'refused', problem: 'unknown_version' }
+  const state = await smsCodeConsent(tx, c)
+  if (state === 'not_needed') return { status: 'refused', problem: 'not_needed' }
+  if (state === 'recorded') return { status: 'recorded', recorded: false }
+  const request = await tx
+    .selectFrom('intake.requests')
+    .select('reference')
+    .where('id', '=', input.requestId)
+    .executeTakeFirstOrThrow()
+  await recordConsent(tx, {
+    purpose: 'sms_verification',
+    channel: 'sms',
+    destination: c.phone_e164,
+    granted: true,
+    source: 'receipt',
+    recordedBy: `customer:${c.contact_id}`,
+    subject: { kind: 'customer_contact', id: c.contact_id },
+    disclosureVersion: input.disclosureVersion,
+    evidence: {
+      requestId: input.requestId,
+      reference: request.reference,
+      receiptCapabilityId: input.capabilityId,
+      httpRequestId: input.httpRequestId,
+    },
+    ...(input.now ? { at: input.now } : {}),
+  })
+  return { status: 'recorded', recorded: true }
 }
 
 export type SendInput = {

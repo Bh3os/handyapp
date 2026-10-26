@@ -10,9 +10,10 @@
 //   deleted. Payments: a recorded payment is found and blocks; none recorded is not "none found" (a payment taken
 //   outside the software cannot be ruled out), so the Owner still confirms it.
 // - Blockers: a hold found, protected evidence found (Archive, Void or an audited correction instead), a record still
-//   in use, and a record type whose erasure this software does not perform: requests that never became jobs keep
-//   their history until OQ-RECORD-ERASURE is answered, and audit entries are append-only for every role (ROLE-MATRIX
-//   "Edit or delete audit events"; OQ-AUDIT-ENTRY-DELETION). A blocked deletion offers Archive.
+//   in use, and a record type whose erasure this software does not perform: audit entries are append-only for every
+//   role (ROLE-MATRIX "Edit or delete audit events"; OQ-AUDIT-ENTRY-DELETION). A blocked deletion offers Archive.
+// - TSK-0137 (OWN-DEC-176): a request that never became a job is erased with a reference-and-dates remainder; what it
+//   removes, keeps and is blocked by is request-erasure.ts.
 // - Erasure of an estimate never accepted: its versions, lines, internal costs and notes, documents, the customer's
 //   responses and selections are removed in the transaction that writes the deletion log entry (the database lets
 //   only that transaction remove them, migration 0058); the stored files are removed after the commit by the
@@ -33,6 +34,7 @@ import type { Db, Tx } from '@handyhub/db'
 import { sql } from 'kysely'
 import { activeCaseCounts } from '../cases/active.js'
 import { destinationOnFile, EXPIRED_KINDS, reportedCases } from '../retention/defaults.js'
+import { requestErasurePlan } from './request-erasure.js'
 import {
   caseHoldFound,
   HOLD_CHECKS,
@@ -84,6 +86,8 @@ export const BLOCKERS = [
   'record_active',
   'erasure_not_available',
   'audit_append_only',
+  // TSK-0137: linked records a request's erasure does not remove (site visits, cases, record links between customers).
+  'linked_records',
   'record_missing',
   'already_deleted',
 ] as const
@@ -108,7 +112,7 @@ export type TargetPreview = {
 
 const n = (v: unknown) => Number(v ?? 0)
 
-async function openHolds(db: Reader, projectId: string | null): Promise<number | null> {
+export async function openHolds(db: Reader, projectId: string | null): Promise<number | null> {
   if (!projectId) return null
   const r = await db
     .selectFrom('work.holds')
@@ -120,20 +124,20 @@ async function openHolds(db: Reader, projectId: string | null): Promise<number |
 }
 
 /** TSK-0093: the open cases of the record's project (complaints, disputes, investigations); null without a project. */
-async function openCases(db: Reader, projectId: string | null): Promise<CaseCounts | null> {
+export async function openCases(db: Reader, projectId: string | null): Promise<CaseCounts | null> {
   if (!projectId) return null
   return (await activeCaseCounts(db, [projectId])).get(projectId) ?? { complaints: 0, disputes: 0, incidents: 0 }
 }
 
-function holdChecks(open: number | null, cases: CaseCounts | null = null): CheckOutcome[] {
+export function holdChecks(open: number | null, cases: CaseCounts | null = null): CheckOutcome[] {
   return holdCheckOutcomes(open, cases) as CheckOutcome[]
 }
 
-const counted = (check: DeletionCheck, count: number): CheckOutcome =>
+export const counted = (check: DeletionCheck, count: number): CheckOutcome =>
   count > 0 ? { check, result: 'found', count } : { check, result: 'none_found' }
 
 /** An issued invoice or a recorded payment is found; none recorded is still the Owner's check. */
-const invoiceAndPaymentChecks = (invoices: number, payments: number): CheckOutcome[] => [
+export const invoiceAndPaymentChecks = (invoices: number, payments: number): CheckOutcome[] => [
   invoices > 0
     ? { check: 'issued_invoices', result: 'found', count: invoices }
     : { check: 'issued_invoices', result: 'not_recorded' },
@@ -190,7 +194,7 @@ export async function financialEvidence(
  * message record and stays. TSK-0121: so is the automatic reminder that was cancelled before any send attempt (never
  * handed to a provider); one that was attempted is a message record and stays.
  */
-const unreleasedDrafts = (ids: readonly string[]) => sql`
+export const unreleasedDrafts = (ids: readonly string[]) => sql`
   FROM platform.message_deliveries d
   WHERE d.record_type = 'estimate_version' AND d.record_id = ANY(${sql.val([...ids])}::text[])
     AND ((d.release = 'staff_released' AND d.released_by IS NULL AND d.state IN ('draft', 'cancelled'))
@@ -209,7 +213,7 @@ async function versionMessages(db: Reader, ids: readonly string[]): Promise<{ dr
   return { drafts, kept: n(rows[0]?.total) - drafts }
 }
 
-function finish(p: Omit<TargetPreview, 'confirm'>): TargetPreview {
+export function finish(p: Omit<TargetPreview, 'confirm'>): TargetPreview {
   // TSK-0093: an open complaint, dispute or incident case on the project holds the record like an open hold.
   const blockers = [...new Set([...p.blockers, ...(caseHoldFound(p.checks) ? (['hold_found'] as const) : [])])]
   return {
@@ -348,71 +352,13 @@ export async function estimateTarget(
   })
 }
 
-/** A request: shown with its checks; its erasure is not performed by this software yet (OQ-RECORD-ERASURE). */
-export async function requestTarget(db: Reader, requestId: string): Promise<TargetPreview> {
-  const r = await db
-    .selectFrom('intake.requests')
-    .select(['id', 'reference', 'project_id'])
-    .where('id', '=', requestId)
-    .executeTakeFirst()
-  if (!r)
-    return finish({
-      record: { type: 'request', id: requestId, reference: '', projectId: null },
-      exists: false,
-      permanent: false,
-      removes: [],
-      keeps: [],
-      checks: [],
-      blockers: ['record_missing'],
-    })
-  const holds = await openHolds(db, r.project_id)
-  const cases = await openCases(db, r.project_id)
-  const jobs = n(
-    (
-      await db
-        .selectFrom('work.jobs')
-        .select(sql<string>`count(*)::text`.as('n'))
-        .where('project_id', '=', r.project_id)
-        .executeTakeFirstOrThrow()
-    ).n,
-  )
-  const approvals = n(
-    (
-      await db
-        .selectFrom('estimating.approvals')
-        .select(sql<string>`count(*)::text`.as('n'))
-        .where('project_id', '=', r.project_id)
-        .executeTakeFirstOrThrow()
-    ).n,
-  )
-  const evidence = await financialEvidence(db, { projectId: r.project_id })
-  const blockers: Blocker[] = ['erasure_not_available']
-  if ((holds ?? 0) > 0) blockers.push('hold_found')
-  if (
-    approvals > 0 ||
-    jobs > 0 ||
-    evidence.receipts > 0 ||
-    evidence.deposits > 0 ||
-    evidence.payments > 0 ||
-    evidence.invoices > 0
-  )
-    blockers.push('protected_evidence')
-  return finish({
-    record: { type: 'request', id: r.id, reference: r.reference, projectId: r.project_id },
-    exists: true,
-    permanent: false,
-    removes: [],
-    keeps: [{ kind: 'project_and_request', count: 1 }],
-    checks: [
-      ...holdChecks(holds, cases),
-      counted('signed_approvals', approvals),
-      counted('approval_receipts', evidence.receipts),
-      counted('jobs', jobs),
-      counted('deposit_records', evidence.deposits),
-      ...invoiceAndPaymentChecks(evidence.invoices, evidence.payments),
-    ],
-    blockers,
-  })
+/** A request that never became a job: its erasure with a reference-and-dates remainder (TSK-0137, request-erasure.ts). */
+export async function requestTarget(
+  db: Reader,
+  requestId: string,
+  options: { now?: Date; lock?: boolean } = {},
+): Promise<TargetPreview> {
+  return (await requestErasurePlan(db, requestId, options)).preview
 }
 
 /** An audit entry: append-only for every role (ROLE-MATRIX); Archive or keep longer (OQ-AUDIT-ENTRY-DELETION). */
@@ -517,7 +463,7 @@ export async function targetOf(
     case 'estimate':
       return estimateTarget(db, record.id, options)
     case 'request':
-      return requestTarget(db, record.id)
+      return requestTarget(db, record.id, options)
     case 'audit_event':
       return auditEntryTarget(db, record.id, record.projectId)
     case 'staff_account':

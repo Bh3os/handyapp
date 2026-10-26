@@ -185,6 +185,8 @@ export function CloseoutPage({
         <a href={href(`/quality-reviews/${view.jobId}`)}>{t('closeout.openReview')}</a>
         {' · '}
         <a href={href(`/payments/${view.jobId}`)}>{t('closeout.openPayments')}</a>
+        {' · '}
+        <a href={href(`/job-costs/${view.jobId}`)}>{t('closeout.openCosts')}</a>
       </p>
       <p className="staff-request__hint">{t('closeout.hint')}</p>
 
