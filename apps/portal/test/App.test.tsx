@@ -403,6 +403,8 @@ describe('refresh, polling and truthful failure states (TSK-0038, HH-ARC-10, HH-
       project(fetchImpl)
       await screen.findByText('Waiting on HandyHub')
       state = 'hidden'
+      // A tick that fired while the tab was still visible may have a read in flight: let it land before counting.
+      await new Promise((r) => setTimeout(r, 50))
       const before = urls.length
       await new Promise((r) => setTimeout(r, 1300))
       expect(urls.length).toBe(before)
