@@ -897,6 +897,59 @@ describe('[HH-WORK-04][RULE-SAFETY-GATES] a hazard hold and a start commit stric
   })
 })
 
+describe('[HH-DATA-04][HH-WORK-04][T46] concurrent presses of Start record one start per worker (TSK-0107)', () => {
+  it('a double tap under one key, another press and the teammate at the same moment: one start each, never two', async () => {
+    const p = await project()
+    const jobId = await approve(p)
+    const visitId = await fixtureVisit(p, jobId, ['ann', 'cara'])
+    const version = await prepare('ann', visitId, jobId)
+    // The teammate arrives, checks the site and reviews the packet personally.
+    expect(await prepare('cara', visitId, jobId, { photos: false })).toBe(version)
+    expect((await gate('ann', visitId)).outcome).toBe('ready')
+    expect(missingOf(await gate('cara', visitId))).toEqual([])
+    const tapped = key()
+    const press = (who: Person, k: string, packetVersion: number) =>
+      app.inject({
+        method: 'POST',
+        url: `/api/v1/staff/visits/${visitId}/start`,
+        payload: { packetVersion },
+        headers: { cookie: cookies[who], 'x-csrf-token': csrf[who], 'idempotency-key': k },
+      })
+    const results = await Promise.all([
+      press('ann', tapped, version),
+      press('ann', tapped, version),
+      press('ann', key(), version),
+      press('cara', key(), version),
+    ])
+    // Which press wins is the database's choice. Every other answer is the stored first answer (the same key) or a
+    // refusal naming why: this worker already started, or the started job's packet is newer than the one the worker
+    // saw (OWN-DEC-196: the teammate reviews it again). Never a server error, never a second start for one worker.
+    for (const r of results) {
+      expect([201, 409], r.body).toContain(r.statusCode)
+      if (r.statusCode === 409) {
+        expect(codesOf(r).length, r.body).toBeGreaterThan(0)
+        for (const c of codesOf(r)) expect(['ALREADY_STARTED', 'PACKET_CHANGED_SINCE_VIEWED']).toContain(c)
+      }
+    }
+    const won = results.filter((r) => r.statusCode === 201)
+    expect(won.length).toBeGreaterThanOrEqual(1)
+    const startsOf = async () =>
+      t.db.selectFrom('work.work_starts').select('staff_user_id').where('visit_id', '=', visitId).execute()
+    const first = await startsOf()
+    expect(new Set(won.map((r) => r.json<{ startId: string }>().startId)).size).toBe(first.length)
+    expect(new Set(first.map((s) => s.staff_user_id)).size).toBe(first.length)
+    expect(await jobState(jobId)).toBe('in_progress')
+    // Whoever has not started reviews the current packet and starts once; then each worker has exactly one start.
+    for (const who of ['ann', 'cara'] as const) {
+      if (first.some((s) => s.staff_user_id === ids[who])) continue
+      const res = await press(who, key(), await review(who, jobId))
+      expect(res.statusCode, res.body).toBe(201)
+    }
+    const all = await startsOf()
+    expect(all.map((s) => s.staff_user_id).sort()).toEqual([ids.ann, ids.cara].sort())
+  })
+})
+
 // --- Job-level Hold / Ready ------------------------------------------------------------------------------------------
 
 describe('[HH-WORK-02][T40][OWN-DEC-82][OWN-DEC-137] the job-level Hold blocks confirmation and start until the Owner sets Ready', () => {

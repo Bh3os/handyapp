@@ -11,6 +11,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import { buildApp } from '../../src/app.js'
 import { createStaffUser, setPasswordHash } from '../../src/modules/identity/accounts.js'
 import { hashPassword } from '../../src/modules/identity/passwords.js'
+import { AI_ASSIST_RATE_LIMIT } from '../../src/modules/ai-assist/index.js'
 import { AI_USES } from '../../src/platform/ai/index.js'
 import { testConfig } from '../fixtures/env.js'
 import { signInWithMfa } from '../fixtures/staff-mfa.js'
@@ -139,5 +140,18 @@ describe('AI suggestions for staff stay refused (TSK-0117, RULE-AI-WAVE2)', () =
     expect((await ask('owner', 'estimate.approve')).statusCode).toBe(404)
     const anonymous = await app.inject({ method: 'POST', url: '/api/v1/staff/ai/uses/request.classify/suggestions' })
     expect([401, 403]).toContain(anonymous.statusCode)
+  })
+
+  it('[HH-SEC-01][HH-SEC-03] one staff member cannot fill the audit log: requests are rate limited (TSK-0109 AI-1)', async () => {
+    const before = (await auditRows('estimator', 'request.classify')).length
+    const statuses: number[] = []
+    for (let i = 0; i <= AI_ASSIST_RATE_LIMIT.limit; i += 1)
+      statuses.push((await ask('estimator', 'request.classify')).statusCode)
+    // Every earlier request of this person counts in the same window, so the limit is reached at the latest here.
+    expect(statuses.at(-1)).toBe(429)
+    expect(statuses.filter((s) => s === 200).length).toBeLessThanOrEqual(AI_ASSIST_RATE_LIMIT.limit)
+    // A limited request is refused before the gateway: it writes no audit entry.
+    const after = (await auditRows('estimator', 'request.classify')).length
+    expect(after - before).toBe(statuses.filter((s) => s === 200).length)
   })
 })

@@ -301,6 +301,14 @@ export function loadConfig(source: Readonly<Record<string, string | undefined>>)
       staffHost: staffO.host,
     }
   }
+  // TSK-0109 (docs/security/review-2026.md CONF-1, CONF-2): production never starts in a shape the security review
+  // found unsafe. One host would serve the staff app and the staff API on the public site's host (OWN-DEC-133); an
+  // unset TRUST_PROXY_HOPS would count every client behind Render's proxy as the proxy, so one caller could use up
+  // the sign-in, code and webhook limits of everyone. It is set once measured, even to 0 (no proxy).
+  if (env === 'production' && hosts.mode !== 'split')
+    throw new ConfigError('PUBLIC_ORIGIN and STAFF_ORIGIN are required in production (separate hosts, OWN-DEC-133)')
+  if (env === 'production' && get('TRUST_PROXY_HOPS') === undefined)
+    throw new ConfigError('TRUST_PROXY_HOPS is required in production (the measured number of proxies)')
   const mfaKeyRaw = get('MFA_ENCRYPTION_KEY')
   if (mfaKeyRaw !== undefined && mfaKeyRaw.length < 32)
     throw new ConfigError('MFA_ENCRYPTION_KEY must be at least 32 characters')

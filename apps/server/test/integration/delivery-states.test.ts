@@ -117,6 +117,8 @@ const drain = async (automations: Automation[]) => {
     await new Promise((res) => setTimeout(res, 5))
   }
 }
+/** A provider's acceptance of a message, as its API answers it. */
+const ACCEPTED = { outcome: 'accepted' as const, status: 'queued' as const }
 const fastRetry = (a: Automation): Automation => ({ ...a, retry: { maxAttempts: 3, baseDelayMs: 1, maxDelayMs: 1 } })
 
 /** Sends one automatic question notice to an e-mail and a number, returning the subject. */
@@ -258,6 +260,73 @@ describe('truthful delivery states from provider webhooks (TSK-0048, HH-COM-02)'
       ['failed', 'provider_email.bounced'],
       ['failed', 'provider_sms.failed'],
     ])
+  })
+
+  it('[HH-DATA-04][TSK-0107] a status that arrives before its send committed applies once the delivery has its ID', async () => {
+    // The provider takes the message and calls back while the sending transaction is still open (or that attempt
+    // crashed after the hand-over and its retry records the same message ID): the status is processed first.
+    const f = fakes()
+    await optIn('+15025550113')
+    const tag = ++n
+    const early = { email: `email-early-${tag}`, sms: `sms-early-${tag}` }
+    await receive(
+      'resend',
+      `evt-early-${tag}-1`,
+      { type: 'email.delivered', data: { email_id: early.email } },
+      '2026-10-20T12:00:05Z',
+    )
+    await receive(
+      'bird',
+      `evt-early-${tag}-2`,
+      { type: 'sms.sent', data: { sms_id: early.sms } },
+      '2026-10-20T12:00:02Z',
+    )
+    await receive(
+      'bird',
+      `evt-early-${tag}-3`,
+      { type: 'sms.accepted', data: { sms_id: early.sms } },
+      '2026-10-20T12:00:01Z',
+    )
+    await statusWorker().runOnce()
+    // Then the send commits, with the message IDs the provider gave.
+    const subject = await sendNotice(
+      {
+        ...f,
+        providers: {
+          ...f.providers,
+          email: {
+            provider: 'fake',
+            send: async (m) => (await f.providers.email.send(m), { ...ACCEPTED, providerMessageId: early.email }),
+          },
+          sms: {
+            provider: 'fake',
+            send: async (m) => (await f.providers.sms.send(m), { ...ACCEPTED, providerMessageId: early.sms }),
+          },
+        },
+      },
+      'states-early@example.test',
+      '+15025550113',
+    )
+    // Oldest first, forward only: delivered for the email; accepted, then sent for the text.
+    expect((await delivery(subject)).map((r) => [r.channel, r.state])).toEqual([
+      ['email', 'delivered'],
+      ['sms', 'sent'],
+    ])
+    const receipts = await t.db
+      .selectFrom('platform.webhook_receipts')
+      .select(['delivery_id', 'state'])
+      .where('provider_message_id', 'in', [early.email, early.sms])
+      .orderBy('seq')
+      .execute()
+    expect(receipts.map((r) => r.state)).toEqual(['processed', 'processed', 'ignored'])
+    // Applied once: the events stay recorded once if the delivery's ID is recorded again.
+    const events = await t.db
+      .selectFrom('platform.message_delivery_events')
+      .innerJoin('platform.webhook_receipts as w', 'w.id', 'platform.message_delivery_events.receipt_id')
+      .select('w.delivery_id')
+      .where('w.provider_message_id', 'in', [early.email, early.sms])
+      .execute()
+    expect(events.map((e) => e.delivery_id).sort()).toEqual([`evt-early-${tag}-1`, `evt-early-${tag}-2`])
   })
 
   it('the state rules: delivered is final, older events and backwards steps never apply', () => {

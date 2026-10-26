@@ -26,6 +26,7 @@ export const HEALTH_CHECKS = [
   'error_tracking',
   'backups',
   'restore_drill',
+  'security_signals',
 ] as const
 export type HealthCheckId = (typeof HEALTH_CHECKS)[number]
 
@@ -54,6 +55,9 @@ export const HEALTH_METRICS = [
   'configured',
   'not_configured',
   'proposed',
+  'denied_access',
+  'failed_verifications',
+  'privileged_changes',
 ] as const
 export type HealthMetric = (typeof HEALTH_METRICS)[number]
 
@@ -67,6 +71,7 @@ export const HEALTH_NOTES = [
   'no_error_tracker',
   'backups_not_observable',
   'no_restore_drill_recorded',
+  'security_signals_partly_in_logs',
 ] as const
 export type HealthNote = (typeof HEALTH_NOTES)[number]
 
@@ -82,6 +87,37 @@ export type ProviderMode = (typeof PROVIDER_MODES)[number]
 export const HEALTH_STALE_MINUTES = 15
 /** How many rows each detail list shows, newest first. PROPOSED engineering default. */
 export const HEALTH_LIST_LIMIT = 20
+
+/**
+ * The security signals of HH-SEC-07 (TSK-0109, docs/security/review-2026.md MON-1), counted over the last day from the
+ * append-only audit log, so the Owner and two employees see one line rather than a stream of alerts:
+ * - denied_access: a customer or guest asking for a record outside their scope (altered IDs, T19);
+ * - failed_verifications: wrong passwords, authenticator codes and one-time codes, staff and customers;
+ * - privileged_changes: role, account and authenticator changes, owner-only money and reopen decisions, exports and
+ *   the launch phase (counted, never a warning by themselves).
+ * The check needs attention when a count reaches its threshold. Window and thresholds are PROPOSED engineering values
+ * (OQ-SECURITY-REVIEW-DETAILS); rejected uploads are counted by the uploads check, and webhook signature failures and
+ * staff permission refusals are logged only (the note says so). Counts only: never an actor, a value or a reason text.
+ */
+export const SECURITY_SIGNAL_WINDOW_HOURS = 24
+export const SECURITY_SIGNAL_THRESHOLDS = { denied_access: 20, failed_verifications: 30 } as const
+export const PRIVILEGED_ACTIONS = [
+  'staff.invite',
+  'staff.grant_role',
+  'staff.end_grant',
+  'staff.restore_grant',
+  'staff.disable',
+  'staff.enable',
+  'staff.mfa_reset',
+  'staff.revoke_sessions',
+  'deposit.waive',
+  'job.reopen',
+  'payment.refund_outcome',
+  'accounting.export',
+  'dashboard.export_csv',
+  'visit.export_timestamps',
+  'launch.change_phase',
+] as const
 
 /** The automations whose failures belong to a check (apps/server/src/modules/photos and notifications). */
 const PHOTO_PROCESSING = 'photo.process'
@@ -409,6 +445,38 @@ export async function collectHealth(db: Db, options: HealthOptions = {}): Promis
     link: '/settings',
   })
 
+  const since = new Date(now.getTime() - SECURITY_SIGNAL_WINDOW_HOURS * 3_600_000)
+  const signals =
+    (
+      await sql<Record<string, unknown>>`
+      SELECT
+        count(*) FILTER (WHERE action = 'security.scope_denied')::int AS denied_access,
+        count(*) FILTER (WHERE result = 'denied' AND reason IN ('invalid_credentials', 'invalid_code'))::int
+          AS failed_verifications,
+        count(*) FILTER (WHERE result = 'succeeded' AND action = ANY(${[...PRIVILEGED_ACTIONS]}::text[]))::int
+          AS privileged_changes,
+        max(occurred_at) FILTER (WHERE result = 'denied') AS latest_denied
+      FROM platform.audit_events WHERE occurred_at >= ${since} AND occurred_at <= ${now}`.execute(db)
+    ).rows[0] ?? {}
+  const signalsCheck = check(
+    'security_signals',
+    n(signals['denied_access']) >= SECURITY_SIGNAL_THRESHOLDS.denied_access ||
+      n(signals['failed_verifications']) >= SECURITY_SIGNAL_THRESHOLDS.failed_verifications
+      ? 'attention'
+      : 'ok',
+    {
+      metrics: metrics({
+        denied_access: signals['denied_access'],
+        failed_verifications: signals['failed_verifications'],
+        privileged_changes: signals['privileged_changes'],
+      }),
+      latestAt: at(signals['latest_denied']),
+      note: 'security_signals_partly_in_logs',
+      sourceIds: ['HH-SEC-07'],
+      link: '/audit',
+    },
+  )
+
   const failedJobs = await db
     .selectFrom('platform.jobs')
     .select(['id', 'automation', 'target_type', 'attempts', 'max_attempts', 'last_error_class', 'updated_at'])
@@ -469,6 +537,7 @@ export async function collectHealth(db: Db, options: HealthOptions = {}): Promis
         sourceIds: ['OQ-PRODUCTION-HOSTING', 'INT-Render'],
       }),
       check('restore_drill', 'unknown', { note: 'no_restore_drill_recorded', sourceIds: ['HH-NFR-03', 'T72'] }),
+      signalsCheck,
     ],
     providers,
     webhookSecrets: {

@@ -2,10 +2,11 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { sql } from 'kysely'
+import pg from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { withTx } from '../../src/index.js'
+import { createDb, withTx } from '../../src/index.js'
 import { PACKAGE_ROOT } from '../../src/migrate.js'
-import { createTestDatabase, type TestDatabase } from '../../src/testing.js'
+import { createTestDatabase, testDatabaseUrl, type TestDatabase } from '../../src/testing.js'
 import { introspect, renderSchema } from '../../src/typegen.js'
 
 let t: TestDatabase
@@ -56,6 +57,63 @@ describe('pg pool settings (TSK-0004, RULE-MONEY-CENTS)', () => {
       num: '0.10',
       at: new Date('2026-10-20T12:00:00Z'),
     })
+  })
+})
+
+describe('lost connections (TSK-0107, HH-NFR-03, HH-DATA-04)', () => {
+  // The server processes of one pool are ended as a PostgreSQL restart ends them (pg_terminate_backend: "terminating
+  // connection due to administrator command"), only this file's own pool, never another test's or the server's.
+  const app = 'handyapp-tsk0107-lost'
+  const terminate = async (pid?: number) => {
+    const admin = new pg.Client({ connectionString: testDatabaseUrl(), application_name: 'handyapp-tsk0107-admin' })
+    await admin.connect()
+    try {
+      const { rows } = await admin.query<{ pid: number }>(
+        `SELECT pid FROM pg_stat_activity WHERE datname = $1 AND application_name = $2 AND ($3::int IS NULL OR pid = $3)`,
+        [t.name, app, pid ?? null],
+      )
+      for (const r of rows) await admin.query('SELECT pg_terminate_backend($1, 5000)', [r.pid])
+      return rows.length
+    } finally {
+      await admin.end()
+    }
+  }
+
+  it('[HH-NFR-03] an idle connection ended by the server is replaced; the process keeps running', async () => {
+    const lost: (string | undefined)[] = []
+    const db = createDb(t.url, { max: 3, applicationName: app, onConnectionLost: (err) => lost.push(err.code) })
+    try {
+      // Three connections open and go back to the pool idle.
+      await Promise.all([1, 2, 3].map(() => withTx(db, (trx) => sql`SELECT pg_sleep(0.05)`.execute(trx))))
+      expect(await terminate()).toBe(3)
+      // Without a listener, the first lost connection's 'error' event would have ended this process here.
+      await expect.poll(() => lost.length).toBe(3)
+      expect(new Set(lost)).toEqual(new Set(['57P01']))
+      const { rows } = await sql<{ n: number }>`SELECT 1 AS n`.execute(db)
+      expect(rows).toEqual([{ n: 1 }])
+    } finally {
+      await db.destroy()
+    }
+  })
+
+  it('[HH-DATA-04] a transaction whose connection is lost half-way commits nothing; the next one succeeds', async () => {
+    const db = createDb(t.url, { max: 2, applicationName: app })
+    try {
+      await expect(
+        withTx(db, async (trx) => {
+          await sql`INSERT INTO public.tx_probe VALUES (40)`.execute(trx)
+          const { rows } = await sql<{ pid: number }>`SELECT pg_backend_pid() AS pid`.execute(trx)
+          expect(await terminate(rows[0]?.pid)).toBe(1)
+          await sql`INSERT INTO public.tx_probe VALUES (41)`.execute(trx)
+        }),
+      ).rejects.toThrow()
+      expect(await probe()).not.toContain(40)
+      await withTx(db, (trx) => sql`INSERT INTO public.tx_probe VALUES (42)`.execute(trx))
+      expect(await probe()).toContain(42)
+    } finally {
+      await db.destroy()
+      await sql`DELETE FROM public.tx_probe WHERE n >= 40`.execute(t.db)
+    }
   })
 })
 

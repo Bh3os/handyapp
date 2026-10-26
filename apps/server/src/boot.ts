@@ -3,7 +3,7 @@
 // With a database: the provider webhooks (/webhooks/bird, /webhooks/resend) and the in-process job worker run too;
 // the worker stops and the pool closes when the app closes.
 import { randomUUID } from 'node:crypto'
-import { createDb, databaseIdentity, recordEnvironmentMark, withTx } from '@handyhub/db'
+import { createDb, databaseIdentity, recordEnvironmentMark, SERVER_POOL_CONNECT_TIMEOUT_MS, withTx } from '@handyhub/db'
 import type { FastifyInstance } from 'fastify'
 import { buildApp } from './app.js'
 import { buildAutomations } from './automations.js'
@@ -43,7 +43,17 @@ export async function boot(env: Readonly<Record<string, string | undefined>>, op
   const portalDir = config.portalDir ?? options.defaultPortalDir
   // One pool for the API, the webhooks and the worker. The API caller comes from the staff or the customer session
   // cookie (TSK-0014, TSK-0016; buildApp's default resolver).
-  const db = config.databaseUrl ? createDb(config.databaseUrl, { applicationName: 'handyapp-server' }) : undefined
+  // TSK-0107: a lost connection (a PostgreSQL restart, pg_terminate_backend) is dropped and logged by its code only;
+  // the server keeps serving and the next query opens a new connection. The app's logger exists once it is built.
+  const late: { log?: FastifyInstance['log'] } = {}
+  const db = config.databaseUrl
+    ? createDb(config.databaseUrl, {
+        applicationName: 'handyapp-server',
+        connectionTimeoutMillis: SERVER_POOL_CONNECT_TIMEOUT_MS,
+        onConnectionLost: (err) =>
+          late.log?.warn({ code: err.code ?? null }, 'database connection lost; it is replaced'),
+      })
+    : undefined
   // Object storage needs no logger; the senders below get the app's (their destination guard logs suppressions).
   const storage = createProviders(providers).storage
   const app: FastifyInstance = await buildApp({
@@ -58,6 +68,7 @@ export async function boot(env: Readonly<Record<string, string | undefined>>, op
     // The receipt's code routes and the code delivery job share one code key (TSK-0016, TSK-0033).
     api: { ...(db ? { db } : {}), storage, codeKey, system: { providers, variables: variableStates(env) } },
   })
+  late.log = app.log
   // Local disk storage (docs/local-mac.md): its signed read URLs are served here, after the signature and expiry check.
   if (storage instanceof DiskObjectStorage)
     app.get(`${LOCAL_FILES_PATH}*`, async (req, reply) => {

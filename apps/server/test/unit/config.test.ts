@@ -2,7 +2,7 @@
 import { inspect } from 'node:util'
 import { describe, expect, it } from 'vitest'
 import { ConfigError, ENV_VARS, loadConfig, parseAccessGateUsers, strongGatePassword } from '../../src/config.js'
-import { GATE_USERS, gatePassword } from '../fixtures/env.js'
+import { GATE_USERS, gatePassword, PRODUCTION_SHAPE } from '../fixtures/env.js'
 
 const DB = ['postgres://synthetic', 'synthetic@127.0.0.1:5432/synthetic'].join(':')
 
@@ -35,9 +35,24 @@ describe('environment schema (TSK-0003, OWN-DEC-73, RULE-SYNTHETIC-DATA)', () =>
   })
 
   it('[OWN-DEC-73] production serves without the gate and without the staging noindex', () => {
-    const prod = loadConfig({ HANDYHUB_ENV: 'production', DATABASE_URL: DB })
+    const prod = loadConfig({ ...PRODUCTION_SHAPE, DATABASE_URL: DB })
     expect(prod.accessGate.enabled).toBe(false)
     expect(prod.noindex).toBe(false)
+  })
+
+  it('[HH-SEC-01][OWN-DEC-133][HH-SEC-02] production needs two hosts and a measured TRUST_PROXY_HOPS (TSK-0109 CONF-1, CONF-2)', () => {
+    const without = (...names: string[]) =>
+      Object.fromEntries(Object.entries(PRODUCTION_SHAPE).filter(([name]) => !names.includes(name)))
+    expect(() => loadConfig({ ...without('PUBLIC_ORIGIN', 'STAFF_ORIGIN'), DATABASE_URL: DB })).toThrow(
+      /PUBLIC_ORIGIN and STAFF_ORIGIN are required/,
+    )
+    expect(() => loadConfig({ ...without('TRUST_PROXY_HOPS'), DATABASE_URL: DB })).toThrow(
+      /TRUST_PROXY_HOPS is required in production/,
+    )
+    expect(loadConfig({ ...PRODUCTION_SHAPE, DATABASE_URL: DB, TRUST_PROXY_HOPS: '0' }).trustProxyHops).toBe(0)
+    expect(loadConfig({ ...PRODUCTION_SHAPE, DATABASE_URL: DB }).hosts.mode).toBe('split')
+    // Staging and the test environments keep their single-host and default-hop shapes.
+    expect(loadConfig({ HANDYHUB_ENV: 'ci' }).trustProxyHops).toBe(0)
   })
 
   it('[RULE-SYNTHETIC-DATA] errors name the variable and the entry, never a name or a password', () => {
