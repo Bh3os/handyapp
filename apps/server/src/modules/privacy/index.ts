@@ -24,6 +24,15 @@
 // acknowledgment due date, the internal target and the legal deadline field (deadlines.ts); extending the target and
 // recording the legal deadline are the Owner's decisions (privacy.decide, PROPOSED: no fresh sign-in, as neither
 // discloses or removes data).
+// TSK-0152 (OWN-DEC-201):
+//   POST /staff/privacy-requests                       I1: a request the Owner records for a person verified outside
+//                                                      the portal (privacy.decide, fresh sign-in)
+//   POST /staff/privacy-requests/:id/corrections       I3: a correction recorded beside a record never rewritten
+// Completing an export or a deletion needs the Owner's identity confirmation (I1); a correction needs a recorded
+// change or correction (I3); the export holds the requester's data found in audit entries (I2, export.ts); deletions
+// check the accounting records (I4, targets.ts); in production every Delete waits for the reviewed table-to-retention
+// mapping (I5, retention/mapping-review.ts): Confirm Delete refuses (MAPPING_NOT_REVIEWED) and a deletion request
+// keeps its estimates (closing access still runs).
 import type { Tx } from '@handyhub/db'
 import type { CustomerActor } from '@handyhub/policy'
 import { ApiError } from '../../api/errors.js'
@@ -35,7 +44,9 @@ import { projectIdOf } from '../access/projects.js'
 import { FRESH_AUTH_MINUTES } from '../identity/sessions.js'
 import { readSessionToken, resolveCustomerSession } from '../identity/customer-sessions.js'
 import { DOCUMENT_DOWNLOADS, PRIVACY_EXPORT, PRIVACY_REQUEST, PRIVACY_REQUESTS, findProject } from '../records/index.js'
-import { archiveEntry, deleteEntry, keepEntry, previewEntry, reviewExists } from './decisions.js'
+import { archiveEntry, blockedError, deleteEntry, keepEntry, previewEntry, reviewExists } from './decisions.js'
+import { deletionAllowed } from '../retention/mapping-review.js'
+import { CORRECTION_MAX, CORRECTION_RECORD_KINDS, CORRECTION_REF_MAX, recordCorrection } from './corrections.js'
 import { versionDownloads } from './documents.js'
 import { customerExport } from './export.js'
 import { DEADLINE_NOTE_MAX, extendTarget, recordLegalDeadline } from './deadlines.js'
@@ -45,10 +56,14 @@ import {
   customerPrivacyRequests,
   decidePrivacyRequest,
   DETAILS_MAX,
+  IDENTITY_CHECKS,
+  IDENTITY_NOTE_MAX,
   listPrivacyRequests,
+  PRIVACY_REQUEST_KINDS,
   privacyRequestDetail,
   privacyRequestExists,
   PRIVACY_REQUEST_STATES,
+  recordVerifiedRequest,
   requesterOf,
   startReview,
   submitPrivacyRequest,
@@ -64,6 +79,7 @@ import {
   STAFF_REQUEST_PARAMS,
 } from './schemas.js'
 
+export * from './corrections.js'
 export * from './deadlines.js'
 export * from './decisions.js'
 export * from './documents.js'
@@ -77,6 +93,7 @@ export * from './targets.js'
 
 const TEST = 'test/integration/privacy.test.ts'
 const DOWNLOAD_TEST = 'test/integration/privacy-downloads.test.ts'
+const REFINEMENTS_TEST = 'test/integration/privacy-refinements.test.ts'
 
 /** PROPOSED (no owner value): per client network and hour, like the other customer-facing writes. */
 export const PRIVACY_REQUEST_RATE_LIMIT = {
@@ -120,7 +137,11 @@ async function requester(ctx: ApiContext) {
   return { project, session, who }
 }
 
-export type PrivacyDeps = { storage?: ObjectStorage | null }
+export type PrivacyDeps = {
+  storage?: ObjectStorage | null
+  /** TSK-0152 (OWN-DEC-201 I5): in production the Delete actions wait for the reviewed mapping. */
+  environment?: string
+}
 
 export function privacyModule(deps: PrivacyDeps = {}): ApiModule {
   // ------------------------------------------------------------------------------------------------ customer
@@ -436,8 +457,13 @@ export function privacyModule(deps: PrivacyDeps = {}): ApiModule {
       'confirmedChecks (VALIDATION_FAILED CHECK_NOT_CONFIRMED). Everything else is retained, never cascaded into ' +
       'protected records; the outcome names the deleted and retained categories (partially_completed when anything ' +
       'is retained). Completing an export makes the export available to the requester; a correction records that it ' +
-      'was handled in the records’ own screens. If-Match: the request version. Refusals: FRESH_AUTH_REQUIRED, ' +
-      'CONFLICT REVIEW_NOT_STARTED / ALREADY_DECIDED / RECORD_CHANGED, STALE_VERSION, VALIDATION_FAILED.',
+      'was handled in the records’ own screens. TSK-0152 (OWN-DEC-201): completing an export or a deletion (elevated ' +
+      'risk, PROPOSED) needs identityConfirmed, the Owner’s confirmation of the identity evidence ' +
+      '(IDENTITY_NOT_CONFIRMED); completing a correction needs a change in the records’ own screens since the ' +
+      'request was received or a correction entry (CORRECTION_NOT_RECORDED); in production, until the ' +
+      'table-to-retention mapping is reviewed, a deletion request keeps its estimates (erasure not available) and ' +
+      'still closes access. If-Match: the request version. Refusals: FRESH_AUTH_REQUIRED, CONFLICT ' +
+      'REVIEW_NOT_STARTED / ALREADY_DECIDED / RECORD_CHANGED, STALE_VERSION, VALIDATION_FAILED.',
     permission: 'privacy.decide',
     expectedVersion: 'required',
     freshAuthMinutes: FRESH_AUTH_MINUTES,
@@ -454,6 +480,7 @@ export function privacyModule(deps: PrivacyDeps = {}): ApiModule {
           reason: REASON,
           confirmedChecks: CONFIRMED,
           closeAccess: { type: 'boolean' },
+          identityConfirmed: { type: 'boolean' },
         },
       },
       response: { 200: REQUEST_DETAIL },
@@ -464,6 +491,7 @@ export function privacyModule(deps: PrivacyDeps = {}): ApiModule {
         reason: string
         confirmedChecks?: string[]
         closeAccess?: boolean
+        identityConfirmed?: boolean
       }
       const out = await decidePrivacyRequest(ctx.tx as Tx, {
         id: (ctx.req.params as { id: string }).id,
@@ -473,6 +501,8 @@ export function privacyModule(deps: PrivacyDeps = {}): ApiModule {
         reason: body.reason,
         confirmedChecks: body.confirmedChecks ?? [],
         ...(body.closeAccess === undefined ? {} : { closeAccess: body.closeAccess }),
+        ...(body.identityConfirmed === undefined ? {} : { identityConfirmed: body.identityConfirmed }),
+        deletionAllowed: await deletionAllowed(ctx.tx as Tx, deps.environment),
         requestId: requestIdOf(ctx),
       })
       const d = out.detail
@@ -486,6 +516,7 @@ export function privacyModule(deps: PrivacyDeps = {}): ApiModule {
           accessClosed: d.accessClosed ?? false,
           deletions: out.deletions.map((x) => ({ id: x.id, type: x.recordType, reference: x.reference })),
           checksConfirmed: body.confirmedChecks ?? [],
+          identityConfirmed: d.identity.confirmedAt !== null,
         },
         reason: body.reason.trim(),
         stepUpUsed: true,
@@ -645,8 +676,10 @@ export function privacyModule(deps: PrivacyDeps = {}): ApiModule {
       '(actor, time, record reference, reason; never the content) in the same transaction; stored files are removed ' +
       'after the commit. Never passes a hold, protected evidence (Archive, Void or an audited correction instead), a ' +
       'record in use or an erasure this software does not perform: CONFLICT naming each blocker, audited as denied, ' +
-      'with nothing deleted. Refusals: FRESH_AUTH_REQUIRED, CONFLICT (blockers, RECORD_CHANGED), VALIDATION_FAILED ' +
-      '(CHECK_NOT_CONFIRMED, reason).',
+      'with nothing deleted. TSK-0152 (OWN-DEC-201 I5): in production nothing is deleted until the Owner records a ' +
+      'review of the table-to-retention mapping confirmed by the CPA and the attorney (CONFLICT MAPPING_NOT_REVIEWED). ' +
+      'Refusals: FRESH_AUTH_REQUIRED, CONFLICT (blockers, RECORD_CHANGED), VALIDATION_FAILED (CHECK_NOT_CONFIRMED, ' +
+      'reason).',
     permission: 'records.delete',
     expectedVersion: 'none',
     freshAuthMinutes: FRESH_AUTH_MINUTES,
@@ -665,6 +698,17 @@ export function privacyModule(deps: PrivacyDeps = {}): ApiModule {
     handler: async (ctx) => {
       const reviewId = (ctx.req.params as { reviewId: string }).reviewId
       const body = ctx.req.body as { reason: string; confirmedChecks: string[] }
+      // TSK-0152 (OWN-DEC-201 I5): no destructive production deletion on an unreviewed table mapping.
+      if (!(await deletionAllowed(ctx.tx as Tx, deps.environment))) {
+        await ctx.audit({
+          target: { type: 'retention_review', id: reviewId },
+          result: 'denied',
+          summary: { review: reviewId, blockers: ['mapping_not_reviewed'], refused: ['MAPPING_NOT_REVIEWED'] },
+          reason: body.reason.trim(),
+          stepUpUsed: true,
+        })
+        return { body: null, refusal: blockedError(['mapping_not_reviewed']) }
+      }
       const out = await deleteEntry(ctx.tx as Tx, {
         reviewId,
         staffUserId: staffId(ctx),
@@ -800,6 +844,134 @@ export function privacyModule(deps: PrivacyDeps = {}): ApiModule {
     handler: async (ctx) => ({ body: await listDeletions(ctx.db, ctx.page as NonNullable<ApiContext['page']>) }),
   }
 
+  // TSK-0152 (OWN-DEC-201 I1): the secure alternative path.
+  const recordRequest: RouteDef = {
+    ...staffWrite,
+    path: '/staff/privacy-requests',
+    operationId: 'recordVerifiedPrivacyRequest',
+    summary: 'Record a privacy request verified outside the portal',
+    description:
+      'Owner only (privacy.decide), with a fresh sign-in: the secure alternative of OWN-DEC-201 I1 for a person who ' +
+      'cannot complete the one-time code. The Owner verified them another way (a call to the phone on file, a reply ' +
+      'from the email on file, a photo ID in person: PROPOSED) and records the request with that check and a note ' +
+      '(no ID number), naming the project by its reference and the person by the email or phone on file for a ' +
+      'contact who asked on that project (CONTACT_NOT_ON_FILE otherwise; PROJECT_NOT_FOUND for an unknown project). ' +
+      'The request then follows the same review, dates and decision as one made in the portal. One open request ' +
+      'of each kind per customer (CONFLICT PRIVACY_REQUEST_OPEN).',
+    permission: 'privacy.decide',
+    expectedVersion: 'none',
+    freshAuthMinutes: FRESH_AUTH_MINUTES,
+    audit: 'privacy.request_record',
+    test: REFINEMENTS_TEST,
+    schema: {
+      body: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['kind', 'project', 'contact', 'check', 'note'],
+        properties: {
+          kind: { type: 'string', enum: [...PRIVACY_REQUEST_KINDS] },
+          project: { type: 'string', minLength: 1, maxLength: 40 },
+          contact: { type: 'string', minLength: 3, maxLength: 254 },
+          details: { type: 'string', minLength: 1, maxLength: DETAILS_MAX },
+          check: { type: 'string', enum: [...IDENTITY_CHECKS] },
+          note: { type: 'string', minLength: 1, maxLength: IDENTITY_NOTE_MAX, pattern: '\\S' },
+        },
+      },
+      response: { 201: REQUEST_DETAIL },
+    },
+    handler: async (ctx) => {
+      const body = ctx.req.body as {
+        kind: PrivacyRequestKind
+        project: string
+        contact: string
+        details?: string
+        check: (typeof IDENTITY_CHECKS)[number]
+        note: string
+      }
+      const d = await recordVerifiedRequest(ctx.tx as Tx, {
+        kind: body.kind,
+        project: body.project,
+        contact: body.contact,
+        details: body.details ?? null,
+        check: body.check,
+        note: body.note,
+        staffUserId: staffId(ctx),
+        requestId: requestIdOf(ctx),
+      })
+      // The contact value and the note stay on the request; the audit keeps what happened.
+      await ctx.audit({
+        target: { type: 'privacy_request', id: d.id, version: d.version },
+        summary: { kind: d.kind, reference: d.reference, project: d.project.reference, check: body.check },
+        stepUpUsed: true,
+      })
+      return { status: 201, body: json(d), version: d.version }
+    },
+  }
+
+  // TSK-0152 (OWN-DEC-201 I3): a correction of a record never rewritten, as a new entry.
+  const correction: RouteDef = {
+    ...staffWrite,
+    path: '/staff/privacy-requests/:id/corrections',
+    operationId: 'recordPrivacyCorrection',
+    summary: 'Record a correction of a record that is never rewritten',
+    description:
+      'Owner only (privacy.decide), on a correction request under review: a correction of a record the software ' +
+      'never rewrites (a signed approval, an issued invoice, a payment, a receipt, an audit entry and the other ' +
+      'protected records; PROPOSED kinds), recorded as a new entry beside it with the record’s reference and the ' +
+      'correction. The record keeps its content (OWN-DEC-201 I3). Editable records (customer, contact and property ' +
+      'details) are corrected in their own screens, which keep their history. Append-only. Refusals: CONFLICT ' +
+      'NOT_A_CORRECTION / REVIEW_NOT_STARTED / ALREADY_DECIDED, VALIDATION_FAILED.',
+    permission: 'privacy.decide',
+    expectedVersion: 'none',
+    audit: 'privacy.correction_record',
+    test: REFINEMENTS_TEST,
+    resource: requestResource,
+    schema: {
+      params: STAFF_REQUEST_PARAMS,
+      body: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['recordKind', 'recordRef', 'correction'],
+        properties: {
+          recordKind: { type: 'string', enum: [...CORRECTION_RECORD_KINDS] },
+          recordRef: { type: 'string', minLength: 1, maxLength: CORRECTION_REF_MAX, pattern: '\\S' },
+          correction: { type: 'string', minLength: 1, maxLength: CORRECTION_MAX, pattern: '\\S' },
+        },
+      },
+      response: { 200: REQUEST_DETAIL },
+    },
+    handler: async (ctx) => {
+      const id = (ctx.req.params as { id: string }).id
+      const body = ctx.req.body as {
+        recordKind: (typeof CORRECTION_RECORD_KINDS)[number]
+        recordRef: string
+        correction: string
+      }
+      const tx = ctx.tx as Tx
+      const r = await tx
+        .selectFrom('privacy.privacy_requests')
+        .select(['id', 'kind', 'state'])
+        .where('id', '=', id)
+        .forUpdate()
+        .executeTakeFirstOrThrow()
+      const entry = await recordCorrection(tx, {
+        request: r,
+        recordKind: body.recordKind,
+        recordRef: body.recordRef,
+        correction: body.correction,
+        staffUserId: staffId(ctx),
+        requestId: requestIdOf(ctx),
+      })
+      const d = (await privacyRequestDetail(tx, id)) as NonNullable<Awaited<ReturnType<typeof privacyRequestDetail>>>
+      // The correction's words stay on the entry; the audit keeps what kind of record and its reference.
+      await ctx.audit({
+        target: { type: 'privacy_request', id, version: d.version },
+        summary: { reference: d.reference, entry: entry.id, recordKind: body.recordKind, recordRef: body.recordRef },
+      })
+      return { body: json(d), version: d.version }
+    },
+  }
+
   return {
     name: 'privacy',
     routes: [
@@ -812,8 +984,10 @@ export function privacyModule(deps: PrivacyDeps = {}): ApiModule {
       exportRoute,
       downloads,
       listRequests,
+      recordRequest,
       getRequest,
       review,
+      correction,
       decide,
       extend,
       legalDeadline,

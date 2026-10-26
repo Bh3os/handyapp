@@ -1158,6 +1158,10 @@ export const LABEL_FAMILIES = {
     'deposit_records',
     'issued_invoices',
     'payments',
+    // TSK-0152 (OWN-DEC-201 I4).
+    'refunds',
+    'reconciliation_records',
+    'financial_discrepancies',
   ],
   /** TSK-0100: why a deletion is blocked (targets.ts BLOCKERS). */
   deletionBlocker: [
@@ -1170,6 +1174,9 @@ export const LABEL_FAMILIES = {
     'already_deleted',
     // TSK-0137.
     'linked_records',
+    // TSK-0152 (OWN-DEC-201 I4, I5).
+    'financial_discrepancy',
+    'mapping_not_reviewed',
   ],
   /** TSK-0135: the checks of an audit-retention range (apps/server/src/modules/retention/audit-retention.ts). */
   auditRetentionCheck: [
@@ -1198,6 +1205,8 @@ export const LABEL_FAMILIES = {
     'overlaps_deletion',
     'already_archived',
     'chain_broken',
+    // TSK-0152 (OWN-DEC-201 I5): production deletion waits for the reviewed table-to-retention mapping.
+    'mapping_not_reviewed',
   ],
   /** TSK-0135: the operations of the retention-operation trail. */
   auditRetentionKind: ['archive', 'delete'],
@@ -1297,6 +1306,14 @@ export const LABEL_FAMILIES = {
     'DATE_TOO_FAR',
     'BEFORE_RECEIPT',
     'DATES_NOT_CONFIGURED',
+    // TSK-0152 (OWN-DEC-201): identity, corrections, the alternative path and the mapping review.
+    'IDENTITY_NOT_CONFIRMED',
+    'CORRECTION_NOT_RECORDED',
+    'NOT_A_CORRECTION',
+    'CONTACT_NOT_ON_FILE',
+    'PROJECT_NOT_FOUND',
+    'MAPPING_NOT_REVIEWED',
+    'STALE_MAPPING',
     'required',
     'FRESH_AUTH_REQUIRED',
     'STALE_VERSION',
@@ -1308,6 +1325,35 @@ export const LABEL_FAMILIES = {
     'INTERNAL',
     'UNAVAILABLE',
   ],
+  /** TSK-0152 (OWN-DEC-201 I1): a privacy request's risk (privacy/requests.ts REQUEST_RISK). */
+  privacyRisk: ['standard', 'elevated'],
+  /** TSK-0152 (OWN-DEC-201 I1): how the Owner verified a person outside the portal (requests.ts IDENTITY_CHECKS). */
+  privacyIdentityCheck: ['call_to_phone_on_file', 'reply_from_email_on_file', 'photo_id_in_person'],
+  /** TSK-0152 (OWN-DEC-201 I3): records corrected by a new entry (privacy/corrections.ts CORRECTION_RECORD_KINDS). */
+  correctionRecordKind: [
+    'estimate_approval',
+    'estimate_version',
+    'invoice',
+    'payment',
+    'receipt',
+    'refund',
+    'audit_entry',
+    'job_record',
+    'message',
+    'other',
+  ],
+  /** TSK-0152 (OWN-DEC-201 I3): editable records whose changes a correction request shows. */
+  correctionRecord: ['customer', 'contact', 'property'],
+  /** TSK-0152 (OWN-DEC-201 I5): the findings of the mapping review (retention/mapping-review.ts MAPPING_FINDINGS). */
+  mappingFinding: [
+    'no_scheduled_period',
+    'provisional_period',
+    'start_not_recorded',
+    'several_categories',
+    'partly_protected',
+  ],
+  /** TSK-0152 (OWN-DEC-201 I5): where a retention category's rule comes from. */
+  mappingCategoryStatus: ['decided', 'provisional', 'unscheduled'],
   /** TSK-0136: the overdue alerts of an open privacy request (@handyhub/domain PRIVACY_DEADLINE_ALERTS). */
   privacyAlert: ['acknowledgment_overdue', 'completion_overdue', 'legal_deadline_overdue'],
   /** The result of an audited action (ENT-AuditEvent; platform.audit_events.result). */

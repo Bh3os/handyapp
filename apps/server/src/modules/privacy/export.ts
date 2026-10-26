@@ -8,6 +8,14 @@
 // staff-only notes and handling (the job packets of TSK-0069 are staff work records; the appointment reminders of
 // TSK-0067, like every message record, are not in the export), staff details and audit entries are excluded and named so (PROPOSED; the attorney
 // reviews what an export must hold). The answer is the PRIVACY_EXPORT customer view (allow-listed fields only).
+// TSK-0152 (OWN-DEC-201 I2): "Do not categorically exclude information solely because it originates in an audit log;
+// evaluate disclosure rights and exceptions." The export now holds the requester's own data found in audit entries
+// (activity): every entry of their own actions, and the entries about their own records (their privacy requests,
+// their contact record and their login accounts), each with its time, action, record kind, result and who acted, as
+// the requester, HandyHub staff (never a name) or automatically. Redacted, as restricted internal records or
+// third-party information: the entries' summaries and reasons (staff reasoning, other people's values), staff
+// identities, and entries about staff handling, internal notes, cases and other records (PROPOSED; the attorney
+// confirms the exceptions, OQ-ATTORNEY-PRIVACY).
 import type { Db, Tx } from '@handyhub/db'
 import { CUSTOMER_STATES } from '../estimates/model.js'
 import { customerVersionStatus } from '../estimates/responses.js'
@@ -19,8 +27,14 @@ export const EXPORT_EXCLUDED = [
   'third_party_contacts',
   'staff_notes_and_handling',
   'staff_details',
-  'audit_entries',
+  // TSK-0152 (OWN-DEC-201 I2): audit entries are in `activity`; their summaries, reasons and staff identities, and the
+  // entries about restricted internal records, are not.
+  'audit_entry_details',
+  'restricted_audit_entries',
 ] as const
+
+/** TSK-0152: the requester's own records whose audit entries by others are disclosed (PROPOSED). */
+export const ACTIVITY_RECORD_TYPES = ['privacy_request', 'contact', 'customer_account'] as const
 
 export async function customerExport(
   db: Reader,
@@ -130,7 +144,7 @@ export async function customerExport(
     .execute()
   const privacyRequests = await db
     .selectFrom('privacy.privacy_requests')
-    .select(['reference', 'kind', 'state', 'submitted_at'])
+    .select(['id', 'reference', 'kind', 'state', 'submitted_at'])
     .where('customer_id', '=', who.customerId)
     .where('contact_id', '=', who.contactId)
     .orderBy('reference')
@@ -157,6 +171,26 @@ export async function customerExport(
         .orderBy('c.id')
         .execute()
     : []
+  // TSK-0152 (OWN-DEC-201 I2): the requester's own data in audit entries, without summaries, reasons or staff names.
+  const accountIds = (
+    await db.selectFrom('identity.customer_accounts').select('id').where('contact_id', '=', who.contactId).execute()
+  ).map((a) => a.id)
+  const ownRecords = [
+    { type: 'privacy_request', ids: privacyRequests.map((p) => p.id) },
+    { type: 'contact', ids: [who.contactId] },
+    { type: 'customer_account', ids: accountIds },
+  ].filter((x) => x.ids.length > 0)
+  const activity = await db
+    .selectFrom('platform.audit_events')
+    .select(['occurred_at', 'action', 'target_type', 'result', 'actor_kind', 'actor_id'])
+    .where((eb) =>
+      eb.or([
+        eb.and([eb('actor_kind', '=', 'customer'), eb('actor_id', '=', who.contactId)]),
+        ...ownRecords.map((x) => eb.and([eb('target_type', '=', x.type), eb('target_id', 'in', x.ids)])),
+      ]),
+    )
+    .orderBy('seq')
+    .execute()
   const photos = requestIds.length
     ? await db
         .selectFrom('intake.photos')
@@ -250,6 +284,20 @@ export async function customerExport(
       preferredTimes: c.preferred_times,
       requestedAt: c.requested_at,
       endedAt: c.decided_at,
+    })),
+    activity: activity.map((a) => ({
+      at: a.occurred_at,
+      action: a.action,
+      record: a.target_type,
+      result: a.result,
+      by:
+        a.actor_kind === 'customer' && a.actor_id === who.contactId
+          ? 'you'
+          : a.actor_kind === 'staff'
+            ? 'staff'
+            : a.actor_kind === 'system'
+              ? 'automatic'
+              : 'other',
     })),
     photos: {
       received: photos.filter((p) => p.state === 'ready').length,

@@ -167,9 +167,10 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     // TSK-0098: the audit-log screen (Owner every entry, Office their own actions; retention shown, never deleted).
     auditModule(),
     // TSK-0099: the retention schedule and the Owner's deletion-review queue (read-only; nothing deleted automatically).
-    retentionModule(),
+    // TSK-0152: the mapping review; in production the Delete actions wait for it.
+    retentionModule(deps.environment ? { environment: deps.environment } : {}),
     // TSK-0100: privacy requests, the Owner's Delete or Archive decisions, the deletion log and customer downloads.
-    privacyModule({ storage: deps.storage ?? null }),
+    privacyModule({ storage: deps.storage ?? null, ...(deps.environment ? { environment: deps.environment } : {}) }),
     // TSK-0093: cases (complaints, incidents, damage, injury and disputes), their restricted section and the customer's
     // released updates.
     casesModule({ storage: deps.storage ?? null }),

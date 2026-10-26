@@ -1680,7 +1680,8 @@ export const PRIVACY_REQUESTS = customerView(
 // properties and requests they submitted, the estimate versions they received, their approvals, their
 // consent records, their privacy requests and photo counts. Excluded (named in `excluded`): other contacts of the
 // customer (third parties), staff-only notes and handling, staff details and audit entries; whether an export must
-// include more is the attorney's review (OQ-PRIVACY-REQUESTS).
+// include more is the attorney's review (OQ-PRIVACY-REQUESTS). TSK-0152 (OWN-DEC-201 I2): `activity` holds the
+// requester's own data found in audit entries (no summary, reason or staff name); the rest of them are excluded.
 const NULLABLE_INT = { type: ['integer', 'null'] } as const
 const EXPORT_REQUEST = object({
   reference: STRING,
@@ -1754,6 +1755,8 @@ export type ExportRecord = {
     requestedAt: Date
     endedAt: Date | null
   }[]
+  /** TSK-0152 (OWN-DEC-201 I2): the requester's own data found in audit entries (no summary, reason or staff name). */
+  activity: readonly { at: Date; action: string; record: string; result: string; by: string }[]
   photos: { received: number; processing: number; failed: number }
   excluded: readonly string[]
 }
@@ -1817,6 +1820,16 @@ export const PRIVACY_EXPORT = customerView(
         preferredTimes: NULLABLE_STRING,
         requestedAt: DATE,
         endedAt: NULLABLE_DATE,
+      }),
+    },
+    activity: {
+      type: 'array',
+      items: object({
+        at: DATE,
+        action: STRING,
+        record: STRING,
+        result: STRING,
+        by: { type: 'string', enum: ['you', 'staff', 'automatic', 'other'] },
       }),
     },
     photos: object({
@@ -1899,6 +1912,13 @@ export const PRIVACY_EXPORT = customerView(
       preferredTimes: c.preferredTimes,
       requestedAt: c.requestedAt.toISOString(),
       endedAt: c.endedAt ? c.endedAt.toISOString() : null,
+    })),
+    activity: r.activity.map((a) => ({
+      at: a.at.toISOString(),
+      action: a.action,
+      record: a.record,
+      result: a.result,
+      by: a.by,
     })),
     photos: { received: r.photos.received, processing: r.photos.processing, failed: r.photos.failed },
     excluded: [...r.excluded],

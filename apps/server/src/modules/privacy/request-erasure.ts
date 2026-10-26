@@ -30,7 +30,9 @@
 // - Blocked (Archive is offered): a hold or open case, protected evidence (an approval, a job, financial records), a
 //   record still in use (the request or project not closed, an estimate still open, an open access-help request), and
 //   linked records this erasure does not remove: site visits and their field records, cases, photo publication
-//   permissions and links between customer records (PROPOSED, OQ-REQUEST-ERASURE-DETAILS).
+//   permissions and links between customer records (PROPOSED, OQ-REQUEST-ERASURE-DETAILS). TSK-0152 (OWN-DEC-201 I4):
+//   the accounting checks are found or none found in the accounting records, and an unresolved financial discrepancy
+//   on the project blocks it until it is resolved in the reconciliation queue.
 // - Search and caches: staff search reads the tables themselves and the server keeps no cache of request content, so
 //   the rows' removal is their removal; queued jobs naming the erased records are cancelled and any job that runs
 //   later finds them gone. Copies in backups stay until those backups expire (NOT CONFIGURED); a restore re-applies the
@@ -41,13 +43,14 @@ import { sql, type RawBuilder } from 'kysely'
 import { ApiError } from '../../api/errors.js'
 import { loadConfig } from '../../platform/config/index.js'
 import {
+  accountingChecks,
   counted,
   eraseEstimate,
   estimateTarget,
   financialEvidence,
+  financialRecordsFound,
   finish,
   holdChecks,
-  invoiceAndPaymentChecks,
   openCases,
   openHolds,
   unreleasedDrafts,
@@ -217,16 +220,9 @@ export async function requestErasurePlan(
   linkedRows += await countOf(db, 'crm.record_links', sql`project_id = ${P}::uuid OR request_id = ${R}::uuid`)
   const blockers: Blocker[] = []
   if ((holds ?? 0) > 0) blockers.push('hold_found')
-  if (
-    approvals > 0 ||
-    jobs > 0 ||
-    financeRows > 0 ||
-    evidence.receipts > 0 ||
-    evidence.deposits > 0 ||
-    evidence.payments > 0 ||
-    evidence.invoices > 0
-  )
+  if (approvals > 0 || jobs > 0 || financeRows > 0 || financialRecordsFound(evidence))
     blockers.push('protected_evidence')
+  if (evidence.discrepancies > 0) blockers.push('financial_discrepancy')
   if (
     !(REQUEST_CLOSED_STATES as readonly string[]).includes(r.state) ||
     project.state !== 'closed' ||
@@ -623,7 +619,7 @@ export async function requestErasurePlan(
         counted('approval_receipts', evidence.receipts),
         counted('jobs', jobs),
         counted('deposit_records', evidence.deposits),
-        ...invoiceAndPaymentChecks(evidence.invoices, evidence.payments),
+        ...accountingChecks(evidence),
       ],
       blockers,
     }),
