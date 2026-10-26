@@ -747,6 +747,19 @@ export const QUEUE_ITEM_TYPES = [
     action: 'decide',
     screen: 'schedule',
   },
+  // TSK-0140 (OWN-DEC-163 7): an estimate visit booked for a customer with repeated short-notice cancellations or
+  // no-shows (cancellation.repeat_review), for the Owner's review: never a charge or a block. Resolved when the visit
+  // is no longer booked (migration 0115). View and band PROPOSED.
+  {
+    id: 'cancellation_pattern_review',
+    section: 'owner_decisions',
+    subject: 'visit',
+    band: 'other',
+    view: 'work.cancel_with_financial_review',
+    reasons: ['repeat_short_notice_cancellations'],
+    action: 'decide',
+    screen: 'schedule',
+  },
   // TSK-0130 (HH-EST-16, OWN-DEC-173): an estimate version waiting for the Owner's approval before it is published
   // (over the threshold, the project's documents together over it, or flagged). One item per version while its
   // approval is pending; resolved when the Owner decides, when a change of price or scope invalidates it, or when the

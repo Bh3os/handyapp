@@ -2776,6 +2776,10 @@ export interface WorkVisitChangesTable {
   refund_cents: Int8 | null
   invoice_cents: Int8 | null
   rules_version: number | null
+  circumstance: string | null
+  fee_disclosed: boolean | null
+  fee_waived_from_cents: Int8 | null
+  fee_waiver_reason: string | null
 }
 
 export interface WorkVisitDeparturesTable {

@@ -529,7 +529,13 @@ describe('[HH-DATA-08][HH-WORK-10] personal packet acknowledgments and readiness
       'office',
       'POST',
       `/api/v1/staff/visits/${v.id}/window`,
-      { localDate: day(6), windowStart: '09:00', windowEnd: '10:00', reason: 'Synthetic: the customer asked' },
+      {
+        localDate: day(6),
+        windowStart: '09:00',
+        windowEnd: '10:00',
+        reason: 'Synthetic: the customer asked',
+        initiator: 'customer',
+      },
       v.version,
     )
     expect(moved.statusCode, moved.body).toBe(200)

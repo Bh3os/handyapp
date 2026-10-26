@@ -7,6 +7,9 @@
 //   validate first, keep history and notify after commit, once.
 // - "As if requested 12 hours before": a request row is written with that request time (a fixture), since the visit
 //   hours do not let a test place a visit exactly 12 hours from now.
+// - TSK-0140 (OWN-DEC-161, OWN-DEC-163, OWN-DEC-195): small deposits, free estimate visits, Office's routine
+//   cancellations, the Owner's fee waiver, the reschedule initiator and the work-start markers. The repeat-review
+//   numbers recorded below are synthetic fixtures of this throwaway database: no number is decided.
 import { randomUUID } from 'node:crypto'
 import { createDb, loadServiceSeed, syncServices, withTx, type Db } from '@handyhub/db'
 import { createTestDatabase, type TestDatabase } from '@handyhub/db/testing'
@@ -431,12 +434,12 @@ const customerGet = async (p: Project, tab: 'appointments' | 'overview') => {
     status?: { step: string; nextAction: string }
   }>()
 }
-const pay = async (jobId: string) => {
+const pay = async (jobId: string, amountCents = 30_000) => {
   const paid = await staffWrite('office', 'POST', `/api/v1/staff/jobs/${jobId}/deposit/payments`, {
     // The business date (migration 0005's zone), as the server's IN_FUTURE check reads it, not the UTC date.
     receivedOn: localDateOf(new Date(), 'America/Kentucky/Louisville'),
     method: 'cash',
-    amountCents: 30_000,
+    amountCents,
   })
   expect(paid.statusCode, paid.body).toBe(201)
 }
@@ -711,16 +714,14 @@ describe("[HH-PORT-04][HH-SCH-07][T25] cancellations follow FACT-CANCELLATION-RU
   const payments = (jobId: string) =>
     t.db.selectFrom('finance.payments').select(['amount_cents', 'state']).where('job_id', '=', jobId).execute()
 
-  it('[T25][HH-FIN-14] 48 hours or more before: the whole deposit is refunded by the Owner; Office cannot cancel work', async () => {
+  it("[T25][HH-FIN-14][OWN-DEC-195] 48 hours or more before: Office processes the routine cancellation; the refund, a waiver and a decline stay the Owner's", async () => {
     const { p, jobId, v } = await paidWorkVisit(day(6))
     expect(
       (await customerRequest(p, v.number, 'cancellation', { reason: 'Synthetic: plans changed.' })).statusCode,
     ).toBe(200)
-    // The request routes to the Owner for cancellation and financial review, beside the staff queue item.
+    // TSK-0140 (OWN-DEC-195 C6): a routine cancellation within policy is not an Owner decision; the staff item opens.
     expect(await openItems('visit_change_request', v.id)).toMatchObject([{ reason: 'cancellation_requested' }])
-    expect(await openItems('visit_cancellation_review', v.id)).toMatchObject([
-      { reason: 'work_cancellation_requested', resolved_at: null },
-    ])
+    expect(await openItems('visit_cancellation_review', v.id)).toEqual([])
     const seen = await visitOf(p.projectId, v.id)
     expect(seen.state).toBe('confirmed')
     expect(seen.changeRequest?.outcome).toEqual({
@@ -731,18 +732,22 @@ describe("[HH-PORT-04][HH-SCH-07][T25] cancellations follow FACT-CANCELLATION-RU
       invoiceCents: 0,
     })
     expect((seen.changeRequest?.outcome?.noticeMinutes ?? 0) >= 48 * 60).toBe(true)
-    expect(seen.changeRequest?.actions).toEqual({ confirm: false, decline: false })
-    expect(seen.actions.cancel).toBe(false)
+    expect(seen.changeRequest?.actions).toEqual({ confirm: true, decline: false })
+    expect(seen.actions.cancel).toBe(true)
     const r = seen.changeRequest as NonNullable<VisitView['changeRequest']>
-    const office = await cancel('office', seen, { reason: 'Synthetic: as asked.', changeRequestId: r.id })
-    expect(office.statusCode).toBe(403)
-    expect(codes(office.body)).toEqual([['visit', 'OWNER_CANCELS_WORK']])
+    // Office cannot waive (there is no fee here either) nor decline a work visit's cancellation request.
+    const waiver = await cancel('office', seen, {
+      reason: 'Synthetic: as asked.',
+      changeRequestId: r.id,
+      feeWaiver: { feeCents: 0, reason: 'Synthetic: goodwill.' },
+    })
+    expect(waiver.statusCode).toBe(403)
+    expect(codes(waiver.body)).toEqual([['body.feeWaiver', 'OWNER_WAIVES_FEE']])
     expect((await decline('office', r.id, r.version, { reason: 'Synthetic.' })).statusCode).toBe(403)
     expect((await visitOf(p.projectId, v.id)).state).toBe('confirmed')
+    expect((await cancel('estimator', seen, { reason: 'Synthetic.', changeRequestId: r.id })).statusCode).toBe(403)
 
-    const owner = (await visitOf(p.projectId, v.id, 'owner')) as VisitView
-    expect(owner.actions.cancel).toBe(true)
-    const done = await cancel('owner', owner, { reason: 'Synthetic: the customer cancelled.', changeRequestId: r.id })
+    const done = await cancel('office', seen, { reason: 'Synthetic: the customer cancelled.', changeRequestId: r.id })
     expect(done.statusCode, done.body).toBe(200)
     const after = await visitOf(p.projectId, v.id)
     expect(after.state).toBe('canceled')
@@ -752,12 +757,14 @@ describe("[HH-PORT-04][HH-SCH-07][T25] cancellations follow FACT-CANCELLATION-RU
       kind: 'canceled',
       initiator: 'customer',
       changeRequestId: r.id,
-      changedBy: { id: ids.owner },
+      changedBy: { id: ids.office },
       toWorkers: [],
       cancellation: {
         outcome: { kind: 'full_refund_no_charge', keptCents: 0, refundCents: 30_000, invoiceCents: 0 },
         workStarted: false,
         depositPaidCents: 30_000,
+        circumstance: null,
+        feeWaiver: null,
       },
     })
     // Nothing is refunded automatically: the payment stands and the Owner gets the outcome to apply.
@@ -766,7 +773,6 @@ describe("[HH-PORT-04][HH-SCH-07][T25] cancellations follow FACT-CANCELLATION-RU
       { reason: 'cancellation_outcome_requested', resolved_at: null },
     ])
     expect(await openItems('visit_change_request', v.id)).toMatchObject([{ resolution: 'cancellation_confirmed' }])
-    expect(await openItems('visit_cancellation_review', v.id)).toMatchObject([{ resolution: 'cancellation_confirmed' }])
     // The customer sees the appointment canceled, with nothing more to ask.
     expect((await appointments(p))[0]).toMatchObject({
       status: 'canceled',
@@ -819,7 +825,8 @@ describe("[HH-PORT-04][HH-SCH-07][T25] cancellations follow FACT-CANCELLATION-RU
       refund_cents: '25000',
       invoice_cents: '0',
       deposit_paid_cents: '30000',
-      rules_version: 1,
+      // TSK-0140: cancellation.rules version 2 (migration 0115).
+      rules_version: 2,
     })
     expect(await payments(jobId)).toEqual([{ amount_cents: '30000', state: 'recorded' }])
     expect(await openItems('cancellation_outcome', p.projectId)).toMatchObject([{ resolved_at: null }])
@@ -870,8 +877,10 @@ describe("[HH-PORT-04][HH-SCH-07][T25] cancellations follow FACT-CANCELLATION-RU
     expect((await cancel('worker', v, { reason: 'Synthetic.', initiator: 'customer' })).statusCode).toBe(403)
     const done = await cancel('office', v, { reason: 'Synthetic: the customer called.', initiator: 'customer' })
     expect(done.statusCode, done.body).toBe(200)
+    // TSK-0140 (OWN-DEC-163): an estimate visit is never charged, whatever the notice.
     expect((await visitOf(p.projectId, v.id)).changes[0]?.cancellation?.outcome).toMatchObject({
-      kind: 'full_refund_no_charge',
+      kind: 'estimate_visit_free',
+      keptCents: 0,
       refundCents: 0,
       invoiceCents: 0,
     })
@@ -914,6 +923,277 @@ describe("[HH-PORT-04][HH-SCH-07][T25] cancellations follow FACT-CANCELLATION-RU
     const keys = (await deliveries([`visit_change:${change?.id}`])).map((d) => d.message_key)
     expect(keys).not.toContain('visit.cancelled')
     expect(keys).toContain('appointment.changed')
+  })
+})
+
+describe('[HH-SCH-07][HH-FIN-14][HH-STATE-02] TSK-0140: small deposits, free estimate visits, Office routine cancellations, work-start markers', () => {
+  /**
+   * A confirmed work visit with `depositCents` verified (none: an estimate under the deposit threshold). A deposit
+   * below the required $300.00 stands only once the Owner waives the rest (with a fresh sign-in and a reason).
+   */
+  async function workVisit(date: string, worker: Crew, depositCents: number) {
+    const p = await siteVisitProject()
+    const jobId = await approve(p, depositCents === 0 ? 1250 : 150_000)
+    if (depositCents > 0) await pay(jobId, depositCents)
+    if (depositCents > 0 && depositCents < 30_000) {
+      await sql`UPDATE identity.staff_sessions SET authenticated_at = now() WHERE staff_user_id = ${ids.owner}`.execute(
+        t.db,
+      )
+      const waived = await staffWrite('owner', 'POST', `/api/v1/staff/jobs/${jobId}/deposit/waiver`, {
+        reason: 'Synthetic: the rest of the deposit is waived.',
+      })
+      expect(waived.statusCode, waived.body).toBe(200)
+    }
+    return { p, jobId, v: await bookedVisit(p, 'service', date, worker) }
+  }
+  /** Fixture: the customer's cancellation request, as if asked `hours` before the arrival window. */
+  async function askedBefore(p: Project, v: VisitView, hours: number): Promise<string> {
+    const row = await t.db
+      .selectFrom('work.visits')
+      .select('starts_at')
+      .where('id', '=', v.id)
+      .executeTakeFirstOrThrow()
+    const contact = await t.db
+      .selectFrom('intake.requests')
+      .select('contact_id')
+      .where('id', '=', p.requestId)
+      .executeTakeFirstOrThrow()
+    const at = new Date(new Date(row.starts_at).getTime() - hours * 3_600_000)
+    const r = await sql<{ id: string }>`
+      INSERT INTO work.visit_change_requests (visit_id, project_id, kind, requested_by_contact, requested_at)
+      VALUES (${v.id}, ${p.projectId}, 'cancellation', ${contact.contact_id}, ${at}) RETURNING id`.execute(t.db)
+    return r.rows[0]?.id as string
+  }
+  const stored = async (visitId: string) => (await changeRows(visitId)).find((c) => c.kind === 'canceled')
+
+  it('[HH-FIN-14][OWN-DEC-161] late: a deposit under $50.00 is kept and nothing more is invoiced; with no deposit nothing is invoiced while no accepted terms disclose the fee', async () => {
+    const small = await workVisit(day(31), 'ann', 2000)
+    const r1 = await askedBefore(small.p, small.v, 12)
+    const seen = await visitOf(small.p.projectId, small.v.id)
+    expect(seen.changeRequest?.outcome).toEqual({
+      kind: 'late_cancellation',
+      noticeMinutes: 12 * 60,
+      keptCents: 2000,
+      refundCents: 0,
+      invoiceCents: 0,
+    })
+    expect(seen.changeRequest?.actions).toEqual({ confirm: true, decline: false })
+    const done = await cancel('office', seen, { reason: 'Synthetic: late cancellation.', changeRequestId: r1 })
+    expect(done.statusCode, done.body).toBe(200)
+    expect(await stored(small.v.id)).toMatchObject({
+      outcome: 'late_cancellation',
+      kept_cents: '2000',
+      refund_cents: '0',
+      invoice_cents: '0',
+      deposit_paid_cents: '2000',
+      fee_disclosed: false,
+      rules_version: 2,
+      changed_by: ids.office,
+    })
+    // Keeping the deposit is the Owner's to apply.
+    expect(await openItems('cancellation_outcome', small.p.projectId)).toMatchObject([{ resolved_at: null }])
+
+    const none = await workVisit(day(31), 'ben', 0)
+    const r2 = await askedBefore(none.p, none.v, 12)
+    const free = await visitOf(none.p.projectId, none.v.id)
+    expect(free.changeRequest?.outcome).toEqual({
+      kind: 'late_no_charge',
+      noticeMinutes: 12 * 60,
+      keptCents: 0,
+      refundCents: 0,
+      invoiceCents: 0,
+    })
+    expect((await cancel('office', free, { reason: 'Synthetic: late.', changeRequestId: r2 })).statusCode).toBe(200)
+    expect(await stored(none.v.id)).toMatchObject({
+      outcome: 'late_no_charge',
+      invoice_cents: '0',
+      fee_disclosed: false,
+    })
+    // Nothing to invoice or refund: nothing for the Owner.
+    expect(await openItems('cancellation_outcome', none.p.projectId)).toEqual([])
+  })
+
+  it("[HH-SCH-07][OWN-DEC-195][OWN-DEC-161] Office: HandyHub's own cancellation and an exception are the Owner's; the Owner reduces the fee with a reason and a fresh sign-in", async () => {
+    const { p, v } = await workVisit(day(32), 'ann', 30_000)
+    const r = await askedBefore(p, v, 12)
+    const office = await visitOf(p.projectId, v.id)
+    expect(office.cancellationPreview).toMatchObject({
+      mayCommit: { customer: true, handyhub: false },
+      mayWaive: false,
+      feeDisclosed: false,
+      feeEnforcement: 'attorney_approval_pending',
+    })
+    const hh = await cancel('office', office, {
+      reason: 'Synthetic: the worker is sick.',
+      initiator: 'handyhub',
+      handyhubCause: 'sick_worker',
+    })
+    expect(hh.statusCode).toBe(403)
+    expect(codes(hh.body)).toEqual([['visit', 'NOT_ROUTINE_CANCELLATION']])
+    const exception = await cancel('office', office, {
+      reason: 'Synthetic: a family emergency.',
+      changeRequestId: r,
+      circumstance: 'emergency',
+    })
+    expect(exception.statusCode).toBe(403)
+    expect(codes(exception.body)).toEqual([['visit', 'NOT_ROUTINE_CANCELLATION']])
+    const officeWaiver = await cancel('office', office, {
+      reason: 'Synthetic.',
+      changeRequestId: r,
+      feeWaiver: { feeCents: 0, reason: 'Synthetic: goodwill.' },
+    })
+    expect(codes(officeWaiver.body)).toEqual([['body.feeWaiver', 'OWNER_WAIVES_FEE']])
+    expect((await visitOf(p.projectId, v.id)).state).toBe('confirmed')
+
+    const owner = await visitOf(p.projectId, v.id, 'owner')
+    expect(owner.cancellationPreview).toMatchObject({ mayCommit: { customer: true, handyhub: true }, mayWaive: true })
+    const base = { reason: 'Synthetic: the customer cancelled late.', changeRequestId: r }
+    const notBelow = await cancel('owner', owner, { ...base, feeWaiver: { feeCents: 5000, reason: 'Synthetic.' } })
+    expect(codes(notBelow.body)).toEqual([['body.feeWaiver.feeCents', 'WAIVER_NOT_BELOW_FEE']])
+    const noReason = await cancel('owner', owner, { ...base, feeWaiver: { feeCents: 2000, reason: ' ' } })
+    expect(codes(noReason.body)).toEqual([['body.feeWaiver.reason', 'REASON_REQUIRED']])
+    await sql`UPDATE identity.staff_sessions SET authenticated_at = now() - interval '30 minutes'
+              WHERE staff_user_id = ${ids.owner}`.execute(t.db)
+    const why = 'Synthetic: a first late cancellation, documented.'
+    const notFresh = await cancel('owner', owner, { ...base, feeWaiver: { feeCents: 2000, reason: why } })
+    expect(notFresh.json()).toMatchObject({ error: { code: 'FRESH_AUTH_REQUIRED' } })
+    await sql`UPDATE identity.staff_sessions SET authenticated_at = now() WHERE staff_user_id = ${ids.owner}`.execute(
+      t.db,
+    )
+    expect((await visitOf(p.projectId, v.id)).state).toBe('confirmed')
+    const done = await cancel('owner', owner, { ...base, feeWaiver: { feeCents: 2000, reason: why } })
+    expect(done.statusCode, done.body).toBe(200)
+    expect(await stored(v.id)).toMatchObject({
+      outcome: 'late_cancellation',
+      kept_cents: '2000',
+      refund_cents: '28000',
+      invoice_cents: '0',
+      fee_waived_from_cents: '5000',
+      fee_waiver_reason: why,
+      changed_by: ids.owner,
+    })
+    expect((await visitOf(p.projectId, v.id, 'owner')).changes[0]?.cancellation).toMatchObject({
+      outcome: { kind: 'late_cancellation', keptCents: 2000, refundCents: 28_000 },
+      feeWaiver: { fromCents: 5000, reason: why },
+    })
+    const audit = await t.db
+      .selectFrom('platform.audit_events')
+      .select('summary')
+      .where('action', '=', 'visit.cancel')
+      .where('target_id', '=', v.id)
+      .execute()
+    expect(audit.map((a) => a.summary)).toContainEqual(expect.objectContaining({ feeWaivedFromCents: 5000 }))
+  })
+
+  it('[HH-FIN-14][OWN-DEC-161][RULE-HUMAN-REVIEW] an emergency, unsafe conditions or a protected right is never charged automatically: the Owner decides', async () => {
+    const { p, v } = await workVisit(day(33), 'ben', 30_000)
+    const r = await askedBefore(p, v, 2)
+    const owner = await visitOf(p.projectId, v.id, 'owner')
+    const wrong = await cancel('owner', owner, {
+      reason: 'Synthetic.',
+      initiator: 'handyhub',
+      handyhubCause: 'safety_stop',
+      circumstance: 'unsafe_conditions',
+    })
+    expect(codes(wrong.body)).toEqual([['body.circumstance', 'CIRCUMSTANCE_NOT_APPLICABLE']])
+    const done = await cancel('owner', owner, {
+      reason: 'Synthetic: the house flooded.',
+      changeRequestId: r,
+      circumstance: 'unsafe_conditions',
+    })
+    expect(done.statusCode, done.body).toBe(200)
+    expect(await stored(v.id)).toMatchObject({
+      outcome: 'owner_review',
+      circumstance: 'unsafe_conditions',
+      kept_cents: null,
+      refund_cents: null,
+      invoice_cents: null,
+    })
+    // The Owner decides it: the outcome item opens with no amount computed.
+    expect(await openItems('cancellation_outcome', p.projectId)).toMatchObject([{ resolved_at: null }])
+  })
+
+  it('[HH-STATE-02][OWN-DEC-195] a worker arriving on another visit of the job is not "work started": no after-start outcome without Start Work', async () => {
+    const p = await siteVisitProject()
+    const jobId = await approve(p, 150_000)
+    await pay(jobId)
+    const first = await bookedVisit(p, 'service', day(34), 'cal')
+    const second = await bookedVisit(p, 'service', day(35), 'cal')
+    // Fixture: cal's taps on the first visit, written as the tap routes write them: on the way, then arrived.
+    await withTx(t.db, async (tx) => {
+      const row = await tx
+        .selectFrom('work.visits')
+        .select('version')
+        .where('id', '=', first.id)
+        .executeTakeFirstOrThrow()
+      await tx
+        .insertInto('work.visit_departures')
+        .values({ visit_id: first.id, staff_user_id: ids.cal, moved_visit: true })
+        .execute()
+      await tx
+        .updateTable('work.visits')
+        .set({ state: 'en_route', version: row.version + 1 })
+        .where('id', '=', first.id)
+        .execute()
+      await tx
+        .insertInto('work.time_stamps')
+        .values({ visit_id: first.id, project_id: p.projectId, job_id: jobId, staff_user_id: ids.cal, kind: 'arrived' })
+        .execute()
+      await tx
+        .updateTable('work.visits')
+        .set({ state: 'arrived', version: row.version + 2 })
+        .where('id', '=', first.id)
+        .execute()
+    })
+    const seen = await visitOf(p.projectId, second.id, 'owner')
+    expect(seen.cancellationPreview).toMatchObject({
+      workStarted: false,
+      markers: { arrivedAt: expect.any(String), contractedWorkStartedAt: null, completedAt: null },
+      customer: { kind: 'full_refund_no_charge', refundCents: 30_000 },
+    })
+    const done = await cancel('owner', seen, { reason: 'Synthetic: the customer cancelled.', initiator: 'customer' })
+    expect(done.statusCode, done.body).toBe(200)
+    expect(await stored(second.id)).toMatchObject({ outcome: 'full_refund_no_charge', work_started: false })
+  })
+
+  it('[HH-SCH-07][OWN-DEC-163] estimate visits are never charged; repeated short-notice cancellations flag the next estimate booking for the Owner, never a block', async () => {
+    const p = await siteVisitProject()
+    const lateCancel = async (date: string, worker: Crew) => {
+      const v = await bookedVisit(p, 'site_estimate', date, worker)
+      const r = await askedBefore(p, v, 3)
+      const seen = await visitOf(p.projectId, v.id)
+      expect(seen.changeRequest?.outcome).toMatchObject({ kind: 'estimate_visit_free', invoiceCents: 0, keptCents: 0 })
+      const done = await cancel('office', seen, { reason: 'Synthetic: cancelled late.', changeRequestId: r })
+      expect(done.statusCode, done.body).toBe(200)
+      return v
+    }
+    await lateCancel(day(36), 'ann')
+    await lateCancel(day(36), 'ben')
+    expect(await openItems('cancellation_outcome', p.projectId)).toEqual([])
+    // cancellation.repeat_review is NOT CONFIGURED: nothing is flagged.
+    const third = await bookedVisit(p, 'site_estimate', day(37), 'ann')
+    expect(await openItems('cancellation_pattern_review', third.id)).toEqual([])
+    // Synthetic numbers for this throwaway database only (no number is decided, OQ-CANCELLATION-RULES-DETAILS).
+    await recordPolicyVersion(t.db, {
+      key: 'cancellation.repeat_review',
+      value: { count: 2, withinDays: 30 },
+      sourceIds: ['TEST-SYNTHETIC'],
+      changedBy: 'test',
+      reason: 'synthetic test configuration',
+    })
+    const fourth = await bookedVisit(p, 'site_estimate', day(38), 'ben')
+    expect(fourth.state).toBe('confirmed')
+    expect(await openItems('cancellation_pattern_review', fourth.id)).toMatchObject([
+      { reason: 'repeat_short_notice_cancellations', resolved_at: null },
+    ])
+    // The flag ends with the booking.
+    const done = await cancel('office', fourth, {
+      reason: 'Synthetic: HandyHub moved it.',
+      initiator: 'handyhub',
+      handyhubCause: 'other',
+    })
+    expect(done.statusCode, done.body).toBe(200)
+    expect(await openItems('cancellation_pattern_review', fourth.id)).toMatchObject([{ resolution: 'visit_canceled' }])
   })
 })
 
@@ -1001,6 +1281,7 @@ describe('[HH-SCH-07][T42] reschedule and reassignment update everyone; stale wr
       windowStart: '10:00',
       windowEnd: '11:00',
       reason: 'Synthetic: first.',
+      initiator: 'customer',
     })
     expect(first.statusCode, first.body).toBe(200)
     const mid = await visitOf(p.projectId, v.id)
@@ -1040,6 +1321,17 @@ describe('[HH-SCH-07][T42] reschedule and reassignment update everyone; stale wr
     const res = await move('office', v, { localDate: day(27), windowStart: '09:00', windowEnd: '10:00' })
     expect(res.statusCode).toBe(400)
     expect(codes(res.body)).toEqual([['body.reason', 'REASON_REQUIRED']])
+    // TSK-0140 (OWN-DEC-195 C2): who started it is required too; nothing changes without it.
+    const noInitiator = await move('office', v, {
+      localDate: day(27),
+      windowStart: '09:00',
+      windowEnd: '10:00',
+      reason: 'Synthetic: moved.',
+    })
+    expect(noInitiator.statusCode).toBe(400)
+    expect(codes(noInitiator.body)).toEqual([['body.initiator', 'INITIATOR_REQUIRED']])
+    expect(await changeRows(v.id)).toEqual([])
+    expect((await visitOf(p.projectId, v.id)).version).toBe(v.version)
     const tentative = await planVisit(p, 'site_estimate', day(28))
     const bad = await move('office', tentative, {
       localDate: day(29),

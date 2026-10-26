@@ -173,15 +173,26 @@ export * from './zones.js'
 export {
   CANCELLATION_INITIATORS,
   CANCELLATION_OUTCOMES,
+  cancellationFee,
   cancellationOutcome,
+  contractedWorkStarted,
+  CUSTOMER_CIRCUMSTANCES,
   HANDYHUB_CAUSES,
+  isRoutineCancellation,
+  isShortNoticeCancellation,
   needsOwnerAction,
+  ROUTINE_CANCELLATION_OUTCOMES,
+  withReducedFee,
+  WORK_MARKERS,
   type CancellationFacts,
   type CancellationInitiator,
   type CancellationOutcome,
   type CancellationOutcomeKind,
   type CancellationRules,
+  type CustomerCircumstance,
   type HandyhubCause,
+  type WorkMarker,
+  type WorkMarkers,
 } from './cancellation.js'
 export * from './capacity.js'
 export {

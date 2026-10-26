@@ -5,16 +5,20 @@
 //   until staff commit a change: confirming a reschedule request opens the Move form with the request; confirming a
 //   cancellation request opens the cancellation with it; declining needs a reason.
 // - Reassign: choose the new team (the lead first) with a reason; the window stays. Cancel: who is cancelling (the
-//   customer, or HandyHub with its cause) and a reason, with the outcome shown before anything is saved. A work visit
-//   is cancelled by the Owner only (cancellation and financial review); everyone else is told so.
+//   customer, or HandyHub with its cause) and a reason, with the outcome shown before anything is saved. TSK-0140:
+//   Office cancels a work visit only for a routine customer cancellation within policy (OWN-DEC-195 C6); anything
+//   else is the Owner's and the button says so. A customer's cancellation can name the circumstance that keeps it from
+//   being charged automatically (the Owner decides), and the Owner can waive or reduce the fee with a documented
+//   reason and a fresh sign-in (OWN-DEC-161). The work-start markers are shown apart: arrival and preparation are
+//   never the start of contracted work (OWN-DEC-195 C4).
 // - Every write carries the version shown (If-Match) and an idempotency key; the server checks everything again. A
 //   stale version says so and reloads; a refusal says the booking stays as it was. Nothing here refunds or charges:
 //   the outcome is the Owner's to apply.
 import type { StaffKey, StaffLocale } from '@handyhub/i18n'
-import { cents, formatUsd } from '@handyhub/money'
+import { cents, centsFromDecimal, formatUsd } from '@handyhub/money'
 import { Button, Field, StateView } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
-import { call, idempotencyKey, type Fetch } from './api'
+import { call, idempotencyKey, setCsrfToken, type Fetch } from './api'
 import { AlternativesView, capacityReasons, type Alternatives, type CapacityDay } from './Capacity'
 import { codeLabel } from './Requests'
 
@@ -42,8 +46,20 @@ export type CancellationPreview = {
   depositPaidCents: number
   depositPendingCents: number
   workStarted: boolean
+  /** TSK-0140 (OWN-DEC-195 C4): the four markers; only contracted work started is the start of work. */
+  markers: {
+    arrivedAt: string | null
+    preparationStartedAt: string | null
+    contractedWorkStartedAt: string | null
+    completedAt: string | null
+  }
+  feeDisclosed: boolean
+  feeEnforcement: string
   customer: Outcome
   handyhub: Outcome
+  /** Whether this caller may commit each now (Office: only a routine customer cancellation of a work visit). */
+  mayCommit: { customer: boolean; handyhub: boolean }
+  mayWaive: boolean
   rulesProposed: boolean
 }
 export type ChangeableVisit = {
@@ -60,8 +76,81 @@ export type ChangeableVisit = {
 }
 
 export const HANDYHUB_CAUSES = ['weather', 'safety_stop', 'sick_worker', 'other'] as const
+/** TSK-0140 (OWN-DEC-161): why a customer's cancellation is never charged automatically (the Owner decides). */
+export const CUSTOMER_CIRCUMSTANCES = ['unsafe_conditions', 'emergency', 'legally_protected', 'owner_review'] as const
 
 const money = (n: number) => formatUsd(cents(n))
+/** The fee an outcome charges: kept from the deposit or invoiced (only a late cancellation charges one). */
+const feeOf = (o: Outcome) => (o.kind === 'late_cancellation' ? (o.keptCents ?? 0) + (o.invoiceCents ?? 0) : 0)
+
+export type Initiator = '' | 'customer' | 'handyhub'
+
+/** Who started a change of a booked visit (TSK-0140, OWN-DEC-195 C2: required) and, for HandyHub, its cause. */
+export function InitiatorFields({
+  t,
+  initiator,
+  cause,
+  onInitiator,
+  onCause,
+}: {
+  t: T
+  initiator: Initiator
+  cause: string
+  onInitiator: (i: Initiator) => void
+  onCause: (c: string) => void
+}) {
+  const ids = useId()
+  return (
+    <>
+      <div className="staff-queue__select">
+        <label htmlFor={`${ids}-initiator`}>{t('change.initiator')}</label>
+        <select
+          id={`${ids}-initiator`}
+          value={initiator}
+          aria-required="true"
+          onChange={(e) => onInitiator(e.target.value as Initiator)}
+        >
+          <option value="">{t('change.initiator.none')}</option>
+          <option value="customer">{codeLabel(t, 'changeInitiator', 'customer')}</option>
+          <option value="handyhub">{codeLabel(t, 'changeInitiator', 'handyhub')}</option>
+        </select>
+      </div>
+      {initiator === 'handyhub' ? (
+        <div className="staff-queue__select">
+          <label htmlFor={`${ids}-cause`}>{t('change.cause')}</label>
+          <select id={`${ids}-cause`} value={cause} onChange={(e) => onCause(e.target.value)}>
+            <option value="">{t('change.cause.choose')}</option>
+            {HANDYHUB_CAUSES.map((c) => (
+              <option key={c} value={c}>
+                {codeLabel(t, 'handyhubCause', c)}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+    </>
+  )
+}
+
+/** The work-start markers staff see (OWN-DEC-195 C4): arrival and preparation are never the start of work. */
+function MarkerItems({ t, markers }: { t: T; markers: CancellationPreview['markers'] }) {
+  const shown = [
+    markers.arrivedAt ? 'change.marker.arrived' : null,
+    markers.preparationStartedAt ? 'change.marker.preparation' : null,
+    markers.contractedWorkStartedAt ? 'change.marker.started' : null,
+    markers.completedAt ? 'change.marker.completed' : null,
+  ].filter((k): k is StaffKey => k !== null)
+  return (
+    <>
+      {shown.map((k) => (
+        <li key={k}>{t(k)}</li>
+      ))}
+      {(markers.arrivedAt || markers.preparationStartedAt) && !markers.contractedWorkStartedAt ? (
+        <li>{t('change.marker.notStarted')}</li>
+      ) : null}
+    </>
+  )
+}
 
 function noticeText(t: T, minutes: number): string {
   if (minutes < 0) return t('change.outcome.afterStart')
@@ -82,6 +171,7 @@ export function OutcomeView({ t, outcome, preview }: { t: T; outcome: Outcome; p
         {preview && preview.depositPendingCents > 0 ? (
           <li>{t('change.outcome.pending', { amount: money(preview.depositPendingCents) })}</li>
         ) : null}
+        {preview ? <MarkerItems t={t} markers={preview.markers} /> : null}
         {preview?.workStarted ? <li>{t('change.outcome.workStarted')}</li> : null}
         {outcome.keptCents !== null && outcome.keptCents > 0 ? (
           <li>{t('change.outcome.kept', { amount: money(outcome.keptCents) })}</li>
@@ -97,6 +187,9 @@ export function OutcomeView({ t, outcome, preview }: { t: T; outcome: Outcome; p
           <li>{t('change.outcome.invoice', { amount: money(outcome.invoiceCents) })}</li>
         ) : null}
       </ul>
+      {feeOf(outcome) > 0 && preview?.feeEnforcement === 'attorney_approval_pending' ? (
+        <p className="staff-request__hint">{t('change.outcome.enforcementPending')}</p>
+      ) : null}
       <p className="staff-request__hint">{t('change.outcome.ownerApplies')}</p>
     </div>
   )
@@ -379,15 +472,38 @@ export function CancelVisit({
   const ids = useId()
   const [initiator, setInitiator] = useState<'customer' | 'handyhub' | ''>(request ? 'customer' : '')
   const [cause, setCause] = useState('')
+  const [circumstance, setCircumstance] = useState('')
   const [reason, setReason] = useState('')
+  const [waive, setWaive] = useState(false)
+  const [fee, setFee] = useState('')
+  const [waiverReason, setWaiverReason] = useState('')
+  const [reauth, setReauth] = useState(false)
+  const [password, setPassword] = useState('')
   const [error, setError] = useState<string[] | null>(null)
   const [stale, setStale] = useState(false)
   const [pending, setPending] = useState(false)
   const key = useRef<string | null>(null)
   const preview = visit.cancellationPreview
   const outcome = request?.outcome ?? (initiator && preview ? preview[initiator] : null)
-  async function submit(e: FormEvent) {
-    e.preventDefault()
+  // TSK-0140 (OWN-DEC-161): a circumstance means the Owner decides the outcome; nothing is charged automatically.
+  const exception = initiator === 'customer' && circumstance !== ''
+  // TSK-0140 (OWN-DEC-195 C6): Office commits only a routine customer cancellation of a work visit; whoever may commit
+  // HandyHub's own cancellation (the Owner, or anyone on an estimate visit) may also commit an exception.
+  const exceptionAllowed = !exception || preview?.mayCommit.handyhub === true
+  const mayCommit = request
+    ? request.actions.confirm && exceptionAllowed
+    : !initiator || !preview || (preview.mayCommit[initiator] && exceptionAllowed)
+  const mayWaive = preview?.mayWaive === true && outcome !== null && !exception && feeOf(outcome) > 0
+  async function submit(e?: FormEvent) {
+    e?.preventDefault()
+    let feeCents: number | null = null
+    if (waive && mayWaive) {
+      try {
+        feeCents = Number(centsFromDecimal(fee.trim() || '0'))
+      } catch {
+        return setError([t('change.waiver.amountInvalid')])
+      }
+    }
     setPending(true)
     key.current = key.current ?? idempotencyKey()
     const r = await call<unknown>(fetchImpl, `/staff/visits/${encodeURIComponent(visit.id)}/cancel`, {
@@ -401,18 +517,62 @@ export function CancelVisit({
               ...(initiator ? { initiator } : {}),
               ...(initiator === 'handyhub' && cause ? { handyhubCause: cause } : {}),
             }),
+        ...(exception ? { circumstance } : {}),
+        ...(feeCents !== null ? { feeWaiver: { feeCents, reason: waiverReason.trim() } } : {}),
       },
     })
     setPending(false)
     if (r.ok || r.status < 500) key.current = null
     if (r.ok) return onSaved()
     if (r.error.code === 'STALE_VERSION') return setStale(true)
+    if (r.error.code === 'FRESH_AUTH_REQUIRED') {
+      setReauth(true)
+      return setError([t('finance.freshSignIn')])
+    }
     setError(
       r.error.fieldErrors.length
         ? r.error.fieldErrors.map((f) => codeLabel(t, 'visitProblem', f.code))
         : [codeLabel(t, 'visitProblem', r.error.code)],
     )
   }
+  async function signInAgain(e: FormEvent) {
+    e.preventDefault()
+    const r = await call<{ csrfToken: string }>(fetchImpl, '/staff/auth/reauth', { method: 'POST', body: { password } })
+    setPassword('')
+    if (!r.ok) return setError([codeLabel(t, 'visitProblem', r.error.code)])
+    // The re-authentication rotates the session and its CSRF token.
+    setCsrfToken(r.data.csrfToken)
+    setReauth(false)
+    setError(null)
+    await submit()
+  }
+  if (reauth)
+    return (
+      <form
+        className="staff-request__form"
+        onSubmit={(e) => void signInAgain(e)}
+        noValidate
+        aria-label={t('deposit.reauthTitle')}
+        data-testid="board-cancel-reauth"
+      >
+        <p>{t('security.reauthIntro')}</p>
+        <Field
+          label={t('signIn.password')}
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+        <div className="hh-button-row">
+          <Button type="submit">{t('security.reauthSubmit')}</Button>
+          <Button variant="secondary" onClick={() => setReauth(false)}>
+            {t('change.cancel.keep')}
+          </Button>
+        </div>
+      </form>
+    )
   return (
     <form
       className="staff-request__form"
@@ -454,8 +614,53 @@ export function CancelVisit({
           </select>
         </div>
       ) : null}
-      {outcome ? <OutcomeView t={t} outcome={outcome} preview={preview} /> : null}
+      {initiator === 'customer' ? (
+        <div className="staff-queue__select">
+          <label htmlFor={`${ids}-circumstance`}>{t('change.circumstance')}</label>
+          <select id={`${ids}-circumstance`} value={circumstance} onChange={(e) => setCircumstance(e.target.value)}>
+            <option value="">{t('change.circumstance.none')}</option>
+            {CUSTOMER_CIRCUMSTANCES.map((c) => (
+              <option key={c} value={c}>
+                {codeLabel(t, 'cancellationCircumstance', c)}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+      {exception ? (
+        <p className="staff-request__hint" data-testid="cancellation-exception">
+          {t('change.circumstance.ownerDecides')}
+        </p>
+      ) : outcome ? (
+        <OutcomeView t={t} outcome={outcome} preview={preview} />
+      ) : null}
       {!outcome && !preview ? <StateView kind="blocked" title={t('change.outcome.notConfigured')} /> : null}
+      {mayWaive ? (
+        <fieldset className="staff-request__check" data-testid="fee-waiver">
+          <legend>{t('change.waiver.title')}</legend>
+          <label>
+            <input type="checkbox" checked={waive} onChange={(e) => setWaive(e.target.checked)} />
+            {t('change.waiver.toggle')}
+          </label>
+          {waive ? (
+            <>
+              <Field
+                label={t('change.waiver.amount')}
+                hint={t('change.waiver.amountHint', { amount: money(feeOf(outcome as Outcome)) })}
+                inputMode="decimal"
+                value={fee}
+                onChange={(e) => setFee(e.target.value)}
+              />
+              <Field
+                label={t('change.waiver.reason')}
+                value={waiverReason}
+                required
+                onChange={(e) => setWaiverReason(e.target.value)}
+              />
+            </>
+          ) : null}
+        </fieldset>
+      ) : null}
       <Field label={t('change.reason')} value={reason} required onChange={(e) => setReason(e.target.value)} />
       {stale ? (
         <StateView
@@ -476,7 +681,12 @@ export function CancelVisit({
         </StateView>
       ) : null}
       <div className="hh-button-row">
-        <Button type="submit" variant="danger" pending={pending}>
+        <Button
+          type="submit"
+          variant="danger"
+          pending={pending}
+          {...(mayCommit ? {} : { disabledReason: t('change.cancel.ownerDecides') })}
+        >
           {t('change.cancel.submit')}
         </Button>
         <Button variant="secondary" onClick={onCancel}>

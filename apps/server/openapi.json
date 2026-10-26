@@ -42318,6 +42318,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -44482,6 +44483,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -46926,6 +46928,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -48943,6 +48946,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -51136,6 +51140,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -53153,6 +53158,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -55537,6 +55543,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -57743,6 +57750,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -59940,6 +59948,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -62137,6 +62146,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -64339,6 +64349,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -66834,6 +66845,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -69031,6 +69043,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -71433,6 +71446,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -139311,6 +139325,8 @@
                                             "enum": [
                                               "full_refund_no_charge",
                                               "late_cancellation",
+                                              "late_no_charge",
+                                              "estimate_visit_free",
                                               "work_started",
                                               "customer_chooses",
                                               "owner_review"
@@ -139376,8 +139392,13 @@
                                   "depositPaidCents",
                                   "depositPendingCents",
                                   "workStarted",
+                                  "markers",
+                                  "feeDisclosed",
+                                  "feeEnforcement",
                                   "customer",
                                   "handyhub",
+                                  "mayCommit",
+                                  "mayWaive",
                                   "rulesProposed"
                                 ],
                                 "properties": {
@@ -139389,6 +139410,48 @@
                                   },
                                   "workStarted": {
                                     "type": "boolean"
+                                  },
+                                  "markers": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "arrivedAt",
+                                      "preparationStartedAt",
+                                      "contractedWorkStartedAt",
+                                      "completedAt"
+                                    ],
+                                    "properties": {
+                                      "arrivedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "preparationStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "contractedWorkStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "completedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "feeDisclosed": {
+                                    "type": "boolean"
+                                  },
+                                  "feeEnforcement": {
+                                    "type": "string"
                                   },
                                   "customer": {
                                     "type": "object",
@@ -139406,6 +139469,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -139450,6 +139515,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -139477,6 +139544,25 @@
                                         ]
                                       }
                                     }
+                                  },
+                                  "mayCommit": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "customer",
+                                      "handyhub"
+                                    ],
+                                    "properties": {
+                                      "customer": {
+                                        "type": "boolean"
+                                      },
+                                      "handyhub": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  "mayWaive": {
+                                    "type": "boolean"
                                   },
                                   "rulesProposed": {
                                     "type": "boolean"
@@ -139632,7 +139718,9 @@
                                         "workStarted",
                                         "depositPaidCents",
                                         "depositPendingCents",
-                                        "rulesVersion"
+                                        "rulesVersion",
+                                        "circumstance",
+                                        "feeWaiver"
                                       ],
                                       "properties": {
                                         "outcome": {
@@ -139651,6 +139739,8 @@
                                               "enum": [
                                                 "full_refund_no_charge",
                                                 "late_cancellation",
+                                                "late_no_charge",
+                                                "estimate_visit_free",
                                                 "work_started",
                                                 "customer_chooses",
                                                 "owner_review"
@@ -139690,6 +139780,35 @@
                                         },
                                         "rulesVersion": {
                                           "type": "integer"
+                                        },
+                                        "circumstance": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "feeWaiver": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "fromCents",
+                                                "reason"
+                                              ],
+                                              "properties": {
+                                                "fromCents": {
+                                                  "type": "integer"
+                                                },
+                                                "reason": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
                                         }
                                       }
                                     },
@@ -141476,6 +141595,8 @@
                                             "enum": [
                                               "full_refund_no_charge",
                                               "late_cancellation",
+                                              "late_no_charge",
+                                              "estimate_visit_free",
                                               "work_started",
                                               "customer_chooses",
                                               "owner_review"
@@ -141541,8 +141662,13 @@
                                   "depositPaidCents",
                                   "depositPendingCents",
                                   "workStarted",
+                                  "markers",
+                                  "feeDisclosed",
+                                  "feeEnforcement",
                                   "customer",
                                   "handyhub",
+                                  "mayCommit",
+                                  "mayWaive",
                                   "rulesProposed"
                                 ],
                                 "properties": {
@@ -141554,6 +141680,48 @@
                                   },
                                   "workStarted": {
                                     "type": "boolean"
+                                  },
+                                  "markers": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "arrivedAt",
+                                      "preparationStartedAt",
+                                      "contractedWorkStartedAt",
+                                      "completedAt"
+                                    ],
+                                    "properties": {
+                                      "arrivedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "preparationStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "contractedWorkStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "completedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "feeDisclosed": {
+                                    "type": "boolean"
+                                  },
+                                  "feeEnforcement": {
+                                    "type": "string"
                                   },
                                   "customer": {
                                     "type": "object",
@@ -141571,6 +141739,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -141615,6 +141785,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -141642,6 +141814,25 @@
                                         ]
                                       }
                                     }
+                                  },
+                                  "mayCommit": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "customer",
+                                      "handyhub"
+                                    ],
+                                    "properties": {
+                                      "customer": {
+                                        "type": "boolean"
+                                      },
+                                      "handyhub": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  "mayWaive": {
+                                    "type": "boolean"
                                   },
                                   "rulesProposed": {
                                     "type": "boolean"
@@ -141797,7 +141988,9 @@
                                         "workStarted",
                                         "depositPaidCents",
                                         "depositPendingCents",
-                                        "rulesVersion"
+                                        "rulesVersion",
+                                        "circumstance",
+                                        "feeWaiver"
                                       ],
                                       "properties": {
                                         "outcome": {
@@ -141816,6 +142009,8 @@
                                               "enum": [
                                                 "full_refund_no_charge",
                                                 "late_cancellation",
+                                                "late_no_charge",
+                                                "estimate_visit_free",
                                                 "work_started",
                                                 "customer_chooses",
                                                 "owner_review"
@@ -141855,6 +142050,35 @@
                                         },
                                         "rulesVersion": {
                                           "type": "integer"
+                                        },
+                                        "circumstance": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "feeWaiver": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "fromCents",
+                                                "reason"
+                                              ],
+                                              "properties": {
+                                                "fromCents": {
+                                                  "type": "integer"
+                                                },
+                                                "reason": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
                                         }
                                       }
                                     },
@@ -148091,6 +148315,7 @@
                 "discount_owner_review",
                 "cancellation_review",
                 "visit_cancellation_review",
+                "cancellation_pattern_review",
                 "estimate_publication_approval",
                 "change_order_publication_approval",
                 "incident_notification"
@@ -148241,6 +148466,7 @@
                               "discount_owner_review",
                               "cancellation_review",
                               "visit_cancellation_review",
+                              "cancellation_pattern_review",
                               "estimate_publication_approval",
                               "change_order_publication_approval",
                               "incident_notification"
@@ -148551,6 +148777,7 @@
                           "discount_owner_review",
                           "cancellation_review",
                           "visit_cancellation_review",
+                          "cancellation_pattern_review",
                           "estimate_publication_approval",
                           "change_order_publication_approval",
                           "incident_notification"
@@ -148721,6 +148948,7 @@
                 "discount_owner_review",
                 "cancellation_review",
                 "visit_cancellation_review",
+                "cancellation_pattern_review",
                 "estimate_publication_approval",
                 "change_order_publication_approval",
                 "incident_notification"
@@ -148871,6 +149099,7 @@
                               "discount_owner_review",
                               "cancellation_review",
                               "visit_cancellation_review",
+                              "cancellation_pattern_review",
                               "estimate_publication_approval",
                               "change_order_publication_approval",
                               "incident_notification"
@@ -149181,6 +149410,7 @@
                           "discount_owner_review",
                           "cancellation_review",
                           "visit_cancellation_review",
+                          "cancellation_pattern_review",
                           "estimate_publication_approval",
                           "change_order_publication_approval",
                           "incident_notification"
@@ -166439,6 +166669,8 @@
                                             "enum": [
                                               "full_refund_no_charge",
                                               "late_cancellation",
+                                              "late_no_charge",
+                                              "estimate_visit_free",
                                               "work_started",
                                               "customer_chooses",
                                               "owner_review"
@@ -166504,8 +166736,13 @@
                                   "depositPaidCents",
                                   "depositPendingCents",
                                   "workStarted",
+                                  "markers",
+                                  "feeDisclosed",
+                                  "feeEnforcement",
                                   "customer",
                                   "handyhub",
+                                  "mayCommit",
+                                  "mayWaive",
                                   "rulesProposed"
                                 ],
                                 "properties": {
@@ -166517,6 +166754,48 @@
                                   },
                                   "workStarted": {
                                     "type": "boolean"
+                                  },
+                                  "markers": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "arrivedAt",
+                                      "preparationStartedAt",
+                                      "contractedWorkStartedAt",
+                                      "completedAt"
+                                    ],
+                                    "properties": {
+                                      "arrivedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "preparationStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "contractedWorkStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "completedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "feeDisclosed": {
+                                    "type": "boolean"
+                                  },
+                                  "feeEnforcement": {
+                                    "type": "string"
                                   },
                                   "customer": {
                                     "type": "object",
@@ -166534,6 +166813,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -166578,6 +166859,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -166605,6 +166888,25 @@
                                         ]
                                       }
                                     }
+                                  },
+                                  "mayCommit": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "customer",
+                                      "handyhub"
+                                    ],
+                                    "properties": {
+                                      "customer": {
+                                        "type": "boolean"
+                                      },
+                                      "handyhub": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  "mayWaive": {
+                                    "type": "boolean"
                                   },
                                   "rulesProposed": {
                                     "type": "boolean"
@@ -171180,6 +171482,7 @@
                               "payment.instructions",
                               "payment.square_link_hosts",
                               "cancellation.rules",
+                              "cancellation.repeat_review",
                               "contact.hours",
                               "business.timezone",
                               "business.calendar",
@@ -174579,6 +174882,8 @@
                                             "enum": [
                                               "full_refund_no_charge",
                                               "late_cancellation",
+                                              "late_no_charge",
+                                              "estimate_visit_free",
                                               "work_started",
                                               "customer_chooses",
                                               "owner_review"
@@ -174644,8 +174949,13 @@
                                   "depositPaidCents",
                                   "depositPendingCents",
                                   "workStarted",
+                                  "markers",
+                                  "feeDisclosed",
+                                  "feeEnforcement",
                                   "customer",
                                   "handyhub",
+                                  "mayCommit",
+                                  "mayWaive",
                                   "rulesProposed"
                                 ],
                                 "properties": {
@@ -174657,6 +174967,48 @@
                                   },
                                   "workStarted": {
                                     "type": "boolean"
+                                  },
+                                  "markers": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "arrivedAt",
+                                      "preparationStartedAt",
+                                      "contractedWorkStartedAt",
+                                      "completedAt"
+                                    ],
+                                    "properties": {
+                                      "arrivedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "preparationStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "contractedWorkStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "completedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "feeDisclosed": {
+                                    "type": "boolean"
+                                  },
+                                  "feeEnforcement": {
+                                    "type": "string"
                                   },
                                   "customer": {
                                     "type": "object",
@@ -174674,6 +175026,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -174718,6 +175072,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -174745,6 +175101,25 @@
                                         ]
                                       }
                                     }
+                                  },
+                                  "mayCommit": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "customer",
+                                      "handyhub"
+                                    ],
+                                    "properties": {
+                                      "customer": {
+                                        "type": "boolean"
+                                      },
+                                      "handyhub": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  "mayWaive": {
+                                    "type": "boolean"
                                   },
                                   "rulesProposed": {
                                     "type": "boolean"
@@ -174900,7 +175275,9 @@
                                         "workStarted",
                                         "depositPaidCents",
                                         "depositPendingCents",
-                                        "rulesVersion"
+                                        "rulesVersion",
+                                        "circumstance",
+                                        "feeWaiver"
                                       ],
                                       "properties": {
                                         "outcome": {
@@ -174919,6 +175296,8 @@
                                               "enum": [
                                                 "full_refund_no_charge",
                                                 "late_cancellation",
+                                                "late_no_charge",
+                                                "estimate_visit_free",
                                                 "work_started",
                                                 "customer_chooses",
                                                 "owner_review"
@@ -174958,6 +175337,35 @@
                                         },
                                         "rulesVersion": {
                                           "type": "integer"
+                                        },
+                                        "circumstance": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "feeWaiver": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "fromCents",
+                                                "reason"
+                                              ],
+                                              "properties": {
+                                                "fromCents": {
+                                                  "type": "integer"
+                                                },
+                                                "reason": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
                                         }
                                       }
                                     },
@@ -176591,7 +176999,7 @@
       "post": {
         "operationId": "cancelVisit",
         "summary": "Cancel a confirmed visit",
-        "description": "Staff with visit.cancel (Owner, Office), with If-Match: the visit version shown (TSK-0066, HH-SCH-07, HH-PORT-04, T25). A work visit is accepted, scheduled work: only the Owner cancels it (cancellation and financial review, work.cancel_with_financial_review; FORBIDDEN OWNER_CANCELS_WORK otherwise). Names who initiated it (initiator customer or handyhub, with handyhubCause weather, safety_stop, sick_worker or other) and a reason (required), or the customer's open cancellation request it confirms (changeRequestId). The server computes the outcome of FACT-CANCELLATION-RULES from the active cancellation.rules (NOT CONFIGURED while unset): the notice (from the customer's request, or now), whether work started (PROPOSED: the job past preparation, or a work visit arrived or completed) and the verified deposit (an uncleared check is shown apart, never counted): full_refund_no_charge (24 hours or more before work starts), late_cancellation ($50.00 kept from the deposit and the rest refunded, or invoiced with no deposit), work_started (work done plus materials, which the Owner determines), customer_chooses (HandyHub cancels: a free reschedule or a full refund) or owner_review (a case the rules do not decide). The visit is canceled, its reservations end and stay as history, the outcome is kept on the change record, and an outcome with money opens the Owner's cancellation_outcome item: nothing is refunded, kept or invoiced automatically (HH-FIN-14). The affected workers get the staff notice after commit; a cancellation is not on the customer's automatic list. Returns the project's visits.",
+        "description": "Staff with visit.cancel (Owner, Office), with If-Match: the visit version shown (TSK-0066, TSK-0140, HH-SCH-07, HH-PORT-04, T25). A work visit is accepted, scheduled work: the Owner cancels it (cancellation and financial review, work.cancel_with_financial_review); Office cancels one only for a routine customer-authorized cancellation within policy (work.cancel_routine, OWN-DEC-195 C6: the customer asked, no circumstance, and the outcome full_refund_no_charge, late_cancellation or late_no_charge; FORBIDDEN NOT_ROUTINE_CANCELLATION otherwise, OWNER_CANCELS_WORK for a role with neither). Names who initiated it (initiator customer or handyhub, with handyhubCause weather, safety_stop, sick_worker or other) and a reason (required), or the customer's open cancellation request it confirms (changeRequestId); optionally the circumstance that keeps a customer's cancellation from being charged automatically (unsafe_conditions, emergency, legally_protected, owner_review) and the Owner's waiver or reduction of the fee (feeWaiver: the fee after it, below the computed fee, and a documented reason; cancellation_fee.waive with a fresh sign-in, FORBIDDEN OWNER_WAIVES_FEE for anyone else, FRESH_AUTH_REQUIRED, CONFLICT NO_FEE_TO_WAIVE). The server computes the outcome of FACT-CANCELLATION-RULES from the active cancellation.rules (NOT CONFIGURED while unset): the notice (from the customer's request, or now), whether contracted work started (Start Work; a worker's arrival or preparation alone never is, OWN-DEC-195 C4), the verified deposit (an uncleared check is shown apart, never counted) and whether the accepted terms disclosed the fee: full_refund_no_charge (24 hours or more before work starts), late_cancellation (at most $50.00 kept from the deposit and the rest refunded, a smaller deposit kept and nothing more invoiced, or $50.00 invoiced with no deposit only where disclosed and accepted in advance), late_no_charge (late, no deposit, not disclosed), estimate_visit_free (an estimate visit is never charged), work_started (work done plus materials, which the Owner determines), customer_chooses (HandyHub cancels: a free reschedule or a full refund) or owner_review (a circumstance the Owner decides). The visit is canceled, its reservations end and stay as history, the outcome is kept on the change record, and an outcome with money opens the Owner's cancellation_outcome item: nothing is refunded, kept or invoiced automatically (HH-FIN-14). The affected workers get the staff notice after commit; a cancellation is not on the customer's automatic list. Returns the project's visits.",
         "tags": [
           "visits"
         ],
@@ -176658,6 +177066,34 @@
                   "changeRequestId": {
                     "type": "string",
                     "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                  },
+                  "circumstance": {
+                    "type": "string",
+                    "enum": [
+                      "unsafe_conditions",
+                      "emergency",
+                      "legally_protected",
+                      "owner_review"
+                    ]
+                  },
+                  "feeWaiver": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "feeCents",
+                      "reason"
+                    ],
+                    "properties": {
+                      "feeCents": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "reason": {
+                        "type": "string",
+                        "maxLength": 2000
+                      }
+                    }
                   }
                 }
               }
@@ -178168,6 +178604,8 @@
                                             "enum": [
                                               "full_refund_no_charge",
                                               "late_cancellation",
+                                              "late_no_charge",
+                                              "estimate_visit_free",
                                               "work_started",
                                               "customer_chooses",
                                               "owner_review"
@@ -178233,8 +178671,13 @@
                                   "depositPaidCents",
                                   "depositPendingCents",
                                   "workStarted",
+                                  "markers",
+                                  "feeDisclosed",
+                                  "feeEnforcement",
                                   "customer",
                                   "handyhub",
+                                  "mayCommit",
+                                  "mayWaive",
                                   "rulesProposed"
                                 ],
                                 "properties": {
@@ -178246,6 +178689,48 @@
                                   },
                                   "workStarted": {
                                     "type": "boolean"
+                                  },
+                                  "markers": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "arrivedAt",
+                                      "preparationStartedAt",
+                                      "contractedWorkStartedAt",
+                                      "completedAt"
+                                    ],
+                                    "properties": {
+                                      "arrivedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "preparationStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "contractedWorkStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "completedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "feeDisclosed": {
+                                    "type": "boolean"
+                                  },
+                                  "feeEnforcement": {
+                                    "type": "string"
                                   },
                                   "customer": {
                                     "type": "object",
@@ -178263,6 +178748,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -178307,6 +178794,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -178334,6 +178823,25 @@
                                         ]
                                       }
                                     }
+                                  },
+                                  "mayCommit": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "customer",
+                                      "handyhub"
+                                    ],
+                                    "properties": {
+                                      "customer": {
+                                        "type": "boolean"
+                                      },
+                                      "handyhub": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  "mayWaive": {
+                                    "type": "boolean"
                                   },
                                   "rulesProposed": {
                                     "type": "boolean"
@@ -178489,7 +178997,9 @@
                                         "workStarted",
                                         "depositPaidCents",
                                         "depositPendingCents",
-                                        "rulesVersion"
+                                        "rulesVersion",
+                                        "circumstance",
+                                        "feeWaiver"
                                       ],
                                       "properties": {
                                         "outcome": {
@@ -178508,6 +179018,8 @@
                                               "enum": [
                                                 "full_refund_no_charge",
                                                 "late_cancellation",
+                                                "late_no_charge",
+                                                "estimate_visit_free",
                                                 "work_started",
                                                 "customer_chooses",
                                                 "owner_review"
@@ -178547,6 +179059,35 @@
                                         },
                                         "rulesVersion": {
                                           "type": "integer"
+                                        },
+                                        "circumstance": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "feeWaiver": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "fromCents",
+                                                "reason"
+                                              ],
+                                              "properties": {
+                                                "fromCents": {
+                                                  "type": "integer"
+                                                },
+                                                "reason": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
                                         }
                                       }
                                     },
@@ -180302,6 +180843,8 @@
                                             "enum": [
                                               "full_refund_no_charge",
                                               "late_cancellation",
+                                              "late_no_charge",
+                                              "estimate_visit_free",
                                               "work_started",
                                               "customer_chooses",
                                               "owner_review"
@@ -180367,8 +180910,13 @@
                                   "depositPaidCents",
                                   "depositPendingCents",
                                   "workStarted",
+                                  "markers",
+                                  "feeDisclosed",
+                                  "feeEnforcement",
                                   "customer",
                                   "handyhub",
+                                  "mayCommit",
+                                  "mayWaive",
                                   "rulesProposed"
                                 ],
                                 "properties": {
@@ -180380,6 +180928,48 @@
                                   },
                                   "workStarted": {
                                     "type": "boolean"
+                                  },
+                                  "markers": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "arrivedAt",
+                                      "preparationStartedAt",
+                                      "contractedWorkStartedAt",
+                                      "completedAt"
+                                    ],
+                                    "properties": {
+                                      "arrivedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "preparationStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "contractedWorkStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "completedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "feeDisclosed": {
+                                    "type": "boolean"
+                                  },
+                                  "feeEnforcement": {
+                                    "type": "string"
                                   },
                                   "customer": {
                                     "type": "object",
@@ -180397,6 +180987,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -180441,6 +181033,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -180468,6 +181062,25 @@
                                         ]
                                       }
                                     }
+                                  },
+                                  "mayCommit": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "customer",
+                                      "handyhub"
+                                    ],
+                                    "properties": {
+                                      "customer": {
+                                        "type": "boolean"
+                                      },
+                                      "handyhub": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  "mayWaive": {
+                                    "type": "boolean"
                                   },
                                   "rulesProposed": {
                                     "type": "boolean"
@@ -180623,7 +181236,9 @@
                                         "workStarted",
                                         "depositPaidCents",
                                         "depositPendingCents",
-                                        "rulesVersion"
+                                        "rulesVersion",
+                                        "circumstance",
+                                        "feeWaiver"
                                       ],
                                       "properties": {
                                         "outcome": {
@@ -180642,6 +181257,8 @@
                                               "enum": [
                                                 "full_refund_no_charge",
                                                 "late_cancellation",
+                                                "late_no_charge",
+                                                "estimate_visit_free",
                                                 "work_started",
                                                 "customer_chooses",
                                                 "owner_review"
@@ -180681,6 +181298,35 @@
                                         },
                                         "rulesVersion": {
                                           "type": "integer"
+                                        },
+                                        "circumstance": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "feeWaiver": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "fromCents",
+                                                "reason"
+                                              ],
+                                              "properties": {
+                                                "fromCents": {
+                                                  "type": "integer"
+                                                },
+                                                "reason": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
                                         }
                                       }
                                     },
@@ -183430,6 +184076,8 @@
                                             "enum": [
                                               "full_refund_no_charge",
                                               "late_cancellation",
+                                              "late_no_charge",
+                                              "estimate_visit_free",
                                               "work_started",
                                               "customer_chooses",
                                               "owner_review"
@@ -183495,8 +184143,13 @@
                                   "depositPaidCents",
                                   "depositPendingCents",
                                   "workStarted",
+                                  "markers",
+                                  "feeDisclosed",
+                                  "feeEnforcement",
                                   "customer",
                                   "handyhub",
+                                  "mayCommit",
+                                  "mayWaive",
                                   "rulesProposed"
                                 ],
                                 "properties": {
@@ -183508,6 +184161,48 @@
                                   },
                                   "workStarted": {
                                     "type": "boolean"
+                                  },
+                                  "markers": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "arrivedAt",
+                                      "preparationStartedAt",
+                                      "contractedWorkStartedAt",
+                                      "completedAt"
+                                    ],
+                                    "properties": {
+                                      "arrivedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "preparationStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "contractedWorkStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "completedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "feeDisclosed": {
+                                    "type": "boolean"
+                                  },
+                                  "feeEnforcement": {
+                                    "type": "string"
                                   },
                                   "customer": {
                                     "type": "object",
@@ -183525,6 +184220,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -183569,6 +184266,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -183596,6 +184295,25 @@
                                         ]
                                       }
                                     }
+                                  },
+                                  "mayCommit": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "customer",
+                                      "handyhub"
+                                    ],
+                                    "properties": {
+                                      "customer": {
+                                        "type": "boolean"
+                                      },
+                                      "handyhub": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  "mayWaive": {
+                                    "type": "boolean"
                                   },
                                   "rulesProposed": {
                                     "type": "boolean"
@@ -183751,7 +184469,9 @@
                                         "workStarted",
                                         "depositPaidCents",
                                         "depositPendingCents",
-                                        "rulesVersion"
+                                        "rulesVersion",
+                                        "circumstance",
+                                        "feeWaiver"
                                       ],
                                       "properties": {
                                         "outcome": {
@@ -183770,6 +184490,8 @@
                                               "enum": [
                                                 "full_refund_no_charge",
                                                 "late_cancellation",
+                                                "late_no_charge",
+                                                "estimate_visit_free",
                                                 "work_started",
                                                 "customer_chooses",
                                                 "owner_review"
@@ -183809,6 +184531,35 @@
                                         },
                                         "rulesVersion": {
                                           "type": "integer"
+                                        },
+                                        "circumstance": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "feeWaiver": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "fromCents",
+                                                "reason"
+                                              ],
+                                              "properties": {
+                                                "fromCents": {
+                                                  "type": "integer"
+                                                },
+                                                "reason": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
                                         }
                                       }
                                     },
@@ -186906,6 +187657,8 @@
                                             "enum": [
                                               "full_refund_no_charge",
                                               "late_cancellation",
+                                              "late_no_charge",
+                                              "estimate_visit_free",
                                               "work_started",
                                               "customer_chooses",
                                               "owner_review"
@@ -186971,8 +187724,13 @@
                                   "depositPaidCents",
                                   "depositPendingCents",
                                   "workStarted",
+                                  "markers",
+                                  "feeDisclosed",
+                                  "feeEnforcement",
                                   "customer",
                                   "handyhub",
+                                  "mayCommit",
+                                  "mayWaive",
                                   "rulesProposed"
                                 ],
                                 "properties": {
@@ -186984,6 +187742,48 @@
                                   },
                                   "workStarted": {
                                     "type": "boolean"
+                                  },
+                                  "markers": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "arrivedAt",
+                                      "preparationStartedAt",
+                                      "contractedWorkStartedAt",
+                                      "completedAt"
+                                    ],
+                                    "properties": {
+                                      "arrivedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "preparationStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "contractedWorkStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "completedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "feeDisclosed": {
+                                    "type": "boolean"
+                                  },
+                                  "feeEnforcement": {
+                                    "type": "string"
                                   },
                                   "customer": {
                                     "type": "object",
@@ -187001,6 +187801,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -187045,6 +187847,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -187072,6 +187876,25 @@
                                         ]
                                       }
                                     }
+                                  },
+                                  "mayCommit": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "customer",
+                                      "handyhub"
+                                    ],
+                                    "properties": {
+                                      "customer": {
+                                        "type": "boolean"
+                                      },
+                                      "handyhub": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  "mayWaive": {
+                                    "type": "boolean"
                                   },
                                   "rulesProposed": {
                                     "type": "boolean"
@@ -187227,7 +188050,9 @@
                                         "workStarted",
                                         "depositPaidCents",
                                         "depositPendingCents",
-                                        "rulesVersion"
+                                        "rulesVersion",
+                                        "circumstance",
+                                        "feeWaiver"
                                       ],
                                       "properties": {
                                         "outcome": {
@@ -187246,6 +188071,8 @@
                                               "enum": [
                                                 "full_refund_no_charge",
                                                 "late_cancellation",
+                                                "late_no_charge",
+                                                "estimate_visit_free",
                                                 "work_started",
                                                 "customer_chooses",
                                                 "owner_review"
@@ -187285,6 +188112,35 @@
                                         },
                                         "rulesVersion": {
                                           "type": "integer"
+                                        },
+                                        "circumstance": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "feeWaiver": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "fromCents",
+                                                "reason"
+                                              ],
+                                              "properties": {
+                                                "fromCents": {
+                                                  "type": "integer"
+                                                },
+                                                "reason": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
                                         }
                                       }
                                     },
@@ -190352,7 +191208,7 @@
       "post": {
         "operationId": "changeVisitWindow",
         "summary": "Change a visit's window",
-        "description": "Staff with visit.offer_windows (an Estimator: estimate visits only, PROPOSED), with If-Match: the visit version shown. While the visit is tentative or confirmed, sets a new window as its next window version; the earlier windows stay in its history. The local times are kept as entered and the instants follow the zone on the chosen date, so a window moved across a daylight-saving change keeps its local times. The visit's zone does not change. Same window rules and refusals as planning; an unchanged window is refused (WINDOW_UNCHANGED). An optional reason is kept in the history. Moving a confirmed visit needs visit.reschedule (Owner, Office): its workers and items are checked and reserved for the new range in the same transaction (the old reservations are kept, ended \"rescheduled\"); a capacity conflict refuses with every problem and the alternatives, and the booking stays exactly as it was. A confirmed visit is moved only while every confirmation precondition still holds (TSK-0064: the approval, the deposit, the gates, no blocking hold), named with the capacity problems. TSK-0066 (HH-SCH-07): a reschedule of a confirmed visit needs a reason (REASON_REQUIRED) and may name who initiated it (initiator customer or handyhub, with handyhubCause weather, safety_stop, sick_worker or other; rescheduling is always free) and the customer reschedule request it confirms (changeRequestId; REQUEST_NOT_FOR_VISIT, REQUEST_<state>). It writes one change record and the committed appointment.change_committed event: after commit the customer gets the automatic \"Appointment changed\" notice (FACT-AUTOMATIC-MESSAGES #11) and the affected workers the staff notice, once per change (wording NOT CONFIGURED: each delivery is recorded as not configured, never as sent). Returns the project's visits.",
+        "description": "Staff with visit.offer_windows (an Estimator: estimate visits only, PROPOSED), with If-Match: the visit version shown. While the visit is tentative or confirmed, sets a new window as its next window version; the earlier windows stay in its history. The local times are kept as entered and the instants follow the zone on the chosen date, so a window moved across a daylight-saving change keeps its local times. The visit's zone does not change. Same window rules and refusals as planning; an unchanged window is refused (WINDOW_UNCHANGED). An optional reason is kept in the history. Moving a confirmed visit needs visit.reschedule (Owner, Office): its workers and items are checked and reserved for the new range in the same transaction (the old reservations are kept, ended \"rescheduled\"); a capacity conflict refuses with every problem and the alternatives, and the booking stays exactly as it was. A confirmed visit is moved only while every confirmation precondition still holds (TSK-0064: the approval, the deposit, the gates, no blocking hold), named with the capacity problems. TSK-0066 (HH-SCH-07): a reschedule of a confirmed visit needs a reason (REASON_REQUIRED) and who initiated it (TSK-0140, OWN-DEC-195 C2: required, INITIATOR_REQUIRED; initiator customer or handyhub, with handyhubCause weather, safety_stop, sick_worker or other; rescheduling is always free), or the customer reschedule request it confirms (changeRequestId, the customer's; REQUEST_NOT_FOR_VISIT, REQUEST_<state>). It writes one change record and the committed appointment.change_committed event: after commit the customer gets the automatic \"Appointment changed\" notice (FACT-AUTOMATIC-MESSAGES #11) and the affected workers the staff notice, once per change (wording NOT CONFIGURED: each delivery is recorded as not configured, never as sent). Returns the project's visits.",
         "tags": [
           "visits"
         ],
@@ -191965,6 +192821,8 @@
                                             "enum": [
                                               "full_refund_no_charge",
                                               "late_cancellation",
+                                              "late_no_charge",
+                                              "estimate_visit_free",
                                               "work_started",
                                               "customer_chooses",
                                               "owner_review"
@@ -192030,8 +192888,13 @@
                                   "depositPaidCents",
                                   "depositPendingCents",
                                   "workStarted",
+                                  "markers",
+                                  "feeDisclosed",
+                                  "feeEnforcement",
                                   "customer",
                                   "handyhub",
+                                  "mayCommit",
+                                  "mayWaive",
                                   "rulesProposed"
                                 ],
                                 "properties": {
@@ -192043,6 +192906,48 @@
                                   },
                                   "workStarted": {
                                     "type": "boolean"
+                                  },
+                                  "markers": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "arrivedAt",
+                                      "preparationStartedAt",
+                                      "contractedWorkStartedAt",
+                                      "completedAt"
+                                    ],
+                                    "properties": {
+                                      "arrivedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "preparationStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "contractedWorkStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "completedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "feeDisclosed": {
+                                    "type": "boolean"
+                                  },
+                                  "feeEnforcement": {
+                                    "type": "string"
                                   },
                                   "customer": {
                                     "type": "object",
@@ -192060,6 +192965,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -192104,6 +193011,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -192131,6 +193040,25 @@
                                         ]
                                       }
                                     }
+                                  },
+                                  "mayCommit": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "customer",
+                                      "handyhub"
+                                    ],
+                                    "properties": {
+                                      "customer": {
+                                        "type": "boolean"
+                                      },
+                                      "handyhub": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  "mayWaive": {
+                                    "type": "boolean"
                                   },
                                   "rulesProposed": {
                                     "type": "boolean"
@@ -192286,7 +193214,9 @@
                                         "workStarted",
                                         "depositPaidCents",
                                         "depositPendingCents",
-                                        "rulesVersion"
+                                        "rulesVersion",
+                                        "circumstance",
+                                        "feeWaiver"
                                       ],
                                       "properties": {
                                         "outcome": {
@@ -192305,6 +193235,8 @@
                                               "enum": [
                                                 "full_refund_no_charge",
                                                 "late_cancellation",
+                                                "late_no_charge",
+                                                "estimate_visit_free",
                                                 "work_started",
                                                 "customer_chooses",
                                                 "owner_review"
@@ -192344,6 +193276,35 @@
                                         },
                                         "rulesVersion": {
                                           "type": "integer"
+                                        },
+                                        "circumstance": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "feeWaiver": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "fromCents",
+                                                "reason"
+                                              ],
+                                              "properties": {
+                                                "fromCents": {
+                                                  "type": "integer"
+                                                },
+                                                "reason": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
                                         }
                                       }
                                     },
@@ -194917,6 +195878,8 @@
                                             "enum": [
                                               "full_refund_no_charge",
                                               "late_cancellation",
+                                              "late_no_charge",
+                                              "estimate_visit_free",
                                               "work_started",
                                               "customer_chooses",
                                               "owner_review"
@@ -194982,8 +195945,13 @@
                                   "depositPaidCents",
                                   "depositPendingCents",
                                   "workStarted",
+                                  "markers",
+                                  "feeDisclosed",
+                                  "feeEnforcement",
                                   "customer",
                                   "handyhub",
+                                  "mayCommit",
+                                  "mayWaive",
                                   "rulesProposed"
                                 ],
                                 "properties": {
@@ -194995,6 +195963,48 @@
                                   },
                                   "workStarted": {
                                     "type": "boolean"
+                                  },
+                                  "markers": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "arrivedAt",
+                                      "preparationStartedAt",
+                                      "contractedWorkStartedAt",
+                                      "completedAt"
+                                    ],
+                                    "properties": {
+                                      "arrivedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "preparationStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "contractedWorkStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "completedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "feeDisclosed": {
+                                    "type": "boolean"
+                                  },
+                                  "feeEnforcement": {
+                                    "type": "string"
                                   },
                                   "customer": {
                                     "type": "object",
@@ -195012,6 +196022,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -195056,6 +196068,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -195083,6 +196097,25 @@
                                         ]
                                       }
                                     }
+                                  },
+                                  "mayCommit": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "customer",
+                                      "handyhub"
+                                    ],
+                                    "properties": {
+                                      "customer": {
+                                        "type": "boolean"
+                                      },
+                                      "handyhub": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  "mayWaive": {
+                                    "type": "boolean"
                                   },
                                   "rulesProposed": {
                                     "type": "boolean"
@@ -195238,7 +196271,9 @@
                                         "workStarted",
                                         "depositPaidCents",
                                         "depositPendingCents",
-                                        "rulesVersion"
+                                        "rulesVersion",
+                                        "circumstance",
+                                        "feeWaiver"
                                       ],
                                       "properties": {
                                         "outcome": {
@@ -195257,6 +196292,8 @@
                                               "enum": [
                                                 "full_refund_no_charge",
                                                 "late_cancellation",
+                                                "late_no_charge",
+                                                "estimate_visit_free",
                                                 "work_started",
                                                 "customer_chooses",
                                                 "owner_review"
@@ -195296,6 +196333,35 @@
                                         },
                                         "rulesVersion": {
                                           "type": "integer"
+                                        },
+                                        "circumstance": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "feeWaiver": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "fromCents",
+                                                "reason"
+                                              ],
+                                              "properties": {
+                                                "fromCents": {
+                                                  "type": "integer"
+                                                },
+                                                "reason": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
                                         }
                                       }
                                     },
