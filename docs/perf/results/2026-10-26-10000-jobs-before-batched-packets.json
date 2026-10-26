@@ -1,0 +1,710 @@
+{
+  "kind": "lab",
+  "task": "TSK-0105",
+  "measuredAt": "2026-10-26T15:03:42.846Z",
+  "commit": "37ba81a",
+  "note": "Shared developer Mac (Apple M4, 10 cores, 16 GB) with other agents' integration and e2e suites running at the same time; PostgreSQL 16 on the same machine. With the schedule-board batching and index 0134.",
+  "machine": {
+    "platform": "darwin 27.0.0",
+    "cpus": 10,
+    "cpuModel": "Apple M4",
+    "memoryGb": 16,
+    "loadAverageBefore": [
+      4.5,
+      6.7,
+      9
+    ],
+    "loadAverageAfter": [
+      6.4,
+      6.2,
+      8.3
+    ],
+    "node": "v24.21.0",
+    "postgres": "16.15 (Postgres.app)"
+  },
+  "dataset": {
+    "mix": {
+      "jobs": 10000,
+      "openRequests": 1000,
+      "awaitingApproval": 1000,
+      "bookedVisits": 1000,
+      "depositsPaid": 5000
+    },
+    "generatedSeconds": 183.214,
+    "rows": {
+      "crm.customers": 12000,
+      "crm.contacts": 12000,
+      "crm.properties": 12000,
+      "crm.projects": 12000,
+      "intake.requests": 12000,
+      "estimating.estimates": 11000,
+      "estimating.approvals": 10000,
+      "work.jobs": 10000,
+      "work.visits": 1000,
+      "work.reservations": 1000,
+      "finance.deposit_requirements": 10000,
+      "finance.payments": 5000,
+      "ops.queue_items": 34000,
+      "platform.audit_events": 88074,
+      "platform.outbox_events": 50000
+    }
+  },
+  "protocol": {
+    "users": 20,
+    "rounds": 5,
+    "phases": {
+      "A": "20 staff users, closed loop, 5 rounds of their role's reads",
+      "B": "20 clients: 4 write lanes (submission, acceptance, schedule, start) and readers",
+      "C": "20 customers reading their project overview",
+      "D": "the Owner, alone: each export three times"
+    },
+    "seconds": {
+      "A": 7.537816833000019,
+      "B": 6.7768297500000045,
+      "C": 0.2640217920000141,
+      "D": 0.5132035840000025
+    }
+  },
+  "verdicts": [
+    {
+      "group": "staff_read",
+      "n": 480,
+      "p95": 1087.6,
+      "budgetMs": 800,
+      "state": "over"
+    },
+    {
+      "group": "core_write",
+      "n": 160,
+      "p95": 159.4,
+      "budgetMs": 1500,
+      "state": "within"
+    },
+    {
+      "group": "customer_read",
+      "n": 300,
+      "p95": 23.6,
+      "budgetMs": null,
+      "state": "not_configured"
+    },
+    {
+      "group": "export",
+      "n": 12,
+      "p95": 144,
+      "budgetMs": null,
+      "state": "not_configured"
+    }
+  ],
+  "operations": {
+    "A": [
+      {
+        "op": "customer_record",
+        "group": "staff_read",
+        "n": 25,
+        "p50": 77.9,
+        "p95": 173.1,
+        "max": 180.5,
+        "errors": 0,
+        "statuses": {
+          "200": 25
+        },
+        "queries": 28
+      },
+      {
+        "op": "customer_search",
+        "group": "staff_read",
+        "n": 40,
+        "p50": 146.6,
+        "p95": 297.6,
+        "max": 373.3,
+        "errors": 0,
+        "statuses": {
+          "200": 40
+        },
+        "queries": 10
+      },
+      {
+        "op": "customers_list",
+        "group": "staff_read",
+        "n": 25,
+        "p50": 33.1,
+        "p95": 89.4,
+        "max": 92.1,
+        "errors": 0,
+        "statuses": {
+          "200": 25
+        },
+        "queries": 10
+      },
+      {
+        "op": "dashboard",
+        "group": "staff_read",
+        "n": 5,
+        "p50": 320.4,
+        "p95": 481,
+        "max": 481,
+        "errors": 0,
+        "statuses": {
+          "200": 5
+        },
+        "queries": 44
+      },
+      {
+        "op": "dashboard_records",
+        "group": "staff_read",
+        "n": 5,
+        "p50": 368.5,
+        "p95": 387.8,
+        "max": 387.8,
+        "errors": 0,
+        "statuses": {
+          "200": 5
+        },
+        "queries": 44
+      },
+      {
+        "op": "job_packet",
+        "group": "staff_read",
+        "n": 85,
+        "p50": 55.8,
+        "p95": 104.9,
+        "max": 161.4,
+        "errors": 0,
+        "statuses": {
+          "200": 85
+        },
+        "queries": 36
+      },
+      {
+        "op": "my_day",
+        "group": "staff_read",
+        "n": 60,
+        "p50": 12.1,
+        "p95": 55.5,
+        "max": 87.2,
+        "errors": 0,
+        "statuses": {
+          "200": 60
+        },
+        "queries": 7
+      },
+      {
+        "op": "my_job_packets",
+        "group": "staff_read",
+        "n": 60,
+        "p50": 989.9,
+        "p95": 2769.7,
+        "max": 2778.7,
+        "errors": 0,
+        "statuses": {
+          "200": 60
+        },
+        "queries": 1769
+      },
+      {
+        "op": "owner_decisions",
+        "group": "staff_read",
+        "n": 5,
+        "p50": 8.1,
+        "p95": 65.2,
+        "max": 65.2,
+        "errors": 0,
+        "statuses": {
+          "200": 5
+        },
+        "queries": 5
+      },
+      {
+        "op": "queue",
+        "group": "staff_read",
+        "n": 40,
+        "p50": 42.5,
+        "p95": 174.1,
+        "max": 215.9,
+        "errors": 0,
+        "statuses": {
+          "200": 40
+        },
+        "queries": 6
+      },
+      {
+        "op": "request_summary",
+        "group": "staff_read",
+        "n": 40,
+        "p50": 18,
+        "p95": 41.1,
+        "max": 64,
+        "errors": 0,
+        "statuses": {
+          "200": 40
+        },
+        "queries": 7
+      },
+      {
+        "op": "requests_list",
+        "group": "staff_read",
+        "n": 40,
+        "p50": 25.1,
+        "p95": 71.6,
+        "max": 128.3,
+        "errors": 0,
+        "statuses": {
+          "200": 40
+        },
+        "queries": 6
+      },
+      {
+        "op": "schedule_day",
+        "group": "staff_read",
+        "n": 25,
+        "p50": 86.1,
+        "p95": 149.9,
+        "max": 154.4,
+        "errors": 0,
+        "statuses": {
+          "200": 25
+        },
+        "queries": 22
+      },
+      {
+        "op": "schedule_week",
+        "group": "staff_read",
+        "n": 25,
+        "p50": 153.3,
+        "p95": 274.8,
+        "max": 281,
+        "errors": 0,
+        "statuses": {
+          "200": 25
+        },
+        "queries": 22
+      }
+    ],
+    "B": [
+      {
+        "op": "approve_estimate",
+        "group": "core_write",
+        "n": 40,
+        "p50": 51.3,
+        "p95": 117.3,
+        "max": 141.4,
+        "errors": 0,
+        "statuses": {
+          "201": 40
+        },
+        "queries": null
+      },
+      {
+        "op": "confirm_visit",
+        "group": "core_write",
+        "n": 20,
+        "p50": 97.7,
+        "p95": 161.6,
+        "max": 197.2,
+        "errors": 0,
+        "statuses": {
+          "200": 20
+        },
+        "queries": null
+      },
+      {
+        "op": "plan_visit",
+        "group": "core_write",
+        "n": 20,
+        "p50": 83.8,
+        "p95": 191.4,
+        "max": 286.2,
+        "errors": 0,
+        "statuses": {
+          "201": 20
+        },
+        "queries": null
+      },
+      {
+        "op": "start_work_attempt",
+        "group": "core_write",
+        "n": 40,
+        "p50": 35.3,
+        "p95": 137.4,
+        "max": 198.4,
+        "errors": 0,
+        "statuses": {
+          "409": 40
+        },
+        "queries": null
+      },
+      {
+        "op": "submit_request",
+        "group": "core_write",
+        "n": 40,
+        "p50": 37.5,
+        "p95": 100.9,
+        "max": 294.3,
+        "errors": 0,
+        "statuses": {
+          "201": 40
+        },
+        "queries": null
+      },
+      {
+        "op": "customer_record",
+        "group": "staff_read",
+        "n": 25,
+        "p50": 103,
+        "p95": 156.9,
+        "max": 158.9,
+        "errors": 0,
+        "statuses": {
+          "200": 25
+        },
+        "queries": 28
+      },
+      {
+        "op": "customer_search",
+        "group": "staff_read",
+        "n": 40,
+        "p50": 162.9,
+        "p95": 357.9,
+        "max": 497.9,
+        "errors": 0,
+        "statuses": {
+          "200": 40
+        },
+        "queries": 10
+      },
+      {
+        "op": "customers_list",
+        "group": "staff_read",
+        "n": 25,
+        "p50": 52.6,
+        "p95": 95.9,
+        "max": 108.5,
+        "errors": 0,
+        "statuses": {
+          "200": 25
+        },
+        "queries": 10
+      },
+      {
+        "op": "dashboard",
+        "group": "staff_read",
+        "n": 5,
+        "p50": 330.1,
+        "p95": 634,
+        "max": 634,
+        "errors": 0,
+        "statuses": {
+          "200": 5
+        },
+        "queries": 44
+      },
+      {
+        "op": "dashboard_records",
+        "group": "staff_read",
+        "n": 5,
+        "p50": 371.7,
+        "p95": 429.6,
+        "max": 429.6,
+        "errors": 0,
+        "statuses": {
+          "200": 5
+        },
+        "queries": 44
+      },
+      {
+        "op": "job_packet",
+        "group": "staff_read",
+        "n": 65,
+        "p50": 25.5,
+        "p95": 133.6,
+        "max": 159.9,
+        "errors": 0,
+        "statuses": {
+          "200": 65
+        },
+        "queries": 36
+      },
+      {
+        "op": "my_day",
+        "group": "staff_read",
+        "n": 40,
+        "p50": 6.8,
+        "p95": 57.3,
+        "max": 58.5,
+        "errors": 0,
+        "statuses": {
+          "200": 40
+        },
+        "queries": 7
+      },
+      {
+        "op": "my_job_packets",
+        "group": "staff_read",
+        "n": 40,
+        "p50": 795.7,
+        "p95": 3407.2,
+        "max": 3477.5,
+        "errors": 0,
+        "statuses": {
+          "200": 40
+        },
+        "queries": 1769
+      },
+      {
+        "op": "owner_decisions",
+        "group": "staff_read",
+        "n": 5,
+        "p50": 9.4,
+        "p95": 18.6,
+        "max": 18.6,
+        "errors": 0,
+        "statuses": {
+          "200": 5
+        },
+        "queries": 5
+      },
+      {
+        "op": "queue",
+        "group": "staff_read",
+        "n": 40,
+        "p50": 51.1,
+        "p95": 96,
+        "max": 126.9,
+        "errors": 0,
+        "statuses": {
+          "200": 40
+        },
+        "queries": 6
+      },
+      {
+        "op": "request_summary",
+        "group": "staff_read",
+        "n": 40,
+        "p50": 18.6,
+        "p95": 73.7,
+        "max": 266.4,
+        "errors": 0,
+        "statuses": {
+          "200": 40
+        },
+        "queries": 7
+      },
+      {
+        "op": "requests_list",
+        "group": "staff_read",
+        "n": 40,
+        "p50": 30.7,
+        "p95": 62.4,
+        "max": 84.5,
+        "errors": 0,
+        "statuses": {
+          "200": 40
+        },
+        "queries": 6
+      },
+      {
+        "op": "schedule_day",
+        "group": "staff_read",
+        "n": 25,
+        "p50": 99.9,
+        "p95": 159.2,
+        "max": 185.7,
+        "errors": 0,
+        "statuses": {
+          "200": 25
+        },
+        "queries": 22
+      },
+      {
+        "op": "schedule_week",
+        "group": "staff_read",
+        "n": 25,
+        "p50": 155.5,
+        "p95": 337.9,
+        "max": 341.3,
+        "errors": 0,
+        "statuses": {
+          "200": 25
+        },
+        "queries": 22
+      }
+    ],
+    "C": [
+      {
+        "op": "portal_overview",
+        "group": "customer_read",
+        "n": 300,
+        "p50": 17.2,
+        "p95": 23.6,
+        "max": 26,
+        "errors": 0,
+        "statuses": {
+          "200": 300
+        },
+        "queries": 23
+      }
+    ],
+    "D": [
+      {
+        "op": "export_accounting_invoices",
+        "group": "export",
+        "n": 3,
+        "p50": 2.9,
+        "p95": 3.4,
+        "max": 3.4,
+        "errors": 0,
+        "statuses": {
+          "200": 3
+        },
+        "queries": null
+      },
+      {
+        "op": "export_accounting_payments",
+        "group": "export",
+        "n": 3,
+        "p50": 23.7,
+        "p95": 25,
+        "max": 25,
+        "errors": 0,
+        "statuses": {
+          "200": 3
+        },
+        "queries": null
+      },
+      {
+        "op": "export_dashboard_csv",
+        "group": "export",
+        "n": 3,
+        "p50": 142.1,
+        "p95": 144,
+        "max": 144,
+        "errors": 0,
+        "statuses": {
+          "200": 3
+        },
+        "queries": null
+      },
+      {
+        "op": "export_visit_timestamps",
+        "group": "export",
+        "n": 3,
+        "p50": 2.4,
+        "p95": 3.5,
+        "max": 3.5,
+        "errors": 0,
+        "statuses": {
+          "200": 3
+        },
+        "queries": null
+      }
+    ]
+  },
+  "topStatementsPhaseA": [
+    {
+      "text": "select \"r\".\"staff_user_id\", \"r\".\"created_at\", ((v.local_date + 1)::timestamp AT TIME ZONE v.time_zone) as \"access_ends\", (SELECT max(x.expires_at) FROM work.visit_access_extensions x WHERE x.reservation_id = r.id AND x.starts_at <= now() AN",
+      "count": 5255,
+      "totalMs": 5665,
+      "maxMs": 141.45966700001736,
+      "meanMs": 1.0779945126546537
+    },
+    {
+      "text": "select \"cu\".\"id\", \"cu\".\"display_name\", \"cu\".\"status\", \"cu\".\"created_at\", cu.created_at::text as \"created_key\" from \"crm\".\"customers\" as \"cu\" where true and (\"cu\".\"display_name\" ilike $1 or exists (select \"c\".\"id\" from \"crm\".\"contacts\" as \"c",
+      "count": 40,
+      "totalMs": 5302,
+      "maxMs": 327.5157079999917,
+      "meanMs": 132.54617599999983
+    },
+    {
+      "text": "select \"w\".\"id\", \"w\".\"service_id\", \"s\".\"code\", \"w\".\"position\", \"w\".\"state\", \"w\".\"sop_version_id\", \"v\".\"sop_id\", \"v\".\"version\", \"v\".\"title\", \"v\".\"review_state\", CASE WHEN v.id IS NULL THEN NULL ELSE catalog.sop_spanish_status(v.id) END as \"s",
+      "count": 5085,
+      "totalMs": 4092,
+      "maxMs": 51.756374999997206,
+      "meanMs": 0.804809163618412
+    },
+    {
+      "text": "select \"w\".\"id\", \"w\".\"project_id\", \"w\".\"service_id\", \"s\".\"code\", \"w\".\"position\", \"w\".\"state\", \"l\".\"pinned_at\", \"v\".\"id\" as \"version_id\", \"v\".\"inventory_id\", \"v\".\"version\", \"v\".\"source_file\", \"v\".\"content_sha256\", \"v\".\"content\" from \"work\".\"",
+      "count": 5085,
+      "totalMs": 3969,
+      "maxMs": 45.31154199998127,
+      "meanMs": 0.7806114072760915
+    },
+    {
+      "text": " INSERT INTO work.work_package_loadouts (work_package_id, project_id, job_id, service_id, loadout_version_id) SELECT w.id, w.project_id, w.job_id, w.service_id, v.id FROM work.work_packages w JOIN catalog.loadout_versions v ON v.service_id ",
+      "count": 5085,
+      "totalMs": 3729,
+      "maxMs": 46.83629100001417,
+      "meanMs": 0.7333048719764472
+    },
+    {
+      "text": "select \"j\".\"id\", \"j\".\"project_id\", \"j\".\"operational_state\", \"j\".\"approval_id\", \"a\".\"created_at\" as \"approved_at\", \"p\".\"reference\", \"pr\".\"id\" as \"property_id\", \"pr\".\"address_version\", \"pr\".\"property_type\", \"pr\".\"time_zone\" from \"work\".\"jobs\"",
+      "count": 5085,
+      "totalMs": 3633,
+      "maxMs": 47.273125000006985,
+      "meanMs": 0.7144034723696874
+    },
+    {
+      "text": "select \"r\".\"visit_id\", \"r\".\"resource\", \"r\".\"staff_user_id\", \"r\".\"role\", \"u\".\"display_name\", \"r\".\"equipment_id\", \"e\".\"name\" from \"work\".\"reservations\" as \"r\" left join \"identity\".\"staff_users\" as \"u\" on \"u\".\"id\" = \"r\".\"staff_user_id\" left jo",
+      "count": 5064,
+      "totalMs": 3242,
+      "maxMs": 51.99137500001234,
+      "meanMs": 0.6402907336097542
+    },
+    {
+      "text": "select \"id\", \"job_id\", \"project_id\", \"version\", \"content\", \"content_sha256\", \"changes\", \"critical\", \"generated_at\" from \"work\".\"job_packets\" where \"job_id\" = $1 order by \"version\" desc limit $2",
+      "count": 5085,
+      "totalMs": 2697,
+      "maxMs": 47.97479199999361,
+      "meanMs": 0.5303187929204644
+    },
+    {
+      "text": "commit",
+      "count": 5085,
+      "totalMs": 2625,
+      "maxMs": 94.6734170000127,
+      "meanMs": 0.5162555262533629
+    },
+    {
+      "text": "select \"a\".\"id\", \"a\".\"version\", \"a\".\"acknowledged_at\", \"i\".\"reason\", \"i\".\"version\" as \"invalidated_by_version\", \"i\".\"invalidated_at\" from \"work\".\"job_packet_acknowledgments\" as \"a\" left join \"work\".\"job_packet_acknowledgment_invalidations\" ",
+      "count": 5149,
+      "totalMs": 2581,
+      "maxMs": 48.16195800001151,
+      "meanMs": 0.5012351503204241
+    },
+    {
+      "text": "select \"required\", \"state\" from \"finance\".\"deposit_requirements\" where \"job_id\" = $1",
+      "count": 5085,
+      "totalMs": 2361,
+      "maxMs": 54.49258399999235,
+      "meanMs": 0.464304186233627
+    },
+    {
+      "text": "select \"version\" from \"work\".\"job_packets\" where \"job_id\" = $1 and \"critical\" = $2",
+      "count": 5170,
+      "totalMs": 2289,
+      "maxMs": 54.636790999997174,
+      "meanMs": 0.44270215048347744
+    },
+    {
+      "text": "select \"id\", \"number\", \"purpose\", \"state\", \"local_date\", \"window_start\", \"window_end\", \"time_zone\", \"window_version\", \"equipment\" from \"work\".\"visits\" where \"job_id\" = $1 and \"state\" in ($2, $3, $4) order by \"starts_at\", \"number\"",
+      "count": 5085,
+      "totalMs": 2270,
+      "maxMs": 47.978000000002794,
+      "meanMs": 0.4464344464113108
+    },
+    {
+      "text": "select \"detail\", \"value\", \"source\", \"confirmed_at\" from \"crm\".\"property_details\" where \"property_id\" = $1 order by \"detail\"",
+      "count": 5085,
+      "totalMs": 2240,
+      "maxMs": 48.463999999978114,
+      "meanMs": 0.4404373054079791
+    },
+    {
+      "text": "select \"version\", \"viewed_at\" from \"work\".\"job_packet_views\" where \"job_id\" = $1 and \"staff_user_id\" = $2 order by \"viewed_at\" desc, \"id\" desc limit $3",
+      "count": 5085,
+      "totalMs": 2238,
+      "maxMs": 51.79250000001048,
+      "meanMs": 0.4401853720745039
+    }
+  ],
+  "unexpected": []
+}

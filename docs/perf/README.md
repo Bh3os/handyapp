@@ -58,81 +58,90 @@ When the Owner decides a NOT CONFIGURED value, it goes into `budgets.json`. From
 
 ## Results: 10,000 jobs (2026-10-26)
 
+
 **Machine:** a shared developer Mac (Apple M4, 10 cores, 16 GB) with PostgreSQL 16.15 on the same machine. Other
-agents' integration and e2e suites were running at the same time: the load average was 4.5 to 9 before the run and
-6 to 8 after it. Absolute numbers on Render's free plan will differ. Raw results:
-[`results/2026-10-26-10000-jobs.json`](results/2026-10-26-10000-jobs.json).
+agents' test suites were running at the same time: the load average was 5.6 to 7.5 before the run and 6.8 to 7.9
+after it. Absolute numbers on Render's free plan will differ. Raw results:
+[`results/2026-10-26-10000-jobs.json`](results/2026-10-26-10000-jobs.json) (commit a07c030).
 
 | Group | Samples | p95 | Budget | State |
 | --- | --- | --- | --- | --- |
-| Staff key reads (phase A) | 480 | 1,088 ms | 800 ms | **over** |
-| Core writes (phase B) | 160 | 159 ms | 1,500 ms | within |
-| Portal overview (phase C) | 300 | 24 ms | NOT CONFIGURED | — |
-| Exports (phase D) | 12 | 144 ms | NOT CONFIGURED | — |
+| Staff key reads (phase A) | 480 | 250 ms | 800 ms | within |
+| Core writes (phase B) | 160 | 189 ms | 1,500 ms | within |
+| Portal overview (phase C) | 300 | 23 ms | NOT CONFIGURED | — |
+| Exports (phase D) | 12 | 143 ms | NOT CONFIGURED | — |
 
-**The real capability.** Staff key reads miss the 800 ms target at 10,000 jobs, and **My job packets** alone causes
-it. That read runs 1,769 statements for a worker with 83 upcoming assignments: p50 990 ms, p95 2.8 s, and 3.4 s while
-writes run. Every other key read has a p95 at or under 481 ms (the Owner Dashboard). Core writes are an order of
-magnitude inside their budget.
+**The real capability.** On this machine and this dataset, both decided budgets are met at 10,000 jobs with 20
+concurrent staff. Every staff key read has a p95 at or under 605 ms; the slowest is the Owner Dashboard. This took the
+three fixes below. Before them, staff key reads had a p95 of 1,565 ms and missed the budget.
 
 Phase A (staff key reads):
 
 | Operation | p50 | p95 | Statements |
 | --- | --- | --- | --- |
-| Action queue | 43 ms | 174 ms | 6 |
-| Owner Decisions | 8 ms | 65 ms | 5 |
-| Schedule board, day | 86 ms | 150 ms | 22 |
-| Schedule board, week | 153 ms | 275 ms | 22 |
-| Customer search | 147 ms | 298 ms | 10 |
-| Customer list | 33 ms | 89 ms | 10 |
-| Customer record | 78 ms | 173 ms | 28 |
-| Request list | 25 ms | 72 ms | 6 |
-| Request summary | 18 ms | 41 ms | 7 |
-| Job packet | 56 ms | 105 ms | 36 |
-| Owner Dashboard (30 days) | 320 ms | 481 ms | 44 |
-| Dashboard records | 369 ms | 388 ms | 44 |
-| My Day | 12 ms | 56 ms | 7 |
-| My job packets | 990 ms | 2,770 ms | 1,769 |
+| Action queue | 39 ms | 73 ms | 6 |
+| Owner Decisions | 2 ms | 11 ms | 5 |
+| Schedule board, day | 44 ms | 275 ms | 22 |
+| Schedule board, week | 123 ms | 273 ms | 22 |
+| Customer search | 134 ms | 272 ms | 10 |
+| Customer list | 15 ms | 126 ms | 10 |
+| Customer record | 14 ms | 163 ms | 28 |
+| Request list | 33 ms | 101 ms | 6 |
+| Request summary | 11 ms | 75 ms | 7 |
+| Job packet | 109 ms | 252 ms | 36 |
+| Owner Dashboard (30 days) | 186 ms | 605 ms | 44 |
+| Dashboard records | 145 ms | 472 ms | 44 |
+| My Day | 63 ms | 164 ms | 7 |
+| My job packets | 152 ms | 263 ms | 26 |
 
 Phase B (core writes, with 16 staff reading at the same time):
 
 | Operation | p50 | p95 | Answer |
 | --- | --- | --- | --- |
-| Request submission (guest) | 38 ms | 101 ms | 201 |
-| Estimate acceptance | 51 ms | 117 ms | 201 |
-| Plan a visit | 84 ms | 191 ms | 201 |
-| Confirm a visit | 98 ms | 162 ms | 200 |
-| Start Work | 35 ms | 137 ms | 409 (see below) |
+| Request submission (guest) | 52 ms | 186 ms | 201 |
+| Estimate acceptance | 31 ms | 142 ms | 201 |
+| Plan a visit | 54 ms | 199 ms | 201 |
+| Confirm a visit | 76 ms | 204 ms | 200 |
+| Start Work | 28 ms | 128 ms | 409 (see below) |
 
-The Start Work number measures the full gate evaluation under the visit's and job's row locks, and its recorded
-refusal. A passing start needs a briefing, a packet acknowledgment and site checks on the visit's own day; the
-dataset's visits are all on future days. Phase C (portal overview): p50 17 ms, p95 24 ms, 23 statements. Phase D
-(exports, 365 days): dashboard CSV 144 ms, accounting payments 25 ms, invoices 3 ms, visit timestamps 4 ms. The last
-two had no rows: the dataset has no invoices and no time stamps.
+- **Start Work** is measured as the full gate evaluation under the visit's and job's row locks, and its recorded
+  refusal. A passing start needs a briefing, a packet acknowledgment and site checks on the visit's own day, and all
+  of the dataset's visits are on future days.
+- **Phase C (portal overview):** p50 17 ms, p95 23 ms, 23 statements.
+- **Phase D (exports, 365 days):** dashboard CSV 143 ms, accounting payments 23 ms, invoices 3 ms, visit timestamps
+  3 ms. The last two had no rows: the dataset has no invoices and no time stamps.
 
 ### Hot spots found and fixed (separate commits, each with a test)
 
-1. **Schedule board, N+1.** The board ran four statements per confirmed visit to build its cancellation previews: the
-   work markers, the job, the deposit requirement and its payments. At 1,000 jobs that was 163 statements for a day and
-   739 for a week, with a week p95 of 1.16 s.
-   - Fix: these are now read for all visits at once (`cancellationFactsOf`), with the same rules.
-   - Result: 22 statements whatever the number of visits. At 10,000 jobs the week p95 is 275 ms.
-   - CI test: no key read may run more statements when the data doubles. Against the old board this test reports
+| Fix | Staff key reads p95 at 10,000 jobs after it | Raw results |
+| --- | --- | --- |
+| Board fixed, before 0134 | 1,565 ms | [`before-0134`](results/2026-10-26-10000-jobs-before-0134.json) |
+| Index 0134 | 1,088 ms | [`before-batched-packets`](results/2026-10-26-10000-jobs-before-batched-packets.json) |
+| My job packets batched | 250 ms | [`10000-jobs`](results/2026-10-26-10000-jobs.json) |
+
+1. **Schedule board, N+1.** The board ran four statements per confirmed visit for its cancellation previews: the work
+   markers, the job, the deposit requirement and its payments.
+   - At 1,000 jobs that was 163 statements for a day and 739 for a week; the week's p95 was 1.16 s.
+   - These facts are now read for all visits at once (`cancellationFactsOf`), with the same rules. The board runs 22
+     statements whatever the number of visits.
+   - The CI test checks that no key read runs more statements when the data doubles. Against the old board it reports
      `schedule_day: 49 -> 94`.
 2. **Missing index on `work.work_packages.job_id`** (migration 0134). The job packet, its loadout pins and its SOP pins
-   scanned every work package. They were the three most expensive statements of the read load, at 2.8 ms each.
-   - With the index they take 0.8 ms each.
-   - Staff key reads p95 at 10,000 jobs went from 1,565 ms to 1,088 ms (raw results:
-     [`results/2026-10-26-10000-jobs-before-0134.json`](results/2026-10-26-10000-jobs-before-0134.json)).
+   scanned every work package: the three most expensive statements of the read load, at 2.8 ms each. With the index
+   they take 0.8 ms.
+3. **My job packets, N+1.** Before listing the worker's assigned jobs, the route brings each one's packet up to date,
+   then reads its view, acknowledgment and assignment. It did this one job at a time: about 21 statements per job.
+   - For a worker with 83 upcoming visits that was 1,769 statements, with a p95 of 2.8 s.
+   - The same steps now run for all the jobs at once: `refreshJobPackets`, `packetContents` and the `…Of` readers. It
+     takes 26 statements in all, with a p95 of 263 ms.
+   - The single-job functions now call the set-based ones with one job. So each packet's content and digest, and the
+     moment a new version is written, are unchanged. The packet, acknowledgment, loadout, start, worker-access, My Day
+     and change-order tests pass unchanged.
+   - The batch refresh takes the same per-job advisory locks, in job order, in one transaction.
+   - The CI N+1 check covers this route too: with the old per-job refresh it reports `my_job_packets: 26 -> 43`.
 
 ### Found and not fixed (proposals in OQ-PERF-BUDGET-DETAILS)
 
-- **My job packets runs about 21 statements per assigned job.** Before listing them, the route brings each assigned
-  job's packet up to date: it pins loadouts, composes the packet, and compares it with the latest version. This is
-  the remaining reason staff reads miss the budget at 10,000 jobs.
-  - It is exempt from the CI N+1 check, and the exemption is named in the test.
-  - The fix would change how packets are composed (several jobs at once) or what the list shows (the last generated
-    version, refreshed when a packet opens). Either is a design change, so it is PROPOSED.
 - **Customer search** is a `%text%` match across every customer and contact: 19 ms on its own at 12,000 customers.
   It stays well inside the budget. A trigram index is PROPOSED for when the customer count grows.
 - **Public site layout shift.** CLS is 0.52 on mobile and 0.27 on desktop on `/services`, and 0.15 on mobile on

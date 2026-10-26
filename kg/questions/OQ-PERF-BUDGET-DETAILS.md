@@ -30,16 +30,14 @@ source: "TSK-0105 (2026-10-26): HH-NFR-01 gives the targets; the details below a
     - The percentile is nearest-rank. Each budget is judged on the phase it applies to.
   - **Key reads** are the action queue, Owner Decisions, the schedule board (day and week), the customer list and search, the request list and summary, the customer record, the job packet, the Owner Dashboard and its records, My Day and My job packets.
   - **Start Work** is measured on the dataset's future visits. That measures the gate evaluation and its recorded refusal, not a passing start.
-  - **CI check.** 24 jobs; both API budgets enforced. A key read may not run more than 2 extra statements when the data doubles. My job packets is exempt from that check, by design (below).
+  - **CI check.** 24 jobs; both API budgets enforced. A key read may not run more than 2 extra statements when the data doubles.
   - **Page lab.** Chromium with Lighthouse's default mobile and desktop throttling and an empty cache, median of 3 loads. The pages are `/`, `/services`, one service page, `/request`, `/areas`, `/account` and `/portal/`. A local gzip proxy stands in for the compression of Render's load balancer.
 - **NOT CONFIGURED (measured and reported, never enforced, until the Owner sets a number):**
-  - **Portal overview API p95.** Measured 24 ms. PROPOSED: the staff key-read budget, 800 ms.
-  - **Export p95.** Measured 144 ms at most. PROPOSED: 5 s.
+  - **Portal overview API p95.** Measured 23 ms. PROPOSED: the staff key-read budget, 800 ms.
+  - **Export p95.** Measured 143 ms at most. PROPOSED: 5 s.
   - **Bundle limits** (gzip). PROPOSED: site JS 200 KB, portal JS 200 KB, staff JS 600 KB, largest site first visit 400 KB. These are about 25% above the 2026-10-26 build.
 - **Findings waiting for a decision:**
-  - **My job packets misses the staff-read budget at 10,000 jobs.** It brings every assigned job's packet up to date before listing: about 21 statements per job, and p95 2.8 s for a worker with 83 upcoming assignments ([[HH-PKT-01]]). PROPOSED, either:
-    - (a) compose packets for several jobs at once (engineering only); or
-    - (b) list the last generated version and bring a packet up to date when it is opened (a behaviour change).
+  - **My job packets** still brings every assigned job's packet up to date before listing ([[HH-PKT-01]]). It now does this for all the jobs at once (26 statements, p95 263 ms at 10,000 jobs), so it is within budget. Listing the last generated version and refreshing a packet only when it is opened would be a behaviour change; it is not built and stays the Owner's call.
   - **Layout shift on `/services`** (lab CLS 0.52 on mobile): the list of published services is read when the page runs, so a draft is never listed ([[HH-CUS-01]]). PROPOSED: the server writes the published list into the page when it serves it.
   - **Layout shift on `/account`** (lab CLS 0.15 on mobile): the page is drawn by its script. PROPOSED: reserve the space.
   - **The staff app is one 530 KB gzip script, and both staff catalogs are in it.** PROPOSED: load only the signed-in person's language, and split by route.
