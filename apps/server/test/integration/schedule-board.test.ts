@@ -351,6 +351,7 @@ describe('[HH-SCH-13] the board: a day and a week by worker', () => {
       reassign: true,
       cancel: true,
       offerWindows: false,
+      replaceOffer: false,
     })
     expect(shown.actions).toEqual((await projectVisit(a, two.id)).actions)
   })
@@ -407,6 +408,8 @@ describe('[HH-SCH-13] the board: a day and a week by worker', () => {
       reassign: false,
       cancel: false,
       offerWindows: false,
+      // TSK-0145 (OWN-DEC-194 B4): new windows replace the open offer, with a reason.
+      replaceOffer: true,
     })
     expect(shown.actions).toEqual((await projectVisit(p, v.id)).actions)
     expect(d.unassigned[0]?.visitIds).not.toContain(v.id)

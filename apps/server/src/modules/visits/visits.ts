@@ -71,6 +71,7 @@ import {
   type RescheduleMeta,
 } from './changes.js'
 import { unmetGates, WORK_VISIT_GATES, type WorkVisitGate } from './gates.js'
+import { visitAuthorizations } from './authorizations.js'
 import { noticesOf, recordReserved, staffOffers, windowOfferPolicy } from './offers.js'
 import { confirmationPreconditions, currentCountyVerification, WORK_VISIT_PROJECT_STATES } from './preconditions.js'
 import { siteCheckProblems, siteChecksView } from './site-checks.js'
@@ -716,17 +717,36 @@ export type ActionContext = {
 /**
  * The actions offered on a visit: Change the window (a reschedule for a confirmed visit), Confirm and Offer windows.
  * Offered only; the server decides again on every write (the same preconditions, deposit gate, holds and capacity).
+ * TSK-0145 (OWN-DEC-194 B4): over an open offer, new windows replace it (replaceOffer, with a reason); neither while
+ * the visit has a draft (it is published or discarded first).
  */
 export function visitActions(
   c: ActionContext,
   v: { state: string; purpose: string; expected_duration_minutes: number | null; required_workers: number | null },
   openOffer: boolean,
   blockers: readonly FieldError[],
+  draftOffer = false,
 ) {
   const canPlan = mayPlanVisits(c.actor) && c.business && c.zoneKnown
   const work = mayPlanWorkVisits(c.actor)
   const canConfirm = holds(c.actor, 'visit.confirm') && c.business && c.hours
   const facts = v.expected_duration_minutes !== null && v.required_workers !== null
+  const offerable =
+    canPlan &&
+    v.state === 'tentative' &&
+    (v.purpose === 'site_estimate' || work) &&
+    c.hours &&
+    c.offerPolicy &&
+    facts &&
+    !blockers.some(
+      (b) =>
+        b.field === 'approval' ||
+        b.field === 'followUp' ||
+        b.field === 'coverage' ||
+        b.field === 'siteContact' ||
+        b.field.startsWith('holds.'),
+    ) &&
+    !draftOffer
   return {
     changeWindow:
       canPlan &&
@@ -738,18 +758,9 @@ export function visitActions(
     // TSK-0066: reassign a confirmed visit to another team; cancel it (a work visit: the Owner).
     reassign: holdsAction(c.actor, 'visit.reassign') && c.business && c.hours && v.state === 'confirmed',
     cancel: v.state === 'confirmed' && mayCancel(c.actor, v.purpose),
-    offerWindows:
-      canPlan &&
-      v.state === 'tentative' &&
-      (v.purpose === 'site_estimate' || work) &&
-      c.hours &&
-      c.offerPolicy &&
-      facts &&
-      !blockers.some(
-        (b) =>
-          b.field === 'approval' || b.field === 'coverage' || b.field === 'siteContact' || b.field.startsWith('holds.'),
-      ) &&
-      !openOffer,
+    offerWindows: offerable && !openOffer,
+    // TSK-0145 (B4): new windows replace the open offer, with a reason.
+    replaceOffer: offerable && openOffer,
   }
 }
 
@@ -780,7 +791,7 @@ export async function projectVisits(
   const job = await db
     .selectFrom('work.jobs as j')
     .leftJoin('work.scheduling_tasks as s', 's.job_id', 'j.id')
-    .select(['j.id', 's.state as task_state'])
+    .select(['j.id', 'j.operational_state', 's.state as task_state'])
     .select((eb) =>
       eb
         .selectFrom('work.job_scope_snapshots as ss')
@@ -844,7 +855,7 @@ export async function projectVisits(
   const offerStaff = visits.length
     ? await db
         .selectFrom('work.window_offers')
-        .select(['offered_by', 'closed_by'])
+        .select(['offered_by', 'closed_by', 'published_by'])
         .where(
           'visit_id',
           'in',
@@ -854,7 +865,11 @@ export async function projectVisits(
     : []
   const offerNames = await staffNames(
     db,
-    offerStaff.flatMap((o) => [o.offered_by, ...(o.closed_by ? [o.closed_by] : [])]),
+    offerStaff.flatMap((o) => [
+      o.offered_by,
+      ...(o.closed_by ? [o.closed_by] : []),
+      ...(o.published_by ? [o.published_by] : []),
+    ]),
   )
   const ref = (id: string) => names.get(id) ?? { id, name: null }
   const businessTz = business ? business.value.zone : null
@@ -891,6 +906,10 @@ export async function projectVisits(
   for (const v of visits)
     if (v.state === 'tentative') blockers.set(v.id, await confirmationBlockers(db, v, hours, businessTz, gates, now))
   const change = await changeFacts(db, actor, visits, (ids) => staffNames(db, ids), now)
+  // TSK-0145 (OWN-DEC-193 A1, A4): the hazard-evaluation inspection and follow-up authorizations of each visit.
+  const authorizations = await visitAuthorizations(db, actor, visits, job?.operational_state ?? null, (ids) =>
+    staffNames(db, ids),
+  )
   const blockerView = (id: string) =>
     blockers.has(id) ? (blockers.get(id) ?? []).map((b) => ({ field: b.field, code: b.code })) : null
   const range = (v: (typeof visits)[number]) =>
@@ -979,6 +998,7 @@ export async function projectVisits(
       changeRequest: change.requests.get(v.id) ?? null,
       cancellationPreview: change.previews.get(v.id) ?? null,
       changes: change.changes.get(v.id) ?? [],
+      authorizations: authorizations.get(v.id) ?? null,
       createdBy: ref(v.created_by),
       createdAt: new Date(v.created_at).toISOString(),
       history: history
@@ -996,6 +1016,7 @@ export async function projectVisits(
         v,
         (offers.get(v.id) ?? []).some((o) => o.state === 'open'),
         blockers.get(v.id) ?? [],
+        (offers.get(v.id) ?? []).some((o) => o.state === 'draft'),
       ),
     })),
   }
