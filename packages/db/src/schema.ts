@@ -472,6 +472,25 @@ export interface EstimatingCustomerResponsesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface EstimatingDiscountRequestsTable {
+  id: Generated<string>
+  project_id: string
+  request_id: string
+  category: string
+  requested_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface EstimatingDiscountVerificationsTable {
+  id: Generated<string>
+  discount_request_id: string
+  project_id: string
+  position: number
+  category: string
+  result: string
+  verified_by: string
+  verified_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface EstimatingEstimateDocumentsTable {
   id: string
   version_id: string
@@ -2983,6 +3002,8 @@ export interface Database {
   'estimating.approval_selections': EstimatingApprovalSelectionsTable
   'estimating.approvals': EstimatingApprovalsTable
   'estimating.customer_responses': EstimatingCustomerResponsesTable
+  'estimating.discount_requests': EstimatingDiscountRequestsTable
+  'estimating.discount_verifications': EstimatingDiscountVerificationsTable
   'estimating.estimate_documents': EstimatingEstimateDocumentsTable
   'estimating.estimate_line_costs': EstimatingEstimateLineCostsTable
   'estimating.estimate_lines': EstimatingEstimateLinesTable

@@ -17,6 +17,9 @@
 //   (DOCUMENT_MISSING, DOCUMENT_PROCESSING, DOCUMENT_REJECTED), a PDF for the customer (PDF_REQUIRED while a Word
 //   original has none: no faithful converter exists in this deployment) and the confirmation that the document and
 //   the structured amounts agree, given for the current customer PDF (AGREEMENT_NOT_CONFIRMED).
+// - TSK-0125 (HH-EST-15, OWN-DEC-165): a discount is only the one the customer requested (DISCOUNT_NOT_REQUESTED), and
+//   never once its verification failed (DISCOUNT_NOT_VERIFIED). A discount still pending verification is published as
+//   provisional; approving it waits for the verification (discounts.ts).
 import type { Db, Tx } from '@handyhub/db'
 import { cents, type EstimateLineInput, isLineKind, quantityFromMinor } from '@handyhub/money'
 import type { Config, ConfigKey } from '../../platform/config/index.js'
@@ -25,6 +28,7 @@ import { DOCX_TYPE } from './document-content.js'
 import { EDITABLE_STATES, readinessProblems, type ReadinessProblem } from './model.js'
 import { currentDocuments } from './documents.js'
 import { computeVersionTotals, discountFor, pricingPolicies } from './pricing.js'
+import { discountProblem, projectDiscount, type ProjectDiscount } from './discounts.js'
 
 /**
  * The configuration a version cannot be published without (PROPOSED list, from HH-EST-01 and migration 0026). The
@@ -45,6 +49,8 @@ export type PublishProblemCode =
   | 'VERSION_NOT_EDITABLE'
   | 'DISCOUNT_NOT_CONFIGURED'
   | 'DISCOUNT_CATEGORY_UNKNOWN'
+  | 'DISCOUNT_NOT_REQUESTED'
+  | 'DISCOUNT_NOT_VERIFIED'
   | 'TOTALS_OUTDATED'
   | DocumentProblemCode
 
@@ -71,6 +77,8 @@ export const PUBLISH_PROBLEM_CODES = [
   'UNSUPPORTED_CURRENCY',
   'DISCOUNT_NOT_CONFIGURED',
   'DISCOUNT_CATEGORY_UNKNOWN',
+  'DISCOUNT_NOT_REQUESTED',
+  'DISCOUNT_NOT_VERIFIED',
   'TOTALS_OUTDATED',
   ...DOCUMENT_PROBLEM_CODES,
 ] as const satisfies readonly PublishProblemCode[]
@@ -102,6 +110,8 @@ export type VersionSnapshot = {
   readonly documents: DocumentSnapshot | null
   readonly discountCategory: string | null
   readonly discountRuleVersion: number | null
+  /** TSK-0125: the discount the customer requested for the project and its state; null when none was requested. */
+  readonly discountRequest: Pick<ProjectDiscount, 'category' | 'state'> | null
   readonly subtotalCents: number | null
   readonly discountCents: number | null
   readonly totalCents: number | null
@@ -132,6 +142,10 @@ export function readinessOf(version: VersionSnapshot, lines: readonly LineSnapsh
   const policies = pricingPolicies(config)
   const discount = discountFor(policies, version.discountCategory)
   if (!discount.ok) problems.push({ code: discount.problem.code })
+  else {
+    const requested = discountProblem(version.discountCategory, version.discountRequest, 'publish')
+    if (requested) problems.push({ code: requested as 'DISCOUNT_NOT_REQUESTED' | 'DISCOUNT_NOT_VERIFIED' })
+  }
   const applied = discount.ok ? discount.discount : null
 
   const priced = computeVersionTotals({
@@ -227,6 +241,7 @@ export async function versionSnapshot(
   const v = await db
     .selectFrom('estimating.estimate_versions')
     .select([
+      'project_id',
       'state',
       'authoring_method',
       'agreement_document_id',
@@ -251,6 +266,7 @@ export async function versionSnapshot(
     .execute()
   const num = (x: string | number | null) => (x === null ? null : Number(x))
   const docs = v.authoring_method === 'uploaded' ? await currentDocuments(db, versionId) : null
+  const requested = await projectDiscount(db, v.project_id)
   return {
     version: {
       state: v.state,
@@ -266,6 +282,7 @@ export async function versionSnapshot(
       },
       discountCategory: v.discount_category,
       discountRuleVersion: v.discount_rule_version,
+      discountRequest: requested && { category: requested.category, state: requested.state },
       subtotalCents: num(v.subtotal_cents),
       discountCents: num(v.discount_cents),
       totalCents: num(v.total_cents),

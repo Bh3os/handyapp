@@ -199,7 +199,8 @@ const ALL_OK = Object.fromEntries(
 )
 
 let ip = 20
-async function readyRequest() {
+/** TSK-0125: a discount on an estimate is the one the customer requested on the request form. */
+async function readyRequest(requestedDiscount?: string) {
   const res = await app.inject({
     method: 'POST',
     url: '/api/v1/public/requests',
@@ -228,6 +229,7 @@ async function readyRequest() {
       },
       smsOptIn: false,
       marketingOptIn: false,
+      ...(requestedDiscount ? { requestedDiscount } : {}),
     },
   })
   expect(res.statusCode, res.body).toBe(201)
@@ -266,6 +268,7 @@ async function readyRequest() {
     .where('id', '=', row.project_id)
     .executeTakeFirstOrThrow()
   return {
+    requestId: row.id,
     projectId: row.project_id,
     reference,
     projectReference: project.reference,
@@ -280,7 +283,7 @@ let nets = 0
 /** An approved job: these lines (one unit each), the discount category if any, approved with these options. */
 async function approvedJob(lines: Line[], options: number[] = [], discountCategory?: string) {
   const client = `2001:db8:85:${++nets}::1`
-  const p = await readyRequest()
+  const p = await readyRequest(discountCategory)
   const created = await staffWrite('estimator', 'POST', `/staff/projects/${p.projectId}/estimates`, {})
   expect(created.statusCode, created.body).toBe(201)
   const c = created.json<{ number: string; versionId: string }>()
@@ -315,6 +318,13 @@ async function approvedJob(lines: Line[], options: number[] = [], discountCatego
     { 'if-match': `"${saved.json<{ rowVersion: number }>().rowVersion}"` },
   )
   expect(pub.statusCode, pub.body).toBe(200)
+  // TSK-0125 (OWN-DEC-165): a requested discount is approved only once staff verified it.
+  if (discountCategory) {
+    const verified = await staffWrite('office', 'POST', `/staff/requests/${p.requestId}/discount/verifications`, {
+      result: 'verified',
+    })
+    expect(verified.statusCode, verified.body).toBe(201)
+  }
   const s = await withTx(t.db, (tx) =>
     startCustomerSession(tx, {
       contactRef: p.contactId,

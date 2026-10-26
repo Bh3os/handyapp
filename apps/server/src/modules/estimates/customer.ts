@@ -20,6 +20,10 @@
 // - TSK-0058 (HH-EST-12, HH-PORT-10, OWN-DEC-105): once approved, the next step (deposit due, or choose the work
 //   appointment) and the approval receipt PDF: issued (a short-lived signed link) or still being prepared. The
 //   Documents tab marks an approved version's receipt the same way.
+// - TSK-0125 (HH-EST-15, OWN-DEC-165): a discount row the customer requested is marked pending verification until it
+//   is verified, and approval waits for it (reduction_pending_verification); once verification failed the version
+//   cannot be approved and the customer is told an updated estimate follows (reduction_not_verified). Nothing about how
+//   it was verified is ever shown.
 import type { Db, Tx } from '@handyhub/db'
 import { estimateTermsDocument, estimateTermsInEffect } from '@handyhub/domain/legal'
 import type { CustomerActor, DataScope } from '@handyhub/policy'
@@ -31,6 +35,7 @@ import { findProject } from '../records/index.js'
 import { approvalOfVersion, savedSelection, selectionTotals, versionContentDigest } from './approval.js'
 import { acceptanceCheck } from './lifecycle.js'
 import { discountRowLabel } from './customer-pdf.js'
+import { projectDiscount } from './discounts.js'
 import { CUSTOMER_STATES } from './model.js'
 import { customerEstimateDocument, customerVersionContent } from './projections.js'
 import { approvalNextStep, receiptOfVersion, type ApprovalNextStep, type ReceiptView } from './receipt.js'
@@ -103,8 +108,25 @@ export async function customerEstimateList(
   )
 }
 
+/**
+ * TSK-0125: the customer's reasons for a discount that holds approval back, named like the discount row ("reduction")
+ * the customer sees. A discount the customer did not request reads as one that could not be confirmed.
+ */
+const REDUCTION_REASON: Partial<Record<string, ApprovalReason>> = {
+  DISCOUNT_PENDING_VERIFICATION: 'reduction_pending_verification',
+  DISCOUNT_NOT_VERIFIED: 'reduction_not_verified',
+  DISCOUNT_NOT_REQUESTED: 'reduction_not_verified',
+}
+
 export type TermsState = 'not_configured' | 'not_in_effect' | 'in_effect'
-export type ApprovalReason = 'terms_not_configured' | 'terms_not_in_effect' | 'superseded' | 'expired' | 'not_published'
+export type ApprovalReason =
+  | 'terms_not_configured'
+  | 'terms_not_in_effect'
+  | 'superseded'
+  | 'expired'
+  | 'not_published'
+  | 'reduction_pending_verification'
+  | 'reduction_not_verified'
 
 /** The totals of the customer's selection, as the server computes them (integer cents). */
 export type SelectionView = {
@@ -156,8 +178,11 @@ export type CustomerEstimateDetail = {
   dependencies: string[]
   scheduleAssumptions: string[]
   subtotalCents: number
-  /** The discount totals row before the total (OWN-DEC-145): its label as the customer PDF words it, and the amount. */
-  reduction: { label: string; amountCents: number } | null
+  /**
+   * The discount totals row before the total (OWN-DEC-145): its label as the customer PDF words it, and the amount;
+   * TSK-0125: pending verification until the requested discount is verified.
+   */
+  reduction: { label: string; amountCents: number; pendingVerification: boolean } | null
   totalCents: number
   deposit: { state: 'required' | 'not_required'; amountCents: number | null }
   paymentTerm: string
@@ -227,7 +252,7 @@ export async function customerEstimateDetail(
   let current: { number: string; version: number } | null = null
   // An approved version needs no reason why it cannot be approved again.
   if (check && !check.acceptable && status !== 'approved') {
-    reasons.push(check.code.toLowerCase() as ApprovalReason)
+    reasons.push((REDUCTION_REASON[check.code] ?? check.code.toLowerCase()) as ApprovalReason)
     if (check.current) current = { number: row.number, version: check.current.version }
   }
   const contentDigest = await versionContentDigest(db, row.id)
@@ -246,6 +271,7 @@ export async function customerEstimateDetail(
 
   const document = await customerEstimateDocument(db, actor, row.id, storage, now)
   const d = c.totals.deposit
+  const discount = c.totals.discount ? await projectDiscount(db, row.project_id) : null
   return {
     reference: row.reference,
     number: row.number,
@@ -272,7 +298,12 @@ export async function customerEstimateDetail(
     scheduleAssumptions: c.scheduleAssumptions,
     subtotalCents: c.totals.subtotalCents,
     reduction: c.totals.discount
-      ? { label: discountRowLabel(c.totals.discount), amountCents: c.totals.discount.amountCents }
+      ? {
+          label: discountRowLabel(c.totals.discount),
+          amountCents: c.totals.discount.amountCents,
+          pendingVerification:
+            status !== 'approved' && (discount?.state === 'pending' || discount?.state === 'owner_review'),
+        }
       : null,
     totalCents: c.totals.totalCents,
     // A published version always has its deposit decided (migration 0032): required with its amount, or not required.

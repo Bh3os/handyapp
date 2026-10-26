@@ -317,6 +317,18 @@ export const TABLES = {
     classes: ['estimate_approval'],
     categories: [E, A],
   },
+  // TSK-0125 (OWN-DEC-165): the requested discount and its verification results (category, result, verifier, time;
+  // never a document, ID number or date of birth).
+  'estimating.discount_requests': {
+    holds: 'The one discount a customer requested on the request form (category and time)',
+    classes: ['request_details', 'estimate_approval'],
+    categories: [R, E, A],
+  },
+  'estimating.discount_verifications': {
+    holds: 'Discount verification results: category, result, verifier and time only (no document is kept)',
+    classes: ['estimate_approval'],
+    categories: [E, A],
+  },
   'estimating.estimate_documents': {
     holds: 'Uploaded estimate documents and the customer PDF (metadata; the files are in R2)',
     classes: ['estimate_approval'],

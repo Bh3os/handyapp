@@ -7,6 +7,7 @@
 //   customer conversations, the hazard flag on the risk flags and the review holds it opens.
 // - TSK-0051: questions to the customer (Questions.tsx).
 // - TSK-0068: the SOP version pinned on each work package (WorkPackageSop.tsx), opened on demand.
+// - TSK-0125: the discount the customer requested and its verification (Discount.tsx).
 // The server decides every action (role, state, version); this screen only offers the ones it says are open now,
 // sends the version it showed (If-Match) and an idempotency key, and shows a refusal's reasons or the conflict banner.
 import { customerTranslator, type StaffKey, type StaffLocale } from '@handyhub/i18n'
@@ -16,6 +17,7 @@ import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
 import { spanText } from './Capacity'
 import { ProjectCases } from './Cases'
 import { ConflictBanner, conflictOf, type Conflict } from './ConflictBanner'
+import { RequestDiscount } from './Discount'
 import { ProjectEstimates } from './Estimates'
 import { ZoneText } from './Property'
 import { RequestQuestions } from './Questions'
@@ -341,6 +343,14 @@ export function RequestRecord({
       <Qualification t={t} fetchImpl={fetchImpl} view={view} onChanged={load} when={when} />
       <Holds t={t} fetchImpl={fetchImpl} view={view} onChanged={load} when={when} />
       <Actions t={t} fetchImpl={fetchImpl} view={view} onChanged={load} />
+      {/* TSK-0125: the requested discount and its verification, for the roles that verify discounts. */}
+      <RequestDiscount
+        key={`discount-${view.id}-${view.version}`}
+        t={t}
+        fetchImpl={fetchImpl}
+        requestId={view.id}
+        when={when}
+      />
       {/* TSK-0051: questions to the customer, their replies and reminders, and "Closed—no response". */}
       <RequestQuestions
         key={view.id}

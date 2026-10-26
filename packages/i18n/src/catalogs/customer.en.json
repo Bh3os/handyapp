@@ -1192,5 +1192,21 @@
   "portal.payments.verifiedOnly": "A payment shows as paid only after HandyHub verifies and records it. Returning from the card payment page does not mark anything paid.",
   "portal.payments.receipt": "Receipt {number} (payment {payment}).",
   "portal.payments.receiptPartial": "Receipt {number} (payment {payment}). Partial payment: {balance} still due after it.",
-  "portal.payments.receiptVoided": "Receipt {number} (payment {payment}): voided."
+  "portal.payments.receiptVoided": "Receipt {number} (payment {payment}): voided.",
+  "request.requestedDiscount.title": "Discount (optional)",
+  "request.requestedDiscount.intro": "HandyHub offers a {percent}% discount for military members, seniors and returning customers. Only one {percent}% discount applies per job, so if you qualify for more than one, choose one.",
+  "request.requestedDiscount.none": "No discount",
+  "request.requestedDiscount.military": "Military: service members, veterans and military spouses",
+  "request.requestedDiscount.senior": "Senior: {age} or older",
+  "request.requestedDiscount.returning_customer": "Returning customer: a completed HandyHub job in the last {months} months",
+  "request.requestedDiscount.note": "A discount you request is pending verification until we confirm it. For a military or senior discount, we look at your documentation or photo ID; we never photograph, copy or keep it, and we don't ask for ID numbers, Social Security numbers or your full date of birth. We check returning-customer eligibility from your HandyHub job history. If you don't have proof available, you can ask for an owner review.",
+  "request.requestedDiscount.short.military": "Military",
+  "request.requestedDiscount.short.senior": "Senior",
+  "request.requestedDiscount.short.returning_customer": "Returning customer",
+  "request.review.requestedDiscount": "Discount requested",
+  "request.review.requestedDiscountPending": "{category} (pending verification)",
+  "portal.estimate.reduction.pending": "Pending verification",
+  "portal.estimate.reduction.pendingNote": "This discount is pending verification. We confirm eligibility before you approve this estimate. If you don't have proof available, contact us to ask for an owner review.",
+  "portal.estimate.approval.reason.reduction_pending_verification": "The discount on this estimate is pending verification. You can approve the estimate once it is confirmed.",
+  "portal.estimate.approval.reason.reduction_not_verified": "We could not confirm the discount on this estimate. We'll send you an updated estimate to review."
 }

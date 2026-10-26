@@ -420,6 +420,20 @@ export const QUEUE_ITEM_TYPES = [
     screen: 'schedule',
     path: 'closeout',
   },
+  // TSK-0125 (HH-EST-15, OWN-DEC-165): a published estimate carries the requested discount although its verification
+  // failed (not verified, or declined by the Owner): it cannot be approved, and the estimator writes the revised
+  // estimate the customer approves. One item per request while such a version is published. Seen by the roles that
+  // revise estimates; the link opens the request, whose discount panel and estimates show it. Band PROPOSED.
+  {
+    id: 'discount_revision',
+    section: 'queue',
+    subject: 'request',
+    band: 'other',
+    view: 'estimate.revise',
+    reasons: ['discount_not_verified'],
+    action: 'review_estimate',
+    screen: 'requests',
+  },
   // TSK-0149 (OWN-DEC-198 F4, F5): a visitor asked for help signing in or getting a new project link (the secure
   // alternative when texts are not available or the reissue limits are reached), one item per help request until the
   // Owner closes it. The reason is what was asked, never whether anything matched. Seen by the Owner
@@ -695,6 +709,19 @@ export const QUEUE_ITEM_TYPES = [
     action: 'decide',
     screen: 'payments',
     path: 'invoice-reminders',
+  },
+  // TSK-0125 (HH-EST-15, OWN-DEC-165): a requested discount the standard process cannot verify (for example no proof
+  // available) waits for the Owner's review, one item per request until the Owner approves or declines it. The reason
+  // names nothing about the customer's documents. Seen by the Owner (discount.decide). Band PROPOSED.
+  {
+    id: 'discount_owner_review',
+    section: 'owner_decisions',
+    subject: 'request',
+    band: 'other',
+    view: 'discount.decide',
+    reasons: ['discount_owner_review'],
+    action: 'decide',
+    screen: 'requests',
   },
   // A Not a Fit decision on a request with accepted work, an appointment or money received goes to the Owner for
   // cancellation and financial review instead of closing (OWN-DEC-100, HH-LEAD-08; TSK-0042).

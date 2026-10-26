@@ -1,5 +1,6 @@
 // JSON schemas of the staff estimate routes (TSK-0053; HH-API-01, HH-ARC-04). Input objects refuse unknown fields;
 // response objects list every field, so nothing undeclared (an internal value in particular) leaves the server.
+import { DISCOUNT_CATEGORIES, DISCOUNT_STATES } from '@handyhub/domain'
 import { LINE_KINDS } from '@handyhub/money'
 import { CONFIG_KEYS } from '../../platform/config/index.js'
 import { OWNER_APPROVAL } from '../approvals/schemas.js'
@@ -333,6 +334,7 @@ export const VERSION_VIEW = {
     'lines',
     'texts',
     'discountCategory',
+    'discountRequest',
     'totals',
     'paymentTerm',
     'document',
@@ -399,6 +401,15 @@ export const VERSION_VIEW = {
       properties: Object.fromEntries(TEXT_LISTS.map((k) => [k, STRING_LIST])),
     },
     discountCategory: NULLABLE_STRING,
+    discountRequest: {
+      type: ['object', 'null'],
+      additionalProperties: false,
+      required: ['category', 'state'],
+      properties: {
+        category: { type: 'string', enum: [...DISCOUNT_CATEGORIES] },
+        state: { type: 'string', enum: [...DISCOUNT_STATES] },
+      },
+    },
     totals: TOTALS,
     paymentTerm: { type: 'string' },
     document: {
