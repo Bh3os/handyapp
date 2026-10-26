@@ -191,7 +191,7 @@ describe('ChangeOrdersPage (TSK-0081)', () => {
     fireEvent.click(within(order).getByRole('button', { name: 'Marcar como revisada' }))
     await waitFor(() =>
       expect(within(order).getByRole('alert').textContent).toBe(
-        'El crédito es mayor que lo que queda por cobrar: el dueño se encarga de un reembolso o crédito.',
+        'El crédito es mayor que lo que queda por cobrar: el propietario se encarga de un reembolso o crédito.',
       ),
     )
     const [url, init] = fetchImpl.mock.calls.find(([, i]) => i?.method === 'POST') as [string, RequestInit]

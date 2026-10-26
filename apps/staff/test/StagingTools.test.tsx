@@ -147,11 +147,11 @@ describe('Staging Tools on the Owner Dashboard (TSK-0141, HH-OPS-05)', () => {
     expect(sent).toEqual({ confirmation: 'RESET TEST DATA', freshData: false })
   })
 
-  it('[HH-LANG-02] reads in Spanish for staff', async () => {
+  it('[HH-LANG-02][OWN-DEC-208] stays English on the Owner Dashboard when the Owner reads Spanish (TSK-0102)', async () => {
     const fetchImpl = api({ '/api/v1/staff/staging/test-data': () => json(200, STATUS) }, 'es')
     render(<App path="/staff/dashboard" base="/staff/" fetchImpl={fetchImpl} />)
-    expect(await screen.findByText('STAGING / MODO DE PRUEBA')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Restablecer datos de prueba' })).toBeTruthy()
+    expect(await screen.findByText('STAGING / TEST MODE')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Reset Test Data' })).toBeTruthy()
   })
 
   it('[HH-OPS-06] lists the test accounts without any credential and creates them with a reason (TSK-0142)', async () => {

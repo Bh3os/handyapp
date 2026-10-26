@@ -443,7 +443,7 @@ test.describe('Spanish worker notes and proposed replies (TSK-0155)', () => {
       await notes.getByRole('textbox', { name: /^Respuesta propuesta/ }).fill(spanish)
       await notes.getByRole('button', { name: 'Enviar para revisión' }).click()
       await expect(notes.getByTestId('job-notes-notice')).toHaveText(
-        'Enviada para revisión. El Dueño u Oficina la revisará.',
+        'Enviada para revisión. El Propietario u Oficina la revisará.',
       )
       await expect(notes.getByTestId('own-proposal').getByTestId('proposal-status')).toHaveText('En espera de revisión')
       expect(await w.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)

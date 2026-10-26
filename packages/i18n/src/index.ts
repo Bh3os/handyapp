@@ -9,6 +9,7 @@ import customerEn from './catalogs/customer.en.json' with { type: 'json' }
 import staffEn from './catalogs/staff.en.json' with { type: 'json' }
 import staffEs from './catalogs/staff.es.json' with { type: 'json' }
 import { labelKey, type LabelCode, type LabelFamily } from './labels.js'
+import { releasedSpanish } from './spanish-review.js'
 
 export const PACKAGE_NAME = '@handyhub/i18n'
 
@@ -21,6 +22,16 @@ export {
   type CheckInput,
   type SourceScan,
 } from './checker.js'
+export { GLOSSARY, glossaryProblems, type GlossaryProblem, type GlossaryTerm } from './glossary.js'
+export {
+  RELEASED_SPANISH_SAFETY,
+  releasedSpanish,
+  SAME_IN_SPANISH,
+  STAFF_ES_SAFETY,
+  untranslatedKeys,
+  type SpanishSafetyRecord,
+  type SpanishSafetyStatus,
+} from './spanish-review.js'
 
 /** Staff interface locales. Customer output has no locale choice: it is English. */
 export const STAFF_LOCALES = ['en', 'es'] as const
@@ -102,12 +113,16 @@ export function customerTranslator(): Translator<CustomerKey> {
   return customer
 }
 
-/** The staff translator for a staff member's stored interface locale. */
+/**
+ * The staff translator for a staff member's stored interface locale. In Spanish, a safety message whose Spanish is not
+ * released (TSK-0102, HH-LANG-04: no current passing comparison) shows its approved English instead.
+ */
 export function staffTranslator(locale: StaffLocale): Translator<StaffKey> {
   if (!isStaffLocale(locale)) throw new RangeError(`Unsupported staff locale "${String(locale)}".`)
   let tr = staff.get(locale)
   if (!tr) {
-    tr = createTranslator<StaffKey>('staff', locale, `staff.${locale}`, locale === 'es' ? staffEs : staffEn)
+    const catalog = locale === 'es' ? releasedSpanish(staffEn, staffEs) : staffEn
+    tr = createTranslator<StaffKey>('staff', locale, `staff.${locale}`, catalog)
     staff.set(locale, tr)
   }
   return tr

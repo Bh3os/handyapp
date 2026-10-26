@@ -18,3 +18,4 @@ packages/db/src/schema.ts
 packages/db/seed
 apps/server/openapi.json
 apps/site/src/request/validator.generated.ts
+packages/i18n/src/staff-es-safety.json

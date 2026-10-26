@@ -16,3 +16,6 @@ source: "guide 26.1; OWN-DEC-79 amended"
 - All strings come from translation keys with ICU interpolation and pluralization; no duplicated localized strings scattered in code. A parity test fails when a key exists in one language only.
 - A glossary keeps terms consistent (for example hold, stop work, punch item, walkthrough, deposit, estimate, PPE).
 - Spanish UI strings are AI-translated and AI-checked; they carry the status "AI-reviewed", never "human-reviewed" ([[OWN-DEC-79]]). Safety content follows [[HH-LANG-04]].
+
+**Built by [[TSK-0102]] (2026-10-26):** the glossary is `packages/i18n/src/glossary.ts`; the repository test fails on a missing key, a placeholder mismatch, a message left in English, a glossary term rendered another way and a Spanish safety message without a current comparison record ([[OQ-SPANISH-CATALOG-DETAILS]]).
+

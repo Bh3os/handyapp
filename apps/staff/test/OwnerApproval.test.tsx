@@ -180,7 +180,9 @@ describe('EstimateOwnerApproval (TSK-0130, HH-EST-16)', () => {
     expect(within(decide).getAllByText('Costos incompletos')).toHaveLength(2)
     fireEvent.change(within(decide).getByLabelText('Comentario'), { target: { value: 'x' } })
     fireEvent.click(within(decide).getByRole('button', { name: 'Rechazar' }))
-    await waitFor(() => expect(screen.getByText('Esta versión no necesita la aprobación del Dueño.')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByText('Esta versión no necesita la aprobación del Propietario.')).toBeTruthy(),
+    )
   })
 })
 
