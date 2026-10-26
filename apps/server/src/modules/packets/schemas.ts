@@ -196,6 +196,8 @@ export const PACKET_VIEW = obj({
   careNotes: obj({ state: { type: 'string', enum: ['none_approved'] } }),
   communication: obj({
     siteContact: { ...DETAIL, type: ['object', 'null'] },
+    // TSK-0147: what the project's authorized site contact may authorize (TSK-0126); visit-day data for a worker.
+    siteContactAuthority: obj({ version: INT, designation: STR, authority: STRINGS }, true),
     // TSK-0129: the number the Owner entered in their own profile, or NOT CONFIGURED; Call 911 always.
     escalationContact: OWNER_CONTACT,
     emergency: obj({ call911: STR }),

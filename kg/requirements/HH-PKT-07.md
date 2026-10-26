@@ -19,3 +19,5 @@ source: "guide 15.2 HH-PKT-07"
 - A printable packet carries its version and a freshness warning ("Printed <time>; check the app for changes"), and every export is audited with who, when and which version.
 
 **Changed by [[OWN-DEC-196]] (2026-10-21):** prints show packet revision, generation time, job reference and that printed copies may be outdated.
+
+**Built by [[TSK-0147]] (2026-10-26):** every PDF page and the print view carry the print time, "Printed copies may be out of date; check the app before starting", the job reference, the packet revision and its generation time; the permission and the PDF limit are unchanged. PROPOSED details: [[OQ-PACKET-REREVIEW-DETAILS]].

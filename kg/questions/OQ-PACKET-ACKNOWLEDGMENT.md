@@ -26,3 +26,5 @@ source: "TSK-0072 (2026-10-21): HH-DATA-08 and HH-WORK-10 state the rules; the d
 - **Since 2026-10-21:** [[OWN-DEC-196]] D1 makes any new or materially changed hazard, SOP, authorization restriction, site-access requirement or scope a critical revision that workers acknowledge before continuing the affected work; the triggers beyond those built here are [[TSK-0147]], the check before continuing is [[TSK-0073]].
 
 **Updated by [[TSK-0094]] (2026-10-25):** resuming after an incident reads the acknowledgment like a start: the hold's release makes a new packet version, so each worker views and acknowledges it again before resuming. Details in [[OQ-RETURN-WORK-DETAILS]].
+
+**Updated by [[TSK-0147]] (2026-10-26):** the wider triggers of [[OWN-DEC-196]] D1 are built: hazard and restriction details of the property and what the authorized site contact may authorize are critical too. Details in [[OQ-PACKET-REREVIEW-DETAILS]].

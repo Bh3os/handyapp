@@ -2,8 +2,10 @@
 // OWN-DEC-121, RULE-NO-INVENTED-FACTS).
 // - Built from the packet view only (view.ts), with the staff member's interface language for the labels; data stays
 //   as stored (SOP text is English, verbatim). The layout is the estimate PDF's renderer (renderPdfModel).
-// - Every page carries the freshness warning "Printed <time>; check the app for changes" and the version; a version
-//   that is not the latest says so on its first lines.
+// - TSK-0147 (OWN-DEC-196 D2, D3; HH-PKT-07): every page carries the print time and "Printed copies may be out of
+//   date; check the app before starting" (the mark), and the job reference, the packet revision and its generation
+//   time (the footer); the first page lists them again with the print time. A version that is not the latest says so
+//   on its first lines. Printing keeps the "View job packet" permission and the PDF its rate limit.
 // - What is never in it: an access code (the packet holds none; the PDF says how many codes exist, by kind, and that
 //   they are revealed in the app, online, on the visit date), a code's label, signed photo links, a price, and the
 //   site contact beyond what the packet holds. Deterministic for the same view and print time.
@@ -65,14 +67,17 @@ export function packetPdfModel(input: PacketPdfInput): CustomerPdfModel {
       kind: 'text',
       text: t('packet.print.notLatest', { version: view.packet.version, latest: view.freshness.latestVersion }),
     })
+  // TSK-0147: the print metadata of OWN-DEC-196 D2 (one job per project: the job reference is the project's).
+  blocks.push({ kind: 'text', text: t('packet.print.outdated') })
   blocks.push({
     kind: 'facts',
     rows: [
-      { label: t('packet.field.project'), value: view.job.projectReference },
-      { label: t('packet.field.jobState'), value: label('jobState', view.job.jobState) },
-      { label: t('packet.field.version'), value: String(view.packet.version) },
+      { label: t('packet.field.jobReference'), value: view.job.projectReference },
+      { label: t('packet.field.revision'), value: String(view.packet.version) },
+      { label: t('packet.field.generated'), value: at(view.packet.generatedAt) },
+      { label: t('packet.field.printed'), value: at(input.printedAt) },
       { label: t('packet.field.firstGenerated'), value: at(view.freshness.firstGeneratedAt) },
-      { label: t('packet.field.lastUpdated'), value: at(view.freshness.lastUpdatedAt) },
+      { label: t('packet.field.jobState'), value: label('jobState', view.job.jobState) },
       {
         label: t('packet.field.services'),
         value: view.services.map((s) => label('service', s.serviceCode)).join(', '),
@@ -242,6 +247,19 @@ export function packetPdfModel(input: PacketPdfInput): CustomerPdfModel {
           view.communication.siteContact?.value ??
           t(input.visitDayClosed ? 'packet.visitDayOnly' : 'packet.nothingRecorded'),
       },
+      // TSK-0147: what the authorized site contact may authorize (visit-day data for a worker, like the contact).
+      ...(view.communication.siteContactAuthority
+        ? [
+            {
+              label: t('packet.field.siteContactAuthority'),
+              value: view.communication.siteContactAuthority.authority.length
+                ? view.communication.siteContactAuthority.authority
+                    .map((a) => label('siteContactAuthority', a))
+                    .join(', ')
+                : t('siteChecks.contact.noAuthority'),
+            },
+          ]
+        : []),
       // TSK-0129: the number the Owner entered, so the paper copy works without the app (PROPOSED), or NOT CONFIGURED.
       {
         label: t('packet.field.escalation'),
@@ -270,9 +288,13 @@ export function packetPdfModel(input: PacketPdfInput): CustomerPdfModel {
   blocks.push({ kind: 'text', text: t('packet.careNotesNone') })
 
   return {
-    mark: t('packet.print.mark', { time: at(input.printedAt), version: view.packet.version }),
+    mark: t('packet.print.mark', { time: at(input.printedAt) }),
     title: t('packet.print.title', { reference: view.job.projectReference, version: view.packet.version }),
-    footer: t('packet.print.footer', { reference: view.job.projectReference, version: view.packet.version }),
+    footer: t('packet.print.footer', {
+      reference: view.job.projectReference,
+      version: view.packet.version,
+      generated: at(view.packet.generatedAt),
+    }),
     blocks,
   }
 }

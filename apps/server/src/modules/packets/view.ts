@@ -285,6 +285,8 @@ export async function packetView(
     careNotes: { state: 'none_approved' as const },
     communication: {
       siteContact,
+      // TSK-0147: what the authorized site contact may authorize (version, designation, authority; never the person).
+      siteContactAuthority: c.site_access.siteContact ?? null,
       escalationContact: await ownerEscalationContact(db),
       emergency: { call911: 'tel:911' },
       stopWork: derived.stopWork,
