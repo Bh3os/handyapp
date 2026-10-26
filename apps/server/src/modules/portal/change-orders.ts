@@ -11,7 +11,7 @@
 //   GET, link preview, timeout or silence ever does. The decision itself is change-orders/approve.ts.
 // - Another project, an unknown change order or version and a version that never reached the customer answer the
 //   same NOT_FOUND (T19).
-import type { CustomerActor } from '@handyhub/policy'
+import { hasProjectAccess, type CustomerActor } from '@handyhub/policy'
 import { clientAddress } from '../../access-gate.js'
 import { ApiError } from '../../api/errors.js'
 import { readIdempotencyKey } from '../../api/idempotency.js'
@@ -95,7 +95,8 @@ export function portalChangeOrderRoutes(deps: PortalChangeOrderDeps = {}): Route
       'integer cents, when it was sent and until when it is valid, its status (issued, approved, rejected, expired, ' +
       'withdrawn, superseded) and the decision. While one is open: whether it can be decided now (blockedBy ' +
       'APPROVED_SCOPE_CHANGED when another change was approved since it was priced), the digest of its content and ' +
-      'the estimate terms an approval names. Drafts and reviews never appear. Any other project and a malformed ' +
+      'the estimate terms an approval names (TSK-0118: never decidable, blockedBy NO_APPROVAL_PRIVILEGE, for an ' +
+      'organization member without the approve privilege). Drafts and reviews never appear. Any other project and a malformed ' +
       'reference are NOT_FOUND (T19).',
     actors: ['customer'],
     permission: 'request.view',
@@ -113,9 +114,22 @@ export function portalChangeOrderRoutes(deps: PortalChangeOrderDeps = {}): Route
       const { reference } = ctx.req.params as { reference: string }
       const out = await customerChangeOrders(ctx.db, ctx.scope, reference)
       if (!out) throw new ApiError('NOT_FOUND')
+      // TSK-0118 (HH-ID-13): an organization member decides only with the approve privilege.
+      const projectId = await projectIdOf(ctx.db, reference)
+      const mayDecide =
+        projectId !== null && hasProjectAccess(ctx.actor, { projectId }, new Date(), 'change_order.approve')
+      const changeOrders = mayDecide
+        ? out.changeOrders
+        : out.changeOrders.map((c) => ({
+            ...c,
+            approval: c.approval
+              ? { ...c.approval, canDecide: false, blockedBy: 'NO_APPROVAL_PRIVILEGE' as const }
+              : null,
+          }))
       return {
         body: CUSTOMER_CHANGE_ORDERS.project({
           ...out,
+          changeOrders,
           refreshedAt: new Date(),
           refreshSeconds: await refreshSeconds(ctx.db),
         }),

@@ -138,6 +138,9 @@ function Decide({
   const key = useRef<{ kind: 'approve' | 'reject'; key: string } | null>(null)
   const approval = c.approval
   if (!approval) return null
+  // TSK-0118 (HH-ID-13): an organization member without the approve privilege reads it but does not decide.
+  if (approval.blockedBy === 'NO_APPROVAL_PRIVILEGE')
+    return <p role="status">{t('portal.changeOrders.noApprovalPrivilege')}</p>
   if (!approval.canDecide) return <p role="status">{t('portal.changeOrders.waitingForUpdate')}</p>
   const ref = { reference, number: c.number, version: c.version }
 

@@ -168,6 +168,39 @@ const CHECKED: readonly Checked[] = [
     behaviour: 'Asking opens an Owner review item and sends nothing by itself.',
     pinnedBy: [`${SERVER}/account-security.test.ts`],
   },
+  // Organization accounts (TSK-0118): what a membership really grants.
+  {
+    key: 'portal.organizations.privilege.approve',
+    text: 'Can approve, decline or ask for changes to estimates and change orders, and choose or change appointment times',
+    behaviour:
+      'approve covers estimate approve, decline and request changes, change-order decisions, choosing a window and ' +
+      'reschedule or cancellation requests (ORGANIZATION_ACTIONS); there is no appointment approval.',
+    pinnedBy: [`${PORTAL}/Organizations.test.tsx`, 'apps/server/test/unit/portal-actions.test.ts'],
+  },
+  {
+    key: 'portal.organizations.scope.approve',
+    text: 'Allow approving, declining or asking for changes to estimates and change orders, and choosing or changing appointment times',
+    behaviour: 'The same approve privilege, as the administrator grants it.',
+    pinnedBy: [`${PORTAL}/Organizations.test.tsx`],
+  },
+  {
+    key: 'portal.organizations.privilege.view',
+    text: 'Can see the shared projects, except their messages',
+    behaviour: 'A member reads the workspace, but the Messages tab and questions are refused to every member.',
+    pinnedBy: [`${SERVER}/customer-organizations.test.ts`],
+  },
+  {
+    key: 'portal.organizations.done.accepted',
+    text: 'You joined {organization}. The projects it shares with you are on your projects page.',
+    behaviour: 'A member sees only the projects in their own scope, never the organization’s other projects.',
+    pinnedBy: [`${PORTAL}/Organizations.test.tsx`, `${SERVER}/customer-organizations.test.ts`],
+  },
+  {
+    key: 'portal.organizations.done.withdrawn',
+    text: 'The invitation to {email} is withdrawn.',
+    behaviour: 'Withdrawing an invitation ends an invitation that never granted access.',
+    pinnedBy: [`${PORTAL}/Organizations.test.tsx`],
+  },
 ]
 
 /** Sentences removed because nothing in the software makes them true. */

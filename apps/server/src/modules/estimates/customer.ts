@@ -26,7 +26,7 @@
 //   it was verified is ever shown.
 import type { Db, Tx } from '@handyhub/db'
 import { estimateTermsDocument, estimateTermsInEffect } from '@handyhub/domain/legal'
-import type { CustomerActor, DataScope } from '@handyhub/policy'
+import { hasProjectAccess, type CustomerActor, type DataScope } from '@handyhub/policy'
 import { customerDisplayZone, knownPropertyZone } from '@handyhub/domain'
 import { loadConfig, type Config } from '../../platform/config/index.js'
 import type { ObjectStorage } from '../../providers/index.js'
@@ -135,6 +135,8 @@ export type ApprovalReason =
   | 'not_published'
   | 'reduction_pending_verification'
   | 'reduction_not_verified'
+  // TSK-0118 (HH-ID-13): an organization member whose membership does not include approving.
+  | 'no_approval_privilege'
 
 /** The totals of the customer's selection, as the server computes them (integer cents). */
 export type SelectionView = {
@@ -272,6 +274,10 @@ export async function customerEstimateDetail(
     reasons.push((REDUCTION_REASON[check.code] ?? check.code.toLowerCase()) as ApprovalReason)
     if (check.current) current = { number: row.number, version: check.current.version }
   }
+  // TSK-0118 (HH-ID-13): an organization member decides on the estimate only with the approve privilege (the same
+  // privilege covers approving, declining and asking for changes); the project's own customer always may.
+  const mayDecide = hasProjectAccess(actor, { projectId: row.project_id }, now, 'estimate.approve')
+  if (!mayDecide && status === 'current') reasons.push('no_approval_privilege')
   const contentDigest = await versionContentDigest(db, row.id)
   if (!contentDigest) return null
   const available = status === 'current' && reasons.length === 0
@@ -342,9 +348,9 @@ export async function customerEstimateDetail(
       receipt: approvedRecord ? await receiptOfVersion(db, row.id, storage) : null,
     },
     actions: {
-      requestChanges: status === 'current',
-      decline: status === 'current',
-      requestUpdate: status === 'expired' && current === null,
+      requestChanges: mayDecide && status === 'current',
+      decline: mayDecide && status === 'current',
+      requestUpdate: mayDecide && status === 'expired' && current === null,
     },
     freshVerification: actor.freshVerification,
     responses: await estimateResponses(db, row.estimate_id),

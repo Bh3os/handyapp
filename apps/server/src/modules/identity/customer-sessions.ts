@@ -14,6 +14,9 @@
 //   closed account opens nothing from then on; a closed account's sessions resolve to nothing.
 // - TSK-0149 (OWN-DEC-198 F2): ordinary device sessions stay independent; a security event (the customer's Sign out
 //   everywhere, the Owner's revocation, a staff-assisted recovery) ends every session of the account at once.
+// - TSK-0118 (HH-ID-13): an account session also reaches the projects of its organization memberships' scopes, read
+//   on every request like its links (organization-access.ts), each limited to the membership's privileges; a project
+//   the account is linked to itself stays its own, with every right of the project's customer.
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import type { Db, Tx } from '@handyhub/db'
 import type { CustomerActor } from '@handyhub/policy'
@@ -21,6 +24,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify'
 import type { RequestActor, ResolveActor } from '../../api/route.js'
 import { sql } from 'kysely'
 import { loadConfig } from '../../platform/config/index.js'
+import { organizationAccessOf, type OrganizationProjectAccess } from './organization-access.js'
 
 export const CUSTOMER_COOKIE = '__Host-hh_customer'
 
@@ -54,6 +58,11 @@ export type CustomerSession = {
   signInChannel: 'email' | 'phone' | null
   /** TSK-0034: the project access grant a guest-link session was started from (null for an account session). */
   grantId: string | null
+  /**
+   * TSK-0118: the projects an account session reaches through its organization memberships (never one of
+   * `projectIds`), each with the privileges the memberships grant; empty for a guest-link session.
+   */
+  organizationAccess: OrganizationProjectAccess[]
 }
 
 /** Why a session ended (the stored revoke_reason). */
@@ -139,6 +148,7 @@ export async function resolveCustomerSession(
     .executeTakeFirst()
   if (!row) return null
   let projectIds = row.project_ids
+  let organizationAccess: OrganizationProjectAccess[] = []
   if (row.via === 'account') {
     // TSK-0036: an account opens only what its active links name, read now; a closed account opens nothing.
     if (!row.account_id) return null
@@ -156,6 +166,9 @@ export async function resolveCustomerSession(
       .orderBy('decided_at')
       .execute()
     projectIds = links.map((l) => l.project_id)
+    organizationAccess = (await organizationAccessOf(db, row.account_id)).filter(
+      (a) => !projectIds.includes(a.projectId),
+    )
   }
   return {
     id: row.id,
@@ -168,6 +181,7 @@ export async function resolveCustomerSession(
     accountId: row.account_id,
     signInChannel: row.sign_in_channel as 'email' | 'phone' | null,
     grantId: row.grant_id,
+    organizationAccess,
   }
 }
 
@@ -239,16 +253,28 @@ export async function refreshVerification(tx: Tx, sessionId: string, verifiedAt:
     .execute()
 }
 
-/** The policy actor for a session. Each project access ends with the session; fresh while within fresh_until. */
+/**
+ * The policy actor for a session. Each project access ends with the session; fresh while within fresh_until. TSK-0118:
+ * an organization access carries its privileges.
+ */
 export function customerActor(session: CustomerSession, now: Date = new Date()): CustomerActor {
   return {
     kind: 'customer',
     contactId: session.contactRef,
-    projectAccess: session.projectIds.map((projectId) => ({
-      projectId,
-      via: session.via,
-      expiresAt: session.expiresAt,
-    })),
+    projectAccess: [
+      ...session.projectIds.map((projectId) => ({
+        projectId,
+        via: session.via,
+        expiresAt: session.expiresAt,
+      })),
+      // TSK-0118: limited to the memberships' privileges (the policy's organization table).
+      ...session.organizationAccess.map((a) => ({
+        projectId: a.projectId,
+        via: 'organization' as const,
+        expiresAt: session.expiresAt,
+        privileges: a.privileges,
+      })),
+    ],
     freshVerification: now.getTime() < session.freshUntil.getTime(),
   }
 }

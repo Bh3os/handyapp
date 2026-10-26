@@ -121,6 +121,13 @@ function DepositSummary({ payment }: { payment: ProjectOverview['payment'] }) {
     )
   if (payment.state === 'deposit_received')
     return <p data-testid="portal-deposit">{t('portal.payment.deposit.paid', { amount: usd(payment.amountCents) })}</p>
+  // TSK-0118 (HH-ID-13): an organization member without the pay privilege; never shown as "nothing to pay".
+  if (payment.state === 'not_shared')
+    return (
+      <StateView kind="blocked" title={t('portal.payment.notShared.title')}>
+        <p>{t('portal.payment.notShared.text')}</p>
+      </StateView>
+    )
   return (
     <StateView kind="empty" title={t('portal.payment.none.title')}>
       <p>{t('portal.payment.none.text')}</p>

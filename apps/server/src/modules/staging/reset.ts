@@ -262,6 +262,12 @@ export const CLEARED_CATEGORIES = {
     // TSK-0149 (0100): staff-assisted account recoveries and the requests for help signing in or getting a link.
     'identity.customer_account_recoveries',
     'identity.access_help_requests',
+    // TSK-0118 (0125): customer-side organizations, their shared projects, memberships, scopes and history.
+    'identity.organizations',
+    'identity.organization_projects',
+    'identity.organization_memberships',
+    'identity.organization_scopes',
+    'identity.organization_events',
   ],
   workflow: [
     'ops.queue_items',

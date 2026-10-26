@@ -19,11 +19,16 @@
 // The answers are explicit customer views (records/projections.ts); no internal note, staff name, qualification,
 // Owner routing or internal decision is read. They carry the server's time and the configured refresh interval, so
 // the page can say when it last refreshed and poll modestly (HH-ARC-10).
-import { dataScope } from '@handyhub/policy'
+// TSK-0118 (HH-ID-13): an account also opens the projects of its organization memberships' scopes, each limited by the
+// policy to the membership's privileges: the list names the organization; without pay, the payment summary is
+// not_shared, invoices are neither listed nor counted and the Payments tab (payment.view) is NOT_FOUND; without approve,
+// no appointment request is offered.
+import type { Db } from '@handyhub/db'
+import { dataScope, type Actor } from '@handyhub/policy'
 import { ApiError } from '../../api/errors.js'
 import { AUTHENTICATION, type ApiModule, type RouteDef } from '../../api/route.js'
 import { projectIdOf } from '../access/projects.js'
-import type { CodeKeySettings } from '../identity/index.js'
+import { organizationAccessOf, type CodeKeySettings } from '../identity/index.js'
 import {
   PROJECT_APPOINTMENTS,
   PROJECT_DOCUMENTS,
@@ -34,7 +39,7 @@ import {
   PROJECT_PHOTOS,
   type CustomerView,
 } from '../records/index.js'
-import { projectOverview, projectSummaries, refreshSeconds } from './overview.js'
+import { projectOverview, projectSummaries, refreshSeconds, type PortalView, type SharedThrough } from './overview.js'
 import { portalAppointmentRoutes, type PortalAppointmentDeps } from './appointments.js'
 import { portalChangeOrderRoutes } from './change-orders.js'
 import { portalEstimateRoutes, type PortalEstimateDeps } from './estimates.js'
@@ -68,6 +73,33 @@ export { reverifyTargets, type SessionVerificationDeps } from './verification.js
 
 const NO_CODE_KEY: CodeKeySettings = { state: 'not_configured', missing: ['CODE_HASH_KEY'] }
 
+/**
+ * TSK-0118 (HH-ID-13): what the projects list shows of each project's money and how it is reached: the payment.view
+ * scope, and for the projects an account reaches through an organization membership, the organization's name and the
+ * membership's privileges (as the session read them on this request).
+ */
+async function portalView(db: Db, actor: Actor, now: Date): Promise<PortalView> {
+  // TSK-0150: the same scopes as the Overview, so a summary never names an action the member is refused.
+  const scopes = {
+    payments: dataScope(actor, 'payment.view', now),
+    decisions: dataScope(actor, 'visit.request_reschedule', now),
+    replies: dataScope(actor, 'request.reply', now),
+  }
+  if (actor.kind !== 'customer' || !actor.contactId.startsWith('account:')) return scopes
+  const shared = new Set(actor.projectAccess.filter((g) => g.via === 'organization').map((g) => g.projectId))
+  if (shared.size === 0) return scopes
+  const access = await organizationAccessOf(db, actor.contactId.slice('account:'.length))
+  const organizations = new Map<string, SharedThrough>()
+  for (const a of access)
+    if (shared.has(a.projectId))
+      organizations.set(a.projectId, {
+        name: a.organizationNames.join(', '),
+        approve: a.privileges.includes('approve'),
+        pay: a.privileges.includes('pay'),
+      })
+  return { ...scopes, organizations }
+}
+
 export { WINDOW_ANSWER_RATE_LIMIT, type PortalAppointmentDeps } from './appointments.js'
 
 export function portalModule(
@@ -84,13 +116,21 @@ export function portalModule(
       'who is waiting and the one next action. TSK-0124 (HH-ID-14, OWN-DEC-160): each project’s dashboard section ' +
       '(active; completed, the Project History; archived, cancelled or closed without completed work) and the number ' +
       'of documents its Documents tab lists; and how the session came in (account, or project_link for a guest ' +
-      'link). Without a session, 401. Nothing about any other project.',
+      'link). TSK-0118 (HH-ID-13): an account also lists the projects in the scope of its organization memberships, ' +
+      'each naming the organization and the membership’s approve and pay privileges (organization; null for the ' +
+      'account’s own projects); without pay, its invoices are not counted. Without a session, 401. Nothing about any ' +
+      'other project.',
     permission: AUTHENTICATION,
     projection: PROJECT_LIST,
     schema: { response: { 200: PROJECT_LIST.schema } },
     handler: async (ctx) => {
       const now = new Date()
-      const projects = await projectSummaries(ctx.db, dataScope(ctx.actor, 'request.view', now), now)
+      const projects = await projectSummaries(
+        ctx.db,
+        dataScope(ctx.actor, 'request.view', now),
+        now,
+        await portalView(ctx.db, ctx.actor, now),
+      )
       // An account session's contact reference names the account (accounts/accounts.ts accountRef).
       const access =
         ctx.actor.kind === 'customer' && ctx.actor.contactId.startsWith('account:') ? 'account' : 'project_link'
@@ -116,8 +156,10 @@ export function portalModule(
       'published with it), the filtered timeline (the request and the decisions published to the customer, newest ' +
       'first), the confirmed appointment and the payment summary as separate fields, the server time of the read ' +
       'and the refresh interval (portal.refresh; 0 while NOT CONFIGURED). No internal note, staff detail, ' +
-      'qualification or internal decision. Any other project, an unknown or a malformed reference is the same ' +
-      'NOT_FOUND (T19), recorded as a security event when the project exists.',
+      'qualification or internal decision. TSK-0118 (HH-ID-13): for an organization member, the payment summary is ' +
+      'not_shared without the pay privilege, and the appointment offers no request without the approve privilege. ' +
+      'Any other project, an unknown or a malformed reference is the same NOT_FOUND (T19), recorded as a security ' +
+      'event when the project exists.',
     permission: 'request.view',
     resource: async ({ req, db }) => {
       const id = await projectIdOf(db, (req.params as { reference: string }).reference)
@@ -134,7 +176,12 @@ export function portalModule(
       response: { 200: PROJECT_OVERVIEW.schema },
     },
     handler: async (ctx) => {
-      const o = await projectOverview(ctx.db, ctx.scope, (ctx.req.params as { reference: string }).reference)
+      const now = new Date()
+      const o = await projectOverview(ctx.db, ctx.scope, (ctx.req.params as { reference: string }).reference, now, {
+        payments: dataScope(ctx.actor, 'payment.view', now),
+        decisions: dataScope(ctx.actor, 'visit.request_reschedule', now),
+        replies: dataScope(ctx.actor, 'request.reply', now),
+      })
       if (!o) throw new ApiError('NOT_FOUND')
       return { body: PROJECT_OVERVIEW.project(o) }
     },
@@ -201,6 +248,9 @@ export function portalModule(
     {
       tab: 'payments',
       operationId: 'getCustomerProjectPayments',
+      // TSK-0118 (HH-ID-13): the matrix row "View balances and payments" (Customer V), so an organization member
+      // without the pay privilege finds it NOT_FOUND like another project's; the project's customer sees it as before.
+      permission: 'payment.view',
       view: PROJECT_PAYMENTS as CustomerView<never>,
       says:
         'The Payments tab (TSK-0087, HH-PORT-12). state "listed": the approved total (the current approved scope), the ' +
@@ -211,7 +261,8 @@ export function portalModule(
         'the payment no longer counts; never who recorded them), the totals, and the payment ' +
         'instructions from configuration with their placeholder flag (a placeholder is never a payment destination). ' +
         'Nothing here, and no return from a Square link, marks anything paid: staff record verified payments. state ' +
-        '"none": no approved total, deposit, invoice or recorded payment exists yet.',
+        '"none": no approved total, deposit, invoice or recorded payment exists yet. Authorized by payment.view ' +
+        '(ROLE-MATRIX "View balances and payments": Customer V; an organization member only with the pay privilege).',
     },
   ]
   const tabs: RouteDef[] = TABS.map(({ tab, operationId, view, says, permission }) => ({
@@ -234,6 +285,10 @@ export function portalModule(
         tab,
         new Date(),
         deps.storage ?? null,
+        {
+          payments: dataScope(ctx.actor, 'payment.view', new Date()),
+          decisions: dataScope(ctx.actor, 'visit.request_reschedule', new Date()),
+        },
       )
       if (!answer) throw new ApiError('NOT_FOUND')
       return { body: view.project(answer as never) }
