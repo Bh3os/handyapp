@@ -22,6 +22,7 @@ Owner actions:
 - [ ] **Owner:** buy the domain `handyhub247.com` (OWN-DEC-184; RISK: someone else may register it first) and gain DNS control (OQ-DOMAIN-OWNERSHIP).
 - [ ] **Owner:** buy production hosting as decided in OWN-DEC-185 (one Starter web service, the smallest paid Render PostgreSQL with point-in-time recovery, Hobby workspace). Confirm on Render's pricing page before buying: the prices (ESTIMATE about $13-15 per month fixed) and the point-in-time recovery window are not rechecked.
 - [ ] **Owner:** set production variables in Render (no staging-only variables: production refuses `ACCESS_GATE_USERS`, `STAGING_TOOLS`, `EMAIL_PROVIDER=log` and fakes).
+- [ ] **Owner + Claude:** the production log retention is no longer than `retention.technical_logs` (90 days, OWN-DEC-177): Render's own log retention on the bought plan, or a log stream that applies it. NOT CONFIGURED today (OQ-RETENTION-DEFAULTS-DETAILS).
 - [ ] **Owner + Claude:** email sending domain verified in Resend (SPF, DKIM, DMARC on the bought domain) and `RESEND_API_KEY`, `EMAIL_FROM` set.
 - [ ] **Owner:** the real public phone number and email (FACT-PUBLIC-CONTACT; they are placeholders today).
 - [ ] **Owner:** payment handles: the Zelle, Cash App and Chime details and the check payee (OWN-DEC-182, OQ-PAYMENT-HANDLES). Until then only the methods actually configured can be offered.

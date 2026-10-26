@@ -24,6 +24,9 @@
 //   POST /staff/projects/:projectId/site-contact, /coverage-acceptance, /coverage-exception  the first-visit site
 //                                              checks (visit.confirm; the exception: the Owner; TSK-0126,
 //                                              site-check-routes.ts)
+//   GET  /staff/visits/:visitId/worker-access  the assigned workers' visit-day access and the Owner's extensions, with
+//        POST .../worker-access/extensions and POST /staff/visit-access-extensions/:extensionId/end
+//                                              (TSK-0128, worker-access.ts)
 // Every write takes an idempotency key and records its audit event with the local window, zone, offsets and instants.
 // The customer's side of an offer (select a window, ask for other times) is the portal module's (portal/appointments.ts).
 import type { Tx } from '@handyhub/db'
@@ -42,6 +45,7 @@ import { WORK_VISIT_GATES, type WorkVisitGate } from './gates.js'
 import { offerWindows, windowOfferExpiryAutomation, withdrawOffer, type OfferInput } from './offers.js'
 import { appointmentReminderRoutes } from './reminder-routes.js'
 import { siteCheckRoutes } from './site-check-routes.js'
+import { workerAccessRoutes } from './worker-access.js'
 import {
   BOARD_QUERY,
   CANCEL_BODY,
@@ -629,6 +633,8 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
       ...appointmentReminderRoutes(),
       // TSK-0126: the first-visit site checks.
       ...siteCheckRoutes(),
+      // TSK-0128: the assigned workers' visit-day access and the Owner's extensions.
+      ...workerAccessRoutes(),
     ],
   }
 }

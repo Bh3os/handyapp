@@ -133,6 +133,8 @@ export const PACKET_VIEW = obj({
     address: obj({ street: STR, unit: STR_OR_NULL, city: STR, state: STR, zip: STR }, true),
     addressVersion: INT,
     directionsUrl: STR_OR_NULL,
+    // TSK-0128: the general service area (city and state), shown whatever the reader's visit-day access.
+    serviceArea: obj({ city: STR, state: STR }, true),
     propertyType: STR,
     timeZone: STR_OR_NULL,
     details: arr(DETAIL),
@@ -232,11 +234,27 @@ const ACKNOWLEDGMENTS = obj({
  * The packet view with where acknowledgments stand and what the caller may do on it (the Reveal button and the
  * acknowledgment; the server decides again when either is pressed).
  */
+/**
+ * TSK-0128 (HH-PKT-08, OWN-DEC-171): how the reader stands. `full` (Owner, Office, Estimator); a worker's
+ * `visit_day` access (the visit day itself or an Owner extension, until `endsAt`); or `closed` (before the visit
+ * day, until `opensAt`, or after it): then the address, directions, site-access details, site contact and access-code
+ * entries are left out by the server and the customer's first name is null.
+ */
+export const PACKET_ACCESS = obj({
+  mode: { type: 'string', enum: ['full', 'visit_day', 'closed'] },
+  basis: { type: ['string', 'null'], enum: ['visit_day', 'extension', null] },
+  endsAt: { type: ['string', 'null'], format: 'date-time' },
+  opensAt: { type: ['string', 'null'], format: 'date-time' },
+})
+export const PACKET_CUSTOMER = obj({ firstName: STR_OR_NULL })
+
 export const PACKET_VIEW_WITH_ACTIONS = {
   ...PACKET_VIEW,
-  required: [...PACKET_VIEW.required, 'acknowledgments', 'actions'],
+  required: [...PACKET_VIEW.required, 'customer', 'access', 'acknowledgments', 'actions'],
   properties: {
     ...PACKET_VIEW.properties,
+    customer: PACKET_CUSTOMER,
+    access: PACKET_ACCESS,
     acknowledgments: ACKNOWLEDGMENTS,
     actions: obj({ revealAccessCodes: { type: 'boolean' }, acknowledge: { type: 'boolean' } }),
   },

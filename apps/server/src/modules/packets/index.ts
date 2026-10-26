@@ -37,6 +37,15 @@ import { jobInScope } from '../../platform/data-scope.js'
 import { currentContext } from '../../platform/request-context.js'
 import type { ObjectStorage } from '../../providers/index.js'
 import { acknowledge, acknowledgmentStatus, assignedNow, teamAcknowledgments } from './acknowledgments.js'
+import {
+  customerFirstName,
+  DAY_ENDS,
+  EXTENDED,
+  packetAccessOf,
+  projectPacket,
+  workerVisitAccess,
+  type PacketAccess,
+} from './access-window.js'
 import { jobAssignments, propertyVisitFacts } from './assignments.js'
 import { packetVersion, refreshJobPacket, type PacketRow } from './content.js'
 import { renderPacketPdf } from './pdf.js'
@@ -64,6 +73,14 @@ export {
   teamAcknowledgments,
 } from './acknowledgments.js'
 export { jobAssignments, propertyVisitFacts } from './assignments.js'
+export {
+  customerFirstName,
+  packetAccessOf,
+  projectPacket,
+  workerVisitAccess,
+  type PacketAccess,
+  type WorkerVisitAccess,
+} from './access-window.js'
 export { latestPacket, packetContent, refreshJobPacket } from './content.js'
 export { packetPdfModel, renderPacketPdf } from './pdf.js'
 
@@ -112,6 +129,16 @@ async function currentPacket(ctx: ApiContext, db: Db | Tx = ctx.db): Promise<Pac
   return row
 }
 
+/**
+ * TSK-0128 (HH-PKT-08, OWN-DEC-171): how the caller stands on the job's visit-day data. Staff who reach every job
+ * (Owner, Office, Estimator) see the full packet; a worker, who reaches it through an assignment, sees the visit-day
+ * data only during their access on one of its visits (the visit's local service day or an Owner extension).
+ */
+async function packetAccess(ctx: ApiContext, jobId: string, now: Date): Promise<PacketAccess> {
+  if (ctx.scope.kind === 'all') return { mode: 'full' }
+  return packetAccessOf(await workerVisitAccess(ctx.db, staff(ctx).userId, { jobId }, now))
+}
+
 async function firstGeneratedAt(db: Db | Tx, jobId: string): Promise<Date> {
   const r = await db
     .selectFrom('work.job_packets')
@@ -153,7 +180,12 @@ export function packetsModule(deps: PacketsDeps = {}): ApiModule {
       'separately, online, on the visit date). What no record holds is marked, never filled in. Also where the ' +
       "caller's own acknowledgment stands (acknowledged, required, invalidated by a critical change, a removed " +
       'assignment or a disabled account, or not assigned) with what changed since the acknowledged version, and ' +
-      "each assigned worker's state. Nobody inherits another person's acknowledgment.",
+      "each assigned worker's state. Nobody inherits another person's acknowledgment. TSK-0128 (OWN-DEC-171): " +
+      "`access` says how the caller stands: `full` (Owner, Office, Estimator), a worker's `visit_day` access (the " +
+      "visit's own local service day, or an Owner extension, until `endsAt`) or `closed` (before the day, until " +
+      '`opensAt`, or after it). While closed the server leaves out the address, directions, site-access details, ' +
+      'site contact and access-code entries and shows the general service area (city and state); `customer` holds ' +
+      "the customer's first name only, during the access.",
     kind: 'read',
     idempotency: 'none',
     expectedVersion: 'none',
@@ -182,9 +214,11 @@ export function packetsModule(deps: PacketsDeps = {}): ApiModule {
       const assigned = (await assignedNow(ctx.db, row.jobId, now)).includes(actor.userId)
       const mine = await acknowledgmentStatus(ctx.db, row, actor.userId, assigned)
       const team = await teamAcknowledgments(ctx.db, row, now)
+      const access = await packetAccess(ctx, row.jobId, now)
+      const projected = projectPacket(body, access, await customerFirstName(ctx.db, row.projectId))
       return {
         body: {
-          ...body,
+          ...projected,
           acknowledgments: { mine, team },
           actions: { revealAccessCodes, acknowledge: assigned && mine.state !== 'acknowledged' },
         },
@@ -364,8 +398,11 @@ export function packetsModule(deps: PacketsDeps = {}): ApiModule {
         storage: null,
         now,
       })
+      // TSK-0128: a worker's print follows the same visit-day projection as the screen, at the time of printing.
+      const access = await packetAccess(ctx, row.jobId, now)
       const bytes = await renderPacketPdf({
-        view: viewBody,
+        view: projectPacket(viewBody, access, null),
+        visitDayClosed: access.mode === 'closed',
         locale: localeOf(ctx),
         printedAt: now,
         // The property's zone, else the zone the visits were planned in; UTC (named on every time) when neither is known.
@@ -391,7 +428,8 @@ export function packetsModule(deps: PacketsDeps = {}): ApiModule {
     summary: "The caller's assigned jobs and their packets",
     description:
       "Staff with schedule.view_my_day: only the caller's own assignments (active confirmed reservations on live " +
-      "work visits whose service day has not ended), grouped by job, with the packet's current version (brought up " +
+      'work visits whose service day has not ended, or with an Owner extension in force), grouped by job, with the ' +
+      "packet's current version (brought up " +
       'to date first), the version the caller last viewed and whether it changed since then, critically or not, and ' +
       "where the caller's own acknowledgment stands. Nothing about another person's assignments.",
     actors: ['staff'],
@@ -429,7 +467,8 @@ export function packetsModule(deps: PacketsDeps = {}): ApiModule {
         .where('r.ended_at', 'is', null)
         .where('v.job_id', 'is not', null)
         .where('v.state', 'in', [...PACKET_VISIT_STATES])
-        .where(sql<boolean>`now() < ((v.local_date + 1)::timestamp AT TIME ZONE v.time_zone)`)
+        // TSK-0128: or an Owner extension in force on the reservation (it keeps the packet reachable until it expires).
+        .where(sql<boolean>`(now() < ${DAY_ENDS} OR ${EXTENDED()} IS NOT NULL)`)
         .orderBy('v.starts_at')
         .orderBy('v.number')
         .execute()

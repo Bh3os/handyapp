@@ -5,6 +5,8 @@
 //   GET /staff/retention-reviews  the queue's entries with their hold checks, paged; one category on request
 // Owner only (ROLE-MATRIX retention.view, PROPOSED, in the row of the Delete action). The daily job
 // (retention.review_scan) opens the entries; nothing in this module deletes, archives or changes a record.
+// TSK-0138 (OWN-DEC-177): the provisional defaults (staff accounts, consent records, settings history, technical logs,
+// expired sessions and links), with periods in years or calendar days, and batch entries.
 import type { Tx } from '@handyhub/db'
 import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
 import { pageSchema } from '../../api/pagination.js'
@@ -100,18 +102,22 @@ const read = {
 
 const NULLABLE_STRING = { type: ['string', 'null'] } as const
 const NULLABLE_INT = { type: ['integer', 'null'] } as const
-const SCAN = { type: 'string', enum: ['scanned', 'start_not_recorded', 'no_period'] } as const
+const SCAN = {
+  type: 'string',
+  enum: ['scanned', 'start_not_recorded', 'no_period', 'while_referenced', 'not_stored'],
+} as const
 
 const CATEGORY = {
   type: 'object',
   additionalProperties: false,
-  required: ['id', 'configKey', 'scan', 'state', 'years', 'after', 'version', 'sourceIds', 'entries'],
+  required: ['id', 'configKey', 'scan', 'state', 'years', 'days', 'after', 'version', 'sourceIds', 'entries'],
   properties: {
     id: { type: 'string', enum: [...RETENTION_CATEGORIES] },
     configKey: NULLABLE_STRING,
     scan: SCAN,
     state: { type: ['string', 'null'], enum: ['CONFIGURED', 'NOT_CONFIGURED', null] },
     years: NULLABLE_INT,
+    days: NULLABLE_INT,
     after: NULLABLE_STRING,
     version: NULLABLE_INT,
     sourceIds: { type: 'array', items: { type: 'string' } },
@@ -164,6 +170,8 @@ const ENTRY = {
     'retentionStartedAt',
     'periodEndsAt',
     'years',
+    'days',
+    'count',
     'policy',
     'holdChecks',
     'holdsFound',
@@ -188,7 +196,9 @@ const ENTRY = {
     },
     retentionStartedAt: { type: 'string', format: 'date-time' },
     periodEndsAt: { type: 'string', format: 'date-time' },
-    years: { type: 'integer' },
+    years: NULLABLE_INT,
+    days: NULLABLE_INT,
+    count: NULLABLE_INT,
     policy: {
       type: 'object',
       additionalProperties: false,
@@ -226,7 +236,9 @@ export function retentionModule(): ApiModule {
       'the period, what starts it, the configuration version and its sources; OWN-DEC-70, OWN-DEC-142), whether ' +
       'the daily job can find the category’s records yet (scanned, start not recorded, no period), the last and ' +
       'next run, and how many entries wait for the Owner’s review. Nothing is deleted automatically; the periods ' +
-      'await CPA and attorney confirmation (OQ-RETENTION-REVIEW).',
+      'await CPA and attorney confirmation (OQ-RETENTION-REVIEW). TSK-0138 (OWN-DEC-177): the provisional defaults ' +
+      'for staff accounts, consent records, settings history (while referenced), technical logs (kept outside the ' +
+      'database) and expired sessions and links, with periods in years or calendar days.',
     pagination: false,
     schema: { response: { 200: OVERVIEW } },
     handler: async (ctx: ApiContext) => ({ body: await retentionOverview(ctx.db) }),
@@ -245,7 +257,9 @@ export function retentionModule(): ApiModule {
       'project; complaints, warranties, disputes, claims, investigations, unfiled tax returns, legal and insurance ' +
       'holds are not recorded by the software yet and are listed as such). Read-only: the record is unchanged ' +
       'until the Owner decides. TSK-0100: each entry carries its status from the Owner’s latest decision (pending, ' +
-      'archived, kept longer until a time, deleted); `status` narrows the list to one.',
+      'archived, kept longer until a time, deleted); `status` narrows the list to one. TSK-0138 (OWN-DEC-177): an ' +
+      'entry may name a disabled staff account, the history of a withdrawn consent, or a batch of expired sessions ' +
+      'or links of one kind and month (`count` rows); its period is in years or calendar days.',
     pagination: true,
     schema: {
       querystring: {

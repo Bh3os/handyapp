@@ -807,6 +807,35 @@ export interface FinanceInvoicesTable {
   version: Generated<number>
 }
 
+export interface FinanceJobCostEventsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  job_id: string
+  project_id: string
+  event: string
+  category: string
+  cost_id: string | null
+  actor_id: string
+  note: string | null
+  at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface FinanceJobCostsTable {
+  id: Generated<string>
+  job_id: string
+  project_id: string
+  category: string
+  amount_cents: Int8
+  currency: Generated<string>
+  incurred_on: string
+  note: string
+  recorded_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+  void_reason: string | null
+  voided_by: string | null
+  voided_at: Timestamp | null
+}
+
 export interface FinancePaymentAdjustmentsTable {
   id: Generated<string>
   payment_id: string
@@ -1257,6 +1286,7 @@ export interface IntakeQuestionsTable {
   first_reminder_sent_at: Timestamp | null
   final_reminder_sent_at: Timestamp | null
   version: Generated<number>
+  not_sure_allowed: Generated<boolean>
 }
 
 export interface IntakeReceiptCapabilitiesTable {
@@ -1798,7 +1828,7 @@ export interface PrivacyRetentionReviewsTable {
   project_id: string | null
   policy_key: string
   policy_version: number
-  period_years: number
+  period_years: number | null
   retention_started_at: Timestamp
   period_ends_at: Timestamp
   hold_checks: Json
@@ -1806,6 +1836,8 @@ export interface PrivacyRetentionReviewsTable {
   opened_by: string
   opened_at: ColumnType<Date, Date | string | undefined, Date | string>
   request_id: string
+  period_days: number | null
+  record_count: number | null
 }
 
 export interface QualityCaseAttachmentsTable {
@@ -2716,6 +2748,21 @@ export interface WorkTimeStampsTable {
   device_recorded_at: Timestamp | null
 }
 
+export interface WorkVisitAccessExtensionsTable {
+  id: Generated<string>
+  visit_id: string
+  reservation_id: string
+  staff_user_id: string
+  reason: string
+  granted_by: string
+  starts_at: ColumnType<Date, Date | string | undefined, Date | string>
+  expires_at: Timestamp
+  ended_at: Timestamp | null
+  ended_by: string | null
+  end_reason: string | null
+  request_id: string
+}
+
 export interface WorkVisitChangeRequestsTable {
   id: Generated<string>
   visit_id: string
@@ -3024,6 +3071,8 @@ export interface Database {
   'finance.invoice_payment_links': FinanceInvoicePaymentLinksTable
   'finance.invoice_voids': FinanceInvoiceVoidsTable
   'finance.invoices': FinanceInvoicesTable
+  'finance.job_cost_events': FinanceJobCostEventsTable
+  'finance.job_costs': FinanceJobCostsTable
   'finance.payment_adjustments': FinancePaymentAdjustmentsTable
   'finance.payment_allocations': FinancePaymentAllocationsTable
   'finance.payment_receipts': FinancePaymentReceiptsTable
@@ -3151,6 +3200,7 @@ export interface Database {
   'work.time_off': WorkTimeOffTable
   'work.time_stamp_corrections': WorkTimeStampCorrectionsTable
   'work.time_stamps': WorkTimeStampsTable
+  'work.visit_access_extensions': WorkVisitAccessExtensionsTable
   'work.visit_change_requests': WorkVisitChangeRequestsTable
   'work.visit_changes': WorkVisitChangesTable
   'work.visit_departures': WorkVisitDeparturesTable

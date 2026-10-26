@@ -202,6 +202,8 @@ export const LABEL_FAMILIES = {
     'question_reminder_first',
     'question_reminder_final',
     'no_response_close_available',
+    // TSK-0148: a question reminder that failed to deliver, for staff follow-up.
+    'question_reminder_failed',
     'assignee_disabled',
     'availability_changed',
     'equipment_retired',
@@ -403,6 +405,11 @@ export const LABEL_FAMILIES = {
     'retention.financial_records',
     'retention.job_records',
     'retention.safety_records',
+    'retention.staff_accounts',
+    'retention.consent_records',
+    'retention.settings_history',
+    'retention.technical_logs',
+    'retention.sessions_and_links',
     'scheduling.window_offers',
     'visit.on_my_way',
     'geo.county_time_zones',
@@ -458,6 +465,8 @@ export const LABEL_FAMILIES = {
     'not_a_fit_owner_review',
     // TSK-0051 (OWN-DEC-101).
     'close_no_response',
+    // TSK-0148 (OWN-DEC-197 E5): staff reopened a "Closed—no response" request.
+    'reopen',
   ],
   /** Project lifecycle states (the project.lifecycle machine, PROPOSED). */
   projectState: ['open', 'approved', 'completed', 'closed', 'cancellation_review', 'canceled'],
@@ -615,6 +624,10 @@ export const LABEL_FAMILIES = {
     'QUESTION_ANSWERED',
     'REQUEST_CLOSED',
     'NO_DRAFT',
+    // TSK-0148 (OWN-DEC-197 E4, E5; OWN-DEC-208).
+    'REMINDER_FAILED',
+    'CUSTOMER_REPLIED',
+    'PROJECT_NOT_CLOSED',
   ],
   /** Staff questions to the customer (TSK-0051; apps/server/src/modules/questions). */
   questionKind: ['general', 'measurement'],
@@ -945,6 +958,8 @@ export const LABEL_FAMILIES = {
     'access_help',
     // TSK-0094: return work of a case.
     'return_work',
+    // TSK-0095: a job's cost entries and the Owner's category confirmations.
+    'job_cost',
     'access_code',
     'account_offer',
     'appointment_reminder',
@@ -1027,9 +1042,13 @@ export const LABEL_FAMILIES = {
     'financial_records',
     'job_records',
     'safety_records',
-    'audit_log',
-    'access_codes',
+    'staff_accounts',
+    'consent_records',
     'sessions_and_links',
+    'audit_log',
+    'settings_history',
+    'technical_logs',
+    'access_codes',
     'regulated_employee_records',
     'not_scheduled',
   ],
@@ -1042,10 +1061,13 @@ export const LABEL_FAMILIES = {
     'financial_records',
     'job_records',
     'safety_records',
+    'staff_accounts',
+    'consent_records',
+    'sessions_and_links',
     'audit_log',
   ],
   /** The rule of a category without a period (FACT-RETENTION-SCHEDULE; not_scheduled: OQ-RETENTION-UNSCHEDULED). */
-  retentionNoPeriod: ['access_codes', 'sessions_and_links', 'regulated_employee_records', 'not_scheduled'],
+  retentionNoPeriod: ['access_codes', 'regulated_employee_records', 'not_scheduled'],
   /** What starts a period (the `after` field of the retention.* values; audit records: when recorded). */
   retentionStart: [
     'request_closed',
@@ -1055,10 +1077,14 @@ export const LABEL_FAMILIES = {
     'tax_return_filed_or_tax_paid',
     'job_closeout',
     'closure',
+    // TSK-0138 (OWN-DEC-177).
+    'staff_departure',
+    'last_relevant_use',
+    'expired_or_ended',
     'recorded',
   ],
-  /** Whether the daily review finds a category's records yet (TSK-0099 ScanState). */
-  retentionScan: ['scanned', 'start_not_recorded', 'no_period'],
+  /** Whether the daily review finds a category's records yet (TSK-0099 ScanState; TSK-0138 the last two). */
+  retentionScan: ['scanned', 'start_not_recorded', 'no_period', 'while_referenced', 'not_stored'],
   /** The hold checks of a deletion-review entry (ENT-RetentionReview "holds found"). */
   retentionHoldCheck: [
     'open_holds',
@@ -1073,7 +1099,21 @@ export const LABEL_FAMILIES = {
   ],
   retentionHoldResult: ['found', 'none_found', 'not_applicable', 'not_recorded'],
   /** The record types the review opens entries for. */
-  retentionRecordType: ['request', 'estimate', 'audit_event'],
+  retentionRecordType: [
+    'request',
+    'estimate',
+    'audit_event',
+    // TSK-0138: a staff account, a consent history, and the batches of expired sessions and links (one per month).
+    'staff_account',
+    'consent_history',
+    'expired_staff_sessions',
+    'expired_customer_sessions',
+    'expired_guest_links',
+    'expired_staff_links',
+    'expired_receipt_links',
+    'expired_upload_links',
+    'expired_verification_codes',
+  ],
   /** TSK-0100: an entry's status from the Owner's latest decision (privacy.retention_decisions). */
   retentionEntryState: ['pending', 'archived', 'kept', 'deleted'],
   /** TSK-0100: the checks of a deletion (apps/server/src/modules/privacy/targets.ts DELETION_CHECKS). */
@@ -2168,6 +2208,12 @@ export const LABEL_FAMILIES = {
     'INVALID_TRANSITION',
     'COST_VOIDED',
   ],
+  // TSK-0095 (HH-FIN-17, HH-DATA-10): a job's estimated versus actual costs (@handyhub/domain job-costs.ts).
+  jobCostFigure: ['complete', 'incomplete', 'not_recorded', 'not_estimated', 'not_configured'],
+  jobCostLine: ['labor', 'burden', 'materials', 'purchase', 'subcontractor', 'rental', 'disposal', 'other'],
+  jobCostEvent: ['cost_recorded', 'cost_voided', 'category_confirmed', 'category_reopened'],
+  /** The server's refusal codes of the job-cost routes (apps/server/src/modules/job-costs). */
+  jobCostCode: ['CATEGORY_CONFIRMED', 'CATEGORY_NOT_CONFIRMED', 'COST_VOIDED', 'IN_FUTURE', 'AMOUNT_INVALID'],
   qualityGate: ['quality_review_not_recorded', 'passed', 'owner_may_issue', 'blocked'],
   qualityEvent: [
     'start',

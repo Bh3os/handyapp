@@ -35,6 +35,7 @@ import { AccessHelpScreen } from './AccessHelp'
 import { ReconciliationScreen } from './Reconciliation'
 import { InvoiceRemindersPage } from './InvoiceReminders'
 import { CloseoutPage } from './Closeout'
+import { JobCostsPage } from './JobCosts'
 import { MergeReview, RelinkRequest } from './RecordLinks'
 import { RequestRecord } from './Record'
 import { RequestsScreen } from './Requests'
@@ -51,6 +52,7 @@ import { StagingTools } from './StagingTools'
 import { LaunchPhaseSetting } from './LaunchPhase'
 import { ConfigurationScreen, HealthScreen } from './System'
 import { VisitTimesPage } from './VisitTimes'
+import { VisitAccessPage } from './VisitAccess'
 
 type Session = {
   staffUserId: string
@@ -318,6 +320,8 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
                 : 'schedule'
               : // TSK-0070: a visit's Arrived and Finished times sit below the schedule; the server decides who sees them.
                 route.screen === 'visit-times' ||
+                  // TSK-0128: a visit's worker access and the Owner's extensions, from the project's visits.
+                  route.screen === 'visit-access' ||
                   // TSK-0078: a recorded visit outcome's follow-up, from the staff queue.
                   route.screen === 'visit-outcomes' ||
                   // TSK-0080: a phone update kept for the Owner's review, from the staff queue.
@@ -330,7 +334,10 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
                 ? 'schedule'
                 : // TSK-0090: one reconciliation item, from the staff queue, sits below Payments.
                   // TSK-0091: an invoice's reminders, from the staff queue and Owner Decisions, too.
-                  route.screen === 'reconciliation' || route.screen === 'invoice-reminders'
+                  // TSK-0095: a job's estimated-versus-actual costs, from its closeout (the server keeps them to the Owner).
+                  route.screen === 'reconciliation' ||
+                    route.screen === 'invoice-reminders' ||
+                    route.screen === 'job-costs'
                   ? 'payments'
                   : // TSK-0149: one access help request, from the staff queue, sits below the privacy requests.
                     route.screen === 'access-help'
@@ -527,6 +534,9 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
           ) : route.page === 'record' && route.screen === 'closeout' && allowed ? (
             // TSK-0092: a job's closeout, the Owner's reopen and its follow-ups.
             <CloseoutPage key={route.id} t={t} fetchImpl={doFetch} jobId={route.id} href={href} />
+          ) : route.page === 'record' && route.screen === 'job-costs' && allowed ? (
+            // TSK-0095: a job's estimated versus actual costs; missing cost is shown incomplete, never $0.00.
+            <JobCostsPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} href={href} />
           ) : route.page === 'record' && route.screen === 'safety-holds' ? (
             // TSK-0077: a safety queue item's link (a critical hold) opens its job's review page.
             <SafetyHoldPage
@@ -540,6 +550,8 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             />
           ) : route.page === 'record' && route.screen === 'visit-times' ? (
             <VisitTimesPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} visitId={route.id} />
+          ) : route.page === 'record' && route.screen === 'visit-access' ? (
+            <VisitAccessPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} visitId={route.id} />
           ) : (route.page === 'screen' || route.page === 'home') && shown === 'my-day' && allowed ? (
             <MyDay t={t} locale={locale} fetchImpl={doFetch} href={href} />
           ) : route.page === 'screen' && shown === 'schedule' && allowed ? (

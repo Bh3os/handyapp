@@ -207,6 +207,33 @@ describe('T28: access code reveal is assigned, dated, online and audited', () =>
       ),
     ).toBe('MISSING_FACT')
   })
+
+  it('[TSK-0128][OWN-DEC-171] the visit date is read in the visit zone when given, and an Owner extension counts', () => {
+    // The business date has moved on (Louisville past midnight) while the Central property is still on its visit day.
+    const central: Resource = { ...job, visitToday: '2026-10-20' }
+    expect(effect(decide(worker, 'access_code.reveal', central, ctx({ today: '2026-10-21' })))).toBe('allow')
+    // And the other way round: the business date is the visit date, the property's day is over.
+    const over: Resource = { ...job, visitToday: '2026-10-21' }
+    expect(effect(decide(worker, 'access_code.reveal', over, ctx()))).toBe('NOT_VISIT_DATE')
+    // An extension in force opens it after the day; an expired one does not; it never replaces the assignment.
+    const extended: Resource = { ...over, extendedUntil: new Date(NOW.getTime() + 60_000) }
+    expect(effect(decide(worker, 'access_code.reveal', extended, ctx()))).toBe('allow')
+    const expired: Resource = { ...over, extendedUntil: NOW }
+    expect(effect(decide(worker, 'access_code.reveal', expired, ctx()))).toBe('NOT_VISIT_DATE')
+    const other = staff('worker-2', ['worker'])
+    expect(effect(decide(other, 'access_code.reveal', extended, ctx()))).toBe('NOT_ASSIGNED')
+    expect(effect(decide(worker, 'access_code.reveal', extended, ctx({ online: false })))).toBe('OFFLINE')
+  })
+
+  it('[TSK-0128][OWN-DEC-171] only the Owner extends a worker visit-day access, with a written reason, audited', () => {
+    expect(decide(owner, 'visit.extend_worker_access', {}, ctx({ reason: 'Synthetic: late finish.' }))).toMatchObject({
+      effect: 'allow',
+      audit: true,
+    })
+    expect(effect(decide(owner, 'visit.extend_worker_access', {}, ctx()))).toBe('REASON_REQUIRED')
+    for (const who of [office, estimator, worker])
+      expect(effect(decide(who, 'visit.extend_worker_access', {}, ctx({ reason: 'x' })))).toBe('NOT_PERMITTED')
+  })
 })
 
 describe('T68: scoped views never leak across customers or roles', () => {

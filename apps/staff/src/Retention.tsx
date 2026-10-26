@@ -7,6 +7,9 @@
 // deletion is permanent, with Cancel and Confirm Delete. Every check the software cannot run is ticked by the Owner,
 // a reason is written and the server asks for a fresh sign-in. A blocked deletion says why and offers Archive; Keep
 // longer brings the entry back later. The deletion log below lists references only.
+// TSK-0138 (OWN-DEC-177): the provisional defaults: periods in years or calendar days, settings history kept while
+// referenced, technical logs kept by the host, and entries that stand for a batch of rows (expired sessions and links
+// of one kind and month).
 import { LABEL_FAMILIES, type StaffKey, type StaffLocale } from '@handyhub/i18n'
 import { Button, Dialog, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useState, type FormEvent } from 'react'
@@ -19,9 +22,11 @@ type T = (key: StaffKey, values?: Record<string, string | number>) => string
 export type RetentionCategoryView = {
   id: string
   configKey: string | null
-  scan: 'scanned' | 'start_not_recorded' | 'no_period'
+  scan: 'scanned' | 'start_not_recorded' | 'no_period' | 'while_referenced' | 'not_stored'
   state: 'CONFIGURED' | 'NOT_CONFIGURED' | null
   years: number | null
+  /** TSK-0138: a period in calendar days. */
+  days?: number | null
   after: string | null
   version: number | null
   sourceIds: string[]
@@ -45,7 +50,11 @@ export type ReviewEntry = {
   record: { type: string; id: string; reference: string; projectId: string | null }
   retentionStartedAt: string
   periodEndsAt: string
-  years: number
+  years: number | null
+  /** TSK-0138: a period in calendar days instead of years. */
+  days?: number | null
+  /** TSK-0138: the rows a batch entry (or a consent history) stands for. */
+  count?: number | null
   policy: { key: string; version: number }
   holdChecks: { check: string; result: 'found' | 'none_found' | 'not_applicable' | 'not_recorded'; count?: number }[]
   holdsFound: boolean
@@ -105,7 +114,13 @@ export function reviewsQuery(category: string, cursor?: string): string {
 }
 
 const bcp47 = (locale: StaffLocale) => (locale === 'es' ? 'es-US' : 'en-US')
-const SCAN_TONE = { scanned: 'success', start_not_recorded: 'neutral', no_period: 'neutral' } as const
+const SCAN_TONE = {
+  scanned: 'success',
+  start_not_recorded: 'neutral',
+  no_period: 'neutral',
+  while_referenced: 'neutral',
+  not_stored: 'neutral',
+} as const
 const HOLD_TONE = {
   found: 'danger',
   none_found: 'success',
@@ -115,11 +130,22 @@ const HOLD_TONE = {
 
 function rule(t: T, c: RetentionCategoryView): string {
   if (c.configKey === null) return codeLabel(t, 'retentionNoPeriod', c.id)
-  if (c.state !== 'CONFIGURED' || c.years === null) return t('retention.schedule.notConfigured')
-  return t('retention.schedule.period', {
-    years: c.years,
-    start: c.after ? codeLabel(t, 'retentionStart', c.after) : '',
-  })
+  if (c.state !== 'CONFIGURED') return t('retention.schedule.notConfigured')
+  const start = c.after ? codeLabel(t, 'retentionStart', c.after) : ''
+  // TSK-0138: settings history has no period; technical logs are kept by the host, not in the database.
+  if (c.scan === 'while_referenced') return t('retention.schedule.whileReferenced')
+  if (c.scan === 'not_stored' && c.days != null) return t('retention.schedule.logs', { days: c.days })
+  if (c.years !== null) return t('retention.schedule.period', { years: c.years, start })
+  if (c.days != null) return t('retention.schedule.periodDays', { days: c.days, start })
+  return t('retention.schedule.notConfigured')
+}
+
+/** The period an entry was opened under, in years or (TSK-0138) calendar days. */
+function entryPolicy(t: T, e: ReviewEntry): string {
+  const base = { key: e.policy.key, version: e.policy.version }
+  return e.years === null && e.days != null
+    ? t('retention.entry.policyDays', { ...base, days: e.days })
+    : t('retention.entry.policy', { ...base, years: e.years ?? 0 })
 }
 
 const STATUS_TONE = { pending: 'info', archived: 'neutral', kept: 'neutral', deleted: 'success' } as const
@@ -536,7 +562,9 @@ export function RetentionScreen({
                   </div>
                   <ul className="staff-queue__facts">
                     <li>{rule(t, c)}</li>
-                    {c.configKey !== null ? <li>{t('retention.schedule.entries', { n: c.entries })}</li> : null}
+                    {c.configKey !== null && c.scan !== 'while_referenced' && c.scan !== 'not_stored' ? (
+                      <li>{t('retention.schedule.entries', { n: c.entries })}</li>
+                    ) : null}
                     {c.version !== null ? (
                       <li className="staff-queue__refreshed">
                         {t('retention.schedule.source', { version: c.version, ids: c.sourceIds.join(', ') })}
@@ -607,9 +635,8 @@ export function RetentionScreen({
                   <li>{t('retention.entry.category', { category: codeLabel(t, 'retentionCategory', e.category) })}</li>
                   <li>{t('retention.entry.started', { date: day.format(new Date(e.retentionStartedAt)) })}</li>
                   <li>{t('retention.entry.ended', { date: day.format(new Date(e.periodEndsAt)) })}</li>
-                  <li>
-                    {t('retention.entry.policy', { key: e.policy.key, version: e.policy.version, years: e.years })}
-                  </li>
+                  <li>{entryPolicy(t, e)}</li>
+                  {e.count != null ? <li>{t('retention.entry.count', { n: e.count })}</li> : null}
                   <li>{t('retention.entry.opened', { time: time.format(new Date(e.openedAt)) })}</li>
                 </ul>
                 <dl className="staff-system__fields" aria-label={t('retention.entry.holds')}>
