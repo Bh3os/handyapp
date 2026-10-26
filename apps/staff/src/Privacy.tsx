@@ -351,11 +351,14 @@ export function PrivacyScreen({
   t,
   locale,
   fetchImpl,
+  href,
   onSession,
 }: {
   t: T
   locale: StaffLocale
   fetchImpl: Fetch
+  /** TSK-0149: the link to help with customer access below this screen. */
+  href?: (path: string) => string
   onSession?: (s: { csrfToken: string }) => void
 }) {
   const ids = useId()
@@ -397,6 +400,11 @@ export function PrivacyScreen({
         {t('nav.privacy')}
       </h1>
       <p>{t('privacy.intro')}</p>
+      {href ? (
+        <p>
+          <a href={href('/access-help')}>{t('privacy.accessHelp')}</a>
+        </p>
+      ) : null}
       <form
         className="staff-queue__filters"
         aria-label={t('privacy.filter')}

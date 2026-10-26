@@ -19,3 +19,5 @@ source: "guide 8.2 HH-ID-09; OWN-DEC-97"
 - A reissued grant is limited to that project, even when other projects share the customer or email.
 
 **Changed by [[OWN-DEC-198]] (2026-10-21):** a secure recovery path exists for legitimate customers who reach the reissue limits; staff-revoked access is never restored on request.
+
+**Built by [[TSK-0149]] (2026-10-24):** the reissue limits are kept; after asking for a new link every visitor sees the same offer to ask HandyHub for help, whose answer is also one for all. The Owner verifies identity and sends a new link to the project's contact on file only (this is how staff restore a link staff revoked; a customer's request never does). Details PROPOSED in [[OQ-ACCOUNT-SECURITY-DETAILS]].

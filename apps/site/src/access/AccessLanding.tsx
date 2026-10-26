@@ -9,6 +9,8 @@
 //   link with the email or mobile phone on the request (and the reference when this tab holds no old link). The
 //   answer is the same whether or not anything matches. A code that can no longer be used (expired, or too many
 //   tries) gets its own neutral page that offers a new code; nothing about the project is shown on either.
+// - TSK-0149 (OWN-DEC-198 F5, F6): after asking, every visitor also sees the same offer to ask HandyHub for help (the
+//   secure alternative when the reissue limits are reached or staff revoked the link), whatever the answer was.
 // - TSK-0036 (HH-ID-10, HH-INT-14 "registering later"): a project opened through its guest link offers the optional
 //   Create an Account, with a code to the link's own verified contact; an account session shows no offer.
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
@@ -17,6 +19,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'rea
 import { minutesLeft, noticeText, type Channel, type Fetch, type Notice } from '../request/verification.js'
 import { AccountEnrollment } from '../account/AccountEnrollment.js'
 import { accountApi, type EnrollChannel } from '../account/account.js'
+import { AccessHelp } from './AccessHelp.js'
 import {
   accessApi,
   forgetToken,
@@ -162,9 +165,12 @@ function Recovery({ token, fetchImpl }: { token: string | null; fetchImpl: Fetch
         {t('access.recover.title')}
       </h3>
       {done ? (
-        <p ref={doneRef} tabIndex={-1} role="status">
-          {t('access.recover.done')}
-        </p>
+        <>
+          <p ref={doneRef} tabIndex={-1} role="status">
+            {t('access.recover.done')}
+          </p>
+          <AccessHelp kind="project_link" fetchImpl={fetchImpl} level={4} />
+        </>
       ) : (
         <>
           <p>{t('access.recover.text')}</p>

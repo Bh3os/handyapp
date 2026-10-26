@@ -92,6 +92,8 @@ export const LABEL_FAMILIES = {
     'reconciliation_item',
     // TSK-0091: a payment suspended an invoice's reminders; staff confirm the next step.
     'invoice_reminder_review',
+    // TSK-0149: a request for help signing in or getting a new project link.
+    'access_help_request',
     'visit_flagged',
     // TSK-0078: a recorded visit outcome waiting for staff follow-up.
     'visit_outcome',
@@ -157,6 +159,9 @@ export const LABEL_FAMILIES = {
     'currency_mismatch',
     'duplicate_entry',
     'reference_mismatch',
+    // TSK-0149: what an access help request asks for.
+    'sign_in',
+    'project_link',
     'cancellation_outcome_requested',
     'deletion_requested',
     'overdue_owner_decision',
@@ -258,6 +263,7 @@ export const LABEL_FAMILIES = {
     'clear_check',
     'reconcile',
     'review_permissions',
+    'help_access',
   ],
   // TSK-0078 (HH-SCH-09): the outcomes a worker records on a visit, and why one is refused.
   visitOutcomeKind: ['delay', 'no_access', 'customer_absent', 'weather', 'missing_resources', 'readiness_issue'],
@@ -865,6 +871,8 @@ export const LABEL_FAMILIES = {
    * modules record them. An area not listed here is shown by its code.
    */
   auditArea: [
+    // TSK-0149: requests for help signing in or getting a new project link.
+    'access_help',
     'access_code',
     'account_offer',
     'appointment_reminder',
@@ -1325,6 +1333,32 @@ export const LABEL_FAMILIES = {
   reconciliationSource: ['customer', 'square', 'bank', 'staff'],
   reconciliationResolution: ['matched', 'recorded', 'not_received', 'duplicate', 'corrected', 'refunded', 'no_action'],
   reconciliationRecord: ['pending_check', 'returned_payment', 'open_dispute', 'refund_uncertain'],
+  /**
+   * Help with customer access (TSK-0149): the Owner's outcome of a help request, the state of a project's newest link,
+   * why it was revoked, how a project matched, and the refusals of the Owner's actions.
+   */
+  accessHelpOutcome: ['access_restored', 'identity_not_verified', 'no_match', 'no_action'],
+  accessLinkState: ['live', 'expired', 'revoked', 'none'],
+  accessRevokeReason: ['contact_changed', 'staff_revoked', 'account_deleted', 'corrected_link'],
+  accessMatch: ['reference', 'email', 'phone'],
+  accessHelpRefusal: [
+    'required',
+    'TOO_LONG',
+    'INVALID',
+    'invalid_email',
+    'invalid_contact',
+    'unchanged',
+    'email_in_use',
+    'recovery_pending',
+    'NO_PENDING_RECOVERY',
+    'HELP_REQUEST_CLOSED',
+    'FORBIDDEN',
+    'NOT_FOUND',
+    'NOT_CONFIGURED',
+    'RATE_LIMITED',
+    'UNAVAILABLE',
+    'INTERNAL',
+  ],
   /** What the Owner records of a Square refund (TSK-0089). */
   refundOutcome: ['processing', 'succeeded', 'failed', 'needs_review'],
   /** Invoice states (TSK-0085, ENT-Invoice): draft -> issued -> partially_paid / paid; voided (TSK-0089). */

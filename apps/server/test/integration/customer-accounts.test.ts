@@ -82,6 +82,16 @@ beforeAll(async () => {
     api: { db: t.db, codeKey: KEY },
     logger: log,
   })
+  // TSK-0149 (OWN-DEC-198 F4): a code goes by text only while live texts are on (sms.live_delivery, off until A2P
+  // 10DLC); this throwaway database turns them on so the phone paths here can be exercised. With texts off the phone is
+  // refused for everyone: account-security.test.ts.
+  await recordPolicyVersion(t.db, {
+    key: 'sms.live_delivery',
+    value: { enabled: true },
+    sourceIds: ['TEST-SYNTHETIC'],
+    changedBy: 'test',
+    reason: 'synthetic test configuration',
+  })
 })
 afterAll(async () => {
   await app?.close()
@@ -352,6 +362,7 @@ describe('enrollment from the receipt offer links only the verified project, wit
       projects: [{ reference: first.reference }],
       freshVerification: true,
       emailChange: 'available',
+      texts: 'available',
     })
 
     // Enrolling again links nothing twice and creates no second account.

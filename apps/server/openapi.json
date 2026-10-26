@@ -146,7 +146,7 @@
       "get": {
         "operationId": "getCustomerAccount",
         "summary": "The signed-in account",
-        "description": "For a live account session: its sign-in email and phone (masked), the references of its linked projects (the customer switches between them, HH-PORT-09), whether the sign-in is fresh enough for a contact change, and whether a sign-in email change is available (not_configured while its notice to the old email cannot be sent, OQ-ACCOUNT-CONTACT-NOTICE). A guest-link session is NOT_FOUND; no session is 401.",
+        "description": "For a live account session: its sign-in email and phone (masked), the references of its linked projects (the customer switches between them, HH-PORT-09), whether the sign-in is fresh enough for a contact change, and whether a sign-in email change is available (not_configured while its notice to the old email cannot be sent, OQ-ACCOUNT-CONTACT-NOTICE), and whether codes can go by text now (texts, the same for everyone: TSK-0149, OWN-DEC-198 F4). A guest-link session is NOT_FOUND; no session is 401.",
         "tags": [
           "accounts"
         ],
@@ -164,7 +164,8 @@
                     "phone",
                     "projects",
                     "freshVerification",
-                    "emailChange"
+                    "emailChange",
+                    "texts"
                   ],
                   "properties": {
                     "email": {
@@ -202,6 +203,13 @@
                       "enum": [
                         "available",
                         "not_configured"
+                      ]
+                    },
+                    "texts": {
+                      "type": "string",
+                      "enum": [
+                        "available",
+                        "unavailable"
                       ]
                     }
                   }
@@ -355,7 +363,8 @@
                         "phone",
                         "projects",
                         "freshVerification",
-                        "emailChange"
+                        "emailChange",
+                        "texts"
                       ],
                       "properties": {
                         "email": {
@@ -393,6 +402,13 @@
                           "enum": [
                             "available",
                             "not_configured"
+                          ]
+                        },
+                        "texts": {
+                          "type": "string",
+                          "enum": [
+                            "available",
+                            "unavailable"
                           ]
                         }
                       }
@@ -725,7 +741,7 @@
       "get": {
         "operationId": "getAccountEnrollment",
         "summary": "Create an Account from the project link: the usable channels",
-        "description": "For a live guest-link session: the channels an account can be created with, masked: the grant’s contact’s own values that a code already verified (the phone only with its current SMS permission). An account session or no session is NOT_FOUND. Nothing about any other project, contact or account.",
+        "description": "For a live guest-link session: the channels an account can be created with, masked: the grant’s contact’s own values that a code already verified (the phone only with its current SMS permission, and only while texting is available, OWN-DEC-198 F4). An account session or no session is NOT_FOUND. Nothing about any other project, contact or account.",
         "tags": [
           "accounts"
         ],
@@ -916,7 +932,8 @@
                         "phone",
                         "projects",
                         "freshVerification",
-                        "emailChange"
+                        "emailChange",
+                        "texts"
                       ],
                       "properties": {
                         "email": {
@@ -954,6 +971,13 @@
                           "enum": [
                             "available",
                             "not_configured"
+                          ]
+                        },
+                        "texts": {
+                          "type": "string",
+                          "enum": [
+                            "available",
+                            "unavailable"
                           ]
                         }
                       }
@@ -1091,7 +1115,7 @@
       "post": {
         "operationId": "sendLinkAccountCode",
         "summary": "Create an Account from the project link: send the code",
-        "description": "As the receipt’s enrollment code, for the guest-link session’s one project and the grant’s own contact. Refusals: 400 not_verified, 429 with Retry-After, 503 while NOT CONFIGURED.",
+        "description": "As the receipt’s enrollment code, for the guest-link session’s one project and the grant’s own contact. Refusals: 400 not_verified or texts_unavailable, 429 with Retry-After, 503 while NOT CONFIGURED.",
         "tags": [
           "accounts"
         ],
@@ -1281,6 +1305,157 @@
           "cache": "private, no-store",
           "test": "test/integration/customer-accounts.test.ts",
           "projection": "account.code_sent"
+        }
+      }
+    },
+    "/api/v1/customer/account/sign-out-everywhere": {
+      "post": {
+        "operationId": "customerSignOutEverywhere",
+        "summary": "Sign out everywhere",
+        "description": "For a live account session: ends every session of the account on the server at once, this one included, and clears the cookie (OWN-DEC-198 F2: a security-triggered sign-out, for example when the customer thinks someone else used their account). Ordinary sign-ins and Sign Out keep the other devices signed in. A guest-link session is NOT_FOUND; no session is 401.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.sign_out_everywhere",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/account-security.test.ts"
         }
       }
     },
@@ -13819,6 +13994,192 @@
         }
       }
     },
+    "/api/v1/public/access/help": {
+      "post": {
+        "operationId": "requestAccessHelp",
+        "summary": "Ask HandyHub for help signing in or getting a new link",
+        "description": "The secure alternative (OWN-DEC-198 F4, F5): when texts cannot be used to sign in, a contact is lost, or a new link cannot be sent (the reissue limits, a link staff revoked). The body names what is needed (sign_in or project_link), the email or mobile phone used, and the request reference when the visitor has it. Every well-formed request is the same 202 {accepted: true}, whether or not an account, a project or a contact matches (F6). The Owner reads it in the staff queue, verifies the person’s identity through the contact details on file and answers through them; nothing is ever sent to the typed value. An open request for the same need and contact is not repeated. A contact that is neither an email nor a US phone number is a 400 (invalid_contact); a network over its limit a 429 for everyone.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "contact"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "sign_in",
+                      "project_link"
+                    ]
+                  },
+                  "contact": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 320
+                  },
+                  "reference": {
+                    "type": "string",
+                    "maxLength": 40
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "accepted"
+                  ],
+                  "properties": {
+                    "accepted": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "guest",
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "public-access-help",
+            "limit": 5,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "access_help.request",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/account-security.test.ts"
+        }
+      }
+    },
     "/api/v1/public/access/open": {
       "post": {
         "operationId": "openAccessLink",
@@ -14201,7 +14562,7 @@
       "post": {
         "operationId": "accountSignIn",
         "summary": "Sign in: enter the code",
-        "description": "The code last sent to the value. A match starts a new account session (Set-Cookie; any earlier session of this browser ends; other devices keep theirs): 30 minutes idle, 8 hours in total (session.timings), revocable on the server. A wrong, expired or used code and a value without an account are the same neutral 400 (body.code, invalid_code); the attempt is counted and kept. Signing in through the account’s other verified contact is also how access is recovered when one contact is lost (HH-ID-11). 503 while NOT CONFIGURED.",
+        "description": "The code last sent to the value. A match starts a new account session (Set-Cookie; any earlier session of this browser ends; other devices keep theirs): 30 minutes idle, 8 hours in total (session.timings), revocable on the server. A wrong, expired or used code and a value without an account are the same neutral 400 (body.code, invalid_code); the attempt is counted and kept. Signing in through the account’s other verified contact is also how access is recovered when one contact is lost (HH-ID-11), by text only while texting is available (OWN-DEC-198 F4). The code to the new email of a staff-assisted recovery completes it (TSK-0149): the account takes that email, every session of the account ends, this browser gets the new one, and the old and the new email get the notice account.contact_changed. 503 while NOT CONFIGURED.",
         "tags": [
           "accounts"
         ],
@@ -14253,7 +14614,8 @@
                         "phone",
                         "projects",
                         "freshVerification",
-                        "emailChange"
+                        "emailChange",
+                        "texts"
                       ],
                       "properties": {
                         "email": {
@@ -14291,6 +14653,13 @@
                           "enum": [
                             "available",
                             "not_configured"
+                          ]
+                        },
+                        "texts": {
+                          "type": "string",
+                          "enum": [
+                            "available",
+                            "unavailable"
                           ]
                         }
                       }
@@ -14429,7 +14798,7 @@
       "post": {
         "operationId": "sendAccountSignInCode",
         "summary": "Sign in: send a one-time code",
-        "description": "Sign in without a password (OWN-DEC-63): the body names an email or a mobile phone. When it is an active account’s verified sign-in value, a one-time code (purpose account_sign_in, the automatic message contact.verification_code) goes to it, the phone only by text with its current SMS permission. Every well-formed request gets the same 202 {accepted, codeMinutes} whether or not an account has the value, the phone may be texted, or a per-code limit was reached (HH-ID-03); codeMinutes is the configured code lifetime. A value that is neither an email nor a US phone number is a 400 (invalid_contact); a network over its limit a 429 for everyone; while the code key, session.timings or verification.limits is NOT CONFIGURED, 503 for everyone.",
+        "description": "Sign in without a password (OWN-DEC-63): the body names an email or a mobile phone. When it is an active account’s verified sign-in value, a one-time code (purpose account_sign_in, the automatic message contact.verification_code) goes to it, the phone only by text with its current SMS permission. Every well-formed request gets the same 202 {accepted, codeMinutes} whether or not an account has the value, the phone may be texted, or a per-code limit was reached (HH-ID-03); codeMinutes is the configured code lifetime. The new email of a staff-assisted recovery the Owner started (TSK-0149) gets its code the same way. A value that is neither an email nor a US phone number is a 400 (invalid_contact); a phone while texting is not available (live texts off until A2P 10DLC, or no released text wording of the code) a 400 (texts_unavailable) for every phone, decided before any record is read (OWN-DEC-198 F4: the page offers to ask HandyHub for help); a network over its limit a 429 for everyone; while the code key, session.timings or verification.limits is NOT CONFIGURED, 503 for everyone.",
         "tags": [
           "accounts"
         ],
@@ -15664,7 +16033,8 @@
                         "phone",
                         "projects",
                         "freshVerification",
-                        "emailChange"
+                        "emailChange",
+                        "texts"
                       ],
                       "properties": {
                         "email": {
@@ -15702,6 +16072,13 @@
                           "enum": [
                             "available",
                             "not_configured"
+                          ]
+                        },
+                        "texts": {
+                          "type": "string",
+                          "enum": [
+                            "available",
+                            "unavailable"
                           ]
                         }
                       }
@@ -15976,7 +16353,7 @@
       "post": {
         "operationId": "sendReceiptAccountCode",
         "summary": "Create an Account: send the code",
-        "description": "Under the Receipt-Capability header, after the guest chose Create an Account (HH-INT-14, OWN-DEC-63): a one-time code (purpose account_sign_in, the automatic message contact.verification_code) to the request’s own email or phone, which must already be verified for that exact value (the phone only by text, with that request’s current SMS opt-in). Nothing is created yet. A channel that is not verified is a 400 (not_verified); a resend inside the cooldown or over a limit is a neutral 429 with Retry-After; while the code key, session.timings or verification.limits is NOT CONFIGURED, 503 and nothing is sent.",
+        "description": "Under the Receipt-Capability header, after the guest chose Create an Account (HH-INT-14, OWN-DEC-63): a one-time code (purpose account_sign_in, the automatic message contact.verification_code) to the request’s own email or phone, which must already be verified for that exact value (the phone only by text, with that request’s current SMS opt-in). Nothing is created yet. A channel that is not verified is a 400 (not_verified); the phone while texting is not available a 400 (texts_unavailable, OWN-DEC-198 F4); a resend inside the cooldown or over a limit is a neutral 429 with Retry-After; while the code key, session.timings or verification.limits is NOT CONFIGURED, 503 and nothing is sent.",
         "tags": [
           "accounts"
         ],
@@ -17848,6 +18225,1580 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/staff-security.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/access-help": {
+      "get": {
+        "operationId": "getAccessHelpRequests",
+        "summary": "Requests for help signing in or getting a new link",
+        "description": "The Owner (customer_account.assist_recovery): the open help requests (oldest first) and the last 50 closed ones with their outcome and note. Read only.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "open",
+                    "closed"
+                  ],
+                  "properties": {
+                    "open": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "kind",
+                          "channel",
+                          "contact",
+                          "reference",
+                          "createdAt",
+                          "state",
+                          "outcome",
+                          "note",
+                          "closedBy",
+                          "closedAt",
+                          "version"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "sign_in",
+                              "project_link"
+                            ]
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "email",
+                              "phone"
+                            ]
+                          },
+                          "contact": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "open",
+                              "closed"
+                            ]
+                          },
+                          "outcome": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "access_restored",
+                              "identity_not_verified",
+                              "no_match",
+                              "no_action",
+                              null
+                            ]
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "closedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "closedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "version": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "closed": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "kind",
+                          "channel",
+                          "contact",
+                          "reference",
+                          "createdAt",
+                          "state",
+                          "outcome",
+                          "note",
+                          "closedBy",
+                          "closedAt",
+                          "version"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "sign_in",
+                              "project_link"
+                            ]
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "email",
+                              "phone"
+                            ]
+                          },
+                          "contact": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "open",
+                              "closed"
+                            ]
+                          },
+                          "outcome": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "access_restored",
+                              "identity_not_verified",
+                              "no_match",
+                              "no_action",
+                              null
+                            ]
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "closedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "closedAt": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            ]
+                          },
+                          "version": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "customer_account.assist_recovery",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/account-security.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/access-help/{id}": {
+      "get": {
+        "operationId": "getAccessHelpRequest",
+        "summary": "One request for help, with what it points to",
+        "description": "The Owner (customer_account.assist_recovery): one help request (the staff queue item opens it) with the accounts and projects its contact and reference point to, as the lookup shows them. NOT_FOUND when there is no such request.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "kind",
+                    "channel",
+                    "contact",
+                    "reference",
+                    "createdAt",
+                    "state",
+                    "outcome",
+                    "note",
+                    "closedBy",
+                    "closedAt",
+                    "version",
+                    "matches"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "sign_in",
+                        "project_link"
+                      ]
+                    },
+                    "channel": {
+                      "type": "string",
+                      "enum": [
+                        "email",
+                        "phone"
+                      ]
+                    },
+                    "contact": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "open",
+                        "closed"
+                      ]
+                    },
+                    "outcome": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "access_restored",
+                        "identity_not_verified",
+                        "no_match",
+                        "no_action",
+                        null
+                      ]
+                    },
+                    "note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "closedBy": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "closedAt": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "matches": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "accounts",
+                        "projects"
+                      ],
+                      "properties": {
+                        "accounts": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "email",
+                              "phone",
+                              "createdAt",
+                              "liveSessions",
+                              "projects",
+                              "recovery"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "email": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "phone": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "liveSessions": {
+                                "type": "integer"
+                              },
+                              "projects": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "recovery": {
+                                "anyOf": [
+                                  {
+                                    "type": "null"
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "id",
+                                      "email",
+                                      "expiresAt"
+                                    ],
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "email": {
+                                        "type": "string"
+                                      },
+                                      "expiresAt": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "projects": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "reference",
+                              "matchedBy",
+                              "contact",
+                              "link",
+                              "reissuesToday",
+                              "reissueLimit"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "reference": {
+                                "type": "string"
+                              },
+                              "matchedBy": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "enum": [
+                                    "reference",
+                                    "email",
+                                    "phone"
+                                  ]
+                                }
+                              },
+                              "contact": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "name",
+                                  "email",
+                                  "phone"
+                                ],
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "email": {
+                                    "type": "string"
+                                  },
+                                  "phone": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "link": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "state",
+                                  "revokeReason",
+                                  "expiresAt"
+                                ],
+                                "properties": {
+                                  "state": {
+                                    "type": "string",
+                                    "enum": [
+                                      "live",
+                                      "expired",
+                                      "revoked",
+                                      "none"
+                                    ]
+                                  },
+                                  "revokeReason": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "expiresAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  }
+                                }
+                              },
+                              "reissuesToday": {
+                                "type": "integer"
+                              },
+                              "reissueLimit": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "customer_account.assist_recovery",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/account-security.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/access-help/{id}/close": {
+      "post": {
+        "operationId": "closeAccessHelpRequest",
+        "summary": "Close a request for help",
+        "description": "The Owner (customer_account.assist_recovery), once: the outcome (access_restored, identity_not_verified, no_match, no_action; PROPOSED) and a note saying what was done and how identity was verified. A closed request is a CONFLICT (HELP_REQUEST_CLOSED). The staff queue item resolves. Audited. Returns the request.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "outcome",
+                  "note"
+                ],
+                "properties": {
+                  "outcome": {
+                    "type": "string",
+                    "enum": [
+                      "access_restored",
+                      "identity_not_verified",
+                      "no_match",
+                      "no_action"
+                    ]
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2100
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "kind",
+                    "channel",
+                    "contact",
+                    "reference",
+                    "createdAt",
+                    "state",
+                    "outcome",
+                    "note",
+                    "closedBy",
+                    "closedAt",
+                    "version",
+                    "matches"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "sign_in",
+                        "project_link"
+                      ]
+                    },
+                    "channel": {
+                      "type": "string",
+                      "enum": [
+                        "email",
+                        "phone"
+                      ]
+                    },
+                    "contact": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "open",
+                        "closed"
+                      ]
+                    },
+                    "outcome": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "access_restored",
+                        "identity_not_verified",
+                        "no_match",
+                        "no_action",
+                        null
+                      ]
+                    },
+                    "note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "closedBy": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "closedAt": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "matches": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "accounts",
+                        "projects"
+                      ],
+                      "properties": {
+                        "accounts": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "email",
+                              "phone",
+                              "createdAt",
+                              "liveSessions",
+                              "projects",
+                              "recovery"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "email": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "phone": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "createdAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              },
+                              "liveSessions": {
+                                "type": "integer"
+                              },
+                              "projects": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "recovery": {
+                                "anyOf": [
+                                  {
+                                    "type": "null"
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "id",
+                                      "email",
+                                      "expiresAt"
+                                    ],
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "email": {
+                                        "type": "string"
+                                      },
+                                      "expiresAt": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "projects": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "reference",
+                              "matchedBy",
+                              "contact",
+                              "link",
+                              "reissuesToday",
+                              "reissueLimit"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "reference": {
+                                "type": "string"
+                              },
+                              "matchedBy": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "enum": [
+                                    "reference",
+                                    "email",
+                                    "phone"
+                                  ]
+                                }
+                              },
+                              "contact": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "name",
+                                  "email",
+                                  "phone"
+                                ],
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "email": {
+                                    "type": "string"
+                                  },
+                                  "phone": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "link": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "state",
+                                  "revokeReason",
+                                  "expiresAt"
+                                ],
+                                "properties": {
+                                  "state": {
+                                    "type": "string",
+                                    "enum": [
+                                      "live",
+                                      "expired",
+                                      "revoked",
+                                      "none"
+                                    ]
+                                  },
+                                  "revokeReason": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "expiresAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "string",
+                                        "format": "date-time"
+                                      }
+                                    ]
+                                  }
+                                }
+                              },
+                              "reissuesToday": {
+                                "type": "integer"
+                              },
+                              "reissueLimit": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "customer_account.assist_recovery",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "access_help.close",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/account-security.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/access-help/lookup": {
+      "get": {
+        "operationId": "lookupCustomerAccess",
+        "summary": "The accounts and projects an email, phone or reference points to",
+        "description": "The Owner (customer_account.assist_recovery), to verify a person’s identity before helping: the active accounts whose sign-in email or phone is the given one (sessions, linked projects, a pending recovery) and the projects whose reference is the given one or whose request contact has that email or phone (the contact on file, the state of the newest link and today’s reissues against the limit). At most 20 of each. A contact that is neither an email nor a US phone number, or neither given, is a 400.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [
+          {
+            "name": "contact",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 320
+            }
+          },
+          {
+            "name": "reference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 40
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "accounts",
+                    "projects"
+                  ],
+                  "properties": {
+                    "accounts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "email",
+                          "phone",
+                          "createdAt",
+                          "liveSessions",
+                          "projects",
+                          "recovery"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "email": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "phone": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "liveSessions": {
+                            "type": "integer"
+                          },
+                          "projects": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "recovery": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "email",
+                                  "expiresAt"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "email": {
+                                    "type": "string"
+                                  },
+                                  "expiresAt": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "projects": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "reference",
+                          "matchedBy",
+                          "contact",
+                          "link",
+                          "reissuesToday",
+                          "reissueLimit"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "matchedBy": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "reference",
+                                "email",
+                                "phone"
+                              ]
+                            }
+                          },
+                          "contact": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "name",
+                              "email",
+                              "phone"
+                            ],
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "email": {
+                                "type": "string"
+                              },
+                              "phone": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "link": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "state",
+                              "revokeReason",
+                              "expiresAt"
+                            ],
+                            "properties": {
+                              "state": {
+                                "type": "string",
+                                "enum": [
+                                  "live",
+                                  "expired",
+                                  "revoked",
+                                  "none"
+                                ]
+                              },
+                              "revokeReason": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "expiresAt": {
+                                "anyOf": [
+                                  {
+                                    "type": "null"
+                                  },
+                                  {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "reissuesToday": {
+                            "type": "integer"
+                          },
+                          "reissueLimit": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "customer_account.assist_recovery",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/account-security.test.ts"
         }
       }
     },
@@ -32963,6 +34914,590 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/start-work.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/customer-accounts/{accountId}/recovery": {
+      "post": {
+        "operationId": "startCustomerAccountRecovery",
+        "summary": "Start a staff-assisted recovery of a customer account",
+        "description": "The Owner (customer_account.assist_recovery; OWN-DEC-198 F4, HH-ID-11 \"a documented, audited recovery process\"), after verifying the person’s identity through the contact details on file: names the new sign-in email and records how identity was verified (evidence). Every session of the account ends at once (F2) and an earlier pending recovery of it is replaced. Nothing else changes until the customer signs in with a code sent to the new email, within 24 hours (PROPOSED): then the account takes that email and the old and the new address get the notice account.contact_changed. 400 invalid_email or unchanged; 409 email_in_use (another account has it) or recovery_pending (another account’s recovery names it); 503 while the notice cannot be sent. An unknown or closed account is NOT_FOUND. Audited.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "email",
+                  "evidence"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 320
+                  },
+                  "evidence": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2100
+                  },
+                  "helpRequestId": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "recoveryId",
+                    "endedSessions",
+                    "expiresAt"
+                  ],
+                  "properties": {
+                    "recoveryId": {
+                      "type": "string"
+                    },
+                    "endedSessions": {
+                      "type": "integer"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "customer_account.assist_recovery",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.recovery_start",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/account-security.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/customer-accounts/{accountId}/recovery/cancel": {
+      "post": {
+        "operationId": "cancelCustomerAccountRecovery",
+        "summary": "Cancel a pending staff-assisted recovery",
+        "description": "The Owner (customer_account.assist_recovery): the account’s pending recovery ends; its new email can no longer sign in. Without a pending recovery, a CONFLICT (NO_PENDING_RECOVERY). Audited.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "recoveryId"
+                  ],
+                  "properties": {
+                    "recoveryId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "customer_account.assist_recovery",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.recovery_cancel",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/account-security.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/customer-accounts/{accountId}/sign-out-everywhere": {
+      "post": {
+        "operationId": "revokeCustomerAccountSessions",
+        "summary": "End every session of a customer account",
+        "description": "The Owner (customer_account.revoke_sessions; OWN-DEC-198 F2), for example after a suspected compromise: every session of the account ends at once; the customer signs in again with a code to a verified contact. A written reason is required and audited. An unknown or closed account is NOT_FOUND.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2100
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "endedSessions"
+                  ],
+                  "properties": {
+                    "endedSessions": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "customer_account.revoke_sessions",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.revoke_sessions",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/account-security.test.ts"
         }
       }
     },
@@ -125373,6 +127908,215 @@
         }
       }
     },
+    "/api/v1/staff/projects/{projectId}/access-link": {
+      "post": {
+        "operationId": "sendProjectAccessLink",
+        "summary": "Send a new access link to the project’s contact on file",
+        "description": "The Owner (project_access.send_link; OWN-DEC-198 F5, F6), after verifying the person’s identity: a new single-project link (24 hours, access.grants) for the contact on file of the project’s newest request, sent with the automatic message project.access_link after commit, never to any other address. This is how staff restore access, also after a link staff revoked, and it does not count against the customer’s own reissue limit. Older links keep their own expiry. The evidence (how identity was verified) is required and audited. 503 while a link cannot be sent (the code key, access.grants, access.recovery or the message wording). An unknown project is NOT_FOUND.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "evidence"
+                ],
+                "properties": {
+                  "evidence": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2100
+                  },
+                  "helpRequestId": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "grantId",
+                    "expiresAt",
+                    "sentTo"
+                  ],
+                  "properties": {
+                    "grantId": {
+                      "type": "string"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "sentTo": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "project_access.send_link",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "project_access.staff_reissue",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/account-security.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/projects/{projectId}/cases": {
       "get": {
         "operationId": "listProjectCases",
@@ -136177,6 +138921,7 @@
                 "check_to_clear",
                 "reconciliation_item",
                 "invoice_reminder_review",
+                "access_help_request",
                 "visit_flagged",
                 "visit_outcome",
                 "field_event_review",
@@ -136321,6 +139066,7 @@
                               "check_to_clear",
                               "reconciliation_item",
                               "invoice_reminder_review",
+                              "access_help_request",
                               "visit_flagged",
                               "visit_outcome",
                               "field_event_review",
@@ -136562,7 +139308,8 @@
                               "review_field_event",
                               "clear_check",
                               "reconcile",
-                              "review_permissions"
+                              "review_permissions",
+                              "help_access"
                             ]
                           },
                           "link": {
@@ -136623,6 +139370,7 @@
                           "check_to_clear",
                           "reconciliation_item",
                           "invoice_reminder_review",
+                          "access_help_request",
                           "visit_flagged",
                           "visit_outcome",
                           "field_event_review",
@@ -136787,6 +139535,7 @@
                 "check_to_clear",
                 "reconciliation_item",
                 "invoice_reminder_review",
+                "access_help_request",
                 "visit_flagged",
                 "visit_outcome",
                 "field_event_review",
@@ -136931,6 +139680,7 @@
                               "check_to_clear",
                               "reconciliation_item",
                               "invoice_reminder_review",
+                              "access_help_request",
                               "visit_flagged",
                               "visit_outcome",
                               "field_event_review",
@@ -137172,7 +139922,8 @@
                               "review_field_event",
                               "clear_check",
                               "reconcile",
-                              "review_permissions"
+                              "review_permissions",
+                              "help_access"
                             ]
                           },
                           "link": {
@@ -137233,6 +139984,7 @@
                           "check_to_clear",
                           "reconciliation_item",
                           "invoice_reminder_review",
+                          "access_help_request",
                           "visit_flagged",
                           "visit_outcome",
                           "field_event_review",

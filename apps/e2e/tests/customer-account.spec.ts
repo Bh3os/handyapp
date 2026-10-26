@@ -237,11 +237,52 @@ test.describe('optional customer accounts (TSK-0036)', () => {
     await axe(page)
 
     await signIn(page, 'account-e2e@example.test')
-    await page.getByRole('button', { name: 'Sign Out' }).click()
+    await page.getByRole('button', { name: 'Sign Out', exact: true }).click()
     await expect(page.getByText("You're signed out.")).toBeVisible()
     await page.reload()
     await expect(page.getByRole('heading', { level: 2, name: 'Sign in', exact: true })).toBeVisible()
     expect((await page.request.get('/api/v1/customer/account')).status()).toBe(401)
+  })
+
+  test('[HH-ID-11][T22] texts cannot be used while live texts are off; Sign out everywhere ends every session at once', async ({
+    page,
+    browser,
+  }) => {
+    // Its own account, so the per-address code limit of the other tests' address is never reached.
+    const email = 'account-everywhere-e2e@example.test'
+    // TSK-0149 (OWN-DEC-198 F4): live texts are off in this database (until A2P 10DLC), so every phone gets the same
+    // words, and the page offers asking HandyHub for help to every visitor.
+    await page.goto('/account')
+    const form = page.getByRole('region', { name: 'Sign in' })
+    await form.getByLabel('Email or mobile phone').fill('(502) 555-0136')
+    await form.getByRole('button', { name: 'Send me a code' }).click()
+    await expect(form.getByText("Texts can't be used right now. Use your email instead.")).toBeVisible()
+    await expect(page.getByRole('region', { name: "Still can't get in? Ask HandyHub for help" })).toBeVisible()
+    await axe(page)
+
+    // OWN-DEC-198 F2: two browsers signed in to the same account stay independent until Sign out everywhere.
+    const otherContext = await browser.newContext({ extraHTTPHeaders: HEADERS })
+    const other = await otherContext.newPage()
+    try {
+      // This browser creates the account on its receipt; another browser signs in to it.
+      const reference = await sendRequest(page, email)
+      await verifyEmail(page, reference)
+      await createAccount(page, email)
+      await signIn(other, email)
+      await page.goto('/account')
+      await expect(page.getByRole('heading', { name: 'Your account' })).toBeVisible()
+      const everywhere = page.getByRole('region', { name: 'Sign out everywhere' })
+      await expect(everywhere).toBeVisible()
+      await axe(page)
+      await everywhere.getByRole('button', { name: 'Sign out everywhere' }).click()
+      await expect(page.getByText("You're signed out on every device.")).toBeVisible()
+      await other.reload()
+      await expect(other.getByRole('heading', { level: 2, name: 'Sign in', exact: true })).toBeVisible()
+      expect((await page.request.get('/api/v1/customer/account')).status()).toBe(401)
+      expect((await other.request.get('/api/v1/customer/account')).status()).toBe(401)
+    } finally {
+      await otherContext.close()
+    }
   })
 
   test.describe('the sign-in email change (HH-ID-11, T22)', () => {

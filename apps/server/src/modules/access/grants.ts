@@ -18,7 +18,7 @@ import { newNonce } from '../identity/keys.js'
 import { hashToken, TOKEN } from '../identity/tokens.js'
 import type { Secret } from '../../providers/types.js'
 
-export type GrantReason = 'submission' | 'contact_change' | 'reissue'
+export type GrantReason = 'submission' | 'contact_change' | 'reissue' | 'staff_reissue'
 export type RevokeReason = 'contact_changed' | 'staff_revoked' | 'account_deleted' | 'corrected_link'
 
 export type Grant = {

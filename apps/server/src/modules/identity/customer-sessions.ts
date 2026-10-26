@@ -12,6 +12,8 @@
 // - TSK-0036 (HH-ID-10, HH-ID-11): an account session names its account and the contact value it signed in with. The
 //   projects it opens are read from the account's active identity links on every request, so a revoked link or a
 //   closed account opens nothing from then on; a closed account's sessions resolve to nothing.
+// - TSK-0149 (OWN-DEC-198 F2): ordinary device sessions stay independent; a security event (the customer's Sign out
+//   everywhere, the Owner's revocation, a staff-assisted recovery) ends every session of the account at once.
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import type { Db, Tx } from '@handyhub/db'
 import type { CustomerActor } from '@handyhub/policy'
@@ -55,7 +57,14 @@ export type CustomerSession = {
 }
 
 /** Why a session ended (the stored revoke_reason). */
-export type SessionEndReason = 'signed_out' | 'rotated' | 'access_revoked' | 'contact_changed' | 'account_closed'
+export type SessionEndReason =
+  | 'signed_out'
+  | 'rotated'
+  | 'access_revoked'
+  | 'contact_changed'
+  | 'account_closed'
+  // TSK-0149 (OWN-DEC-198 F2): a security-triggered revocation of every session of an account.
+  | 'security_revoked'
 
 export class SessionConfigError extends Error {
   override name = 'SessionConfigError'
@@ -196,12 +205,12 @@ export async function revokeGrantSessions(
 
 /**
  * Ends every live session of an account except `keep` (TSK-0036, HH-ID-11): after a sign-in value change the other
- * devices sign in again; when the account closes, all of them end.
+ * devices sign in again; when the account closes, all of them end; after a security event (TSK-0149), all of them.
  */
 export async function revokeAccountSessions(
   tx: Tx,
   accountId: string,
-  reason: Extract<SessionEndReason, 'contact_changed' | 'account_closed'>,
+  reason: Extract<SessionEndReason, 'contact_changed' | 'account_closed' | 'security_revoked'>,
   options: { keep?: string; now?: Date } = {},
 ): Promise<number> {
   let q = tx

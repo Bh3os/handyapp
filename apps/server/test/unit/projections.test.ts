@@ -73,6 +73,8 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
         'sendAccountEmailCode',
         'changeAccountEmail',
         'customerSignOut',
+        // TSK-0149: Sign out everywhere (OWN-DEC-198 F2).
+        'customerSignOutEverywhere',
         // TSK-0039: the workspace tabs beside the Overview.
         'getCustomerProjectMessages',
         'getCustomerProjectDocuments',

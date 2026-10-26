@@ -6,6 +6,8 @@
 //   session (its cookie): a code goes to a contact value that is already verified, and the account exists only after
 //   that code is entered.
 // - The session is an HttpOnly cookie set by the server; nothing here stores a token, a code or a contact value.
+// - TSK-0149 (OWN-DEC-198 F2, F4): Sign out everywhere ends every session of the account; a code by text is refused
+//   for everyone while texting is not available, and the page then offers the email or asking HandyHub for help.
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { CAPABILITY_HEADER, problemNotice, type Channel, type Fetch, type Notice } from '../request/verification.js'
 
@@ -17,6 +19,8 @@ export type AccountSummary = {
   projects: string[]
   freshVerification: boolean
   emailChange: 'available' | 'not_configured'
+  /** TSK-0149: whether a code can go by text now (the same for every customer). */
+  texts: 'available' | 'unavailable'
 }
 export type EnrollChannel = { channel: Channel; destination: string }
 export type Sent = { sentTo: string; expiresAt: string }
@@ -44,7 +48,9 @@ export function parseAccount(raw: unknown): AccountSummary | null {
   if (typeof a['freshVerification'] !== 'boolean') return null
   const change = a['emailChange']
   if (change !== 'available' && change !== 'not_configured') return null
-  return { email, phone, projects: refs, freshVerification: a['freshVerification'], emailChange: change }
+  const texts = a['texts']
+  if (texts !== 'available' && texts !== 'unavailable') return null
+  return { email, phone, projects: refs, freshVerification: a['freshVerification'], emailChange: change, texts }
 }
 
 const accountOf = (data: unknown) => parseAccount((data as { account?: unknown } | null)?.account ?? null)
@@ -74,6 +80,8 @@ export function parseEnrollChannels(raw: unknown): EnrollChannel[] | null {
 export function accountNotice(r: { status: number; notice: Notice; field?: string }): Notice {
   if (r.field === 'invalid_contact') return { key: 'access.recover.error.contact' }
   if (r.field === 'not_verified') return { key: 'account.enroll.notVerified' }
+  // TSK-0149 (F4): the same for everyone while texting is not available.
+  if (r.field === 'texts_unavailable') return { key: 'account.textsUnavailable' }
   if (r.field === 'invalid_email') return { key: 'request.verify.error.invalidEmail' }
   if (r.field === 'unchanged') return { key: 'account.email.unchanged' }
   if (r.field === 'email_in_use') return { key: 'account.email.inUse' }
@@ -157,6 +165,9 @@ export const accountApi = {
     ),
   signOut: (f: Fetch) =>
     call(f, '/api/v1/customer/session/sign-out', { method: 'POST', body: {} }, () => true as const),
+  /** TSK-0149 (F2): ends every session of the account, this one included. */
+  signOutEverywhere: (f: Fetch) =>
+    call(f, '/api/v1/customer/account/sign-out-everywhere', { method: 'POST', body: {} }, () => true as const),
   sendEmailCode: (f: Fetch, email: string) =>
     call(f, '/api/v1/customer/account/email/codes', { method: 'POST', body: { email: email.trim() } }, parseSent),
   changeEmail: (f: Fetch, email: string, code: string) =>

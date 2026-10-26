@@ -19,3 +19,5 @@ source: "guide 8.3 HH-ID-11; OWN-DEC-96, OWN-DEC-117"
 - After a contact change or recovery, sessions are renewed or revoked as designed, and the old contact keeps no unintended access.
 
 **Changed by [[OWN-DEC-151]], [[OWN-DEC-198]] (2026-10-21):** the email change notifies the old and the new verified address (MESSAGE 21); security events can revoke every session; phone recovery only when texting is available.
+
+**Built by [[TSK-0149]] (2026-10-24):** Sign out everywhere ends every session of an account at once (the customer on the account page; the Owner with a written reason; the start of a staff-assisted recovery). A code goes by text only while texting is available (live texts on after A2P 10DLC and a released text wording); otherwise every phone gets the same refusal and the page offers asking HandyHub for help. The documented, audited recovery process is the Owner's staff-assisted recovery after identity verification: a new sign-in email that the customer proves with a code at sign-in, every session ended, the old and the new email told. Details PROPOSED in [[OQ-ACCOUNT-SECURITY-DETAILS]].

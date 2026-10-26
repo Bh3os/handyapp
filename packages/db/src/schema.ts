@@ -896,6 +896,21 @@ export interface FinanceRefundsTable {
   decision_reason: string | null
 }
 
+export interface IdentityAccessHelpRequestsTable {
+  id: Generated<string>
+  kind: string
+  channel: string
+  contact_value: string
+  reference: string | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  state: Generated<string>
+  outcome: string | null
+  note: string | null
+  closed_by: string | null
+  closed_at: Timestamp | null
+  version: Generated<number>
+}
+
 export interface IdentityAuthIdentitiesTable {
   id: Generated<string>
   staff_user_id: string
@@ -913,6 +928,22 @@ export interface IdentityCustomerAccountChangesTable {
   old_value: string | null
   session_id: string
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface IdentityCustomerAccountRecoveriesTable {
+  id: Generated<string>
+  account_id: string
+  help_request_id: string | null
+  new_email: string
+  identity_evidence: string
+  started_by: string
+  started_at: ColumnType<Date, Date | string | undefined, Date | string>
+  expires_at: Timestamp
+  state: Generated<string>
+  completed_at: Timestamp | null
+  completed_change_id: string | null
+  cancelled_by: string | null
+  cancelled_at: Timestamp | null
 }
 
 export interface IdentityCustomerAccountsTable {
@@ -2806,8 +2837,10 @@ export interface Database {
   'finance.provider_fees': FinanceProviderFeesTable
   'finance.reconciliation_items': FinanceReconciliationItemsTable
   'finance.refunds': FinanceRefundsTable
+  'identity.access_help_requests': IdentityAccessHelpRequestsTable
   'identity.auth_identities': IdentityAuthIdentitiesTable
   'identity.customer_account_changes': IdentityCustomerAccountChangesTable
+  'identity.customer_account_recoveries': IdentityCustomerAccountRecoveriesTable
   'identity.customer_accounts': IdentityCustomerAccountsTable
   'identity.customer_identity_links': IdentityCustomerIdentityLinksTable
   'identity.customer_sessions': IdentityCustomerSessionsTable

@@ -32,12 +32,15 @@ const ACCOUNT = {
   projects: [{ reference: 'HH-0000000A' }],
   freshVerification: true,
   emailChange: 'not_configured',
+  texts: 'unavailable',
 }
 
 describe('the account answers are read defensively (TSK-0036)', () => {
   it('[HH-ID-10][HH-PORT-09] an account names its masked sign-in values and the references of its projects only', () => {
     expect(parseAccount(ACCOUNT)).toEqual({ ...ACCOUNT, projects: ['HH-0000000A'] })
     expect(parseAccount({ ...ACCOUNT, emailChange: 'maybe' })).toBeNull()
+    // TSK-0149: whether codes can go by text is one of two words, never missing.
+    expect(parseAccount({ ...ACCOUNT, texts: undefined })).toBeNull()
     expect(parseAccount({ ...ACCOUNT, projects: [{ id: 'x' }] })).toBeNull()
     expect(parseAccount(null)).toBeNull()
     expect(parseEnrollChannels({ channels: [{ channel: 'email', destination: 'c***@example.test' }] })).toEqual([
@@ -88,6 +91,13 @@ describe('the account calls (TSK-0036, HH-ID-10, HH-ID-11)', () => {
     const out = fakeFetch({ status: 204 })
     expect(await accountApi.signOut(out.f)).toEqual({ ok: true, data: true })
     expect(out.calls[0]).toMatchObject({ url: '/api/v1/customer/session/sign-out', init: { method: 'POST' } })
+    // TSK-0149 (OWN-DEC-198 F2): Sign out everywhere is its own POST.
+    const everywhere = fakeFetch({ status: 204 })
+    expect(await accountApi.signOutEverywhere(everywhere.f)).toEqual({ ok: true, data: true })
+    expect(everywhere.calls[0]).toMatchObject({
+      url: '/api/v1/customer/account/sign-out-everywhere',
+      init: { method: 'POST', credentials: 'same-origin' },
+    })
   })
 
   it('[HH-ID-03][HH-ID-11] refusals in the customer’s words, none of which says whether an account exists', () => {
@@ -95,6 +105,8 @@ describe('the account calls (TSK-0036, HH-ID-10, HH-ID-11)', () => {
       accountNotice({ status, notice: { key: 'request.verify.error.failed' }, ...(field ? { field } : {}) })
     expect(n('invalid_contact')).toEqual({ key: 'access.recover.error.contact' })
     expect(n('not_verified')).toEqual({ key: 'account.enroll.notVerified' })
+    // TSK-0149 (F4): the same words for every phone while texts cannot be used.
+    expect(n('texts_unavailable')).toEqual({ key: 'account.textsUnavailable' })
     expect(n('email_in_use', 409)).toEqual({ key: 'account.email.inUse' })
     expect(n(undefined, 403)).toEqual({ key: 'account.email.confirmFirst' })
     expect(n(undefined, 503)).toEqual({ key: 'account.notConfigured' })

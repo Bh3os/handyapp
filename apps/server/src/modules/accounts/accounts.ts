@@ -22,12 +22,19 @@
 //   access. Until the notice can be sent (OQ-ACCOUNT-CONTACT-NOTICE) the change is NOT CONFIGURED.
 // - Closing an account (the Owner, after review: TSK-0100) ends sign-in, its sessions, its project links and the
 //   guest links of its projects; business records stay (OWN-DEC-71).
+// - TSK-0149 (OWN-DEC-198 F4): a code goes by text only while texting is available: live texts are on (A2P 10DLC,
+//   sms.live_delivery) and the code's text wording is released, besides the number's own SMS permission. Otherwise
+//   asking for a code by phone is refused for everyone alike (it depends on no record), and the page offers the secure
+//   alternative: asking HandyHub for help (security.ts). A staff-assisted recovery the Owner started after verifying
+//   identity completes here, at sign-in, with a code to its new email: the account takes that email, every session
+//   ends, and the old email is told (MESSAGE 21).
 import { randomUUID } from 'node:crypto'
 import type { Db, Tx } from '@handyhub/db'
 import { sql } from 'kysely'
 import { loadConfig } from '../../platform/config/index.js'
 import { outbox } from '../../platform/outbox.js'
 import {
+  CODE_MESSAGE_KEY,
   issueCode,
   maskForCustomer,
   normaliseDestination,
@@ -38,7 +45,7 @@ import {
   type CustomerSession,
   type StartedSession,
 } from '../identity/index.js'
-import { automaticPolicy, currentConsent, templateReadiness } from '../notifications/index.js'
+import { automaticPolicy, currentConsent, liveTextsEnabled, templateReadiness } from '../notifications/index.js'
 
 export type AccountChannel = 'email' | 'phone'
 export type ContactValue = { channel: AccountChannel; value: string }
@@ -53,13 +60,15 @@ export const enrollmentSubject = (requestId: string, contactId: string, channel:
   `enroll:${requestId}:${contactId}:${channel}`
 export const signInSubject = (accountId: string, channel: AccountChannel) => `account:${accountId}:${channel}`
 export const emailChangeSubject = (accountId: string) => `account:${accountId}:email_change`
+/** TSK-0149: the code to the new email of a staff-assisted recovery. */
+export const recoverySubject = (recoveryId: string) => `recovery:${recoveryId}`
 /** The subject an unknown value is checked against: no code is ever issued for it, so every code fails. */
 const NO_ACCOUNT = (channel: AccountChannel) => `account:none:${channel}`
 /** The contact reference of an account session (customer_sessions.contact_ref, audit actor). */
 export const accountRef = (accountId: string) => `account:${accountId}`
 
 /** One lock per sign-in value, so two enrollments of the same value never create two accounts. */
-async function lockValue(tx: Tx, value: string): Promise<void> {
+export async function lockValue(tx: Tx, value: string): Promise<void> {
   await sql`SELECT pg_advisory_xact_lock(hashtext(${`customer_account:${value}`}))`.execute(tx)
 }
 
@@ -78,6 +87,16 @@ export async function accountByValue(db: Db | Tx, contact: ContactValue): Promis
 /** Whether a text may go to a number now: a current transactional SMS permission (no STOP since, HH-INT-22). */
 async function textsAllowed(db: Db | Tx, phone: string): Promise<boolean> {
   return (await currentConsent(db, 'sms', phone, 'transactional_sms')) === 'granted'
+}
+
+/**
+ * TSK-0149 (OWN-DEC-198 F4): whether a code can go by text at all, for anyone: live texts are on (sms.live_delivery,
+ * OWN-DEC-190: off until A2P 10DLC is complete) and the code message has a released text wording. It depends on no
+ * record, so saying it is not available reveals nothing; each number still needs its own SMS permission.
+ */
+export async function textsAvailable(db: Db | Tx): Promise<boolean> {
+  if (!liveTextsEnabled(await loadConfig(db))) return false
+  return (await templateReadiness(db, CODE_MESSAGE_KEY, 'sms', 'en')).state === 'ready'
 }
 
 /** What every sign-in needs, none of it about the caller's input; empty when configured. */
@@ -150,15 +169,19 @@ export type EnrollmentChannel = { channel: AccountChannel; destination: string }
 /** The channels an account can be created with: the contact's own verified values (the phone only with texts). */
 export async function enrollmentChannels(db: Db | Tx, source: EnrollmentSource): Promise<EnrollmentChannel[]> {
   const c = await sourceContact(db, source)
+  // TSK-0149: the phone only while texting is available (a code by text could not arrive otherwise).
+  const phone = c.phone && (await textsAvailable(db)) ? c.phone : null
   return [
     ...(c.email ? [{ channel: 'email' as const, destination: maskForCustomer('email', c.email) }] : []),
-    ...(c.phone ? [{ channel: 'phone' as const, destination: maskForCustomer('sms', c.phone) }] : []),
+    ...(phone ? [{ channel: 'phone' as const, destination: maskForCustomer('sms', phone) }] : []),
   ]
 }
 
 export type SendResult =
   | { status: 'sent'; channel: AccountChannel; sentTo: string; expiresAt: Date }
   | { status: 'not_verified' }
+  /** TSK-0149: a code by text, while texting is not available for anyone. */
+  | { status: 'texts_unavailable' }
   | { status: 'rate_limited'; retryAfterSeconds: number }
   | { status: 'not_configured'; missing: string[] }
 
@@ -175,6 +198,7 @@ export async function sendEnrollmentCode(
   const c = await sourceContact(tx, input.source)
   const value = input.channel === 'email' ? c.email : c.phone
   if (!value) return { status: 'not_verified' }
+  if (input.channel === 'phone' && !(await textsAvailable(tx))) return { status: 'texts_unavailable' }
   const issued = await issueCode(tx, key, {
     purpose: ACCOUNT_CODE_PURPOSE,
     channel: codeChannel(input.channel),
@@ -321,11 +345,33 @@ async function startAccountSession(
 // ---------------------------------------------------------------------------------------------------------------
 // Sign-in
 
-/** Internal only: the route gives every one of these the same answer. */
+/** Internal only: the route gives every `accepted` the same answer. */
 export type SignInCodeOutcome =
-  { status: 'not_configured'; missing: string[] } | { status: 'accepted'; accountId: string | null; issued: boolean }
+  | { status: 'not_configured'; missing: string[] }
+  /** TSK-0149: a code by text while texting is not available for anyone (the same refusal for every caller). */
+  | { status: 'texts_unavailable' }
+  | { status: 'accepted'; accountId: string | null; issued: boolean; recovery: boolean }
 
-/** Sends a sign-in code when the value is an active account's own verified value; otherwise nothing is sent. */
+/** TSK-0149: a staff-assisted recovery waiting for the code to its new email (live: not expired, account active). */
+export type PendingRecovery = { id: string; accountId: string; newEmail: string }
+
+export async function pendingRecovery(db: Db | Tx, email: string, now: Date): Promise<PendingRecovery | undefined> {
+  const row = await db
+    .selectFrom('identity.customer_account_recoveries as r')
+    .innerJoin('identity.customer_accounts as a', 'a.id', 'r.account_id')
+    .select(['r.id', 'r.account_id', 'r.new_email'])
+    .where('r.state', '=', 'pending')
+    .where('r.new_email', '=', email)
+    .where('r.expires_at', '>', now)
+    .where('a.state', '=', 'active')
+    .executeTakeFirst()
+  return row ? { id: row.id, accountId: row.account_id, newEmail: row.new_email } : undefined
+}
+
+/**
+ * Sends a sign-in code when the value is an active account's own verified value, or the new email of a live
+ * staff-assisted recovery while its notice to the old email can be sent (TSK-0149); otherwise nothing is sent.
+ */
 export async function sendSignInCode(
   tx: Tx,
   key: CodeKeySettings,
@@ -333,48 +379,150 @@ export async function sendSignInCode(
 ): Promise<SignInCodeOutcome> {
   const missing = await signInMissing(tx, key)
   if (missing.length > 0) return { status: 'not_configured', missing }
+  // TSK-0149 (F4): decided before any record is read, so the refusal is the same for every caller.
+  if (input.contact.channel === 'phone' && !(await textsAvailable(tx))) return { status: 'texts_unavailable' }
   const account = await accountByValue(tx, input.contact)
-  if (!account) return { status: 'accepted', accountId: null, issued: false }
-  if (input.contact.channel === 'phone' && !(await textsAllowed(tx, input.contact.value)))
-    return { status: 'accepted', accountId: account.id, issued: false }
+  const recovery =
+    !account && input.contact.channel === 'email'
+      ? await pendingRecovery(tx, input.contact.value, input.now ?? new Date())
+      : undefined
+  const accountId = account?.id ?? recovery?.accountId ?? null
+  const accepted = (issued: boolean) => ({ status: 'accepted' as const, accountId, issued, recovery: !!recovery })
+  if (!account && (!recovery || (await emailChangeMissing(tx, key)).length > 0)) return accepted(false)
+  if (input.contact.channel === 'phone' && !(await textsAllowed(tx, input.contact.value))) return accepted(false)
   const issued = await issueCode(tx, key, {
     purpose: ACCOUNT_CODE_PURPOSE,
     channel: codeChannel(input.contact.channel),
     destination: input.contact.value,
-    subjectRef: signInSubject(account.id, input.contact.channel),
+    subjectRef: account
+      ? signInSubject(account.id, input.contact.channel)
+      : recoverySubject((recovery as PendingRecovery).id),
     ...(input.clientIp ? { clientIp: input.clientIp } : {}),
     requestId: input.httpRequestId,
     ...(input.now ? { now: input.now } : {}),
   })
-  return { status: 'accepted', accountId: account.id, issued: issued.status === 'issued' }
+  return accepted(issued.status === 'issued')
 }
 
 export type SignInResult =
-  { ok: false; accountId: string | null } | { ok: true; accountId: string; session: StartedSession }
+  | { ok: false; accountId: string | null }
+  | {
+      ok: true
+      accountId: string
+      session: StartedSession
+      /** TSK-0149: the sign-in completed a staff-assisted recovery (the change it recorded, the sessions it ended). */
+      recovery?: { changeId: string; endedSessions: number }
+    }
 
 /** The entered sign-in code. A wrong code and an unknown value are the same refusal (an attempt is counted either way). */
 export async function signIn(
   tx: Tx,
   key: CodeKeySettings,
-  input: { contact: ContactValue; code: string; clientIp?: string; replaces?: string; now?: Date },
+  input: {
+    contact: ContactValue
+    code: string
+    clientIp?: string
+    replaces?: string
+    /** The HTTP request, for the notice a completed recovery sends (outbox). */
+    httpRequestId?: string
+    now?: Date
+  },
 ): Promise<SignInResult> {
   const now = input.now ?? new Date()
   const account = await accountByValue(tx, input.contact)
+  const recovery =
+    !account && input.contact.channel === 'email' ? await pendingRecovery(tx, input.contact.value, now) : undefined
   const result = await verifyCode(tx, key, {
     purpose: ACCOUNT_CODE_PURPOSE,
     destination: input.contact.value,
-    subjectRef: account ? signInSubject(account.id, input.contact.channel) : NO_ACCOUNT(input.contact.channel),
+    subjectRef: account
+      ? signInSubject(account.id, input.contact.channel)
+      : recovery
+        ? recoverySubject(recovery.id)
+        : NO_ACCOUNT(input.contact.channel),
     code: input.code,
     ...(input.clientIp ? { clientIp: input.clientIp } : {}),
     now,
   })
-  if (!account || !result.ok) return { ok: false, accountId: account?.id ?? null }
+  if (recovery && result.ok)
+    return completeRecovery(tx, recovery, {
+      now,
+      httpRequestId: input.httpRequestId ?? randomUUID(),
+      ...(input.replaces ? { replaces: input.replaces } : {}),
+    })
+  if (!account || !result.ok) return { ok: false, accountId: account?.id ?? recovery?.accountId ?? null }
   // Read again under the value's lock: an account closed or changed since the code was sent opens nothing.
   await lockValue(tx, input.contact.value)
   const still = await accountByValue(tx, input.contact)
   if (still?.id !== account.id) return { ok: false, accountId: account.id }
   const session = await startAccountSession(tx, account.id, input.contact.channel, now, input.replaces)
   return { ok: true, accountId: account.id, session }
+}
+
+/**
+ * TSK-0149 (OWN-DEC-198 F3, F4; HH-ID-11 "a documented, audited recovery process"): the code to the new email of a
+ * staff-assisted recovery was entered. Under the email's lock and the recovery's row lock, while the recovery is still
+ * pending and no account has that email: the account takes it as its sign-in email, every session of the account ends
+ * (F2), a new session starts for this browser, the change is recorded (authority staff_assisted) and the notice
+ * account.contact_changed goes to the old and the new address after commit (MESSAGE 21). Anything else opens nothing.
+ */
+async function completeRecovery(
+  tx: Tx,
+  recovery: PendingRecovery,
+  input: { now: Date; httpRequestId: string; replaces?: string },
+): Promise<SignInResult> {
+  const refused = { ok: false as const, accountId: recovery.accountId }
+  await lockValue(tx, recovery.newEmail)
+  const live = await tx
+    .selectFrom('identity.customer_account_recoveries')
+    .select('id')
+    .where('id', '=', recovery.id)
+    .where('state', '=', 'pending')
+    .where('expires_at', '>', input.now)
+    .forUpdate()
+    .executeTakeFirst()
+  if (!live || (await accountByValue(tx, { channel: 'email', value: recovery.newEmail }))) return refused
+  const before = await tx
+    .selectFrom('identity.customer_accounts')
+    .select('sign_in_email')
+    .where('id', '=', recovery.accountId)
+    .where('state', '=', 'active')
+    .forUpdate()
+    .executeTakeFirst()
+  if (!before) return refused
+  await tx
+    .updateTable('identity.customer_accounts')
+    .set((eb) => ({ sign_in_email: recovery.newEmail, email_verified_at: input.now, version: eb('version', '+', 1) }))
+    .where('id', '=', recovery.accountId)
+    .execute()
+  const endedSessions = await revokeAccountSessions(tx, recovery.accountId, 'security_revoked', { now: input.now })
+  const session = await startAccountSession(tx, recovery.accountId, 'email', input.now, input.replaces)
+  const changeId = randomUUID()
+  await tx
+    .insertInto('identity.customer_account_changes')
+    .values({
+      id: changeId,
+      account_id: recovery.accountId,
+      kind: 'email_changed',
+      authority: 'staff_assisted',
+      old_value: before.sign_in_email,
+      session_id: session.sessionId,
+      created_at: input.now,
+    })
+    .execute()
+  if (before.sign_in_email)
+    await outbox.add(tx, {
+      type: CONTACT_CHANGED_EVENT,
+      aggregate: { type: 'customer_account_change', id: changeId },
+      idempotencyKey: `${CONTACT_CHANGED_EVENT}:${changeId}`,
+      requestId: input.httpRequestId,
+    })
+  await tx
+    .updateTable('identity.customer_account_recoveries')
+    .set({ state: 'completed', completed_at: input.now, completed_change_id: changeId })
+    .where('id', '=', recovery.id)
+    .execute()
+  return { ok: true, accountId: recovery.accountId, session, recovery: { changeId, endedSessions } }
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -384,6 +532,8 @@ export type AccountView = {
   email: string | null
   phone: string | null
   projects: string[]
+  /** TSK-0149 (F4): whether a code can go by text now, for everyone (the page offers the alternative otherwise). */
+  texts: 'available' | 'unavailable'
 }
 
 /** The account as its signed-in customer sees it: masked sign-in values and the references of its linked projects. */
@@ -403,6 +553,7 @@ export async function accountView(db: Db | Tx, session: CustomerSession): Promis
     email: a.sign_in_email ? maskForCustomer('email', a.sign_in_email) : null,
     phone: a.sign_in_phone ? maskForCustomer('sms', a.sign_in_phone) : null,
     projects: session.projectIds.flatMap((id) => byId.get(id) ?? []),
+    texts: (await textsAvailable(db)) ? 'available' : 'unavailable',
   }
 }
 
