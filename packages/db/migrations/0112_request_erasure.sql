@@ -10,7 +10,8 @@
 --   non-identifying retention metadata). Kept apart from the customer records; append-only.
 -- - privacy.consent_evidence: the restricted compliance record (OWN-DEC-176 "consent records"): the consent records of
 --   the erased contact's email and phone, moved out of platform.consent_records when nothing else on file uses that
---   destination, each with its own review date. No route reads it. Append-only.
+--   destination, each with its own review date: the consent-records period configured in retention.consent_records
+--   (OWN-DEC-177, migration 0108), whose version it names. No route reads it. Append-only.
 -- - The DELETE guards of the tables the erasure clears stand aside inside the one transaction that wrote a request's
 --   deletion log entry and names it in handyhub.erasure (privacy.request_erasure_permitted); updates and inserts are
 --   guarded exactly as before. Nothing else may delete those rows.
@@ -64,12 +65,19 @@ CREATE TABLE privacy.consent_evidence (
   evidence           jsonb NOT NULL CHECK (jsonb_typeof(evidence) = 'object'),
   recorded_by        text NOT NULL,
   recorded_at        timestamptz NOT NULL,
-  -- Its own deadline (OWN-DEC-176): the last relevant use of the destination and the review date it sets, a calendar
-  -- date in the business time zone (null while the zone is NOT CONFIGURED). Nothing is deleted at that date.
+  -- Its own deadline (OWN-DEC-176): the last relevant use of the destination plus the configured consent-records
+  -- period (retention.consent_records, the version used named here), a calendar date in the business time zone; null
+  -- while the period or the zone is NOT CONFIGURED. Nothing is deleted at that date.
   last_used_at       timestamptz NOT NULL,
   review_on          date,
+  policy_key         text,
+  policy_version     integer,
   deletion_id        uuid NOT NULL REFERENCES privacy.deletions (id),
-  moved_at           timestamptz NOT NULL DEFAULT now()
+  moved_at           timestamptz NOT NULL DEFAULT now(),
+  FOREIGN KEY (policy_key, policy_version) REFERENCES platform.policy_version (key, version),
+  CHECK ((policy_key IS NULL) = (policy_version IS NULL)),
+  CHECK (policy_key IS NULL OR policy_key = 'retention.consent_records'),
+  CHECK (review_on IS NULL OR policy_version IS NOT NULL)
 );
 CREATE INDEX consent_evidence_review ON privacy.consent_evidence (review_on);
 CREATE TRIGGER consent_evidence_append_only BEFORE UPDATE OR DELETE ON privacy.consent_evidence

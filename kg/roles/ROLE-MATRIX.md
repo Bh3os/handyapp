@@ -5,7 +5,7 @@ title: "Permission matrix: every action by role"
 status: active
 area: security
 links:
-  decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-118]]", "[[OWN-DEC-123]]", "[[OWN-DEC-67]]", "[[OWN-DEC-68]]", "[[OWN-DEC-69]]", "[[OWN-DEC-70]]", "[[OWN-DEC-71]]", "[[OWN-DEC-76]]", "[[OWN-DEC-77]]", "[[OWN-DEC-38]]", "[[OWN-DEC-64]]", "[[OWN-DEC-81]]", "[[OWN-DEC-100]]", "[[OWN-DEC-111]]", "[[OWN-DEC-115]]", "[[OWN-DEC-117]]", "[[OWN-DEC-119]]", "[[OWN-DEC-121]]", "[[OWN-DEC-124]]", "[[OWN-DEC-125]]", "[[OWN-DEC-134]]", "[[OWN-DEC-137]]", "[[OWN-DEC-138]]", "[[OWN-DEC-143]]"]
+  decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-118]]", "[[OWN-DEC-123]]", "[[OWN-DEC-67]]", "[[OWN-DEC-68]]", "[[OWN-DEC-69]]", "[[OWN-DEC-70]]", "[[OWN-DEC-71]]", "[[OWN-DEC-76]]", "[[OWN-DEC-77]]", "[[OWN-DEC-38]]", "[[OWN-DEC-64]]", "[[OWN-DEC-81]]", "[[OWN-DEC-100]]", "[[OWN-DEC-111]]", "[[OWN-DEC-115]]", "[[OWN-DEC-117]]", "[[OWN-DEC-119]]", "[[OWN-DEC-121]]", "[[OWN-DEC-124]]", "[[OWN-DEC-125]]", "[[OWN-DEC-134]]", "[[OWN-DEC-137]]", "[[OWN-DEC-138]]", "[[OWN-DEC-143]]", "[[OWN-DEC-171]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]", "[[RULE-SAFETY-GATES]]", "[[RULE-AI-WAVE2]]"]
   uses: ["[[ROLE-OWNER]]", "[[ROLE-OFFICE]]", "[[ROLE-ESTIMATOR]]", "[[ROLE-WORKER]]", "[[ROLE-CUSTOMER]]", "[[ROLE-GUEST]]", "[[ENT-RoleGrant]]", "[[ENT-AuditEvent]]"]
   tested_by: ["[[T26]]", "[[T64]]", "[[T19]]", "[[T68]]", "[[T28]]"]
@@ -60,6 +60,7 @@ These are server rules, enforced by one policy point on every read, write, searc
 | Cancel accepted, scheduled or paid work (financial review) | Y | — | — | — | — | — |
 | Set working days, hours and time off | Y | — | — | — | — | — |
 | Tap On my way, Arrived, Finished | A | — | — | A | — | — |
+| Extend a worker's visit-day access | Y (reason) | — | — | — | — | — |
 
 ### Field work and safety
 | Action | Owner | Office | Estimator | Worker | Customer | Guest |
@@ -96,6 +97,7 @@ These are server rules, enforced by one policy point on every read, write, searc
 | View balances and payments | Y | Y | — | A, balance on jobs with collect (P) | V | — |
 | Accounting exports | F | — | — | — | — | — |
 | Owner Dashboard and its CSV | Y | — | — | — | — | — |
+| View and record job costs, estimated versus actual | Y (P) | — | — | — | — | — |
 
 ### Messages, content and configuration
 | Action | Owner | Office | Estimator | Worker | Customer | Guest |
@@ -131,3 +133,5 @@ These are server rules, enforced by one policy point on every read, write, searc
 **Changed by [[OWN-DEC-173]] (2026-10-21):** publishing an estimate or change order above [[FACT-OWNER-APPROVAL-THRESHOLD]] needs the Owner's approval first; the row "Approve or reject publishing over the Owner approval threshold" is the Owner's alone, and changing the threshold is "Change policy values" (F) ([[TSK-0130]]).
 
 **Built by [[TSK-0092]] (2026-10-25):** closing a job (`job.close`) sits in the Owner's cell of "Quality review, punch items, self-review" (P: ENT-Job "the Owner reviews quality, closes and reopens"); reopening is "Reopen a closed job" (F). Releasing the satisfaction check and review requests, preparing a review request and recording the customer's answer are "Reply from a project, release drafts" on the project's records (the Owner, Office). PROPOSED details: [[OQ-CLOSEOUT-DETAILS]].
+
+**Built by [[TSK-0095]] (2026-10-26):** reading a job's estimated-versus-actual costs and recording cost entries, voids and category confirmations (`job_cost.view`, `job_cost.record`) are the new Finance row "View and record job costs, estimated versus actual" (P: the Owner only). PROPOSED details: [[OQ-JOB-COST-DETAILS]].

@@ -24,8 +24,9 @@
 // - Consent evidence (OWN-DEC-176 "Consent records"): when the contact records go, the consent records of their email
 //   and phone move to the restricted compliance record (privacy.consent_evidence) with their own review date, unless
 //   another record on file uses that destination (then they stay, as that record's evidence). PROPOSED: the review
-//   date is the last relevant use (the latest consent record or message sent to it) plus the 5 years of OWN-DEC-177,
-//   as a calendar date in the business time zone; nothing is deleted at that date.
+//   date is the last relevant use (the latest consent record or message sent to it) plus the consent-records period
+//   configured in retention.consent_records (OWN-DEC-177, TSK-0138), as a calendar date in the business time zone;
+//   nothing is deleted at that date. A period or zone NOT CONFIGURED leaves the date empty.
 // - Blocked (Archive is offered): a hold or open case, protected evidence (an approval, a job, financial records), a
 //   record still in use (the request or project not closed, an estimate still open, an open access-help request), and
 //   linked records this erasure does not remove: site visits and their field records, cases, photo publication
@@ -56,9 +57,6 @@ import {
 } from './targets.js'
 
 type Reader = Db | Tx
-
-/** OWN-DEC-177: consent records are kept 5 years after the last relevant use (the compliance record's review date). */
-export const CONSENT_EVIDENCE_YEARS = 5
 
 /** One table's rows that go, named by a fixed condition (IDs read under the locks, or the erased parent's key). */
 type Step = { kind: string; table: string; where: RawBuilder<unknown>; planned: number }
@@ -706,9 +704,13 @@ export async function eraseRequest(
 
     // Consent evidence moves to the restricted compliance record with its own review date (OWN-DEC-176).
     if (plan.consent.ids.length) {
-      const zone = (await loadConfig(tx)).get('business.timezone')
+      // The consent-records period the Owner configured (OWN-DEC-177: 5 years after the last relevant use, TSK-0138).
+      const config = await loadConfig(tx)
+      const zone = config.get('business.timezone')
+      const period = config.get('retention.consent_records')
+      const years = period.state === 'CONFIGURED' ? period.value.years : null
       const reviewOn = (at: Date) =>
-        zone.state === 'CONFIGURED' ? addLocalYears(localDateOf(at, zone.value.zone), CONSENT_EVIDENCE_YEARS) : null
+        zone.state === 'CONFIGURED' && years !== null ? addLocalYears(localDateOf(at, zone.value.zone), years) : null
       const rows = await tx
         .selectFrom('platform.consent_records')
         .selectAll()
@@ -735,6 +737,8 @@ export async function eraseRequest(
               recorded_at: c.recorded_at,
               last_used_at: last,
               review_on: reviewOn(last),
+              policy_key: years === null ? null : 'retention.consent_records',
+              policy_version: years === null ? null : period.version,
               deletion_id: input.deletionId,
             }
           }),

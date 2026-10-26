@@ -10,6 +10,9 @@
 // - There is no ETA, no timer and no check-in between Arrived and Finished (OWN-DEC-149). Arrived never starts work:
 //   Start Work stays its own online check. Stop Work and Report Hazard stay available from the job packet.
 // - TSK-0073: an on-the-way or arrived visit links to its Start Work briefing and gate (never a direct start).
+// - TSK-0128 (HH-PKT-08, OWN-DEC-171): the customer's first name and the address show only during the worker's
+//   visit-day access (the visit's own local day, or an Owner extension until the time shown); before it the general
+//   service area. The screen says that removing access cannot erase screenshots or copies.
 import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { Button, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
@@ -54,6 +57,10 @@ export type MyDayVisit = {
   team: { name: string | null; role: string }[]
   address: { street: string; unit: string | null; city: string; state: string; zip: string } | null
   directionsUrl: string | null
+  /** TSK-0128: the general service area, the visit-day access and the customer's first name (while it is open). */
+  serviceArea?: { city: string; state: string } | null
+  visitDay?: { open: boolean; basis: 'visit_day' | 'extension' | null; endsAt: string | null; opensAt: string | null }
+  customer?: { firstName: string | null }
   accessNotes: Detail[]
   preparation: { customerPreparation: string | null; instructions: string | null }
   readiness: {
@@ -356,8 +363,26 @@ function VisitCard({
               ) : null}
             </p>
           ) : (
-            <p className="staff-request__hint">{t('myday.noAddress')}</p>
+            <>
+              {v.serviceArea ? (
+                <p data-testid="myday-area">
+                  {t('myday.serviceArea', { city: v.serviceArea.city, state: v.serviceArea.state })}
+                </p>
+              ) : null}
+              <p className="staff-request__hint">{t('myday.noAddress')}</p>
+            </>
           )}
+          {v.customer?.firstName ? (
+            <p data-testid="myday-customer">{t('myday.customer', { name: v.customer.firstName })}</p>
+          ) : null}
+          {v.visitDay?.open && v.visitDay.endsAt ? (
+            <p className="staff-request__hint" data-testid="myday-visit-day">
+              {v.visitDay.basis === 'extension'
+                ? t('myday.visitDay.extended', { time: timeIn(v.visitDay.endsAt, zone, locale) })
+                : null}{' '}
+              {t('packet.visitDay.copies')}
+            </p>
+          ) : null}
           {v.accessNotes.length > 0 ? (
             <dl className="staff-system__fields" data-testid="myday-access">
               {v.accessNotes.map((d) => (

@@ -816,6 +816,7 @@ export const PROJECT_VISITS = {
     'schedulingTask',
     'actions',
     'visitTimes',
+    'workerAccess',
     'dismissFlags',
     'visits',
   ],
@@ -904,6 +905,8 @@ export const PROJECT_VISITS = {
     },
     // TSK-0070: the caller may open each started visit's Arrived and Finished times (visit.correct_timestamps).
     visitTimes: { type: 'boolean' },
+    // TSK-0128: the caller may extend a worker's visit-day access on each live visit (visit.extend_worker_access).
+    workerAccess: { type: 'boolean' },
     // TSK-0151: the caller may keep an appointment as it is despite a working-hours or equipment flag (the Owner).
     dismissFlags: { type: 'boolean' },
     visits: { type: 'array', items: VISIT },

@@ -304,6 +304,17 @@ async function closedWithWithdrawnEstimate(r: Submitted) {
   return { estimateId, versionId }
 }
 
+/** The consent-records period in force (retention.consent_records, TSK-0138). */
+async function consentPeriod() {
+  const row = await t.db
+    .selectFrom('platform.policy_version')
+    .select(['version', 'value'])
+    .where('key', '=', 'retention.consent_records')
+    .where('status', '=', 'active')
+    .executeTakeFirstOrThrow()
+  return { version: row.version, value: row.value, years: (row.value as { years: number }).years }
+}
+
 const scan = (now: Date) => withTx(t.db, (tx) => runRetentionScan(tx, { now, requestId: `req-${key('scan')}` }))
 async function entryFor(recordId: string) {
   const row = await t.db
@@ -523,7 +534,10 @@ describe('erasing a request that never became a job (TSK-0137, HH-PRIV-08)', () 
     expect(await tablesMentioning(r.email)).toEqual(['privacy.consent_evidence'])
     expect(await tablesMentioning(r.phone)).toEqual(['privacy.consent_evidence'])
 
-    // Consent evidence moved, each with its review date: the last use plus 5 years in the business zone (PROPOSED).
+    // Consent evidence moved, each with its review date: the last use plus the configured consent-records period
+    // (retention.consent_records, OWN-DEC-177: 5 years) in the business zone, naming the version used.
+    const period = await consentPeriod()
+    expect(period.years).toBe(5)
     const evidence = await t.db
       .selectFrom('privacy.consent_evidence')
       .selectAll()
@@ -532,9 +546,8 @@ describe('erasing a request that never became a job (TSK-0137, HH-PRIV-08)', () 
       .execute()
     expect(evidence.map((e) => e.consent_id).sort()).toEqual(consents.map((c) => c.id).sort())
     for (const e of evidence) {
-      expect(e.review_on).not.toBeNull()
-      const onDate = String(e.review_on)
-      expect(onDate).toBe(addLocalYears(localDateOf(e.last_used_at, ZONE), 5))
+      expect(e).toMatchObject({ policy_key: 'retention.consent_records', policy_version: period.version })
+      expect(String(e.review_on)).toBe(addLocalYears(localDateOf(e.last_used_at, ZONE), period.years))
     }
     expect(await count('platform.consent_records', 'destination', r.email)).toBe(0)
 
@@ -805,6 +818,54 @@ describe('erasing a request that never became a job (TSK-0137, HH-PRIV-08)', () 
     expect(String((job.payload as Record<string, unknown>)['keys'])).toContain(photo.object_key)
     const twice = await withTx(t.db, (tx) => reapplyDeletions(tx, file, { requestId: 'synthetic-restore-2' }))
     expect(twice.map((x) => x.outcome)).toEqual(['absent', 'absent'])
+  })
+
+  it('[HH-PRIV-08] the consent evidence review date follows the consent-records period the Owner configured', async () => {
+    const before = await consentPeriod()
+    await recordPolicyVersion(t.db, {
+      key: 'retention.consent_records',
+      value: {
+        years: 6,
+        after: 'last_relevant_use',
+        afterPeriod: 'owner_deletion_review',
+        automaticDeletion: false,
+        holdsKeepRecords: true,
+      } as never,
+      sourceIds: ['TEST-SYNTHETIC'],
+      changedBy: 'test',
+      reason: 'synthetic test configuration: a longer consent-records period',
+    })
+    try {
+      const changed = await consentPeriod()
+      expect(changed.years).toBe(6)
+      const r = await newRequest()
+      await notAFit(r)
+      await scan(later(2, 2))
+      const entry = await entryFor(r.requestId)
+      const deleted = await write('owner', `/staff/retention-reviews/${entry.id}/delete`, {
+        reason: 'Synthetic: past its period.',
+        confirmedChecks: ALL_CHECKS,
+      })
+      expect(deleted.statusCode, deleted.body).toBe(200)
+      const evidence = await t.db
+        .selectFrom('privacy.consent_evidence')
+        .selectAll()
+        .where('deletion_id', '=', deleted.json<{ deletionId: string }>().deletionId)
+        .execute()
+      expect(evidence).toHaveLength(2)
+      for (const e of evidence) {
+        expect(e.policy_version).toBe(changed.version)
+        expect(String(e.review_on)).toBe(addLocalYears(localDateOf(e.last_used_at, ZONE), 6))
+      }
+    } finally {
+      await recordPolicyVersion(t.db, {
+        key: 'retention.consent_records',
+        value: before.value as never,
+        sourceIds: ['TEST-SYNTHETIC'],
+        changedBy: 'test',
+        reason: 'synthetic test configuration: the decided period again',
+      })
+    }
   })
 
   it('[HH-PRIV-08] the database refuses to delete request rows outside an erasure', async () => {

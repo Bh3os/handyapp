@@ -17,3 +17,5 @@ The customer's original submission and its working record.
 **Invariants:** the original submission is never edited; one request per idempotency key; Not a Fit needs a reason category; closing never auto-cancels accepted, scheduled or paid work.
 
 **Who may change:** Office, Estimator and Owner.
+
+**Built by [[TSK-0148]] (2026-10-26):** a "Closed—no response" request may also be reopened by authorized staff (`reopen_by_staff`, with a written reason, within or after [[FACT-REOPEN-PERIOD]]); it returns to review and nothing else is restored.

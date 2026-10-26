@@ -17,6 +17,11 @@ export type PacketPdfInput = {
   readonly printedAt: Date
   /** The zone the print time and dates are shown in (the property's). */
   readonly timeZone: string
+  /**
+   * TSK-0128 (OWN-DEC-171): the reader's visit-day access is closed, so the server left the address, the site-access
+   * details, the site contact and the codes out: the print says they show on the visit day only.
+   */
+  readonly visitDayClosed?: boolean
 }
 
 function translator(locale: StaffLocale) {
@@ -108,7 +113,11 @@ export function packetPdfModel(input: PacketPdfInput): CustomerPdfModel {
     rows: [
       {
         label: t('packet.field.address'),
-        value: view.site.address ? addressLine(view.site.address) : t('packet.addressUnavailable'),
+        value: view.site.address
+          ? addressLine(view.site.address)
+          : input.visitDayClosed && view.site.serviceArea
+            ? t('packet.addressVisitDay', { city: view.site.serviceArea.city, state: view.site.serviceArea.state })
+            : t('packet.addressUnavailable'),
       },
       { label: t('packet.field.propertyType'), value: label('propertyType', view.site.propertyType) },
       ...view.site.details.map(detailRow),
@@ -119,7 +128,9 @@ export function packetPdfModel(input: PacketPdfInput): CustomerPdfModel {
               count: view.site.accessCodes.length,
               kinds: [...new Set(view.site.accessCodes.map((c) => label('accessSecretKind', c.kind)))].join(', '),
             })
-          : t('packet.noAccessCodes'),
+          : input.visitDayClosed
+            ? t('packet.visitDayOnly')
+            : t('packet.noAccessCodes'),
       },
     ],
   })
@@ -227,7 +238,9 @@ export function packetPdfModel(input: PacketPdfInput): CustomerPdfModel {
     rows: [
       {
         label: t('packet.field.siteContact'),
-        value: view.communication.siteContact?.value ?? t('packet.nothingRecorded'),
+        value:
+          view.communication.siteContact?.value ??
+          t(input.visitDayClosed ? 'packet.visitDayOnly' : 'packet.nothingRecorded'),
       },
       // TSK-0129: the number the Owner entered, so the paper copy works without the app (PROPOSED), or NOT CONFIGURED.
       {

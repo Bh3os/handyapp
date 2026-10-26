@@ -27,6 +27,9 @@ export const ACTIONS = [
   // PROPOSED (TSK-0051): closing an unbooked request "Closed—no response" (OWN-DEC-101) is part of handling it, in the
   // same row.
   'request.close_no_response',
+  // PROPOSED (TSK-0148, OWN-DEC-197 E5): the authorized reopening of a "Closed—no response" request, with a written
+  // reason, is part of handling it, in the same row (the roles that may close it).
+  'request.reopen',
   'request.reply',
   'customer.view',
   'customer.edit',
@@ -86,6 +89,7 @@ export const ACTIONS = [
   'visit.tap_on_my_way',
   'visit.tap_arrived',
   'visit.tap_finished',
+  'visit.extend_worker_access',
   // Field work and safety
   'job.view_packet',
   'work.start',
@@ -144,6 +148,10 @@ export const ACTIONS = [
   'export.accounting',
   'dashboard.view',
   'dashboard.export_csv',
+  // PROPOSED (TSK-0095): the job's estimated-versus-actual costs: reading them and recording entries, voids and the
+  // Owner's category confirmations (HH-FIN-17).
+  'job_cost.view',
+  'job_cost.record',
   // Messages, content and configuration
   'message.reply',
   'message.release_draft',
@@ -233,7 +241,7 @@ export type Condition =
   | 'not_self_collected'
   /** A worker records only their own on-site collection. */
   | 'own_collection'
-  /** Access codes: revealed only on the visit date (T28). */
+  /** Access codes: revealed only on the visit date (T28), in the visit's own zone, or during an Owner extension. */
   | 'visit_date'
   /** Online only: never from offline use (T28, T46). */
   | 'online'
@@ -351,6 +359,7 @@ export const MATRIX: readonly MatrixRow[] = [
       'request.add_note',
       'request.record_conversation',
       'request.close_no_response',
+      'request.reopen',
     ],
     { owner: Y(), office: Y(), estimator: Y('Y (P)', P) },
   ),
@@ -480,6 +489,10 @@ export const MATRIX: readonly MatrixRow[] = [
     ['visit.tap_on_my_way', 'visit.tap_arrived', 'visit.tap_finished'],
     { owner: A(), worker: A() },
   ),
+  // TSK-0128 (OWN-DEC-171): owner-authorized temporary extensions of a worker's visit-day access, with a reason.
+  row(SCHEDULING, "Extend a worker's visit-day access", ['visit.extend_worker_access'], {
+    owner: Y('Y (reason)', { reason: true, audit: true }),
+  }),
 
   // Field work and safety
   row(FIELD, 'View job packet', ['job.view_packet'], {
@@ -642,6 +655,9 @@ export const MATRIX: readonly MatrixRow[] = [
   }),
   row(FINANCE, 'Accounting exports', ['export.accounting'], { owner: Y('F', F) }),
   row(FINANCE, 'Owner Dashboard and its CSV', ['dashboard.view', 'dashboard.export_csv'], { owner: Y() }),
+  row(FINANCE, 'View and record job costs, estimated versus actual', ['job_cost.view', 'job_cost.record'], {
+    owner: Y('Y (P)', P),
+  }),
 
   // Messages, content and configuration
   row(MESSAGES, 'Reply from a project, release drafts', ['message.reply', 'message.release_draft'], {

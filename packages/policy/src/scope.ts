@@ -57,6 +57,13 @@ export type Resource = {
   readonly subjectStaffId?: string
   /** Visit date as YYYY-MM-DD in the business time zone (access-code reveal). */
   readonly visitDate?: string
+  /**
+   * TSK-0128 (OWN-DEC-171): today's date in the visit's own zone (the property's local service day). When given, the
+   * visit_date rule compares the visit date with it instead of the business date.
+   */
+  readonly visitToday?: string
+  /** TSK-0128 (OWN-DEC-171): an Owner extension of the visit-day access is in force until then. */
+  readonly extendedUntil?: Date
 }
 
 /** Assignment: an active assignment of this staff user on the record's job, inside its access window. */

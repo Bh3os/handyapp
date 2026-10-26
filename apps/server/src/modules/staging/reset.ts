@@ -165,6 +165,9 @@ export const CLEARED_CATEGORIES = {
     'finance.refunds',
     'finance.payouts',
     'finance.provider_fees',
+    // TSK-0095 (0109): a job's actual costs and their history.
+    'finance.job_costs',
+    'finance.job_cost_events',
   ],
   conversations: [
     'comms.conversations',
@@ -215,6 +218,8 @@ export const CLEARED_CATEGORIES = {
     'work.change_order_decisions',
     // TSK-0078 (0089): visit outcomes and their follow-up.
     'work.visit_outcomes',
+    // TSK-0128 (0107): the Owner's extensions of a worker's visit-day access.
+    'work.visit_access_extensions',
   ],
   attachments: [
     'intake.photos',

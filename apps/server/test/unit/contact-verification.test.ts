@@ -53,6 +53,8 @@ describe('code and channel states (TSK-0033, HH-INT-13, HH-ID-06)', () => {
       'GET /public/request-receipt/contact',
       'POST /public/request-receipt/contact/codes',
       'POST /public/request-receipt/contact/verify',
+      // TSK-0134: the receipt's consent to a verification code by text.
+      'POST /public/request-receipt/contact/sms-consent',
       'POST /public/request-receipt/account-offer/decline',
     ])
     for (const r of routes) {

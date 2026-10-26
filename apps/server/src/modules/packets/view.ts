@@ -10,6 +10,9 @@
 //   online, on the visit date, in the audited flow (POST .../reveal). No access code is in any packet, view or export.
 // - What no record holds is said, never filled in: materials are not recorded yet (TSK-0071), no approved care notes
 //   exist (OWN-DEC-81: shown only after the Owner approves them).
+// - TSK-0128 (HH-PKT-08, OWN-DEC-171): this is the full packet; a worker reads it through projectPacket()
+//   (access-window.ts), which keeps the address, directions, site-access details, site contact and access-code
+//   entries for their visit-day access only and shows the general service area (city and state) otherwise.
 // - TSK-0129 (HH-PKT-09, OWN-DEC-172): the Owner's escalation contact is read when the packet is read, from the number
 //   the Owner entered in their own staff profile (never stored in the packet: entering or changing it makes no new
 //   version), or NOT CONFIGURED while there is none; Call 911 is always there.
@@ -17,6 +20,7 @@ import type { Db, Tx } from '@handyhub/db'
 import {
   itemText,
   packetChanges,
+  serviceArea,
   type PacketChange,
   type PacketContent,
   type SopContent,
@@ -239,6 +243,8 @@ export async function packetView(
       address,
       addressVersion: c.site_access.addressVersion,
       directionsUrl: address ? directionsUrl(address) : null,
+      // TSK-0128 (HH-PKT-08): the general service area, the only part of the address a worker sees before the day.
+      serviceArea: address ? serviceArea(address) : null,
       propertyType: c.site_access.propertyType,
       timeZone: c.site_access.timeZone,
       details: c.site_access.details,
