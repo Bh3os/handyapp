@@ -301,7 +301,10 @@ export async function requestErasurePlan(
          OR EXISTS (SELECT 1 FROM comms.messages x WHERE x.suggested_project_id = ${P}::uuid
                       AND x.id NOT IN (SELECT id FROM m))
          OR EXISTS (SELECT 1 FROM comms.messages x JOIN platform.message_deliveries d ON d.id = x.delivery_id
-                     WHERE d.project_id = ${P}::uuid AND x.id NOT IN (SELECT id FROM m))) AS project,
+                     WHERE d.project_id = ${P}::uuid AND x.id NOT IN (SELECT id FROM m))
+         -- TSK-0113: a later request sent again from this project names it.
+         OR EXISTS (SELECT 1 FROM intake.request_repeats x WHERE x.source_project_id = ${P}::uuid
+                      AND x.request_id <> ${R}::uuid)) AS project,
         (EXISTS (SELECT 1 FROM crm.projects p WHERE p.customer_id = ${C}::uuid AND p.id <> ${P}::uuid)
          OR EXISTS (SELECT 1 FROM intake.requests q WHERE q.customer_id = ${C}::uuid AND q.id <> ${R}::uuid)
          OR EXISTS (SELECT 1 FROM identity.customer_accounts a
@@ -514,6 +517,8 @@ export async function requestErasurePlan(
     { kind: 'project_details', table: 'crm.project_site_contacts', where: eq('project_id', P) },
     { kind: 'project_details', table: 'crm.project_coverage_acceptances', where: eq('project_id', P) },
     { kind: 'help_requests', table: 'identity.access_help_requests', where: anyOf('id', help) },
+    // TSK-0113: the request's link to the earlier project it was sent again from.
+    { kind: 'request_submission', table: 'intake.request_repeats', where: eq('request_id', R) },
     { kind: 'request_submission', table: 'intake.requests', where: eq('id', R) },
     // Stored responses of earlier writes (the idempotency records, kept after they expire) that name an erased record.
     { kind: 'stored_responses', table: 'platform.idempotency_keys', where: mentions },
@@ -540,6 +545,8 @@ export async function requestErasurePlan(
       { kind: 'property_record', table: 'crm.property_changes', where: eq('property_id', Pr) },
       { kind: 'property_record', table: 'crm.property_time_zones', where: eq('property_id', Pr) },
       { kind: 'property_record', table: 'crm.property_county_verifications', where: eq('property_id', Pr) },
+      // TSK-0113: a customer account's name for the property goes with it.
+      { kind: 'property_record', table: 'identity.customer_saved_properties', where: eq('property_id', Pr) },
       // The customer's own link to it went with the customer above.
       {
         kind: 'property_record',

@@ -1036,6 +1036,13 @@ export interface IdentityCustomerAccountChangesTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface IdentityCustomerAccountPreferencesTable {
+  account_id: string
+  preferred_channel: string | null
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
+}
+
 export interface IdentityCustomerAccountRecoveriesTable {
   id: Generated<string>
   account_id: string
@@ -1087,6 +1094,16 @@ export interface IdentityCustomerIdentityLinksTable {
   revoked_at: Timestamp | null
   revoke_reason: string | null
   revoked_by: string | null
+}
+
+export interface IdentityCustomerSavedPropertiesTable {
+  id: Generated<string>
+  account_id: string
+  property_id: string
+  label: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
 }
 
 export interface IdentityCustomerSessionsTable {
@@ -1394,6 +1411,15 @@ export interface IntakeRequestQualificationsTable {
   checks: Json
   recorded_by: string
   recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface IntakeRequestRepeatsTable {
+  request_id: string
+  source_project_id: string
+  account_id: string
+  details_confirmed_at: Timestamp
+  same_address: boolean
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
 export interface IntakeRequestServicesTable {
@@ -3256,9 +3282,11 @@ export interface Database {
   'identity.access_help_requests': IdentityAccessHelpRequestsTable
   'identity.auth_identities': IdentityAuthIdentitiesTable
   'identity.customer_account_changes': IdentityCustomerAccountChangesTable
+  'identity.customer_account_preferences': IdentityCustomerAccountPreferencesTable
   'identity.customer_account_recoveries': IdentityCustomerAccountRecoveriesTable
   'identity.customer_accounts': IdentityCustomerAccountsTable
   'identity.customer_identity_links': IdentityCustomerIdentityLinksTable
+  'identity.customer_saved_properties': IdentityCustomerSavedPropertiesTable
   'identity.customer_sessions': IdentityCustomerSessionsTable
   'identity.permission_review_items': IdentityPermissionReviewItemsTable
   'identity.permission_reviews': IdentityPermissionReviewsTable
@@ -3285,6 +3313,7 @@ export interface Database {
   'intake.request_decisions': IntakeRequestDecisionsTable
   'intake.request_notes': IntakeRequestNotesTable
   'intake.request_qualifications': IntakeRequestQualificationsTable
+  'intake.request_repeats': IntakeRequestRepeatsTable
   'intake.request_services': IntakeRequestServicesTable
   'intake.requests': IntakeRequestsTable
   'intake.response_clocks': IntakeResponseClocksTable

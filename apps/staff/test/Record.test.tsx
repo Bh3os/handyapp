@@ -55,6 +55,22 @@ describe('the original request view (TSK-0042, HH-LEAD-01)', () => {
     expect(screen.getByText('Qualify the request and choose an action')).toBeTruthy()
   })
 
+  it('[HH-ID-12][OWN-DEC-113] names the earlier project of a request sent again from the customer’s account', async () => {
+    const repeatOf = {
+      projectId: '44444444-4444-4444-8444-444444444444',
+      reference: 'HH-3N8P5R2T',
+      detailsConfirmedAt: '2026-10-20T15:00:00.000Z',
+      sameAddress: false,
+    }
+    renderRecord(api(requestDetail({ repeatOf })), 'es')
+    const line = await screen.findByTestId('request-repeat-of')
+    expect(line.textContent).toMatch(/^HH-3N8P5R2T: enviado desde la cuenta del cliente; la dirección cambió;/)
+    cleanup()
+    renderRecord(api())
+    await screen.findByRole('heading', { level: 1, name: 'Request HH-7K2M9Q4D' })
+    expect(screen.queryByTestId('request-repeat-of')).toBeNull()
+  })
+
   it('[HH-INT-02][OWN-DEC-170][OWN-DEC-159] shows each window with its hours in the property zone, and names the zone', async () => {
     renderRecord(api())
     const original = await screen.findByTestId('original-request')
