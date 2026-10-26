@@ -30,6 +30,7 @@ import { ApiError, type FieldError } from '../../api/errors.js'
 import { loadConfig } from '../../platform/config/index.js'
 import { FRESH_AUTH_MINUTES } from '../identity/sessions.js'
 import { syncDepositItem } from './deposit-queue.js'
+import { syncJobInvoiceReminders } from './invoice-reminders.js'
 import { announcePaidInvoices, syncUnallocatedItem } from './money-events.js'
 import {
   adjustmentsOf,
@@ -666,6 +667,8 @@ export async function markCheckCleared(
   await issuePaymentReceipt(tx, p.id)
   // TSK-0088: the job's check_to_clear item follows its checks still pending.
   await syncCheckItem(tx, p.job_id)
+  // TSK-0091: an invoice the cleared check pays in full resolves its reminder items.
+  await syncJobInvoiceReminders(tx, p.job_id)
   const r = await requirementOfJob(tx, p.job_id)
   return {
     jobId: p.job_id,

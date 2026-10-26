@@ -16,3 +16,5 @@ Grant of one role or named capability to a staff user ([[ENT-StaffUser]]), evalu
 **Invariants:** least privilege; a grant is ended by a new fact, never edited; every grant and revocation is audited; nobody grants themselves a capability; the publish-estimate capability follows the Owner's publishing policy (default Estimator and Owner); the `collect` capability is granted per worker by the Owner.
 
 **Who may change:** the Owner only, with a fresh sign-in for grants; revocation never waits for step-up.
+
+**Built by [[TSK-0151]] (2026-10-24, migration 0098):** a `collect` grant records the worker's training (the date it was completed and what it covered; [[OWN-DEC-200]] H4). Re-enabling an account ends its grants, which stay as history; each one is restored only by the Owner's confirmation in a permission review, as a new grant naming the earlier one (H3).

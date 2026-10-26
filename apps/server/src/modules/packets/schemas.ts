@@ -1,6 +1,7 @@
 // JSON schemas of the job packet routes (TSK-0069; HH-API-01, HH-ARC-04). Input objects refuse unknown fields; response
 // objects list every field, so nothing else (an access code above all) can reach a response.
 import { ACKNOWLEDGMENT_INVALIDATIONS, ACKNOWLEDGMENT_STATES, PACKET_SECTIONS } from '@handyhub/domain'
+import { OWNER_CONTACT } from '../escalation/schemas.js'
 
 const UUID = {
   type: 'string',
@@ -193,7 +194,9 @@ export const PACKET_VIEW = obj({
   careNotes: obj({ state: { type: 'string', enum: ['none_approved'] } }),
   communication: obj({
     siteContact: { ...DETAIL, type: ['object', 'null'] },
-    escalationContact: obj({ state: { type: 'string', enum: ['not_configured'] } }),
+    // TSK-0129: the number the Owner entered in their own profile, or NOT CONFIGURED; Call 911 always.
+    escalationContact: OWNER_CONTACT,
+    emergency: obj({ call911: STR }),
     stopWork: arr(
       obj({ workPackageId: STR, serviceCode: STR, items: arr(obj({ id: STR, text: STR, line: INT_OR_NULL })) }),
     ),

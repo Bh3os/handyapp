@@ -90,6 +90,8 @@ export const LABEL_FAMILIES = {
     'check_to_clear',
     // TSK-0090: unmatched or uncertain money waiting for a person.
     'reconciliation_item',
+    // TSK-0091: a payment suspended an invoice's reminders; staff confirm the next step.
+    'invoice_reminder_review',
     // TSK-0149: a request for help signing in or getting a new project link.
     'access_help_request',
     'visit_flagged',
@@ -104,6 +106,8 @@ export const LABEL_FAMILIES = {
     'property_time_zone',
     // TSK-0084: a job's punch items not yet re-checked; a job awaiting the Owner's quality review.
     'punch_items',
+    // TSK-0151: a reactivated account waiting for the Owner's permission review (Owner Decisions).
+    'permission_review',
     'deposit_waiver',
     'quality_review',
     'start_work_exception',
@@ -161,6 +165,8 @@ export const LABEL_FAMILIES = {
     'cancellation_outcome_requested',
     'deletion_requested',
     'overdue_owner_decision',
+    // TSK-0091: why an invoice's reminders wait for staff.
+    'payment_recorded',
     'not_a_fit_with_obligations',
     'ready_for_estimate',
     'estimate_draft',
@@ -182,6 +188,8 @@ export const LABEL_FAMILIES = {
     'assignee_disabled',
     'availability_changed',
     'equipment_retired',
+    // TSK-0151: an account re-enabled; its earlier grants wait for the Owner.
+    'account_reenabled',
     'work_cancellation_requested',
     'critical_shortage',
     // TSK-0067: an appointment reminder draft waiting for release.
@@ -254,6 +262,7 @@ export const LABEL_FAMILIES = {
     'review_field_event',
     'clear_check',
     'reconcile',
+    'review_permissions',
     'help_access',
   ],
   // TSK-0078 (HH-SCH-09): the outcomes a worker records on a visit, and why one is refused.
@@ -837,6 +846,10 @@ export const LABEL_FAMILIES = {
     'EQUIPMENT_NAME_TAKEN',
     'EQUIPMENT_RETIRED',
     'BUSINESS_TIMEZONE_NOT_CONFIGURED',
+    // TSK-0151 (OWN-DEC-200 H7): the Owner's dismissal of a reservation flag.
+    'MANDATORY_RESTRICTION',
+    'FLAG_NOT_OPEN',
+    'RESERVATION_ENDED',
     'required',
     'STALE_VERSION',
     'FORBIDDEN',
@@ -889,6 +902,8 @@ export const LABEL_FAMILIES = {
     'inbox',
     'invoice',
     'invoice_document',
+    // TSK-0091: the unpaid-invoice reminders (scheduled, not scheduled, planned, outcomes).
+    'invoice_reminder',
     'incident',
     'job_hold',
     'job_packet',
@@ -1110,6 +1125,13 @@ export const LABEL_FAMILIES = {
     'OWN_ACCOUNT',
     // TSK-0154: the Owner reset an authenticator of an account that has none.
     'MFA_NOT_ENROLLED',
+    // TSK-0151: the training a collect grant records, and the permission review of a reactivated account.
+    'TRAINING_REQUIRED',
+    'TRAINING_NOT_USED',
+    'TRAINING_DATE_FUTURE',
+    'DATE_INVALID',
+    'NO_OPEN_REVIEW',
+    'REVIEW_ITEM_DECIDED',
     'required',
     'FORBIDDEN',
     'FRESH_AUTH_REQUIRED',
@@ -1234,6 +1256,56 @@ export const LABEL_FAMILIES = {
     'sms_disabled',
     'text_hours_not_configured',
     'waiting_text_hours',
+    // TSK-0091 (OWN-DEC-210): why an unpaid-invoice reminder is not scheduled or sent, or a follow-up not available
+    // (apps/server/src/modules/finance/invoice-reminders.ts).
+    'invoice_not_found',
+    'not_final_invoice',
+    'invoice_not_issued',
+    'invoice_voided',
+    'invoice_paid',
+    'no_balance',
+    'payment_plan',
+    'collection_hold',
+    'payment_disputed',
+    'dispute_case_open',
+    'billing_complaint_open',
+    'refund_or_credit_review',
+    'payment_recorded',
+    'not_configured',
+    'due_date_revised',
+    'stage_already_sent',
+    'stage_time_passed',
+    'no_email_address',
+    'follow_up_waiting',
+    'automatic_reminders_pending',
+  ],
+  /** The collection steps staff record on an issued final invoice (TSK-0091; finance.invoice_collection_steps). */
+  collectionStep: [
+    'revised_due_date',
+    'payment_plan',
+    'collection_hold',
+    'arrangement_ended',
+    'follow_up_released',
+    'overdue_decided',
+  ],
+  /** Why an unpaid-invoice reminder action was refused (TSK-0091), by the field code the server answers. */
+  invoiceReminderRefusal: [
+    'NOT_FINAL_INVOICE',
+    'INVOICE_NOT_ISSUED',
+    'INVOICE_VOIDED',
+    'INVOICE_PAID',
+    'ARRANGEMENT_ACTIVE',
+    'ARRANGEMENT_NOT_ACTIVE',
+    'AUTOMATIC_REMINDERS_PENDING',
+    'FOLLOW_UP_WAITING',
+    'NO_EMAIL_ADDRESS',
+    'NOT_OVERDUE',
+    'DUE_DATE_IN_PAST',
+    'DUE_DATE_TOO_FAR',
+    'INVALID_DATE',
+    'TIME_ZONE_NOT_CONFIGURED',
+    'required',
+    'TOO_LONG',
   ],
   /** Deposit requirement states (ENT-DepositRequirement; TSK-0059). */
   depositState: ['not_required', 'required', 'partly_satisfied', 'satisfied', 'applied', 'waived'],
@@ -1789,6 +1861,8 @@ export const LABEL_FAMILIES = {
     'incident',
   ],
   issueSeverity: ['critical', 'major', 'minor'],
+  /** TSK-0129 (HH-PKT-09): the escalation taps a phone records (packages/domain/src/escalation.ts). */
+  escalationAction: ['call_owner', 'call_911', 'owner_unreachable'],
   reportProblem: [
     'RESOLVE_ON_SITE_NOT_OFFERED',
     'SAFETY_HOLD_OPEN',

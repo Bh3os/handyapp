@@ -55,6 +55,8 @@ export const QUEUE_ACTIONS = [
   'clear_check',
   // TSK-0090: match or resolve unmatched or uncertain money.
   'reconcile',
+  // TSK-0151: restore or decline each earlier grant of a reactivated account.
+  'review_permissions',
   // TSK-0149: help a customer who cannot sign in or get a new project link, after verifying their identity.
   'help_access',
 ] as const
@@ -71,6 +73,8 @@ export type QueueScreen =
   | 'estimates'
   // TSK-0123: a property record (below the customer records in the menu).
   | 'properties'
+  // TSK-0151: a staff member's record on the Staff screen.
+  | 'staff'
   // TSK-0149: the access help requests sit below the privacy requests (the Owner's customer-account work).
   | 'privacy'
 
@@ -384,6 +388,21 @@ export const QUEUE_ITEM_TYPES = [
     screen: 'payments',
     path: 'reconciliation',
   },
+  // TSK-0091 (OWN-DEC-210 "do not automatically restart ... allow staff to confirm the appropriate next reminder or
+  // revised arrangement"): a payment suspended an invoice's reminders before the second one was sent and the balance
+  // remains. One item per invoice until staff record the next step (a follow-up, a revised due date, a plan or a hold)
+  // or the balance is gone. Seen by the Owner and Office (payment_reminder.release). Band PROPOSED.
+  {
+    id: 'invoice_reminder_review',
+    section: 'queue',
+    subject: 'invoice',
+    band: 'other',
+    view: 'payment_reminder.release',
+    reasons: ['payment_recorded'],
+    action: 'release_reminder',
+    screen: 'payments',
+    path: 'invoice-reminders',
+  },
   // TSK-0149 (OWN-DEC-198 F4, F5): a visitor asked for help signing in or getting a new project link (the secure
   // alternative when texts are not available or the reissue limits are reached), one item per help request until the
   // Owner closes it. The reason is what was asked, never whether anything matched. Seen by the Owner
@@ -503,6 +522,20 @@ export const QUEUE_ITEM_TYPES = [
     path: 'quality-reviews',
   },
   // Owner Decisions (HH-OPS-01 "Owner, additionally"): each decision is owner-only in the matrix.
+  // TSK-0151 (OWN-DEC-200 H1, H3): a reactivated account holds no grant until the Owner restores or declines each
+  // earlier one; one item per account while its permission review is open, opened with the re-enabling and resolved
+  // when the review closes (reviewed, or the account disabled again). Seen by the Owner (staff.grant_role); the link
+  // opens the person on the Staff screen. Band PROPOSED.
+  {
+    id: 'permission_review',
+    section: 'owner_decisions',
+    subject: 'staff_user',
+    band: 'time_sensitive',
+    view: 'staff.grant_role',
+    reasons: ['account_reenabled'],
+    action: 'review_permissions',
+    screen: 'staff',
+  },
   {
     id: 'deposit_waiver',
     section: 'owner_decisions',
@@ -597,6 +630,9 @@ export const QUEUE_ITEM_TYPES = [
     action: 'decide',
     screen: 'customers',
   },
+  // TSK-0091 (OWN-DEC-112, OWN-DEC-210, HH-FIN-19): the second automatic reminder was actually sent and the balance
+  // remains. One item per invoice until the Owner decides, an arrangement is recorded or the balance is gone; the link
+  // opens the invoice's reminders.
   {
     id: 'invoice_overdue_decision',
     section: 'owner_decisions',
@@ -606,6 +642,7 @@ export const QUEUE_ITEM_TYPES = [
     reasons: ['overdue_owner_decision'],
     action: 'decide',
     screen: 'payments',
+    path: 'invoice-reminders',
   },
   // A Not a Fit decision on a request with accepted work, an appointment or money received goes to the Owner for
   // cancellation and financial review instead of closing (OWN-DEC-100, HH-LEAD-08; TSK-0042).

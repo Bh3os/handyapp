@@ -96,6 +96,8 @@ export const CLEARED_CATEGORIES = {
     'work.visit_changes',
     'work.reservations',
     'work.reservation_flags',
+    // TSK-0151 (0098): the Owner's dismissals of reservation flags.
+    'work.reservation_flag_dismissals',
   ],
   jobs: [
     'work.jobs',
@@ -125,6 +127,8 @@ export const CLEARED_CATEGORIES = {
     'work.issue_reports',
     'work.stabilization_records',
     'work.issue_report_reviews',
+    // TSK-0129 (0099): the recorded Call Owner, Call 911 and Owner-unreachable taps.
+    'work.escalation_calls',
   ],
   payments: [
     'finance.payments',
@@ -143,6 +147,8 @@ export const CLEARED_CATEGORIES = {
     'finance.invoice_voids',
     // TSK-0090 (0096): reconciliation items.
     'finance.reconciliation_items',
+    // TSK-0091 (0097): collection steps on invoices (revised due dates, plans, holds, follow-ups, overdue decisions).
+    'finance.invoice_collection_steps',
     'finance.invoice_lines',
     'finance.invoice_deposit_credits',
     'finance.invoice_documents',
@@ -295,6 +301,11 @@ export const KEPT_TABLES = [
   'identity.staff_mfa',
   'identity.staff_recovery_codes',
   'identity.staff_status_changes',
+  // TSK-0151 (0098): the permission reviews of re-enabled accounts (staff records, kept like the status history).
+  'identity.permission_reviews',
+  'identity.permission_review_items',
+  // TSK-0129 (0099): the Owner's escalation number is staff profile data, kept like the staff accounts.
+  'identity.staff_escalation_phones',
   'identity.rate_limits',
   'platform.message_templates',
   'platform.rate_counters',

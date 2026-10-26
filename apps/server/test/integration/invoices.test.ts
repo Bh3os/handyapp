@@ -141,7 +141,15 @@ beforeAll(async () => {
     }
     await tx
       .insertInto('identity.role_grants')
-      .values({ staff_user_id: ids.worker, kind: 'capability', name: 'collect', issued_by: 'test' })
+      // TSK-0151 (OWN-DEC-200 H4): the collect grant records the worker's training (a synthetic record).
+      .values({
+        staff_user_id: ids.worker,
+        kind: 'capability',
+        name: 'collect',
+        issued_by: 'test',
+        trained_on: '2026-10-01',
+        training: 'Synthetic: cash handling and receipts',
+      })
       .execute()
   })
   for (const p of PEOPLE) [cookies[p], csrf[p]] = await signIn(p)
@@ -1675,6 +1683,14 @@ describe('[HH-FIN-11][T62][OWN-DEC-200] on-site collection by the collector, fro
       .where('ended_at', 'is', null)
       .execute()
     expect((await staffGet('worker', url)).statusCode).toBe(403)
+    // TSK-0151 (OWN-DEC-200 H4): a collect grant without the worker's training is refused on any path.
+    await expect(
+      t.db
+        .insertInto('identity.role_grants')
+        .values({ staff_user_id: ids.worker, kind: 'capability', name: 'collect', issued_by: ids.owner, reason: 'x' })
+        .execute(),
+    ).rejects.toThrow(/role_grants_collect_trained/)
+    expect((await staffGet('worker', url)).statusCode).toBe(403)
     await t.db
       .insertInto('identity.role_grants')
       .values({
@@ -1683,6 +1699,8 @@ describe('[HH-FIN-11][T62][OWN-DEC-200] on-site collection by the collector, fro
         name: 'collect',
         issued_by: ids.owner,
         reason: 'Trained',
+        trained_on: '2026-10-01',
+        training: 'Synthetic: cash handling and receipts',
       })
       .execute()
   })

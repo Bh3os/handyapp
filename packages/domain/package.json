@@ -54,10 +54,20 @@
       "types": "./dist/hazard.d.ts",
       "default": "./dist/hazard.js"
     },
+    "./overrides": {
+      "@handyhub/source": "./src/overrides.ts",
+      "types": "./dist/overrides.d.ts",
+      "default": "./dist/overrides.js"
+    },
     "./launch": {
       "@handyhub/source": "./src/launch.ts",
       "types": "./dist/launch.d.ts",
       "default": "./dist/launch.js"
+    },
+    "./escalation": {
+      "@handyhub/source": "./src/escalation.ts",
+      "types": "./dist/escalation.d.ts",
+      "default": "./dist/escalation.js"
     }
   },
   "scripts": {

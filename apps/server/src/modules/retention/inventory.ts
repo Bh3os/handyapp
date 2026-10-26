@@ -389,6 +389,14 @@ export const TABLES = {
     categories: [F],
     protectedEvidence: true,
   },
+  // TSK-0091 (0097): what staff recorded about collecting an issued final invoice.
+  'finance.invoice_collection_steps': {
+    holds:
+      "Collection steps on an invoice: a revised due date, a payment plan or collection hold and its end, a released follow-up reminder and the Owner's overdue decision, with the staff member's note and who recorded it when",
+    classes: ['payment_reference'],
+    categories: [F],
+    protectedEvidence: true,
+  },
   // TSK-0089 (0095): the Owner's void of an issued invoice, with the reason and the fresh sign-in.
   'finance.invoice_voids': {
     holds: "The Owner's void of an issued invoice: the reason, who voided it, the session's sign-in time and when",
@@ -502,8 +510,19 @@ export const TABLES = {
     classes: ['technical'],
     categories: [SL],
   },
+  // TSK-0151 (0098): the Owner's permission review of a reactivated staff account, and each earlier grant's decision.
+  'identity.permission_reviews': {
+    holds: 'Permission reviews of re-enabled staff accounts: who opened them, when, and how they closed',
+    classes: ['staff_account'],
+    categories: [NS],
+  },
+  'identity.permission_review_items': {
+    holds: "Each earlier grant of a permission review: the Owner's decision (restored or declined), when and why",
+    classes: ['staff_account'],
+    categories: [NS],
+  },
   'identity.role_grants': {
-    holds: 'Staff role and capability grants with reasons',
+    holds: 'Staff role and capability grants with reasons (a collect grant with the training it records)',
     classes: ['staff_account'],
     categories: [NS],
   },
@@ -527,6 +546,13 @@ export const TABLES = {
   'identity.staff_status_changes': {
     holds: 'Disabling and re-enabling of staff accounts',
     classes: ['staff_account'],
+    categories: [NS],
+  },
+  // TSK-0129 (HH-PKT-09, OWN-DEC-172): the Owner's escalation number, entered by the Owner in their own profile.
+  'identity.staff_escalation_phones': {
+    holds:
+      "The Owner's escalation phone number (Call Owner in every job packet), entered by the Owner; cleared, never deleted",
+    classes: ['staff_account', 'contact'],
     categories: [NS],
   },
   'identity.staff_users': {
@@ -1009,6 +1035,12 @@ export const TABLES = {
     classes: ['scheduling'],
     categories: [R, J],
   },
+  // TSK-0151 (0098): the Owner kept an appointment as it is despite a working-hours or equipment flag, with a reason.
+  'work.reservation_flag_dismissals': {
+    holds: "The Owner's dismissal of a working-hours or equipment flag: who, when and the reason",
+    classes: ['scheduling'],
+    categories: [R, J],
+  },
   'work.reservations': {
     holds: 'Staff and equipment reserved for a visit',
     classes: ['scheduling'],
@@ -1035,6 +1067,14 @@ export const TABLES = {
       "A worker's site checks before Start Work (property, access, customer present, hazards reviewed, site as " +
       'described or different with their note)',
     classes: ['request_details'],
+    categories: [J, S],
+  },
+  // TSK-0129 (0099): the Call Owner, Call 911 and Owner-unreachable taps staff phones recorded.
+  'work.escalation_calls': {
+    holds:
+      "Call Owner, Call 911 and Owner-unreachable taps: the phone's UUID, who, the job, its visit and report, the " +
+      "phone's time and the server's",
+    classes: ['incident', 'staff_account'],
     categories: [J, S],
   },
   // TSK-0080 (0090): the field events phones uploaded (the sync queue), kept as received, and the Owner's review.

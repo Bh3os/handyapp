@@ -32,6 +32,7 @@ import { ChecklistPage } from './Checklist'
 import { QueueHome } from './Queue'
 import { AccessHelpScreen } from './AccessHelp'
 import { ReconciliationScreen } from './Reconciliation'
+import { InvoiceRemindersPage } from './InvoiceReminders'
 import { MergeReview, RelinkRequest } from './RecordLinks'
 import { RequestRecord } from './Record'
 import { RequestsScreen } from './Requests'
@@ -43,6 +44,7 @@ import { StaffScreen } from './StaffManagement'
 import { JobPhotosPage } from './JobPhotos'
 import { StartReviewPage, StartWorkPage } from './StartWork'
 import { JobSafety, SafetyHoldPage, flushPendingStops } from './StopWork'
+import { OwnerEscalationPhone, flushPendingEscalations, rememberOwnerContact } from './Escalation'
 import { StagingTools } from './StagingTools'
 import { LaunchPhaseSetting } from './LaunchPhase'
 import { ConfigurationScreen, HealthScreen } from './System'
@@ -232,7 +234,8 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
   // phone is back online, with its own key (recorded once).
   useEffect(() => {
     if (!session) return
-    const flush = () => void flushPendingStops(doFetch)
+    // TSK-0129: so are the Call Owner / Call 911 taps saved on this phone (each with its own UUID).
+    const flush = () => void flushPendingStops(doFetch).then(() => flushPendingEscalations(doFetch))
     flush()
     window.addEventListener('online', flush)
     return () => window.removeEventListener('online', flush)
@@ -258,6 +261,8 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
     // TSK-0079 (HH-OFF-02): the offline copies never stay on the device after sign-out. TSK-0080 (HH-OFF-07): drafts
     // the server has are cleared too; unsynced ones stay on this phone, only after the warning said so.
     rememberSession(null)
+    // TSK-0129: the Owner's number kept for Call Owner offline goes with the offline copies.
+    rememberOwnerContact(null)
     const store = offlineStore()
     try {
       for (const p of await store.listPackets()) await store.deletePacket(p.jobId)
@@ -320,7 +325,8 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
                   route.screen === 'quality-reviews'
                 ? 'schedule'
                 : // TSK-0090: one reconciliation item, from the staff queue, sits below Payments.
-                  route.screen === 'reconciliation'
+                  // TSK-0091: an invoice's reminders, from the staff queue and Owner Decisions, too.
+                  route.screen === 'reconciliation' || route.screen === 'invoice-reminders'
                   ? 'payments'
                   : // TSK-0149: one access help request, from the staff queue, sits below the privacy requests.
                     route.screen === 'access-help'
@@ -367,6 +373,7 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
               fetchImpl={doFetch}
               session={session}
               onSignedOut={() => (setSession(null), go('/sign-in'))}
+              onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
             />
           ) : route.page === 'search' ? (
             <SearchScreen t={t} query={route.query} />
@@ -418,12 +425,15 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
               />
               <LegalDocumentsView t={t} fetchImpl={doFetch} />
             </>
-          ) : route.page === 'screen' && shown === 'staff' && allowed ? (
+          ) : (route.page === 'screen' || route.page === 'record') && shown === 'staff' && allowed ? (
+            // TSK-0151: an Owner Decisions permission review opens the person's record (/staff/<id>).
             <StaffScreen
+              key={route.page === 'record' ? route.id : 'staff'}
               t={t}
               locale={locale}
               fetchImpl={doFetch}
               onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
+              {...(route.page === 'record' ? { openId: route.id } : {})}
             />
           ) : route.page === 'screen' && shown === 'audit' && allowed ? (
             <AuditLogScreen t={t} locale={locale} fetchImpl={doFetch} />
@@ -586,6 +596,8 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             <ReconciliationScreen t={t} fetchImpl={doFetch} href={href} />
           ) : route.page === 'record' && route.screen === 'reconciliation' && allowed ? (
             <ReconciliationScreen key={route.id} t={t} fetchImpl={doFetch} href={href} itemId={route.id} />
+          ) : route.page === 'record' && route.screen === 'invoice-reminders' && allowed ? (
+            <InvoiceRemindersPage key={route.id} t={t} fetchImpl={doFetch} href={href} invoiceId={route.id} />
           ) : route.page === 'record' && route.screen === 'payments' && allowed ? (
             <JobDepositPage key={route.id} t={t} fetchImpl={doFetch} jobId={route.id} />
           ) : route.page === 'record' && route.screen === 'requests' && allowed ? (
@@ -839,18 +851,20 @@ function SetPassword({
 
 /**
  * The person's own account: who is signed in, Sign out everywhere and the mandatory authenticator's status
- * (TSK-0014, TSK-0015, TSK-0154).
+ * (TSK-0014, TSK-0015, TSK-0154); for the Owner, the escalation number of every job packet (TSK-0129).
  */
 function Account({
   t,
   fetchImpl,
   session,
   onSignedOut,
+  onSession,
 }: {
   t: T
   fetchImpl: Fetch
   session: Session
   onSignedOut: () => void
+  onSession?: (s: { csrfToken: string }) => void
 }) {
   const [pending, setPending] = useState(false)
   async function signOutEverywhere() {
@@ -869,6 +883,10 @@ function Account({
         </Button>
       </div>
       <Security t={t} fetchImpl={fetchImpl} />
+      {/* TSK-0129 (HH-PKT-09): the Owner enters the number every packet's Call Owner dials (hidden for other roles). */}
+      {session.roles.includes('owner') ? (
+        <OwnerEscalationPhone t={t} fetchImpl={fetchImpl} {...(onSession ? { onSession } : {})} />
+      ) : null}
     </section>
   )
 }

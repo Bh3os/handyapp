@@ -71,6 +71,10 @@ export const ACTIONS = [
   // PROPOSED (TSK-0062): registering and retiring the equipment items that visits reserve (HH-SCH-03) is capacity
   // the Owner sets, so it sits in the availability row with the same cells.
   'equipment.manage',
+  // PROPOSED (TSK-0151, OWN-DEC-200 H7): the Owner's dismissal of a working-hours or equipment flag, keeping the
+  // appointment as it is with a reason, is part of setting capacity, so it sits in the availability row with the same
+  // cell. A mandatory restriction (time off, a disabled account) is never dismissed (@handyhub/domain overrides).
+  'visit.dismiss_flag',
   'visit.tap_on_my_way',
   'visit.tap_arrived',
   'visit.tap_finished',
@@ -442,9 +446,14 @@ export const MATRIX: readonly MatrixRow[] = [
   row(SCHEDULING, 'Cancel accepted, scheduled or paid work (financial review)', ['work.cancel_with_financial_review'], {
     owner: Y(),
   }),
-  row(SCHEDULING, 'Set working days, hours and time off', ['staff.set_availability', 'equipment.manage'], {
-    owner: Y(),
-  }),
+  row(
+    SCHEDULING,
+    'Set working days, hours and time off',
+    ['staff.set_availability', 'equipment.manage', 'visit.dismiss_flag'],
+    {
+      owner: Y(),
+    },
+  ),
   row(
     SCHEDULING,
     'Tap On my way, Arrived, Finished',
@@ -531,7 +540,9 @@ export const MATRIX: readonly MatrixRow[] = [
   row(FINANCE, 'Record a verified payment', ['payment.record'], {
     owner: Y(),
     office: Y(),
-    worker: A('A, own on-site collection, with the collect capability (P mapping)', {
+    // TSK-0151 (OWN-DEC-200 H4): the collect grant records the worker's training (migration 0098); the Worker role
+    // alone never collects.
+    worker: A("A, own on-site collection, with the Owner's collect grant recording their training (P mapping)", {
       capability: 'collect',
       conditions: ['own_collection'],
       ...P,

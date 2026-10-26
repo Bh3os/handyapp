@@ -12,6 +12,7 @@ import type { StaffKey } from '@handyhub/i18n'
 import { Button, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useState } from 'react'
 import type { Fetch } from '../api'
+import { pendingEscalationCount } from '../Escalation'
 import { pendingStopCount } from '../StopWork'
 import { offlineStore, type StoredDraft } from './store'
 import { DRAFTS_CHANGED, isUnsynced, ownerOf, syncDrafts, type SyncSummary } from './sync'
@@ -31,7 +32,7 @@ export function announceUpdate(worker: ServiceWorker): void {
 
 export type Counts = { waiting: number; failed: number; review: number; others: number }
 
-/** What this phone holds for the signed-in account, and for others (stops included as waiting). */
+/** What this phone holds for the signed-in account, and for others (stops and escalation taps included as waiting). */
 export async function draftCounts(signedIn: string): Promise<Counts> {
   const all = await offlineStore()
     .listDrafts()
@@ -39,7 +40,10 @@ export async function draftCounts(signedIn: string): Promise<Counts> {
   const mine = all.filter((d) => ownerOf(d, signedIn) === signedIn)
   return {
     waiting:
-      mine.filter((d) => d.state === 'saved_on_phone' || d.state === 'pending_upload').length + pendingStopCount(),
+      mine.filter((d) => d.state === 'saved_on_phone' || d.state === 'pending_upload').length +
+      pendingStopCount() +
+      // TSK-0129: Call Owner / Call 911 taps still to be recorded.
+      pendingEscalationCount(),
     failed: mine.filter((d) => d.state === 'failed').length,
     review: mine.filter((d) => d.state === 'needs_review').length,
     others: all.filter((d) => ownerOf(d, signedIn) !== signedIn && isUnsynced(d)).length,

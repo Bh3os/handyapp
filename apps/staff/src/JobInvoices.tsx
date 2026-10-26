@@ -9,6 +9,7 @@
 // - Once issued: the number, and the money from the ledger: invoiced, credits, confirmed paid, pending checks and the
 //   remaining balance; the payments applied, Mark cleared for the Owner on a check they did not collect, and the form
 //   to record a verified payment. Money not applied to anything waits for the Owner's credit or refund decision.
+// - TSK-0091: an issued final invoice's unpaid-balance reminders (InvoiceReminders.tsx).
 // The server decides every action again; a refusal names its reason.
 import type { StaffKey } from '@handyhub/i18n'
 import { cents, centsFromDecimal, formatUsd } from '@handyhub/money'
@@ -20,6 +21,7 @@ import { codeLabel } from './Requests'
 import { useOnline } from './Shell'
 import { PaymentExceptions, type PaymentExceptionFields } from './PaymentExceptions'
 import { PaymentSteps, type PaymentStepFields } from './PaymentSteps'
+import { InvoiceReminders } from './InvoiceReminders'
 
 type T = (key: StaffKey, values?: Record<string, string | number | Date>) => string
 
@@ -560,6 +562,10 @@ function InvoicePanel({
             {t('deposit.record')}
           </Button>
         </form>
+      ) : null}
+      {/* TSK-0091: the unpaid-balance reminders of an issued final invoice. */}
+      {i.kind === 'final' && !draft ? (
+        <InvoiceReminders t={t} fetchImpl={fetchImpl} invoiceId={i.id} refreshKey={i.version} />
       ) : null}
     </section>
   )
