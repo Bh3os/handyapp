@@ -2,9 +2,11 @@
 // OWN-DEC-142, FACT-RETENTION-SCHEDULE, RULE-SERVER-AUTHZ). An entry (privacy.retention_reviews) stays exactly as the
 // job opened it; each decision is a new row (privacy.retention_decisions, append-only):
 // - Delete: the confirmation names the record, what goes with it, what stays, whether it is permanent, every check
-//   and every blocker. Confirm Delete never passes a blocker (a hold, protected evidence, a record still in use, an
-//   erasure the software does not perform) and needs every not-recorded check confirmed by the Owner, a written
-//   reason and a fresh sign-in (the route). The deletion log entry and the erasure commit together.
+//   and every blocker. An estimate never accepted is erased (targets.ts); a request that never became a job is erased
+//   with a reference-and-dates remainder (TSK-0137, request-erasure.ts). Confirm Delete never passes a blocker (a
+//   hold, protected evidence, a record still in use, an erasure the software does not perform) and needs every
+//   not-recorded check confirmed by the Owner, a written reason and a fresh sign-in (the route). The deletion log
+//   entry and the erasure commit together.
 // - Archive: the record is kept as it is (its category and permissions unchanged, HH-DATA-09) and the entry leaves
 //   the open queue; offered whenever deletion is blocked. A later Delete is still possible once nothing blocks it.
 // - Keep longer: the record is kept and the entry comes back to the queue at the chosen time.
@@ -13,6 +15,7 @@ import type { Db, Tx } from '@handyhub/db'
 import { sql } from 'kysely'
 import { ApiError } from '../../api/errors.js'
 import { recordDeletion, scheduleObjectErasure } from './log.js'
+import { decideErasedEstimates, eraseRequest } from './request-erasure.js'
 import {
   eraseEstimate,
   targetOf,
@@ -177,11 +180,12 @@ export async function deleteEntry(
     return { ok: false, error: blockedError(target.blockers), preview, blockers: target.blockers }
   const missing = unconfirmed(target.confirm, input.confirmedChecks)
   if (missing) return { ok: false, error: missing, preview, blockers: [] }
-  if (e.record_type !== 'estimate') throw new Error(`no erasure for ${e.record_type}`)
+  const recordType = e.record_type
+  if (recordType !== 'estimate' && recordType !== 'request') throw new Error(`no erasure for ${recordType}`)
   const expected = Object.fromEntries(target.removes.map((r) => [r.kind, r.count]))
   const confirmed = UNRECORDED_DELETION_CHECKS.filter((c) => target.confirm.includes(c))
   const deletion = await recordDeletion(tx, {
-    recordType: 'estimate',
+    recordType,
     recordId: e.record_id,
     recordRef: target.record.reference || e.record_ref,
     projectId: target.record.projectId,
@@ -195,7 +199,11 @@ export async function deleteEntry(
     decidedBy: input.staffUserId,
     requestId: input.requestId,
   })
-  const erased = await eraseEstimate(tx, { estimateId: e.record_id, deletionId: deletion.id })
+  // TSK-0137: a request that never became a job is erased with a reference-and-dates remainder (request-erasure.ts).
+  const erased =
+    recordType === 'estimate'
+      ? { ...(await eraseEstimate(tx, { estimateId: e.record_id, deletionId: deletion.id })), estimateIds: [] }
+      : await eraseRequest(tx, { requestId: e.record_id, deletionId: deletion.id, now })
   for (const [kind, count] of Object.entries(expected))
     if ((erased.removed[kind] ?? 0) !== count)
       // Something changed between the count under the lock and the erasure: nothing is kept (the whole write rolls back).
@@ -212,6 +220,14 @@ export async function deleteEntry(
       request_id: input.requestId,
     })
     .execute()
+  // The review entries of the estimates erased with a request are decided by the same deletion.
+  await decideErasedEstimates(tx, {
+    estimateIds: erased.estimateIds,
+    deletionId: deletion.id,
+    reason: input.reason,
+    staffUserId: input.staffUserId,
+    requestId: input.requestId,
+  })
   await scheduleObjectErasure(tx, { deletionId: deletion.id, keys: erased.objectKeys, requestId: input.requestId })
   return { ok: true, deletionId: deletion.id, preview, removed: erased.removed }
 }

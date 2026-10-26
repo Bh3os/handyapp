@@ -168332,6 +168332,7 @@
                           "record_active",
                           "erasure_not_available",
                           "audit_append_only",
+                          "linked_records",
                           "record_missing",
                           "already_deleted"
                         ]
@@ -168570,6 +168571,7 @@
                           "record_active",
                           "erasure_not_available",
                           "audit_append_only",
+                          "linked_records",
                           "record_missing",
                           "already_deleted"
                         ]
@@ -168958,6 +168960,7 @@
                               "record_active",
                               "erasure_not_available",
                               "audit_append_only",
+                              "linked_records",
                               "record_missing",
                               "already_deleted"
                             ]
@@ -169186,6 +169189,7 @@
                           "record_active",
                           "erasure_not_available",
                           "audit_append_only",
+                          "linked_records",
                           "record_missing",
                           "already_deleted"
                         ]

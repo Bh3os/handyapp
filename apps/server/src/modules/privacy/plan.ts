@@ -6,9 +6,10 @@
 //   access links (revoked; OWN-DEC-71: separate from business records), and estimates never accepted that nothing
 //   blocks (targets.ts).
 // - retain, with the reason and, where the software records the start of the period, until when: signed approvals
-//   and accepted estimates (protected evidence), estimates under a hold or still open, requests (their erasure is not
-//   performed yet, OQ-RECORD-ERASURE), photos, job and safety records, the customer profile needed by kept records,
-//   consent records (evidence of permission), audit entries (7 years each, OWN-DEC-142) and the privacy requests.
+//   and accepted estimates (protected evidence), estimates under a hold or still open, requests (kept for their period,
+//   then erased through the Owner's review with a reference-and-dates remainder, TSK-0137), photos, job and safety
+//   records, the customer profile needed by kept records, consent records (evidence of permission), audit entries
+//   (7 years each, OWN-DEC-142) and the privacy requests.
 // - visits (TSK-0066): the committed change history of the requester's visits (work.visit_changes: reschedules,
 //   reassignments and cancellations with the FACT-CANCELLATION-RULES outcome in cents, which is a computed outcome,
 //   never a charge or refund) is part of the job records and retained with them; the requester's own Request to
@@ -247,7 +248,8 @@ export async function customerPlan(db: Reader, subject: PlanSubject, now = new D
   add('unaccepted_estimates', 'retain', open, 'active_record', 'unaccepted_estimates')
   add('accepted_agreements', 'retain', accepted, 'protected_evidence', 'accepted_agreements')
 
-  // Requests: open ones are in use; closed ones without a job keep their history (OQ-RECORD-ERASURE).
+  // Requests: open ones are in use; closed ones without a job are kept for their period, then the Owner's review
+  // erases them with a reference-and-dates remainder (TSK-0137, OWN-DEC-176).
   const requests = await db
     .selectFrom('intake.requests as r')
     .select([
@@ -269,7 +271,7 @@ export async function customerPlan(db: Reader, subject: PlanSubject, now = new D
   const lastEnd = closedEnds.every((d): d is Date => d !== null)
     ? closedEnds.reduce<Date | null>((a, b) => (a && a.getTime() > b.getTime() ? a : b), null)
     : null
-  add('requests', 'retain', closed.length, 'erasure_not_available', 'requests_not_converted', lastEnd)
+  add('requests', 'retain', closed.length, 'retention_period', 'requests_not_converted', lastEnd)
   add('requests', 'retain', withJob.length, 'needed_by_retained', 'accepted_agreements')
   add('requests', 'retain', active, 'active_record', 'requests_not_converted')
 

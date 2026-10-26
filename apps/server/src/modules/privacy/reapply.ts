@@ -7,12 +7,14 @@
 // - a record that is back is checked as on the day: anything that now blocks its deletion (a hold, protected evidence,
 //   a record in use) leaves it in place and reports it blocked, for the Owner; otherwise it is erased again with a new
 //   log entry (source restore_reapply) naming the original entry and its time;
-// - a login account that is open again is closed again.
+// - a login account that is open again is closed again;
+// - a request that never became a job (TSK-0137) is erased again with its remainder, unless something now blocks it.
 // Running it twice changes nothing the second time. The not-recorded checks were confirmed by the Owner when they
 // decided; the re-application records that it relied on that decision.
 import type { Tx } from '@handyhub/db'
 import { closeCustomerAccount } from '../accounts/accounts.js'
 import { recordDeletion, scheduleObjectErasure, type ExportedDeletion } from './log.js'
+import { eraseRequest, requestErasurePlan } from './request-erasure.js'
 import { eraseEstimate, estimateTarget, type Blocker } from './targets.js'
 
 export const REAPPLY_PROCESS = 'system.restore'
@@ -36,7 +38,7 @@ export function parseExportedDeletions(text: string): ExportedDeletion[] {
     if (
       typeof e['id'] !== 'string' ||
       !UUID.test(e['id']) ||
-      (e['recordType'] !== 'estimate' && e['recordType'] !== 'customer_account') ||
+      (e['recordType'] !== 'estimate' && e['recordType'] !== 'customer_account' && e['recordType'] !== 'request') ||
       typeof e['recordId'] !== 'string' ||
       !UUID.test(e['recordId']) ||
       typeof e['recordRef'] !== 'string' ||
@@ -92,6 +94,37 @@ export async function reapplyDeletions(
         decidedBy: by,
         requestId: options.requestId,
       })
+      out.push({ ...base, outcome: 'reapplied', blockers: [] })
+      continue
+    }
+    if (e.recordType === 'request') {
+      // TSK-0137: a request erased again, with its remainder; what blocks it now leaves it in place.
+      const plan = await requestErasurePlan(tx, e.recordId, { lock: true })
+      if (!plan.preview.exists) {
+        out.push({ ...base, outcome: 'absent', blockers: [] })
+        continue
+      }
+      if (plan.preview.blockers.length > 0) {
+        out.push({ ...base, outcome: 'blocked', blockers: plan.preview.blockers })
+        continue
+      }
+      const entry = await recordDeletion(tx, {
+        recordType: 'request',
+        recordId: e.recordId,
+        recordRef: e.recordRef,
+        projectId: plan.preview.record.projectId,
+        source: 'restore_reapply',
+        original: { id: e.id, decidedAt: new Date(e.decidedAt) },
+        reason: e.reason,
+        early: false,
+        permanent: true,
+        checksConfirmed: [],
+        removed: Object.fromEntries(plan.preview.removes.map((r) => [r.kind, r.count])),
+        decidedBy: by,
+        requestId: options.requestId,
+      })
+      const erased = await eraseRequest(tx, { requestId: e.recordId, deletionId: entry.id })
+      await scheduleObjectErasure(tx, { deletionId: entry.id, keys: erased.objectKeys, requestId: options.requestId })
       out.push({ ...base, outcome: 'reapplied', blockers: [] })
       continue
     }

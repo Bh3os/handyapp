@@ -636,7 +636,7 @@ describe('the Owner Delete action on a review entry (TSK-0100, HH-PRIV-05, HH-DA
     expect(await count('finance.invoices', 'id', draft.id)).toBe(1)
   })
 
-  it('[HH-PRIV-05] an open hold blocks deletion; requests and audit entries are not erased; Keep longer comes back', async () => {
+  it('[HH-PRIV-05] an open hold blocks deletion; a closed request can be kept longer; Keep longer comes back', async () => {
     const e = await withdrawnEstimate()
     await t.db
       .insertInto('work.holds')
@@ -678,13 +678,9 @@ describe('the Owner Delete action on a review entry (TSK-0100, HH-PRIV-05, HH-DA
     const preview = (await get('owner', `/staff/retention-reviews/${request.id}/deletion`)).json<{
       target: { blockers: string[]; permanent: boolean }
     }>()
-    expect(preview.target.blockers).toEqual(['erasure_not_available'])
-    const refused = await write('owner', `/staff/retention-reviews/${request.id}/delete`, {
-      reason: 'Synthetic.',
-      confirmedChecks: ALL_CHECKS,
-    })
-    expect(refused.statusCode).toBe(409)
-    expect(await count('intake.requests', 'id', closed.requestId)).toBe(1)
+    // TSK-0137: a request closed without a job can be erased now (request-erasure.test.ts); here the Owner keeps it.
+    expect(preview.target.blockers).toEqual([])
+    expect(preview.target.permanent).toBe(true)
 
     // Keep longer: refused in the past, accepted ahead; a time that passed brings the entry back.
     const past = await write('owner', `/staff/retention-reviews/${request.id}/keep`, {

@@ -71,6 +71,7 @@ export * from './export.js'
 export * from './log.js'
 export * from './plan.js'
 export * from './reapply.js'
+export * from './request-erasure.js'
 export * from './requests.js'
 export * from './targets.js'
 
