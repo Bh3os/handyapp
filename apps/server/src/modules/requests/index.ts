@@ -21,6 +21,8 @@ import type { CodeKeySettings } from '../identity/index.js'
 import { publicEffect, type LaunchEnvironment } from '@handyhub/domain'
 import { ApiError } from '../../api/errors.js'
 import { readLaunchPhase } from '../launch/state.js'
+import { repeatSource } from '../accounts/saved.js'
+import { readSessionToken, resolveCustomerSession } from '../identity/index.js'
 
 /** PROPOSED (old repo, 32 D-32-08): 5 submissions per client network per hour; no owner value exists. */
 export const SUBMIT_RATE_LIMIT = { bucket: 'public-request-submit', limit: 5, windowSeconds: 3600 } as const
@@ -61,7 +63,12 @@ const submitRoute = (codeKey: CodeKeySettings | undefined, environment: LaunchEn
     'as a hash), whose secure access link the automatic message project.access_link sends from request.submitted. ' +
     'TSK-0142: in production the launch phase decides (launch.phase): before phase 3 (public) the submission is ' +
     'refused with CONFLICT and the field error launch:SUBMISSIONS_CLOSED (phase 1) or launch:INVITATION_REQUIRED ' +
-    '(phase 2), audited, and nothing is written. Outside production (testers only) it is always accepted.',
+    '(phase 2), audited, and nothing is written. Outside production (testers only) it is always accepted. ' +
+    'TSK-0113 (HH-ID-12, OWN-DEC-113): Request This Service Again sends repeatOf (the earlier project’s reference ' +
+    'and detailsConfirmed true). It is accepted only from a live account session whose active links open that ' +
+    'project; otherwise (no session, a guest-link session, another project, no such project) the same 400 ' +
+    '(body.repeatOf, unavailable) and nothing is written. The new request gets its own records like any other and is ' +
+    'linked to the earlier project; nothing of it is copied.',
   actors: ['guest', 'customer'],
   permission: 'request.submit',
   kind: 'write',
@@ -89,15 +96,33 @@ const submitRoute = (codeKey: CodeKeySettings | undefined, environment: LaunchEn
       throw new ApiError('CONFLICT', { fieldErrors: [{ field: 'launch', code, message: '' }] })
     }
     const body = ctx.req.body as SubmitBody
+    // TSK-0113: the earlier project of Request This Service Again, for the caller's own account only (HH-ID-03).
+    const repeat = body.repeatOf
+      ? await repeatSource(
+          ctx.tx,
+          await resolveCustomerSession(ctx.tx, readSessionToken(ctx.req)),
+          body.repeatOf.reference,
+        )
+      : undefined
+    if (repeat === null)
+      throw new ApiError('VALIDATION_FAILED', {
+        fieldErrors: [{ field: 'body.repeatOf', code: 'unavailable', message: '' }],
+      })
     const out = await submitRequest(ctx.tx, body, {
       idempotencyKey: readIdempotencyKey(ctx.req.headers['idempotency-key']),
       requestId: currentContext()?.requestId ?? ctx.req.id,
       ...(codeKey ? { codeKey } : {}),
+      ...(repeat ? { repeat } : {}),
     })
     // The audit event carries the reference and codes only, never the visitor's personal data.
     await ctx.audit({
       target: { type: 'request', id: out.requestId, version: 1 },
-      summary: { reference: out.reference, services: out.serviceCodes, spamSuspected: out.spamSuspected },
+      summary: {
+        reference: out.reference,
+        services: out.serviceCodes,
+        spamSuspected: out.spamSuspected,
+        ...(repeat ? { repeatOf: repeat.projectId } : {}),
+      },
     })
     return {
       status: 201,

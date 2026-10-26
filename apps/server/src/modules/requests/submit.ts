@@ -14,6 +14,11 @@
 //   and never an internal error.
 // - TSK-0125 (HH-EST-15, OWN-DEC-165): a discount the customer asks for is saved with the request, pending
 //   verification (estimates/discounts.ts); only one the active discount rule offers is accepted.
+// - TSK-0113 (HH-ID-12, OWN-DEC-113): Request This Service Again. A request that names an earlier project (repeatOf)
+//   from an account linked to it is still a new request with its own records (nothing is matched or merged); it is
+//   linked to that project (intake.request_repeats) with the customer's confirmation that the property details are
+//   still current and whether the address is the earlier one. Nothing of the earlier project is copied: prices,
+//   discounts, verification and consent start again, and staff review the request like any other.
 import { randomBytes } from 'node:crypto'
 import { registryServices, type Tx } from '@handyhub/db'
 import { PROJECT_MACHINE, REQUEST_MACHINE } from '@handyhub/domain'
@@ -30,6 +35,7 @@ import { startResponseClock } from './response-clock.js'
 import { discountOffer, recordDiscountRequest } from '../estimates/discounts.js'
 import { createReceiptCapability } from '../verification/receipt-capability.js'
 import { issueGrant } from '../access/grants.js'
+import { addressKey, type PropertyAddress } from '../accounts/saved.js'
 import type { CodeKeySettings } from '../identity/index.js'
 import {
   chosenWindowHours,
@@ -167,6 +173,11 @@ export async function submitRequest(
     now?: Date
     /** TSK-0034: the key behind project access links; unset or NOT CONFIGURED: no grant is issued. */
     codeKey?: CodeKeySettings
+    /**
+     * TSK-0113: the earlier project body.repeatOf names, as the route found it for the caller's account (repeatSource).
+     * Required with repeatOf: the route refuses a repeatOf it could not resolve before anything is written.
+     */
+    repeat?: { projectId: string; accountId: string; address: PropertyAddress }
   },
 ): Promise<
   Submitted & {
@@ -394,6 +405,29 @@ export async function submitRequest(
       reason: 'submission',
       now,
     })
+
+  if (body.repeatOf) {
+    if (!opts.repeat) throw new Error('a repeatOf needs the earlier project the route resolved')
+    const sent: PropertyAddress = {
+      street: p.street,
+      unit: p.unit ?? null,
+      city: p.city,
+      state: p.state,
+      zip: p.zip,
+      propertyType: p.propertyType,
+    }
+    await tx
+      .insertInto('intake.request_repeats')
+      .values({
+        request_id: request.id,
+        source_project_id: opts.repeat.projectId,
+        account_id: opts.repeat.accountId,
+        details_confirmed_at: now,
+        same_address: addressKey(sent) === addressKey(opts.repeat.address),
+        created_at: now,
+      })
+      .execute()
+  }
 
   if (body.requestedDiscount !== undefined)
     await recordDiscountRequest(tx, config, {

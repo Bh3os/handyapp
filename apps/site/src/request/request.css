@@ -113,6 +113,18 @@
 .hh-request__privacy p {
   margin: 0;
 }
+/* TSK-0113: where the details of Request This Service Again came from, above the property fields. */
+.hh-request__again {
+  display: grid;
+  gap: var(--hh-space-1);
+  padding: var(--hh-space-3) var(--hh-space-4);
+  border-left: 3px solid var(--hh-info);
+  background: var(--hh-info-tint);
+  color: var(--hh-info-text);
+}
+.hh-request__again p {
+  margin: 0;
+}
 /* Services step (TSK-0027): four equal category cards that stack on phones; full-width checkbox rows. */
 .hh-request__cards {
   display: grid;

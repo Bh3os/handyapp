@@ -5,6 +5,10 @@
 // and an account adds another guest project with a code sent to that project's own verified contact (Add a project:
 // the answer to the code request says the same whatever was typed, HH-ID-03). The wording is PROPOSED
 // (OQ-CUSTOMER-DASHBOARD-DETAILS) except "Project History", the owner's words.
+// TSK-0113 (HH-ID-12, OWN-DEC-113): an account's dashboard links to its saved properties and preferences, and each of its
+// projects offers Request This Service Again (the request form starts from that project's services, address and
+// contact, which the customer confirms are still current). A guest link's session offers neither. Wording PROPOSED
+// (OQ-SAVED-PROPERTIES-DETAILS) except "Request This Service Again", the owner's words.
 import type { CustomerKey } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
@@ -19,7 +23,7 @@ const SECTION: Record<Section, { title: CustomerKey; empty: CustomerKey }> = {
   archived: { title: 'portal.projects.section.archived', empty: 'portal.projects.section.archivedEmpty' },
 }
 
-function Item({ p }: { p: ProjectSummary }) {
+function Item({ p, account }: { p: ProjectSummary; account: boolean }) {
   return (
     <li className="portal-projects__item" aria-label={t('portal.project.title', { reference: p.reference })}>
       <h3 className="hh-h3">
@@ -40,6 +44,17 @@ function Item({ p }: { p: ProjectSummary }) {
         </a>{' '}
         <span className="hh-small hh-muted">{t('portal.projects.documents.count', { count: p.documents })}</span>
       </p>
+      {account ? (
+        <p>
+          <a
+            className="hh-button hh-button--secondary"
+            href={`/request?again=${encodeURIComponent(p.reference)}`}
+            aria-label={t('portal.projects.againLabel', { reference: p.reference })}
+          >
+            {t('portal.projects.again')}
+          </a>
+        </p>
+      ) : null}
     </li>
   )
 }
@@ -208,6 +223,12 @@ export function Projects({ fetchImpl }: { fetchImpl: Fetch }) {
               {t('site.cta.request')}
             </a>
           </p>
+          {live.data.access === 'account' ? (
+            <nav className="portal-account__links" aria-label={t('portal.account.links')}>
+              <a href="/portal/properties">{t('portal.account.properties')}</a>
+              <a href="/portal/preferences">{t('portal.account.preferences')}</a>
+            </nav>
+          ) : null}
           {live.data.projects.length === 0 ? (
             <StateView kind="empty" title={t('portal.projects.empty.title')}>
               <p>{t('portal.projects.empty.text')}</p>
@@ -229,7 +250,7 @@ export function Projects({ fetchImpl }: { fetchImpl: Fetch }) {
                   ) : (
                     <ul className={live.stale ? 'portal-projects portal-section--stale' : 'portal-projects'}>
                       {projects.map((p) => (
-                        <Item key={p.reference} p={p} />
+                        <Item key={p.reference} p={p} account={live.data.access === 'account'} />
                       ))}
                     </ul>
                   )}

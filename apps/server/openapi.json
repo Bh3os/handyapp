@@ -1687,6 +1687,2156 @@
         }
       }
     },
+    "/api/v1/customer/account/permissions": {
+      "post": {
+        "operationId": "setAccountPermission",
+        "summary": "Stop or give back a permission",
+        "description": "Records the customer’s own choice for one permission of the account’s own verified sign-in email or phone, as an append-only consent record (source portal) that the send-time checks honour at once (HH-COM-05). marketing and follow_ups on email or sms, texts on sms only (else 400 not_a_permission). Any of them may be stopped; stopping texts also ends the consent to verification codes by text, as STOP does. Only email permissions are given back here (PROPOSED): a text permission is given on the request form, the opt-in path of the A2P 10DLC registration (400 texts_on_request_form). Giving marketing back needs the published privacy notice version shown beside it (400 unknown_version). A value the account does not have is a 400 (no_destination). A choice already in effect records nothing. Answers the preferences.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "channel",
+                  "permission",
+                  "granted"
+                ],
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "email",
+                      "sms"
+                    ]
+                  },
+                  "permission": {
+                    "type": "string",
+                    "enum": [
+                      "marketing",
+                      "follow_ups",
+                      "texts"
+                    ]
+                  },
+                  "granted": {
+                    "enum": [
+                      true,
+                      false
+                    ]
+                  },
+                  "privacyNoticeVersion": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._-]{1,40}$"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "preferredChannel",
+                    "email",
+                    "phone"
+                  ],
+                  "properties": {
+                    "preferredChannel": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "email",
+                            "call",
+                            "text"
+                          ]
+                        }
+                      ]
+                    },
+                    "email": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "destination",
+                            "marketing",
+                            "followUps"
+                          ],
+                          "properties": {
+                            "destination": {
+                              "type": "string"
+                            },
+                            "marketing": {
+                              "type": "string",
+                              "enum": [
+                                "granted",
+                                "withdrawn",
+                                "none"
+                              ]
+                            },
+                            "followUps": {
+                              "type": "string",
+                              "enum": [
+                                "granted",
+                                "withdrawn",
+                                "none"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "phone": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "destination",
+                            "texts",
+                            "marketing",
+                            "followUps"
+                          ],
+                          "properties": {
+                            "destination": {
+                              "type": "string"
+                            },
+                            "texts": {
+                              "type": "string",
+                              "enum": [
+                                "granted",
+                                "withdrawn",
+                                "none"
+                              ]
+                            },
+                            "marketing": {
+                              "type": "string",
+                              "enum": [
+                                "granted",
+                                "withdrawn",
+                                "none"
+                              ]
+                            },
+                            "followUps": {
+                              "type": "string",
+                              "enum": [
+                                "granted",
+                                "withdrawn",
+                                "none"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "account-settings",
+            "limit": 120,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.permission",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-saved-properties.test.ts",
+          "projection": "account.preferences"
+        }
+      }
+    },
+    "/api/v1/customer/account/preferences": {
+      "get": {
+        "operationId": "getAccountPreferences",
+        "summary": "Preferences",
+        "description": "For a live account session: the contact method new requests start with (null: none chosen), and for the account’s own verified sign-in email and phone (masked) the current state of each permission as the send-time checks read it (granted, withdrawn or none): marketing, optional follow-ups after a job (the satisfaction check and review requests) and, for the phone, texts (the SMS opt-in). Null for a value the account has none of.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "preferredChannel",
+                    "email",
+                    "phone"
+                  ],
+                  "properties": {
+                    "preferredChannel": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "email",
+                            "call",
+                            "text"
+                          ]
+                        }
+                      ]
+                    },
+                    "email": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "destination",
+                            "marketing",
+                            "followUps"
+                          ],
+                          "properties": {
+                            "destination": {
+                              "type": "string"
+                            },
+                            "marketing": {
+                              "type": "string",
+                              "enum": [
+                                "granted",
+                                "withdrawn",
+                                "none"
+                              ]
+                            },
+                            "followUps": {
+                              "type": "string",
+                              "enum": [
+                                "granted",
+                                "withdrawn",
+                                "none"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "phone": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "destination",
+                            "texts",
+                            "marketing",
+                            "followUps"
+                          ],
+                          "properties": {
+                            "destination": {
+                              "type": "string"
+                            },
+                            "texts": {
+                              "type": "string",
+                              "enum": [
+                                "granted",
+                                "withdrawn",
+                                "none"
+                              ]
+                            },
+                            "marketing": {
+                              "type": "string",
+                              "enum": [
+                                "granted",
+                                "withdrawn",
+                                "none"
+                              ]
+                            },
+                            "followUps": {
+                              "type": "string",
+                              "enum": [
+                                "granted",
+                                "withdrawn",
+                                "none"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-saved-properties.test.ts",
+          "projection": "account.preferences"
+        }
+      },
+      "post": {
+        "operationId": "setAccountPreferences",
+        "summary": "Set the contact method new requests start with",
+        "description": "The contact method (email, call or text, or null for none) the request form starts with for this account. A preference only: each request still records its own choice, and texts still need the SMS opt-in on that request. Answers the preferences.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "preferredChannel"
+                ],
+                "properties": {
+                  "preferredChannel": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "email",
+                          "call",
+                          "text"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "preferredChannel",
+                    "email",
+                    "phone"
+                  ],
+                  "properties": {
+                    "preferredChannel": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "email",
+                            "call",
+                            "text"
+                          ]
+                        }
+                      ]
+                    },
+                    "email": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "destination",
+                            "marketing",
+                            "followUps"
+                          ],
+                          "properties": {
+                            "destination": {
+                              "type": "string"
+                            },
+                            "marketing": {
+                              "type": "string",
+                              "enum": [
+                                "granted",
+                                "withdrawn",
+                                "none"
+                              ]
+                            },
+                            "followUps": {
+                              "type": "string",
+                              "enum": [
+                                "granted",
+                                "withdrawn",
+                                "none"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "phone": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "destination",
+                            "texts",
+                            "marketing",
+                            "followUps"
+                          ],
+                          "properties": {
+                            "destination": {
+                              "type": "string"
+                            },
+                            "texts": {
+                              "type": "string",
+                              "enum": [
+                                "granted",
+                                "withdrawn",
+                                "none"
+                              ]
+                            },
+                            "marketing": {
+                              "type": "string",
+                              "enum": [
+                                "granted",
+                                "withdrawn",
+                                "none"
+                              ]
+                            },
+                            "followUps": {
+                              "type": "string",
+                              "enum": [
+                                "granted",
+                                "withdrawn",
+                                "none"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "account-settings",
+            "limit": 120,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.preferences",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-saved-properties.test.ts",
+          "projection": "account.preferences"
+        }
+      }
+    },
+    "/api/v1/customer/account/projects/{reference}/request-again": {
+      "get": {
+        "operationId": "getRequestAgain",
+        "summary": "Request This Service Again",
+        "description": "For one of the projects the account’s active links open (any other reference, or a link that was revoked, is NOT_FOUND like a missing project, HH-ID-03): what the request form starts from, the services of that request the form still offers (in their order), whether it was “not sure”, the property address and type as they read now, and the request’s contact name, email and phone as they read now. Nothing else of the earlier request is reused: no description, answer, note, photo, timing, estimate choice, price, discount, verification or consent (OWN-DEC-113: new pricing and appointments need review). The contact method is the account’s preference, or null. The form asks the customer to confirm the details are still current and sends repeatOf with the reference, which links the new request to that project.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reference",
+                    "services",
+                    "notSure",
+                    "address",
+                    "contact",
+                    "preferredChannel"
+                  ],
+                  "properties": {
+                    "reference": {
+                      "type": "string"
+                    },
+                    "services": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "notSure": {
+                      "type": "boolean"
+                    },
+                    "address": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "street",
+                        "unit",
+                        "city",
+                        "state",
+                        "zip",
+                        "propertyType"
+                      ],
+                      "properties": {
+                        "street": {
+                          "type": "string"
+                        },
+                        "unit": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "city": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": "string"
+                        },
+                        "zip": {
+                          "type": "string"
+                        },
+                        "propertyType": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "contact": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "fullName",
+                        "email",
+                        "phone"
+                      ],
+                      "properties": {
+                        "fullName": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "phone": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "preferredChannel": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "email",
+                            "call",
+                            "text"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-saved-properties.test.ts",
+          "projection": "account.request_prefill"
+        }
+      }
+    },
+    "/api/v1/customer/account/properties": {
+      "get": {
+        "operationId": "getAccountProperties",
+        "summary": "Saved properties",
+        "description": "For a live account session (HH-ID-12): the addresses of the projects the account’s active links open, one per address (case and spacing aside), each named by its latest project’s reference, with the customer’s own name for it (saved) or null. Named ones first, by name. The address is the property record’s as it reads now; nothing of another account, customer or project is read. A guest-link session is NOT_FOUND; no session is 401.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "properties"
+                  ],
+                  "properties": {
+                    "properties": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "reference",
+                          "address",
+                          "saved"
+                        ],
+                        "properties": {
+                          "reference": {
+                            "type": "string"
+                          },
+                          "address": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "street",
+                              "unit",
+                              "city",
+                              "state",
+                              "zip",
+                              "propertyType"
+                            ],
+                            "properties": {
+                              "street": {
+                                "type": "string"
+                              },
+                              "unit": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "city": {
+                                "type": "string"
+                              },
+                              "state": {
+                                "type": "string"
+                              },
+                              "zip": {
+                                "type": "string"
+                              },
+                              "propertyType": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "saved": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "label"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "label": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-saved-properties.test.ts",
+          "projection": "account.properties"
+        }
+      },
+      "post": {
+        "operationId": "saveAccountProperty",
+        "summary": "Save a property",
+        "description": "Names the address of one of the account’s projects (named by its reference) with a name of 1 to 60 characters (trimmed). A reference the account’s links do not open is NOT_FOUND like a missing one; an address already named is a 409 (body.reference, already_saved); a name the account already uses, case aside, a 409 (body.label, label_in_use); an empty or too long name a 400 (invalid_label). Answers the saved properties. The property record itself never changes here.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reference",
+                  "label"
+                ],
+                "properties": {
+                  "reference": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "properties"
+                  ],
+                  "properties": {
+                    "properties": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "reference",
+                          "address",
+                          "saved"
+                        ],
+                        "properties": {
+                          "reference": {
+                            "type": "string"
+                          },
+                          "address": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "street",
+                              "unit",
+                              "city",
+                              "state",
+                              "zip",
+                              "propertyType"
+                            ],
+                            "properties": {
+                              "street": {
+                                "type": "string"
+                              },
+                              "unit": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "city": {
+                                "type": "string"
+                              },
+                              "state": {
+                                "type": "string"
+                              },
+                              "zip": {
+                                "type": "string"
+                              },
+                              "propertyType": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "saved": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "label"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "label": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "account-settings",
+            "limit": 120,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.save_property",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-saved-properties.test.ts",
+          "projection": "account.properties"
+        }
+      }
+    },
+    "/api/v1/customer/account/properties/{id}": {
+      "post": {
+        "operationId": "renameAccountProperty",
+        "summary": "Rename a saved property",
+        "description": "Renames one of the account’s own saved properties while one of its linked projects is at that property (otherwise NOT_FOUND, like a missing one). The same name rules and refusals as saving. Answers the saved properties.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "label"
+                ],
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "properties"
+                  ],
+                  "properties": {
+                    "properties": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "reference",
+                          "address",
+                          "saved"
+                        ],
+                        "properties": {
+                          "reference": {
+                            "type": "string"
+                          },
+                          "address": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "street",
+                              "unit",
+                              "city",
+                              "state",
+                              "zip",
+                              "propertyType"
+                            ],
+                            "properties": {
+                              "street": {
+                                "type": "string"
+                              },
+                              "unit": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "city": {
+                                "type": "string"
+                              },
+                              "state": {
+                                "type": "string"
+                              },
+                              "zip": {
+                                "type": "string"
+                              },
+                              "propertyType": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "saved": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "label"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "label": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "account-settings",
+            "limit": 120,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.rename_property",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-saved-properties.test.ts",
+          "projection": "account.properties"
+        }
+      }
+    },
+    "/api/v1/customer/account/properties/{id}/remove": {
+      "post": {
+        "operationId": "removeAccountProperty",
+        "summary": "Remove a saved property",
+        "description": "Removes the customer’s name for one of the account’s own saved properties (NOT_FOUND otherwise). The property record, its projects and every other record stay as they are. Answers the saved properties.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "properties"
+                  ],
+                  "properties": {
+                    "properties": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "reference",
+                          "address",
+                          "saved"
+                        ],
+                        "properties": {
+                          "reference": {
+                            "type": "string"
+                          },
+                          "address": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "street",
+                              "unit",
+                              "city",
+                              "state",
+                              "zip",
+                              "propertyType"
+                            ],
+                            "properties": {
+                              "street": {
+                                "type": "string"
+                              },
+                              "unit": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "city": {
+                                "type": "string"
+                              },
+                              "state": {
+                                "type": "string"
+                              },
+                              "zip": {
+                                "type": "string"
+                              },
+                              "propertyType": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "saved": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "label"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "label": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "account-settings",
+            "limit": 120,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.remove_property",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-saved-properties.test.ts",
+          "projection": "account.properties"
+        }
+      }
+    },
+    "/api/v1/customer/account/properties/{id}/request": {
+      "get": {
+        "operationId": "getSavedPropertyRequest",
+        "summary": "A new request at a saved property",
+        "description": "For one of the account’s own saved properties (NOT_FOUND otherwise): what the request form starts from, the property address and type as they read now and the contact name, email and phone of the latest linked project’s request at that property, with that project’s reference; no service is chosen. Nothing else of the earlier request is reused: no description, answer, note, photo, timing, estimate choice, price, discount, verification or consent (OWN-DEC-113: new pricing and appointments need review). The contact method is the account’s preference, or null. The form asks the customer to confirm the details are still current and sends repeatOf with the reference, which links the new request to that project.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reference",
+                    "services",
+                    "notSure",
+                    "address",
+                    "contact",
+                    "preferredChannel"
+                  ],
+                  "properties": {
+                    "reference": {
+                      "type": "string"
+                    },
+                    "services": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "notSure": {
+                      "type": "boolean"
+                    },
+                    "address": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "street",
+                        "unit",
+                        "city",
+                        "state",
+                        "zip",
+                        "propertyType"
+                      ],
+                      "properties": {
+                        "street": {
+                          "type": "string"
+                        },
+                        "unit": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "city": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": "string"
+                        },
+                        "zip": {
+                          "type": "string"
+                        },
+                        "propertyType": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "contact": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "fullName",
+                        "email",
+                        "phone"
+                      ],
+                      "properties": {
+                        "fullName": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "phone": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "preferredChannel": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "email",
+                            "call",
+                            "text"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-saved-properties.test.ts",
+          "projection": "account.request_prefill"
+        }
+      }
+    },
     "/api/v1/customer/account/sign-out-everywhere": {
       "post": {
         "operationId": "customerSignOutEverywhere",
@@ -18374,7 +20524,7 @@
       "post": {
         "operationId": "submitRequest",
         "summary": "Send Estimate Request",
-        "description": "Guest or customer submission. One transaction creates a new customer, contact, property, project (not a job or appointment) and the request with its services and answers, plus one request.submitted outbox event. Never matched to existing customers. The same Idempotency-Key returns the same request; a changed body is a 409. A key that already created a request, also after its idempotency record expired, is a 409 whose error names that request's reference (existing.reference) and writes nothing. Rate limited per client network with a neutral 429. Spam signals only flag the request for review. TSK-0032: when the draft’s photos were bound, the Upload-Capability response header carries a new capability scoped to this request’s photos only (token returned once, never stored with the replayable response), so the receipt can show their states and retry a failed photo without a new request (HH-INT-07, HH-INT-12). TSK-0033: the Receipt-Capability response header carries the receipt page’s capability for this request’s own contact verification and account-offer answer (returned once; a replayed response carries neither header). TSK-0034: the same transaction issues the project’s single-project access grant (HH-ID-04; token stored only as a hash), whose secure access link the automatic message project.access_link sends from request.submitted. TSK-0142: in production the launch phase decides (launch.phase): before phase 3 (public) the submission is refused with CONFLICT and the field error launch:SUBMISSIONS_CLOSED (phase 1) or launch:INVITATION_REQUIRED (phase 2), audited, and nothing is written. Outside production (testers only) it is always accepted.",
+        "description": "Guest or customer submission. One transaction creates a new customer, contact, property, project (not a job or appointment) and the request with its services and answers, plus one request.submitted outbox event. Never matched to existing customers. The same Idempotency-Key returns the same request; a changed body is a 409. A key that already created a request, also after its idempotency record expired, is a 409 whose error names that request's reference (existing.reference) and writes nothing. Rate limited per client network with a neutral 429. Spam signals only flag the request for review. TSK-0032: when the draft’s photos were bound, the Upload-Capability response header carries a new capability scoped to this request’s photos only (token returned once, never stored with the replayable response), so the receipt can show their states and retry a failed photo without a new request (HH-INT-07, HH-INT-12). TSK-0033: the Receipt-Capability response header carries the receipt page’s capability for this request’s own contact verification and account-offer answer (returned once; a replayed response carries neither header). TSK-0034: the same transaction issues the project’s single-project access grant (HH-ID-04; token stored only as a hash), whose secure access link the automatic message project.access_link sends from request.submitted. TSK-0142: in production the launch phase decides (launch.phase): before phase 3 (public) the submission is refused with CONFLICT and the field error launch:SUBMISSIONS_CLOSED (phase 1) or launch:INVITATION_REQUIRED (phase 2), audited, and nothing is written. Outside production (testers only) it is always accepted. TSK-0113 (HH-ID-12, OWN-DEC-113): Request This Service Again sends repeatOf (the earlier project’s reference and detailsConfirmed true). It is accepted only from a live account session whose active links open that project; otherwise (no session, a guest-link session, another project, no such project) the same 400 (body.repeatOf, unavailable) and nothing is written. The new request gets its own records like any other and is linked to the earlier project; nothing of it is copied.",
         "tags": [
           "requests"
         ],
@@ -18660,6 +20810,25 @@
                   "photoDraft": {
                     "type": "string",
                     "pattern": "^[A-Za-z0-9_-]{43}$"
+                  },
+                  "repeatOf": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "reference",
+                      "detailsConfirmed"
+                    ],
+                    "properties": {
+                      "reference": {
+                        "type": "string",
+                        "pattern": "^HH-[0-9A-HJKMNP-TV-Z]{8}$"
+                      },
+                      "detailsConfirmed": {
+                        "enum": [
+                          true
+                        ]
+                      }
+                    }
                   }
                 }
               }
@@ -170951,6 +173120,7 @@
                     "spam",
                     "project",
                     "customer",
+                    "repeatOf",
                     "original",
                     "contactVerification",
                     "preferredWindows",
@@ -171064,6 +173234,38 @@
                           "type": "string"
                         }
                       }
+                    },
+                    "repeatOf": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "projectId",
+                            "reference",
+                            "detailsConfirmedAt",
+                            "sameAddress"
+                          ],
+                          "properties": {
+                            "projectId": {
+                              "type": "string"
+                            },
+                            "reference": {
+                              "type": "string"
+                            },
+                            "detailsConfirmedAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "sameAddress": {
+                              "type": "boolean"
+                            }
+                          }
+                        }
+                      ]
                     },
                     "original": {
                       "type": "object",

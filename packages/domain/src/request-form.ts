@@ -129,6 +129,18 @@ export const REQUEST_FORM_SCHEMA = {
     // The photo upload capability of the draft (TSK-0031): the server binds that draft's photos to the new request.
     // A secret: never stored with the original submission.
     photoDraft: { type: 'string', pattern: '^[A-Za-z0-9_-]{43}$' },
+    // TSK-0113 (HH-ID-12, OWN-DEC-113): Request This Service Again from a signed-in account. The earlier project's
+    // reference, which the server accepts only when the caller's account is linked to it, and the customer's
+    // confirmation that the property details are still current (only true passes, like a consent).
+    repeatOf: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['reference', 'detailsConfirmed'],
+      properties: {
+        reference: { type: 'string', pattern: '^HH-[0-9A-HJKMNP-TV-Z]{8}$' },
+        detailsConfirmed: { enum: [true] },
+      },
+    },
   },
 } as const
 
@@ -195,6 +207,7 @@ export type SubmitBody = {
   website?: string
   startedAt?: number
   photoDraft?: string
+  repeatOf?: { reference: string; detailsConfirmed: true }
 }
 
 /** A field problem: `field` is the body path (`body.contact.phone`), `code` the JSON-schema keyword. */

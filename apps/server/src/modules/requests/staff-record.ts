@@ -6,6 +6,7 @@
 // - The handling record next to it: the responsible staff member and every reassignment, the latest qualification,
 //   internal notes (staff only), each decision with its reason, the work packages, the next step and the follow-up
 //   due time, and which actions this caller may take now.
+// - TSK-0113: a request sent with Request This Service Again names the earlier project it repeats.
 // - TSK-0043: the first-response clock as it reads now (an internal target, staff only), the completed customer
 //   conversations staff recorded, and the review holds with what this caller may do to each; a blocking review hold
 //   closes both estimating routes.
@@ -330,6 +331,13 @@ export async function staffRequestView(db: Reader, scope: DataScope, requestId: 
     .orderBy('occurred_at')
     .orderBy('id')
     .execute()
+  // TSK-0113: the earlier project this request was sent again from, with the customer's confirmation.
+  const repeat = await db
+    .selectFrom('intake.request_repeats as x')
+    .innerJoin('crm.projects as sp', 'sp.id', 'x.source_project_id')
+    .select(['sp.id', 'sp.reference', 'x.details_confirmed_at', 'x.same_address'])
+    .where('x.request_id', '=', requestId)
+    .executeTakeFirst()
   const holds = await requestHolds(db, requestId, actor)
   const heldForReview = holds.some((h) => h.kind === 'review' && (h.state === 'open' || h.state === 'under_review'))
 
@@ -358,6 +366,14 @@ export async function staffRequestView(db: Reader, scope: DataScope, requestId: 
     spam: { suspected: r.spam_suspected, signals: r.spam_signals },
     project: { id: r.project_id, reference: r.project_reference, state: r.project_state },
     customer: { id: r.customer_id, displayName: r.customer_display_name },
+    repeatOf: repeat
+      ? {
+          projectId: repeat.id,
+          reference: repeat.reference,
+          detailsConfirmedAt: repeat.details_confirmed_at.toISOString(),
+          sameAddress: repeat.same_address,
+        }
+      : null,
     original: {
       services: services.map((s) => ({ serviceId: s.service_id, code: s.code, notes: s.notes })),
       notSure: r.not_sure,

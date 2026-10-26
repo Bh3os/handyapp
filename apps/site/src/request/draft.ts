@@ -53,10 +53,11 @@ export type DraftStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 /** Field names that may never be written to browser storage, whatever a later step adds. */
 const NEVER_STORED = /password|code|token|secret|card|cvv|cvc|iban|account_?number/i
 /**
- * PROPOSED (TSK-0029): the SMS opt-in and the marketing permission are not kept in the draft. A consent is given with
+ * PROPOSED (TSK-0029): the SMS opt-in and the marketing permission are not kept in the draft. TSK-0113: neither is the
+ * confirmation that the property details of Request This Service Again are still current. A consent is given with
  * its disclosure in view when the request is sent, so a resumed draft always shows both boxes unchecked.
  */
-const CONSENTS: ReadonlySet<string> = new Set(['smsOptIn', 'marketingOptIn'])
+const CONSENTS: ReadonlySet<string> = new Set(['smsOptIn', 'marketingOptIn', 'detailsConfirmed'])
 
 export function draftKey(identity: string): string {
   return `${PREFIX}.v${DRAFT_VERSION}:${identity}`
