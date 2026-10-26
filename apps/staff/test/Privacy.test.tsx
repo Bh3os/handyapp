@@ -1,4 +1,5 @@
-// The privacy requests screen in the staff app (TSK-0100; HH-PRIV-03, ENT-PrivacyRequest, OWN-DEC-71, OWN-DEC-113).
+// The privacy requests screen in the staff app (TSK-0100; HH-PRIV-03, ENT-PrivacyRequest, OWN-DEC-71, OWN-DEC-113;
+// TSK-0136: HH-PRIV-07, OWN-DEC-175, the dates, alerts, extension and legal deadline).
 // The API is a synthetic stand-in (RULE-SYNTHETIC-DATA): names, references and counts are test inputs, not business
 // facts; what is deleted or retained is whatever the server sends.
 import { staffTranslator } from '@handyhub/i18n'
@@ -30,6 +31,22 @@ const request = (over: Partial<PrivacyRequestDetail> = {}): PrivacyRequestDetail
   account: true,
   accessClosed: null,
   outcome: null,
+  deadlines: {
+    state: 'CONFIGURED',
+    receivedOn: '2026-10-21',
+    zone: 'America/Kentucky/Louisville',
+    calendarVersion: 1,
+    targetsVersion: 1,
+    acknowledgedAt: '2026-10-21T15:00:00.000Z',
+    acknowledgmentDueOn: '2026-10-26',
+    substantiveAcknowledgedAt: '2026-10-21T16:00:00.000Z',
+    targetDueOn: '2026-11-20',
+    targetOn: '2026-11-20',
+    extensions: [],
+    legalDeadline: { on: null, note: null, recordedAt: null },
+    today: '2026-10-22',
+    alerts: [],
+  },
   plan: {
     items: [
       {
@@ -103,7 +120,14 @@ describe('privacy requests screen (TSK-0100, HH-PRIV-03)', () => {
     expect(within(item).getByText('Under review')).toBeTruthy()
     fireEvent.click(within(item).getByRole('button', { name: 'Open' }))
     const detail = await screen.findByTestId('privacy-detail')
-    expect(within(detail).getByText('Response deadline: not configured')).toBeTruthy()
+    // The time is shown in the device's zone; the calendar dates never move with it.
+    expect(within(detail).getByText(/^Substantive acknowledgment: review started /)).toBeTruthy()
+    expect(
+      within(detail).getByText(
+        'Internal target: Nov 20, 2026. An internal customer-service commitment, not a legal deadline.',
+      ),
+    ).toBeTruthy()
+    expect(within(detail).getByText(/^Legal deadline: not recorded/)).toBeTruthy()
     expect(within(detail).getByText(/Login account: 1/)).toBeTruthy()
     expect(within(detail).getByText(/Accepted estimates and approvals: 1 · protected evidence · 10 years/)).toBeTruthy()
     expect(within(detail).getByText(/Other contacts of this customer: 1 · another person's data/)).toBeTruthy()
@@ -167,6 +191,62 @@ describe('privacy requests screen (TSK-0100, HH-PRIV-03)', () => {
     expect(within(detail).queryByRole('form', { name: 'Your decision' })).toBeNull()
     fireEvent.click(within(detail).getByRole('button', { name: 'Start the review' }))
     expect(await within(detail).findByText('The review was already started.')).toBeTruthy()
+  })
+
+  it('[HH-PRIV-07] an overdue request is flagged; the Owner extends its target with a reason, sent once with the version', async () => {
+    const overdue = request({
+      deadlines: { ...request().deadlines, today: '2026-11-25', alerts: ['completion_overdue'] },
+    })
+    const fetchImpl = api(overdue, {
+      '/extension': () => json(200, { version: 3, previous: '2026-11-20', current: '2026-12-10' }),
+    })
+    render(<PrivacyScreen t={t} locale="en" fetchImpl={fetchImpl as unknown as typeof fetch} requestId={overdue.id} />)
+    const detail = await screen.findByTestId('privacy-detail')
+    expect(within(detail).getByText('Internal target overdue')).toBeTruthy()
+    expect(within(detail).getByText('Nothing is closed or declined when a date passes: you decide.')).toBeTruthy()
+    const form = within(detail).getByTestId('privacy-extend')
+    expect((within(form).getByRole('button', { name: /^Extend the target/ }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.change(within(form).getByLabelText('New target date'), { target: { value: '2026-12-10' } })
+    fireEvent.change(within(form).getByLabelText('Reason the customer is told (required)'), {
+      target: { value: 'Synthetic: records from an archived job.' },
+    })
+    fireEvent.click(within(form).getByRole('button', { name: 'Extend the target' }))
+    expect(await within(form).findByText('The internal target is extended.')).toBeTruthy()
+    const sent = fetchImpl.mock.calls.filter((c) => String(c[0]).endsWith('/extension'))
+    expect(sent).toHaveLength(1)
+    const init = sent[0]?.[1] as RequestInit & { headers: Record<string, string> }
+    expect(JSON.parse(String(init.body))).toEqual({
+      targetOn: '2026-12-10',
+      reason: 'Synthetic: records from an archived job.',
+    })
+    expect(init.headers['if-match']).toBe('"2"')
+  })
+
+  it('[HH-PRIV-07] a recorded legal deadline and an extension are shown; a decided request offers no change', async () => {
+    const done = request({
+      state: 'completed',
+      decidedAt: '2026-11-25T17:00:00.000Z',
+      deadlines: {
+        ...request().deadlines,
+        targetOn: '2026-12-10',
+        extensions: [
+          {
+            previousTargetOn: '2026-11-20',
+            targetOn: '2026-12-10',
+            reason: 'Synthetic: records from an archived job.',
+            decidedAt: '2026-11-18T15:00:00.000Z',
+          },
+        ],
+        legalDeadline: { on: '2026-12-05', note: 'Synthetic attorney note', recordedAt: '2026-11-01T15:00:00.000Z' },
+      },
+    })
+    render(<PrivacyScreen t={t} locale="en" fetchImpl={api(done) as unknown as typeof fetch} requestId={done.id} />)
+    const detail = await screen.findByTestId('privacy-detail')
+    expect(within(detail).getByText(/^Internal target: Dec 10, 2026 \(first Nov 20, 2026\)/)).toBeTruthy()
+    expect(within(detail).getByText(/^Extended from Nov 20, 2026 to Dec 10, 2026 .*: Synthetic: records/)).toBeTruthy()
+    expect(within(detail).getByText('Legal deadline: Dec 5, 2026 (Synthetic attorney note)')).toBeTruthy()
+    expect(within(detail).queryByTestId('privacy-extend')).toBeNull()
+    expect(within(detail).queryByTestId('privacy-legal-deadline')).toBeNull()
   })
 
   it('[HH-PRIV-03] builds the query from the state and cursor only', () => {

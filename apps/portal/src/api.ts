@@ -1666,6 +1666,12 @@ export type PrivacyRequest = {
     exportReady: boolean
     accessClosed: boolean
   } | null
+  /** TSK-0136: the automatic acknowledgment, the substantive one and the internal target with its extensions. */
+  acknowledgedAt: string | null
+  acknowledgmentDueOn: string | null
+  reviewStartedAt: string | null
+  targetOn: string | null
+  extensions: { targetOn: string; reason: string; decidedAt: string }[]
 }
 export type PrivacyList = { reference: string; freshVerification: boolean; requests: PrivacyRequest[] }
 
@@ -1708,6 +1714,23 @@ export function parsePrivacyRequest(v: unknown): PrivacyRequest | null {
       accessClosed: o['accessClosed'],
     }
   }
+  // TSK-0136: the acknowledgment and the dates (calendar dates are YYYY-MM-DD).
+  const day = (x: unknown): x is string => isStr(x) && /^\d{4}-\d{2}-\d{2}$/.test(x)
+  const orNull = (x: unknown, ok: (y: unknown) => boolean) => x === null || ok(x)
+  if (
+    !orNull(v['acknowledgedAt'], isDate) ||
+    !orNull(v['acknowledgmentDueOn'], day) ||
+    !orNull(v['reviewStartedAt'], isDate) ||
+    !orNull(v['targetOn'], day) ||
+    !Array.isArray(v['extensions'])
+  )
+    return null
+  const extensions = v['extensions'].map((e) =>
+    isObj(e) && day(e['targetOn']) && isStr(e['reason']) && isDate(e['decidedAt'])
+      ? { targetOn: e['targetOn'], reason: e['reason'], decidedAt: e['decidedAt'] as string }
+      : null,
+  )
+  if (extensions.some((e) => e === null)) return null
   return {
     reference: v['reference'],
     kind: v['kind'],
@@ -1716,6 +1739,11 @@ export function parsePrivacyRequest(v: unknown): PrivacyRequest | null {
     submittedAt: v['submittedAt'],
     decidedAt: v['decidedAt'],
     outcome,
+    acknowledgedAt: v['acknowledgedAt'] as string | null,
+    acknowledgmentDueOn: v['acknowledgmentDueOn'] as string | null,
+    reviewStartedAt: v['reviewStartedAt'] as string | null,
+    targetOn: v['targetOn'] as string | null,
+    extensions: extensions as PrivacyRequest['extensions'],
   }
 }
 export function parsePrivacyList(v: unknown): PrivacyList | null {

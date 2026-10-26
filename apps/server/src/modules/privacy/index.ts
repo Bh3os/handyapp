@@ -9,6 +9,8 @@
 //   GET  /staff/privacy-requests[/:id]                 the requests, each with the scoped search as it is now
 //   POST /staff/privacy-requests/:id/review            open the review (keeps what the search found)
 //   POST /staff/privacy-requests/:id/decision          complete or decline (fresh sign-in, reason)
+//   POST /staff/privacy-requests/:id/extension         TSK-0136: extend the internal target (new date, reason)
+//   PUT  /staff/privacy-requests/:id/legal-deadline    TSK-0136: record or clear the legal deadline (date, note)
 //   GET  /staff/retention-reviews/:reviewId/deletion   the Delete confirmation of a review entry
 //   POST /staff/retention-reviews/:reviewId/delete     Confirm Delete (fresh sign-in, reason, confirmed checks)
 //   POST /staff/retention-reviews/:reviewId/archive    Archive (the record is kept)
@@ -18,6 +20,10 @@
 // export is privacy.request_export; opening a review and deciding are privacy.decide; Archive and Keep longer sit in
 // the Delete action's row (records.delete); the confirmation and the log are retention.view. The fresh sign-in for
 // Delete and for deciding (ROLE-OWNER: sensitive actions need a fresh sign-in and a reason) is PROPOSED in the route.
+// TSK-0136 (HH-PRIV-07, OWN-DEC-175, OWN-DEC-205): every request carries its acknowledgment, the substantive
+// acknowledgment due date, the internal target and the legal deadline field (deadlines.ts); extending the target and
+// recording the legal deadline are the Owner's decisions (privacy.decide, PROPOSED: no fresh sign-in, as neither
+// discloses or removes data).
 import type { Tx } from '@handyhub/db'
 import type { CustomerActor } from '@handyhub/policy'
 import { ApiError } from '../../api/errors.js'
@@ -32,6 +38,7 @@ import { DOCUMENT_DOWNLOADS, PRIVACY_EXPORT, PRIVACY_REQUEST, PRIVACY_REQUESTS, 
 import { archiveEntry, deleteEntry, keepEntry, previewEntry, reviewExists } from './decisions.js'
 import { versionDownloads } from './documents.js'
 import { customerExport } from './export.js'
+import { DEADLINE_NOTE_MAX, extendTarget, recordLegalDeadline } from './deadlines.js'
 import { listDeletions } from './log.js'
 import {
   customerPrivacyRequest,
@@ -57,6 +64,7 @@ import {
   STAFF_REQUEST_PARAMS,
 } from './schemas.js'
 
+export * from './deadlines.js'
 export * from './decisions.js'
 export * from './documents.js'
 export * from './export.js'
@@ -166,7 +174,10 @@ export function privacyModule(deps: PrivacyDeps = {}): ApiModule {
         `${String(permission)}: Customer V). The identity confirmation is a one-time code entered in this session ` +
         'within the freshness window (PROPOSED): an older verification is FRESH_VERIFICATION_REQUIRED and nothing is ' +
         'written. One open request of each kind per customer (CONFLICT PRIVACY_REQUEST_OPEN). The Owner reviews and ' +
-        'decides it; nothing is deleted or changed by the request itself. ' +
+        'decides it; nothing is deleted or changed by the request itself. The response is the automatic ' +
+        'acknowledgment: the request with the date its substantive acknowledgment is due (3 business days on the ' +
+        'business calendar) and its internal target (30 calendar days), counted in the business time zone ' +
+        '(TSK-0136). ' +
         (kind === 'correction' ? 'The customer says what to correct (details, kept as written). ' : '') +
         'Any other project is NOT_FOUND (T19).',
       actors: ['customer'],
@@ -325,7 +336,10 @@ export function privacyModule(deps: PrivacyDeps = {}): ApiModule {
     description:
       'Owner only (privacy.decide). Every privacy request in the order received, optionally of one state: the ' +
       'reference, kind, state, project, customer, the requesting contact, whether it came from a login account, and ' +
-      'when it was received, reviewed and decided. Response deadlines are NOT CONFIGURED (OQ-PRIVACY-REQUESTS).',
+      'when it was received, reviewed and decided, and its dates (TSK-0136): the receipt date, the automatic ' +
+      'acknowledgment, the substantive acknowledgment due date, the internal target in force with its extensions, the ' +
+      'legal deadline once the Owner records it, and the overdue alerts as of today in the business time zone. ' +
+      'Nothing closes when a date passes.',
     permission: 'privacy.decide',
     pagination: true,
     schema: {
@@ -375,7 +389,8 @@ export function privacyModule(deps: PrivacyDeps = {}): ApiModule {
     summary: 'Open the review of a privacy request',
     description:
       'Owner only (privacy.decide). received -> under_review, keeping what the scoped search found (categories and ' +
-      'counts, never content). If-Match: the request version. Refusals: CONFLICT REVIEW_ALREADY_STARTED, STALE_VERSION.',
+      'counts, never content). Opening the review is the substantive acknowledgment the customer sees (PROPOSED, ' +
+      'TSK-0136). If-Match: the request version. Refusals: CONFLICT REVIEW_ALREADY_STARTED, STALE_VERSION.',
     permission: 'privacy.decide',
     expectedVersion: 'required',
     audit: 'privacy.review_start',
@@ -390,6 +405,7 @@ export function privacyModule(deps: PrivacyDeps = {}): ApiModule {
         id: (ctx.req.params as { id: string }).id,
         staffUserId: staffId(ctx),
         expectedVersion: ctx.expectedVersion(),
+        requestId: requestIdOf(ctx),
       })
       await ctx.audit({
         target: { type: 'privacy_request', id: d.id, version: d.version },
@@ -467,6 +483,123 @@ export function privacyModule(deps: PrivacyDeps = {}): ApiModule {
         stepUpUsed: true,
       })
       return { body: json(d), version: d.version }
+    },
+  }
+
+  // TSK-0136: the Owner's changes of the dates.
+  const DAY = { type: 'string', format: 'date' } as const
+  const NOTE = { type: 'string', minLength: 1, maxLength: DEADLINE_NOTE_MAX, pattern: '\\S' } as const
+  const DATES_RESULT = {
+    type: 'object',
+    additionalProperties: false,
+    required: ['version', 'previous', 'current'],
+    properties: {
+      version: { type: 'integer' },
+      previous: { type: ['string', 'null'], format: 'date' },
+      current: { type: ['string', 'null'], format: 'date' },
+    },
+  } as const
+  const currentVersion = async (ctx: ApiContext, id: string) =>
+    (
+      await (ctx.tx as Tx)
+        .selectFrom('privacy.privacy_requests')
+        .select('version')
+        .where('id', '=', id)
+        .executeTakeFirstOrThrow()
+    ).version
+
+  const extend: RouteDef = {
+    ...staffWrite,
+    path: '/staff/privacy-requests/:id/extension',
+    operationId: 'extendPrivacyRequestTarget',
+    summary: 'Extend the internal target of a privacy request',
+    description:
+      'Owner only (privacy.decide), with the new date and the reason, which the customer is shown with it in their ' +
+      'project page (the notice message has no approved wording, OQ-MESSAGES-OUTSIDE-THE-21). OWN-DEC-175: more time ' +
+      'only where it is legally permitted and necessary, which the Owner confirms; the software cannot. The new date ' +
+      'is after the target in force and after today (business time zone), at most DEADLINE_MAX_DAYS_AHEAD ahead. The ' +
+      'legal deadline is not changed. If-Match: the request version. Refusals: CONFLICT ALREADY_DECIDED / ' +
+      'DATES_NOT_CONFIGURED, STALE_VERSION, VALIDATION_FAILED (NOT_AFTER_TARGET, DATE_NOT_AHEAD, DATE_TOO_FAR).',
+    permission: 'privacy.decide',
+    expectedVersion: 'required',
+    audit: 'privacy.target_extend',
+    resource: requestResource,
+    schema: {
+      params: STAFF_REQUEST_PARAMS,
+      body: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['targetOn', 'reason'],
+        properties: { targetOn: DAY, reason: NOTE },
+      },
+      response: { 200: DATES_RESULT },
+    },
+    handler: async (ctx) => {
+      const id = (ctx.req.params as { id: string }).id
+      const body = ctx.req.body as { targetOn: string; reason: string }
+      const out = await extendTarget(ctx.tx as Tx, {
+        id,
+        staffUserId: staffId(ctx),
+        expectedVersion: ctx.expectedVersion(),
+        targetOn: body.targetOn,
+        reason: body.reason,
+        requestId: requestIdOf(ctx),
+      })
+      const version = await currentVersion(ctx, id)
+      await ctx.audit({
+        target: { type: 'privacy_request', id, version },
+        summary: { from: out.previousTargetOn, to: out.targetOn },
+        reason: body.reason.trim(),
+      })
+      return { body: { version, previous: out.previousTargetOn, current: out.targetOn }, version }
+    },
+  }
+
+  const legalDeadline: RouteDef = {
+    ...staffWrite,
+    method: 'PUT',
+    path: '/staff/privacy-requests/:id/legal-deadline',
+    operationId: 'recordPrivacyLegalDeadline',
+    summary: 'Record the legal deadline of a privacy request',
+    description:
+      'Owner only (privacy.decide). The applicable legal deadline, tracked separately from the internal target ' +
+      '(OWN-DEC-175): the date the attorney defines for this request, with a note saying where it comes from, or null ' +
+      'to clear it (with a note). Never computed by the software, never from the business calendar (OWN-DEC-205). ' +
+      'On or after the receipt date, at most DEADLINE_MAX_DAYS_AHEAD ahead; a date already passed is overdue at once. ' +
+      'If-Match: the request version. Refusals: CONFLICT ALREADY_DECIDED / DATES_NOT_CONFIGURED, STALE_VERSION, ' +
+      'VALIDATION_FAILED (BEFORE_RECEIPT, DATE_TOO_FAR).',
+    permission: 'privacy.decide',
+    expectedVersion: 'required',
+    audit: 'privacy.legal_deadline_record',
+    resource: requestResource,
+    schema: {
+      params: STAFF_REQUEST_PARAMS,
+      body: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['on', 'note'],
+        properties: { on: { type: ['string', 'null'], format: 'date' }, note: NOTE },
+      },
+      response: { 200: DATES_RESULT },
+    },
+    handler: async (ctx) => {
+      const id = (ctx.req.params as { id: string }).id
+      const body = ctx.req.body as { on: string | null; note: string }
+      const out = await recordLegalDeadline(ctx.tx as Tx, {
+        id,
+        staffUserId: staffId(ctx),
+        expectedVersion: ctx.expectedVersion(),
+        on: body.on,
+        note: body.note,
+        requestId: requestIdOf(ctx),
+      })
+      const version = await currentVersion(ctx, id)
+      await ctx.audit({
+        target: { type: 'privacy_request', id, version },
+        summary: { from: out.previous, to: out.on },
+        reason: body.note.trim(),
+      })
+      return { body: { version, previous: out.previous, current: out.on }, version }
     },
   }
 
@@ -674,6 +807,8 @@ export function privacyModule(deps: PrivacyDeps = {}): ApiModule {
       getRequest,
       review,
       decide,
+      extend,
+      legalDeadline,
       preview,
       del,
       archive,

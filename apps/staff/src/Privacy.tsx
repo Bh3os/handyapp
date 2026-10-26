@@ -4,11 +4,16 @@
 // it (delete, retain with why and until when, exclude other people's data, none stored, not recorded), and the
 // checks the software cannot run, which the Owner ticks before completing a deletion. Completing a deletion can close
 // sign-in and project access even while a hold keeps records. A fresh sign-in and a reason are asked for by the
-// server; response deadlines and the outcome notice are NOT CONFIGURED.
+// server; the outcome notice is NOT CONFIGURED.
+// TSK-0136 (HH-PRIV-07, OWN-DEC-175, OWN-DEC-205): each request shows its dates as the server counted them (received,
+// the automatic acknowledgment, the substantive acknowledgment due, the internal target with its extensions, the legal
+// deadline once recorded) and its overdue alerts; the Owner extends the target with a reason the customer is shown,
+// and records the legal deadline the attorney defines. Nothing closes when a date passes. An Owner Decisions item
+// opens one request (/privacy/<id>).
 import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
-import { useCallback, useEffect, useId, useState } from 'react'
-import { call, type ApiErrorBody, type Fetch } from './api'
+import { useCallback, useEffect, useId, useState, type FormEvent } from 'react'
+import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
 import { ReauthForm, useOwnerWrite } from './OwnerWrite'
 import { codeLabel } from './Requests'
 
@@ -46,6 +51,25 @@ export type PrivacyRequestItem = {
     exportReady: boolean
     accessClosed: boolean
   } | null
+  deadlines: Deadlines
+}
+
+/** TSK-0136: the request's dates as the server counted them, and its overdue alerts today. */
+export type Deadlines = {
+  state: 'CONFIGURED' | 'NOT_CONFIGURED'
+  receivedOn: string | null
+  zone: string | null
+  calendarVersion: number | null
+  targetsVersion: number | null
+  acknowledgedAt: string | null
+  acknowledgmentDueOn: string | null
+  substantiveAcknowledgedAt: string | null
+  targetDueOn: string | null
+  targetOn: string | null
+  extensions: { previousTargetOn: string; targetOn: string; reason: string; decidedAt: string }[]
+  legalDeadline: { on: string | null; note: string | null; recordedAt: string | null }
+  today: string | null
+  alerts: ('acknowledgment_overdue' | 'completion_overdue' | 'legal_deadline_overdue')[]
 }
 
 export type PrivacyRequestDetail = PrivacyRequestItem & {
@@ -85,6 +109,166 @@ const COMPLETE_LABEL: Record<PrivacyRequestItem['kind'], StaffKey> = {
 }
 
 const bcp47 = (locale: StaffLocale) => (locale === 'es' ? 'es-US' : 'en-US')
+/** A calendar date (YYYY-MM-DD, the business zone's) as people read it: formatted at UTC noon, so no zone moves it. */
+const dayText = (locale: StaffLocale, date: string) =>
+  new Intl.DateTimeFormat(bcp47(locale), { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(`${date}T12:00:00Z`))
+const isOpen = (state: PrivacyRequestItem['state']) => state === 'received' || state === 'under_review'
+
+/** The overdue alerts of a request, as badges. */
+function Alerts({ t, d }: { t: T; d: Deadlines }) {
+  if (d.alerts.length === 0) return null
+  return (
+    <p aria-label={t('privacy.dates.alerts')} data-testid="privacy-alerts">
+      {d.alerts.map((a) => (
+        <StatusBadge key={a} tone="danger">
+          {codeLabel(t, 'privacyAlert', a)}
+        </StatusBadge>
+      ))}
+    </p>
+  )
+}
+
+/** The request's dates (TSK-0136). */
+function Dates({ t, locale, r }: { t: T; locale: StaffLocale; r: PrivacyRequestItem }) {
+  const d = r.deadlines
+  const time = new Intl.DateTimeFormat(bcp47(locale), { dateStyle: 'medium', timeStyle: 'short' })
+  return (
+    <ul className="staff-queue__facts" aria-label={t('privacy.dates.title')}>
+      {d.state === 'NOT_CONFIGURED' ? <li>{t('privacy.dates.notConfigured')}</li> : null}
+      {d.receivedOn && d.zone ? (
+        <li>{t('privacy.dates.received', { date: dayText(locale, d.receivedOn), zone: d.zone })}</li>
+      ) : null}
+      <li>
+        {d.acknowledgedAt
+          ? t('privacy.dates.acknowledged', { time: time.format(new Date(d.acknowledgedAt)) })
+          : t('privacy.dates.notAcknowledged')}
+      </li>
+      {d.substantiveAcknowledgedAt ? (
+        <li>{t('privacy.dates.ackDone', { time: time.format(new Date(d.substantiveAcknowledgedAt)) })}</li>
+      ) : d.acknowledgmentDueOn ? (
+        <li>{t('privacy.dates.ackDue', { date: dayText(locale, d.acknowledgmentDueOn) })}</li>
+      ) : null}
+      {d.targetOn && d.targetDueOn ? (
+        <li>
+          {d.extensions.length
+            ? t('privacy.dates.targetExtended', {
+                date: dayText(locale, d.targetOn),
+                original: dayText(locale, d.targetDueOn),
+              })
+            : t('privacy.dates.target', { date: dayText(locale, d.targetOn) })}
+        </li>
+      ) : null}
+      {d.extensions.map((e) => (
+        <li key={e.previousTargetOn}>
+          {t('privacy.dates.extension', {
+            from: dayText(locale, e.previousTargetOn),
+            to: dayText(locale, e.targetOn),
+            time: time.format(new Date(e.decidedAt)),
+            reason: e.reason,
+          })}
+        </li>
+      ))}
+      <li>
+        {d.legalDeadline.on
+          ? t('privacy.dates.legal', { date: dayText(locale, d.legalDeadline.on), note: d.legalDeadline.note ?? '' })
+          : t('privacy.dates.legalNone')}
+      </li>
+      {d.calendarVersion !== null && d.targetsVersion !== null ? (
+        <li>{t('privacy.dates.counted', { calendar: d.calendarVersion, targets: d.targetsVersion })}</li>
+      ) : null}
+      {isOpen(r.state) ? <li>{t('privacy.dates.noAutoClose')}</li> : null}
+    </ul>
+  )
+}
+
+/**
+ * The Owner's changes of an open request's dates (TSK-0136): extend the internal target with the reason the customer
+ * sees, or record the legal deadline the attorney defines (empty clears it). No fresh sign-in (PROPOSED).
+ */
+function DateChange({
+  t,
+  d,
+  kind,
+  fetchImpl,
+  onDone,
+}: {
+  t: T
+  d: PrivacyRequestDetail
+  kind: 'extension' | 'legal'
+  fetchImpl: Fetch
+  onDone: () => void
+}) {
+  const ids = useId()
+  const [date, setDate] = useState(kind === 'legal' ? (d.deadlines.legalDeadline.on ?? '') : '')
+  const [text, setText] = useState('')
+  const [pending, setPending] = useState(false)
+  const [outcome, setOutcome] = useState<{ ok: true } | { ok: false; reasons: string[] } | null>(null)
+  const extension = kind === 'extension'
+  const missing = !text.trim() || (extension && !date)
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    if (missing) return
+    setPending(true)
+    const r = await call<{ version: number }>(
+      fetchImpl,
+      `/staff/privacy-requests/${d.id}/${extension ? 'extension' : 'legal-deadline'}`,
+      {
+        method: extension ? 'POST' : 'PUT',
+        body: extension ? { targetOn: date, reason: text } : { on: date || null, note: text },
+        headers: { 'idempotency-key': idempotencyKey(), 'if-match': `"${d.version}"` },
+      },
+    )
+    setPending(false)
+    if (!r.ok) return setOutcome({ ok: false, reasons: reasons(t, r.error) })
+    setOutcome({ ok: true })
+    setText('')
+    onDone()
+  }
+  return (
+    <form
+      className="staff-privacy__decision"
+      aria-labelledby={`${ids}-title`}
+      onSubmit={(e) => void submit(e)}
+      data-testid={extension ? 'privacy-extend' : 'privacy-legal-deadline'}
+    >
+      <h3 id={`${ids}-title`} className="staff-queue__title">
+        {t(extension ? 'privacy.extend.title' : 'privacy.legal.title')}
+      </h3>
+      <p>{t(extension ? 'privacy.extend.intro' : 'privacy.legal.intro')}</p>
+      <Field
+        label={t(extension ? 'privacy.extend.date' : 'privacy.legal.date')}
+        type="date"
+        name={`${kind}-date`}
+        value={date}
+        onChange={(e) => setDate(e.target.value)}
+      />
+      <Field
+        label={t(extension ? 'privacy.extend.reason' : 'privacy.legal.note')}
+        multiline
+        name={`${kind}-text`}
+        value={text}
+        maxLength={1000}
+        onChange={(e) => setText(e.target.value)}
+      />
+      <div className="hh-button-row">
+        <Button
+          type="submit"
+          variant="secondary"
+          pending={pending}
+          {...(missing ? { disabledReason: t('privacy.change.fieldsFirst') } : {})}
+        >
+          {t(extension ? 'privacy.extend.submit' : 'privacy.legal.submit')}
+        </Button>
+      </div>
+      {outcome?.ok ? (
+        <StateView kind="success" title={t(extension ? 'privacy.extend.done' : 'privacy.legal.done')} />
+      ) : null}
+      {outcome && !outcome.ok ? (
+        <StateView kind="error" title={t('privacy.change.refused')} reasons={outcome.reasons} />
+      ) : null}
+    </form>
+  )
+}
 
 export function privacyQuery(state: string, cursor?: string): string {
   const q = new URLSearchParams()
@@ -199,8 +383,16 @@ function Detail({
         <li>{t(d.account ? 'privacy.detail.fromAccount' : 'privacy.detail.fromLink')}</li>
         <li>{t('privacy.detail.identity')}</li>
         <li>{t('privacy.detail.submitted', { time: time.format(new Date(d.submittedAt)) })}</li>
-        <li>{t('privacy.detail.deadline')}</li>
       </ul>
+      <h3 className="staff-queue__title">{t('privacy.dates.title')}</h3>
+      <Alerts t={t} d={d.deadlines} />
+      <Dates t={t} locale={locale} r={d} />
+      {isOpen(d.state) && d.deadlines.state === 'CONFIGURED' ? (
+        <>
+          <DateChange t={t} d={d} kind="extension" fetchImpl={fetchImpl} onDone={() => void load()} />
+          <DateChange t={t} d={d} kind="legal" fetchImpl={fetchImpl} onDone={() => void load()} />
+        </>
+      ) : null}
       {d.details ? (
         <>
           <h3 className="staff-queue__title">{t('privacy.detail.details')}</h3>
@@ -352,6 +544,7 @@ export function PrivacyScreen({
   locale,
   fetchImpl,
   href,
+  requestId,
   onSession,
 }: {
   t: T
@@ -359,6 +552,8 @@ export function PrivacyScreen({
   fetchImpl: Fetch
   /** TSK-0149: the link to help with customer access below this screen. */
   href?: (path: string) => string
+  /** TSK-0136: one request, opened from its Owner Decisions item. */
+  requestId?: string
   onSession?: (s: { csrfToken: string }) => void
 }) {
   const ids = useId()
@@ -394,6 +589,27 @@ export function PrivacyScreen({
     setCursor(r.data.nextCursor)
   }
   const time = new Intl.DateTimeFormat(bcp47(locale), { dateStyle: 'medium', timeStyle: 'short' })
+  if (requestId)
+    return (
+      <section className="staff-screen staff-privacy" aria-labelledby="staff-screen-title">
+        <h1 id="staff-screen-title" className="hh-h3">
+          {t('nav.privacy')}
+        </h1>
+        {href ? (
+          <p>
+            <a href={href('/privacy')}>{t('privacy.backToList')}</a>
+          </p>
+        ) : null}
+        <Detail
+          t={t}
+          locale={locale}
+          id={requestId}
+          fetchImpl={fetchImpl}
+          {...(onSession ? { onSession } : {})}
+          onChanged={() => setReload((n) => n + 1)}
+        />
+      </section>
+    )
   return (
     <section className="staff-screen staff-privacy" aria-labelledby="staff-screen-title">
       <h1 id="staff-screen-title" className="hh-h3">
@@ -450,7 +666,14 @@ export function PrivacyScreen({
               <ul className="staff-queue__facts">
                 <li>{t('privacy.detail.customer', { name: r.customer.name, project: r.project.reference })}</li>
                 <li>{t('privacy.detail.submitted', { time: time.format(new Date(r.submittedAt)) })}</li>
+                {isOpen(r.state) && r.deadlines.acknowledgmentDueOn && !r.deadlines.substantiveAcknowledgedAt ? (
+                  <li>{t('privacy.dates.ackDue', { date: dayText(locale, r.deadlines.acknowledgmentDueOn) })}</li>
+                ) : null}
+                {isOpen(r.state) && r.deadlines.targetOn ? (
+                  <li>{t('privacy.dates.target', { date: dayText(locale, r.deadlines.targetOn) })}</li>
+                ) : null}
               </ul>
+              <Alerts t={t} d={r.deadlines} />
               <Button variant="secondary" onClick={() => setOpen(open === r.id ? null : r.id)}>
                 {t(open === r.id ? 'privacy.close' : 'privacy.open')}
               </Button>

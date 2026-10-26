@@ -167,6 +167,8 @@ export {
   type VisitOutcomeProblem,
 } from './visit-outcome.js'
 export * from './local-time.js'
+// TSK-0136: the internal business-day calendar and the privacy-request dates counted on it.
+export * from './business-calendar.js'
 export * from './zones.js'
 export {
   CANCELLATION_INITIATORS,

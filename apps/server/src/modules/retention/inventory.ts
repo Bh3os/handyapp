@@ -742,6 +742,13 @@ export const TABLES = {
     classes: ['logs_audit'],
     categories: [NS],
   },
+  // TSK-0136 (0103): the Owner's extensions of a request's internal target; the reason is what the customer is told.
+  'privacy.privacy_request_extensions': {
+    holds:
+      "The Owner's extensions of a privacy request's internal target: the dates and the reason the customer is told",
+    classes: ['logs_audit'],
+    categories: [NS],
+  },
   'privacy.privacy_requests': {
     holds:
       "Customers' export, correction and deletion requests: the requester, identity confirmation, the customer's " +

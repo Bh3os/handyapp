@@ -1674,6 +1674,18 @@ export interface PrivacyDeletionsTable {
   erasure_txid: ColumnType<string, bigint | number | string | undefined, bigint | number | string>
 }
 
+export interface PrivacyPrivacyRequestExtensionsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  privacy_request_id: string
+  previous_target_on: string
+  target_on: string
+  reason: string
+  decided_by: string
+  decided_at: ColumnType<Date, Date | string | undefined, Date | string>
+  request_id: string
+}
+
 export interface PrivacyPrivacyRequestsTable {
   id: Generated<string>
   reference: Generated<string>
@@ -1699,6 +1711,17 @@ export interface PrivacyPrivacyRequestsTable {
   access_closed: boolean | null
   version: Generated<number>
   request_id: string
+  received_on: string | null
+  time_zone: string | null
+  calendar_version: number | null
+  targets_version: number | null
+  acknowledged_at: Timestamp | null
+  acknowledgment_due_on: string | null
+  target_due_on: string | null
+  legal_deadline_on: string | null
+  legal_deadline_note: string | null
+  legal_deadline_recorded_at: Timestamp | null
+  legal_deadline_recorded_by: string | null
 }
 
 export interface PrivacyRetentionDecisionsTable {
@@ -3011,6 +3034,7 @@ export interface Database {
   'platform.schema_migration': PlatformSchemaMigrationTable
   'platform.webhook_receipts': PlatformWebhookReceiptsTable
   'privacy.deletions': PrivacyDeletionsTable
+  'privacy.privacy_request_extensions': PrivacyPrivacyRequestExtensionsTable
   'privacy.privacy_requests': PrivacyPrivacyRequestsTable
   'privacy.retention_decisions': PrivacyRetentionDecisionsTable
   'privacy.retention_reviews': PrivacyRetentionReviewsTable
