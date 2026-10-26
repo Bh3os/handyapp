@@ -12,6 +12,7 @@ links:
   uses: ["[[FACT-RETENTION-SCHEDULE]]", "[[ENT-Request]]", "[[ENT-ConsentPreference]]", "[[ENT-Photo]]", "[[ENT-Message]]", "[[ENT-RetentionReview]]"]
   tested_by: ["[[T72]]"]
   part_of: ["[[C11]]"]
+  related: ["[[OQ-REQUEST-ERASURE-DETAILS]]"]
 source: "OWN-DEC-176 (new behaviour; no guide id)"
 ---
 - After the retention eligibility check and the Owner's confirmation, a request that never became a job loses every personal field: name, contact values, address, descriptions and answers, photos and their files, notes, conversations, personal metadata, temporary files and access tokens.

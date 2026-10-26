@@ -202,6 +202,8 @@ export const LABEL_FAMILIES = {
     'question_reminder_first',
     'question_reminder_final',
     'no_response_close_available',
+    // TSK-0148: a question reminder that failed to deliver, for staff follow-up.
+    'question_reminder_failed',
     'assignee_disabled',
     'availability_changed',
     'equipment_retired',
@@ -393,6 +395,7 @@ export const LABEL_FAMILIES = {
     'legal.sms_terms',
     'legal.website_terms',
     'legal.sms_disclosure',
+    'legal.sms_verification_disclosure',
     'legal.estimate_terms',
     'retention.audit_log',
     'retention.requests_not_converted',
@@ -462,6 +465,8 @@ export const LABEL_FAMILIES = {
     'not_a_fit_owner_review',
     // TSK-0051 (OWN-DEC-101).
     'close_no_response',
+    // TSK-0148 (OWN-DEC-197 E5): staff reopened a "Closed—no response" request.
+    'reopen',
   ],
   /** Project lifecycle states (the project.lifecycle machine, PROPOSED). */
   projectState: ['open', 'approved', 'completed', 'closed', 'cancellation_review', 'canceled'],
@@ -499,9 +504,9 @@ export const LABEL_FAMILIES = {
   /** A merge or relink (crm.record_links, TSK-0046): in effect, reversed by the Owner, or replaced by a later relink. */
   recordLinkState: ['current', 'reversed', 'replaced'],
   /** Consent records (ENT-ConsentPreference; apps/server/src/modules/notifications/consent.ts). */
-  consentPurpose: ['service_communication', 'transactional_sms', 'marketing'],
+  consentPurpose: ['service_communication', 'transactional_sms', 'marketing', 'sms_verification'],
   consentChannel: ['email', 'sms'],
-  consentSource: ['request_form', 'portal', 'sms_keyword', 'provider_suppression', 'staff_recorded'],
+  consentSource: ['request_form', 'receipt', 'portal', 'sms_keyword', 'provider_suppression', 'staff_recorded'],
   consentState: ['granted', 'withdrawn', 'none'],
   /** Fields a staff edit of a customer or contact changes (crm.record_changes). */
   recordField: ['displayName', 'fullName', 'email', 'phone', 'preferredChannel'],
@@ -619,6 +624,10 @@ export const LABEL_FAMILIES = {
     'QUESTION_ANSWERED',
     'REQUEST_CLOSED',
     'NO_DRAFT',
+    // TSK-0148 (OWN-DEC-197 E4, E5; OWN-DEC-208).
+    'REMINDER_FAILED',
+    'CUSTOMER_REPLIED',
+    'PROJECT_NOT_CLOSED',
   ],
   /** Staff questions to the customer (TSK-0051; apps/server/src/modules/questions). */
   questionKind: ['general', 'measurement'],
@@ -1137,6 +1146,8 @@ export const LABEL_FAMILIES = {
     'audit_append_only',
     'record_missing',
     'already_deleted',
+    // TSK-0137.
+    'linked_records',
   ],
   /** TSK-0100: what goes with a deleted record or stays (the confirmation and the log's counts). */
   deletionKind: [
@@ -1156,11 +1167,34 @@ export const LABEL_FAMILIES = {
     'sessions',
     'project_links',
     'access_links',
+    // TSK-0137: a request that never became a job (privacy/request-erasure.ts).
+    'request_submission',
+    'request_answers',
+    'photos',
+    'internal_notes',
+    'questions',
+    'conversations',
+    'message_deliveries',
+    'handling_history',
+    'work_packages',
+    'discount_requests',
+    'estimates',
+    'publication_approvals',
+    'project_details',
+    'help_requests',
+    'stored_responses',
+    'waiting_jobs',
+    'project_record',
+    'customer_profile',
+    'property_record',
+    'request_remainder',
+    'consent_evidence',
+    'revoked_sessions',
   ],
   /** TSK-0100: where a deletion decision came from (privacy.deletions.source). */
   deletionSource: ['retention_review', 'privacy_request', 'restore_reapply'],
   /** TSK-0100: the record types the deletion log names. */
-  deletionRecordType: ['estimate', 'customer_account'],
+  deletionRecordType: ['estimate', 'customer_account', 'request'],
   /** TSK-0100: privacy request kinds and states (ENT-PrivacyRequest). */
   privacyRequestKind: ['export', 'correction', 'deletion'],
   privacyRequestState: ['received', 'under_review', 'completed', 'partially_completed', 'declined'],

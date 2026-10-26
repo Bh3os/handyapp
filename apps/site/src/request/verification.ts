@@ -4,6 +4,9 @@
 //   answers only about the request's own contact. A reference number is never sent.
 // - The server says what each channel's state is; this file only turns its answers into the customer's words. Every
 //   wrong, expired or used code gets the same message, so the page never says which.
+// - TSK-0134 (OWN-DEC-178): the server also says whether the receipt offers the consent to a one-time verification code
+//   by text (smsCodeConsent). Agreeing sends the disclosure version the page showed (SMS_VERIFICATION_DISCLOSURE).
+import { SMS_VERIFICATION_DISCLOSURE } from '@handyhub/domain/legal'
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import type { StatusTone } from '@handyhub/ui'
 
@@ -18,7 +21,9 @@ export type ChannelStatus = {
   available: boolean
   change: { destination: string; state: 'pending' | 'expired' | 'failed' } | null
 }
-export type ContactStatus = Record<Channel, ChannelStatus>
+/** TSK-0134: not_needed (the request's SMS opt-in is current), offered (the checkbox is shown) or recorded. */
+export type SmsCodeConsent = 'not_needed' | 'offered' | 'recorded'
+export type ContactStatus = Record<Channel, ChannelStatus> & { smsCodeConsent: SmsCodeConsent }
 
 /** The capability token as the server issues it (43 base64url characters). */
 export const CAPABILITY_PATTERN = /^[A-Za-z0-9_-]{43}$/
@@ -83,10 +88,14 @@ export function offerAccount(status: ContactStatus | null, declined: boolean): b
 const isState = (s: unknown): s is VerificationState =>
   s === 'unverified' || s === 'pending' || s === 'verified' || s === 'expired' || s === 'failed'
 
+const isConsent = (s: unknown): s is SmsCodeConsent => s === 'not_needed' || s === 'offered' || s === 'recorded'
+
 /** Reads the server's status defensively; anything else is no status. */
 export function parseStatus(raw: unknown): ContactStatus | null {
   if (typeof raw !== 'object' || raw === null) return null
-  const out = {} as ContactStatus
+  const smsCodeConsent = (raw as Record<string, unknown>).smsCodeConsent
+  if (!isConsent(smsCodeConsent)) return null
+  const out = { smsCodeConsent } as ContactStatus
   for (const channel of CHANNELS) {
     const c = (raw as Record<string, unknown>)[channel] as Record<string, unknown> | undefined
     if (!c || typeof c.destination !== 'string' || !isState(c.state) || typeof c.available !== 'boolean') return null
@@ -166,6 +175,15 @@ export const api = {
         ? { contact, changed: verified.changed === true, projectAccess: verified.projectAccess === true }
         : null
     }),
+  /** TSK-0134: the guest checked the receipt's box; records the consent to a verification code by text (no code). */
+  smsConsent: (f: Fetch, cap: string) =>
+    call(
+      f,
+      cap,
+      '/contact/sms-consent',
+      { method: 'POST', body: { agreed: true, disclosureVersion: SMS_VERIFICATION_DISCLOSURE.documentId } },
+      contactOf,
+    ),
   decline: (f: Fetch, cap: string) =>
     call(f, cap, '/account-offer/decline', { method: 'POST', body: {} }, () => true as const),
 }

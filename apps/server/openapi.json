@@ -11409,7 +11409,7 @@
       "get": {
         "operationId": "listCustomerQuestions",
         "summary": "Questions from HandyHub",
-        "description": "The questions HandyHub published in a project the caller’s session opens (HH-LEAD-03), oldest first: each text exactly as staff wrote it, whether it is a measurement (a reply may say \"I’m not sure\"), when it was asked, whether it waits on the customer and whether a reply can be sent now, and the customer’s own reply (text as written, \"I’m not sure\", attached photos counted by state). replyWindow says whether replies are open, reopen a \"Closed—no response\" request (until reopenUntil), or are no longer possible. Never an author, a delivery or a reminder. Authorized by request.reply (ROLE-MATRIX \"Reply to a question\"). Any other project, an unknown or a malformed reference is the same NOT_FOUND (T19).",
+        "description": "The questions HandyHub published in a project the caller’s session opens (HH-LEAD-03), oldest first: each text exactly as staff wrote it, whether it is a measurement, whether a reply may say \"I’m not sure\" (notSureAllowed, TSK-0148), when it was asked, whether it waits on the customer and whether a reply can be sent now, and the customer’s own reply (text as written, \"I’m not sure\", attached photos counted by state). replyWindow says whether replies are open, reopen a \"Closed—no response\" request (until reopenUntil), or are no longer possible. Never an author, a delivery or a reminder. Authorized by request.reply (ROLE-MATRIX \"Reply to a question\"). Any other project, an unknown or a malformed reference is the same NOT_FOUND (T19).",
         "tags": [
           "questions"
         ],
@@ -11462,6 +11462,7 @@
                         "required": [
                           "id",
                           "kind",
+                          "notSureAllowed",
                           "text",
                           "askedAt",
                           "state",
@@ -11478,6 +11479,9 @@
                               "general",
                               "measurement"
                             ]
+                          },
+                          "notSureAllowed": {
+                            "type": "boolean"
                           },
                           "text": {
                             "type": "string"
@@ -11662,7 +11666,7 @@
       "post": {
         "operationId": "replyToQuestion",
         "summary": "Reply to a question",
-        "description": "For the verified customer of the project (request.reply). The reply to one open question: text exactly as written, \"I’m not sure\" (measurement questions only), and the photos uploaded under this reply’s capability (Upload-Capability header; received or still processing; a rejected or unknown photo is refused). At least one of them. Card numbers are refused. The question is answered and its reminders stop; other questions stay open. The last open question answered moves a request waiting on the customer back to HandyHub’s review; a \"Closed—no response\" request within the reopen period (request.reopen_period) is reopened, keeping its history and restoring nothing else. The responsible staff member is notified (queue item and automatic staff notification). With the same Idempotency-Key a retried reply returns the first answer and records nothing more. CONFLICT ALREADY_ANSWERED, REQUEST_CLOSED, REOPEN_PERIOD_ENDED. The audit event never holds the text.",
+        "description": "For the verified customer of the project (request.reply). The reply to one open question: text exactly as written, \"I’m not sure\" (only where staff offered it, notSureAllowed; TSK-0148), and the photos uploaded under this reply’s capability (Upload-Capability header; received or still processing; a rejected or unknown photo is refused). At least one of them. Card numbers are refused. The question is answered and its reminders stop; other questions stay open. The last open question answered moves a request waiting on the customer back to HandyHub’s review; a \"Closed—no response\" request within the reopen period (request.reopen_period) is reopened, keeping its history and restoring nothing else. The responsible staff member is notified (queue item and automatic staff notification). With the same Idempotency-Key a retried reply returns the first answer and records nothing more. CONFLICT ALREADY_ANSWERED, REQUEST_CLOSED, REOPEN_PERIOD_ENDED. The audit event never holds the text.",
         "tags": [
           "questions"
         ],
@@ -16820,7 +16824,7 @@
       "get": {
         "operationId": "getReceiptContact",
         "summary": "The receipt's contact verification",
-        "description": "Under the Receipt-Capability header: the request's own email and phone, masked, each with its own verification state (unverified, pending, verified, expired, failed), whether a code can be sent on it (texts need this request’s SMS opt-in), and an email change waiting for its code. Never another record, account or history.",
+        "description": "Under the Receipt-Capability header: the request's own email and phone, masked, each with its own verification state (unverified, pending, verified, expired, failed), whether a code can be sent on it (texts need this request’s SMS opt-in or its receipt consent to codes by text), and an email change waiting for its code. TSK-0134: smsCodeConsent says whether the receipt offers the consent to a verification code by text (offered), recorded it (recorded) or does not need it (not_needed: the request’s SMS opt-in is current). Never another record, account or history.",
         "tags": [
           "verification"
         ],
@@ -16835,7 +16839,8 @@
                   "additionalProperties": false,
                   "required": [
                     "email",
-                    "phone"
+                    "phone",
+                    "smsCodeConsent"
                   ],
                   "properties": {
                     "email": {
@@ -16941,6 +16946,14 @@
                           }
                         }
                       }
+                    },
+                    "smsCodeConsent": {
+                      "type": "string",
+                      "enum": [
+                        "not_needed",
+                        "offered",
+                        "recorded"
+                      ]
                     }
                   }
                 }
@@ -17021,7 +17034,7 @@
       "post": {
         "operationId": "sendReceiptContactCode",
         "summary": "Send or resend a verification code",
-        "description": "Sends a one-time code (the automatic message contact.verification_code, OWN-DEC-150) to the request’s email or, with this request’s SMS opt-in, by text to its phone. With `destination` (email only, while unverified) the code goes to the new address and the contact changes only when that code is entered (Change Contact). The code lifetime and the attempt, resend and per-address limits come from session.timings and verification.limits (TSK-0016): a resend inside the cooldown or over a limit is a neutral 429 with Retry-After; while the code key or those values are NOT CONFIGURED, 503 and nothing is sent. Refusals: 400 with already_verified, sms_not_permitted, invalid_destination or change_not_available.",
+        "description": "Sends a one-time code (the automatic message contact.verification_code, OWN-DEC-150) to the request’s email or, with this request’s SMS opt-in or its recorded receipt consent to codes by text (TSK-0134), by text to its phone; without either, sms_not_permitted and no code. With `destination` (email only, while unverified) the code goes to the new address and the contact changes only when that code is entered (Change Contact). The code lifetime and the attempt, resend and per-address limits come from session.timings and verification.limits (TSK-0016): a resend inside the cooldown or over a limit is a neutral 429 with Retry-After; while the code key or those values are NOT CONFIGURED, 503 and nothing is sent. Refusals: 400 with already_verified, sms_not_permitted, invalid_destination or change_not_available.",
         "tags": [
           "verification"
         ],
@@ -17100,7 +17113,8 @@
                       "additionalProperties": false,
                       "required": [
                         "email",
-                        "phone"
+                        "phone",
+                        "smsCodeConsent"
                       ],
                       "properties": {
                         "email": {
@@ -17206,6 +17220,14 @@
                               }
                             }
                           }
+                        },
+                        "smsCodeConsent": {
+                          "type": "string",
+                          "enum": [
+                            "not_needed",
+                            "offered",
+                            "recorded"
+                          ]
                         }
                       }
                     }
@@ -17318,11 +17340,11 @@
         }
       }
     },
-    "/api/v1/public/request-receipt/contact/verify": {
+    "/api/v1/public/request-receipt/contact/sms-consent": {
       "post": {
-        "operationId": "verifyReceiptContact",
-        "summary": "Enter a verification code",
-        "description": "Checks the code of the channel’s latest send. A match marks that exact value verified (an email change then replaces the old address); the other channel is never touched. A wrong, expired, replaced, used or exhausted code is the same neutral 400 (field body.code, invalid_code); the attempt is counted and kept (the refusal commits), so the configured attempt limit holds. Verifying links nothing to any other record. TSK-0034: a match also starts this browser’s customer session for the request’s one project (Set-Cookie; projectAccess true), from the project’s live access grant; a verified email change first revokes the project’s grants and their sessions and issues a new grant. Without a usable grant, projectAccess is false.",
+        "operationId": "recordReceiptSmsCodeConsent",
+        "summary": "Agree to a one-time verification code by text",
+        "description": "TSK-0134 (OWN-DEC-178, OWN-DEC-190 opt-in point B): the guest checked the receipt’s separate, unchecked box “I agree to receive a one-time SMS verification code from HandyHub at the phone number provided.” Records an append-only consent of purpose sms_verification for the request’s current phone number with the disclosure version shown (a published legal.sms_verification_disclosure), the time and as evidence this request, the receipt capability and the HTTP request; agreeing again while it is current records nothing new. It permits the verification code message only: never another text, never the SMS opt-in, never marketing; STOP ends it. No code is sent here. Refusals: 400 with already_verified (body.agreed), not_needed (the request’s SMS opt-in is current) or unknown_version (body.disclosureVersion).",
         "tags": [
           "verification"
         ],
@@ -17335,21 +17357,18 @@
                 "type": "object",
                 "additionalProperties": false,
                 "required": [
-                  "channel",
-                  "code"
+                  "agreed",
+                  "disclosureVersion"
                 ],
                 "properties": {
-                  "channel": {
-                    "type": "string",
-                    "enum": [
-                      "email",
-                      "phone"
-                    ]
+                  "agreed": {
+                    "type": "boolean",
+                    "const": true
                   },
-                  "code": {
+                  "disclosureVersion": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 20
+                    "maxLength": 100
                   }
                 }
               }
@@ -17365,40 +17384,20 @@
                   "type": "object",
                   "additionalProperties": false,
                   "required": [
-                    "verified",
+                    "recorded",
                     "contact"
                   ],
                   "properties": {
-                    "verified": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "channel",
-                        "changed",
-                        "projectAccess"
-                      ],
-                      "properties": {
-                        "channel": {
-                          "type": "string",
-                          "enum": [
-                            "email",
-                            "phone"
-                          ]
-                        },
-                        "changed": {
-                          "type": "boolean"
-                        },
-                        "projectAccess": {
-                          "type": "boolean"
-                        }
-                      }
+                    "recorded": {
+                      "type": "boolean"
                     },
                     "contact": {
                       "type": "object",
                       "additionalProperties": false,
                       "required": [
                         "email",
-                        "phone"
+                        "phone",
+                        "smsCodeConsent"
                       ],
                       "properties": {
                         "email": {
@@ -17504,6 +17503,321 @@
                               }
                             }
                           }
+                        },
+                        "smsCodeConsent": {
+                          "type": "string",
+                          "enum": [
+                            "not_needed",
+                            "offered",
+                            "recorded"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "guest",
+            "customer"
+          ],
+          "permission": "request.submit",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "public-sms-code-consent",
+            "limit": 30,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "contact_verification.sms_code_consent",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/contact-verification.test.ts"
+        }
+      }
+    },
+    "/api/v1/public/request-receipt/contact/verify": {
+      "post": {
+        "operationId": "verifyReceiptContact",
+        "summary": "Enter a verification code",
+        "description": "Checks the code of the channel’s latest send. A match marks that exact value verified (an email change then replaces the old address); the other channel is never touched. A wrong, expired, replaced, used or exhausted code is the same neutral 400 (field body.code, invalid_code); the attempt is counted and kept (the refusal commits), so the configured attempt limit holds. Verifying links nothing to any other record. TSK-0034: a match also starts this browser’s customer session for the request’s one project (Set-Cookie; projectAccess true), from the project’s live access grant; a verified email change first revokes the project’s grants and their sessions and issues a new grant. Without a usable grant, projectAccess is false.",
+        "tags": [
+          "verification"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "channel",
+                  "code"
+                ],
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "email",
+                      "phone"
+                    ]
+                  },
+                  "code": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "verified",
+                    "contact"
+                  ],
+                  "properties": {
+                    "verified": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "channel",
+                        "changed",
+                        "projectAccess"
+                      ],
+                      "properties": {
+                        "channel": {
+                          "type": "string",
+                          "enum": [
+                            "email",
+                            "phone"
+                          ]
+                        },
+                        "changed": {
+                          "type": "boolean"
+                        },
+                        "projectAccess": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "contact": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "email",
+                        "phone",
+                        "smsCodeConsent"
+                      ],
+                      "properties": {
+                        "email": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "destination",
+                            "state",
+                            "available",
+                            "change"
+                          ],
+                          "properties": {
+                            "destination": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "unverified",
+                                "pending",
+                                "verified",
+                                "expired",
+                                "failed"
+                              ]
+                            },
+                            "available": {
+                              "type": "boolean"
+                            },
+                            "change": {
+                              "type": [
+                                "object",
+                                "null"
+                              ],
+                              "additionalProperties": false,
+                              "required": [
+                                "destination",
+                                "state"
+                              ],
+                              "properties": {
+                                "destination": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "pending",
+                                    "expired",
+                                    "failed"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "phone": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "destination",
+                            "state",
+                            "available",
+                            "change"
+                          ],
+                          "properties": {
+                            "destination": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "unverified",
+                                "pending",
+                                "verified",
+                                "expired",
+                                "failed"
+                              ]
+                            },
+                            "available": {
+                              "type": "boolean"
+                            },
+                            "change": {
+                              "type": [
+                                "object",
+                                "null"
+                              ],
+                              "additionalProperties": false,
+                              "required": [
+                                "destination",
+                                "state"
+                              ],
+                              "properties": {
+                                "destination": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "pending",
+                                    "expired",
+                                    "failed"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "smsCodeConsent": {
+                          "type": "string",
+                          "enum": [
+                            "not_needed",
+                            "offered",
+                            "recorded"
+                          ]
                         }
                       }
                     }
@@ -43731,6 +44045,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -45895,6 +46210,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -48339,6 +48655,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -50356,6 +50673,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -52549,6 +52867,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -54566,6 +54885,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -56950,6 +57270,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -59156,6 +59477,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -61353,6 +61675,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -63550,6 +63873,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -65752,6 +66076,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -68247,6 +68572,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -70444,6 +70770,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -72846,6 +73173,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -162260,7 +162588,7 @@
       "post": {
         "operationId": "closeRequestNoResponse",
         "summary": "Close the request \"Closed—no response\"",
-        "description": "Staff with request.close_no_response (PROPOSED: the request-handling row), inside the caller’s scope (otherwise NOT_FOUND), with the request’s version (If-Match). Only an unbooked request waiting on the customer (\"needs information\") whose unanswered questions all had their final reminder actually sent (and still standing), at least the configured hours ago (reminders.cadences.unansweredQuestion.closeAfterFinalHours, 24, OWN-DEC-101). With accepted work, an appointment or money received it is refused (OWNER_REVIEW_REQUIRED): this rule never cancels accepted, scheduled or paid work. The request and project close with their history; open reminders are cancelled; a customer reply within the reopen period (request.reopen_period) reopens the same request. CONFLICT codes: INVALID_TRANSITION, NO_OPEN_QUESTION, FACTS_MISSING (a final reminder not sent), TOO_EARLY, CONFIG_MISSING, OWNER_REVIEW_REQUIRED.",
+        "description": "Staff with request.close_no_response (PROPOSED: the request-handling row), inside the caller’s scope (otherwise NOT_FOUND), with the request’s version (If-Match). Only an unbooked request waiting on the customer (\"needs information\") whose unanswered questions all had their one reminder actually sent (a delivery sent or delivered now; queued or scheduled never counts), at least the configured hours after the latest such send (reminders.cadences.unansweredQuestion.closeAfterReminderHours, 24, OWN-DEC-208). A reminder whose deliveries all failed is staff follow-up (REMINDER_FAILED), never customer non-response. A customer response since that send, or one staff have not reviewed yet, keeps it open (CUSTOMER_REPLIED). With accepted work, an appointment or a recorded payment it is refused (OWNER_REVIEW_REQUIRED): this rule never cancels accepted, scheduled or paid work. The request and project close with their history; open reminders are cancelled; a customer reply within the reopen period (request.reopen_period) reopens the same request. CONFLICT codes: INVALID_TRANSITION, NO_OPEN_QUESTION, REMINDER_FAILED, FINAL_REMINDER_NOT_SENT, TOO_EARLY, CONFIG_MISSING, CUSTOMER_REPLIED, OWNER_REVIEW_REQUIRED.",
         "tags": [
           "questions"
         ],
@@ -163239,6 +163567,231 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/staff-requests.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/requests/{requestId}/actions/reopen": {
+      "post": {
+        "operationId": "reopenRequest",
+        "summary": "Reopen a \"Closed—no response\" request",
+        "description": "TSK-0148 (OWN-DEC-197 E5): staff with request.reopen (PROPOSED: the request-handling row, the roles that may close it), inside the caller’s scope (otherwise NOT_FOUND), with the request’s version (If-Match) and a written reason (kept staff-only in the decision history). A \"Closed—no response\" request goes back to HandyHub’s review and its project reopens, within the reopen period or after it (afterPeriod says which); the history is kept and nothing else is restored (no expired estimate or appointment, no reminder). The customer’s unanswered questions can be answered again. CONFLICT codes: INVALID_TRANSITION, PROJECT_NOT_CLOSED, REASON_REQUIRED.",
+        "tags": [
+          "questions"
+        ],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "requestId",
+                    "state",
+                    "version",
+                    "projectState",
+                    "afterPeriod"
+                  ],
+                  "properties": {
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "projectState": {
+                      "type": "string"
+                    },
+                    "afterPeriod": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "request.reopen",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "request.reopen",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/questions.test.ts"
         }
       }
     },
@@ -165900,6 +166453,7 @@
                         "required": [
                           "id",
                           "kind",
+                          "notSureAllowed",
                           "text",
                           "author",
                           "publishedAt",
@@ -165919,6 +166473,9 @@
                               "general",
                               "measurement"
                             ]
+                          },
+                          "notSureAllowed": {
+                            "type": "boolean"
                           },
                           "text": {
                             "type": "string"
@@ -166218,7 +166775,9 @@
                       "required": [
                         "days",
                         "closedAt",
-                        "until"
+                        "until",
+                        "periodEnded",
+                        "allowed"
                       ],
                       "properties": {
                         "days": {
@@ -166238,6 +166797,12 @@
                             "string",
                             "null"
                           ]
+                        },
+                        "periodEnded": {
+                          "type": "boolean"
+                        },
+                        "allowed": {
+                          "type": "boolean"
                         }
                       }
                     },
@@ -166341,7 +166906,7 @@
       "post": {
         "operationId": "publishRequestQuestion",
         "summary": "Publish a question to the customer",
-        "description": "Staff with request.ask_question on the request, inside the caller’s scope (otherwise NOT_FOUND), with the request’s version (If-Match). Publishing is the release (OWN-DEC-98): the question is kept exactly as written (general, or a measurement the customer may answer \"I’m not sure\"), the request moves to \"needs information\" (a received request is moved to review first) or stays there, and question.published is recorded in the same transaction for the automatic notice \"HandyHub has a question about your request. View and reply securely.\", which links to the question through the project’s verified access. The staff member confirms the question never asks the customer to inspect a hazardous area (noHazardInspection). Card numbers are refused. Refused from any other state (CONFLICT INVALID_TRANSITION) or for a project that is not open (PROJECT_NOT_OPEN). The audit event never holds the text.",
+        "description": "Staff with request.ask_question on the request, inside the caller’s scope (otherwise NOT_FOUND), with the request’s version (If-Match). Publishing is the release (OWN-DEC-98): the question is kept exactly as written (general, or a measurement), with whether the customer may answer \"I’m not sure\" (notSureAllowed, any question; a measurement always may, TSK-0148, OWN-DEC-197 E2), the request moves to \"needs information\" (a received request is moved to review first) or stays there, and question.published is recorded in the same transaction for the automatic notice \"HandyHub has a question about your request. View and reply securely.\", which links to the question through the project’s verified access. The staff member confirms the question never asks the customer to inspect a hazardous area (noHazardInspection). Card numbers are refused. Refused from any other state (CONFLICT INVALID_TRANSITION) or for a project that is not open (PROJECT_NOT_OPEN). The audit event never holds the text.",
         "tags": [
           "questions"
         ],
@@ -166399,6 +166964,9 @@
                       "general",
                       "measurement"
                     ]
+                  },
+                  "notSureAllowed": {
+                    "type": "boolean"
                   },
                   "noHazardInspection": {
                     "const": true
@@ -169149,6 +169717,7 @@
                           "record_active",
                           "erasure_not_available",
                           "audit_append_only",
+                          "linked_records",
                           "record_missing",
                           "already_deleted"
                         ]
@@ -169387,6 +169956,7 @@
                           "record_active",
                           "erasure_not_available",
                           "audit_append_only",
+                          "linked_records",
                           "record_missing",
                           "already_deleted"
                         ]
@@ -169775,6 +170345,7 @@
                               "record_active",
                               "erasure_not_available",
                               "audit_append_only",
+                              "linked_records",
                               "record_missing",
                               "already_deleted"
                             ]
@@ -170003,6 +170574,7 @@
                           "record_active",
                           "erasure_not_available",
                           "audit_append_only",
+                          "linked_records",
                           "record_missing",
                           "already_deleted"
                         ]
@@ -175129,6 +175701,7 @@
                               "legal.sms_terms",
                               "legal.website_terms",
                               "legal.sms_disclosure",
+                              "legal.sms_verification_disclosure",
                               "legal.estimate_terms"
                             ]
                           },
@@ -177765,6 +178338,7 @@
                               "legal.sms_terms",
                               "legal.website_terms",
                               "legal.sms_disclosure",
+                              "legal.sms_verification_disclosure",
                               "legal.estimate_terms",
                               "retention.audit_log",
                               "retention.requests_not_converted",

@@ -4,6 +4,7 @@
 //   POST /staff/requests/:requestId/questions                                  publish a question (the release)
 //   POST /staff/requests/:requestId/questions/replies-reviewed                 mark the customer's replies reviewed
 //   POST /staff/requests/:requestId/actions/close-no-response                  "Closed—no response"
+//   POST /staff/requests/:requestId/actions/reopen                             reopen it (TSK-0148)
 // - Publishing is the staff release (OWN-DEC-98): in one transaction the question is kept exactly as written, the
 //   request moves to "needs information" (from review, after a received request is moved to review; from a site
 //   visit or ready-for-estimate request too), and question.published is recorded for the automatic notice. The
@@ -17,8 +18,19 @@
 //   actually sent and while that send still stands (a failed reminder is a delivery issue for staff follow-up), and
 //   never with accepted work, an appointment or money received (OWNER_REVIEW_REQUIRED; OWN-DEC-197 E4, OWN-DEC-208:
 //   accepted, scheduled or paid work is never cancelled under this rule).
+// - TSK-0148 (OWN-DEC-197 E2, E4, E5; OWN-DEC-208):
+//   - E2: staff mark whether the customer may answer "I'm not sure" (notSureAllowed), for any question; a measurement
+//     always allows it (PROPOSED).
+//   - E4: the reminder counts only while one of its deliveries is sent or delivered, 24 hours (configured) after its
+//     earliest such send; a queued or scheduled reminder never counts, however late it is (FINAL_REMINDER_NOT_SENT);
+//     a reminder whose deliveries all failed is staff follow-up (REMINDER_FAILED, and the request's question_reminder
+//     item "question_reminder_failed"); a customer response since the reminder, or one staff have not reviewed yet,
+//     keeps the request open (CUSTOMER_REPLIED, PROPOSED reading).
+//   - E5: POST /staff/requests/:requestId/actions/reopen: an authorized staff member (PROPOSED permission
+//     request.reopen, the request-handling row) reopens a "Closed—no response" request for review with a written
+//     reason, within the reopen period or after it; the history is kept and nothing else is restored.
 import { apply, type RequestState } from '@handyhub/domain'
-import { withTx, type Db, type Tx } from '@handyhub/db'
+import { withTx, type Tx } from '@handyhub/db'
 import { looksLikeCardNumber } from '@handyhub/domain'
 import { decide, type Actor, type DataScope, type StaffActor } from '@handyhub/policy'
 import { sql } from 'kysely'
@@ -28,19 +40,24 @@ import { loadConfig, type Config } from '../../platform/config/index.js'
 import { projectInScope } from '../../platform/data-scope.js'
 import { outbox } from '../../platform/outbox.js'
 import { currentContext } from '../../platform/request-context.js'
-import { resolveQueueItem, syncEstimateItem, syncNewRequestItem } from '../queue/index.js'
+import { openQueueItem, resolveQueueItem, syncEstimateItem, syncNewRequestItem } from '../queue/index.js'
 import { syncReviewHoldItem } from '../requests/holds.js'
 import { DEFAULT_OBLIGATION_CHECKS, obligationFacts, type ObligationCheck } from '../requests/obligations.js'
 import {
   closedNoResponseAt,
+  customerResponded,
+  DAY_MS,
   HOUR_MS,
+  isClosedState,
   noticeSubject,
+  noticeTarget,
   QUESTION_KINDS,
   QUESTION_MAX_LENGTH,
   QUESTION_NOTICE,
   QUESTION_PUBLISHED,
   QUESTION_REMINDER,
   questionCadence,
+  reminderStanding,
   reminderSubjects,
   reopenPeriodDays,
   UUID_RE,
@@ -78,6 +95,7 @@ export const REMINDER_STATES = ['not_scheduled', 'scheduled', 'draft', 'queued',
 const QUESTION = obj({
   id: S,
   kind: { type: 'string', enum: [...QUESTION_KINDS] },
+  notSureAllowed: B,
   text: S,
   author: STAFF,
   publishedAt: S,
@@ -119,7 +137,7 @@ const QUESTIONS_VIEW = obj({
     reasons: arr(S),
     availableAt: NS,
   }),
-  reopen: obj({ days: NI, closedAt: NS, until: NS }),
+  reopen: obj({ days: NI, closedAt: NS, until: NS, periodEnded: B, allowed: B }),
   maxLength: I,
 })
 const PUBLISH_BODY = {
@@ -129,6 +147,8 @@ const PUBLISH_BODY = {
   properties: {
     text: { type: 'string', minLength: 1, maxLength: QUESTION_MAX_LENGTH, pattern: '\\S' },
     kind: { type: 'string', enum: [...QUESTION_KINDS] },
+    // TSK-0148 (OWN-DEC-197 E2): the customer may answer "I'm not sure"; a measurement always may.
+    notSureAllowed: { type: 'boolean' },
     // The hazard guard (OWN-DEC-98): the staff member confirms the question asks for no inspection of a hazard.
     noHazardInspection: { const: true },
   },
@@ -147,6 +167,21 @@ const CLOSE_RESULT = obj({
   projectState: S,
 })
 const REVIEWED_RESULT = obj({ reviewed: B })
+/** The longest reason for reopening (PROPOSED). */
+export const REOPEN_REASON_MAX_LENGTH = 2000
+const REOPEN_BODY = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['reason'],
+  properties: { reason: { type: 'string', minLength: 1, maxLength: REOPEN_REASON_MAX_LENGTH, pattern: '\\S' } },
+} as const
+const REOPEN_RESULT = obj({
+  requestId: S,
+  state: S,
+  version: I,
+  projectState: S,
+  afterPeriod: B,
+})
 
 export type QuestionStaffDeps = {
   obligationChecks?: readonly ObligationCheck[]
@@ -252,50 +287,118 @@ const PUBLISH_FROM: readonly RequestState[] = [
   'ready_for_estimate',
 ]
 
-/** The facts of closing "Closed—no response" now: the unmet requirements, or none, and when it becomes possible. */
-async function closeFacts(db: Db | Tx, requestId: string, config: Config, now: Date) {
-  const open = await db
+/**
+ * Whether "Closed—no response" is possible now (OWN-DEC-197 E4, OWN-DEC-208; TSK-0148): the unmet requirements in
+ * the order staff read them (none when it is possible), when it becomes possible, and the facts of the request
+ * machine. The view and the close route use the same check.
+ * - The reminder of every unanswered question was actually sent: one of its deliveries is sent or delivered now (a
+ *   staff-released one sent before TSK-0121 counts as that reminder); a queued, scheduled or draft reminder never
+ *   counts, however long ago it was due (FINAL_REMINDER_NOT_SENT). A reminder whose deliveries all failed is staff
+ *   follow-up, never customer non-response (REMINDER_FAILED).
+ * - The configured hours passed since the latest of those sends (TOO_EARLY); NOT CONFIGURED refuses (CONFIG_MISSING).
+ * - No customer response since that send, and none waiting for staff review (CUSTOMER_REPLIED).
+ * - No accepted work, appointment or recorded payment (OWNER_REVIEW_REQUIRED).
+ */
+async function closeCheck(
+  tx: Tx,
+  request: { id: string; projectId: string; state: string },
+  config: Config,
+  now: Date,
+  checks: readonly ObligationCheck[],
+) {
+  const reasons: string[] = []
+  if (request.state !== 'needs_information') reasons.push('INVALID_TRANSITION')
+  const open = await tx
     .selectFrom('intake.questions')
-    .select(['id', 'first_reminder_sent_at', 'final_reminder_sent_at'])
-    .where('request_id', '=', requestId)
+    .select('id')
+    .where('request_id', '=', request.id)
     .where('state', '=', 'published')
     .execute()
-  let finalSentAt: Date | undefined
-  let everyFinalSent = open.length > 0
+  let sentAt: Date | null = null
+  let failed = false
+  let unsent = false
   for (const q of open) {
-    // The single reminder (TSK-0121; a staff-released one sent before it counts as that reminder), actually sent and
-    // still standing: a delivery that failed after it was accepted never counts (OWN-DEC-208: staff follow-up).
-    const sentAt = q.final_reminder_sent_at ?? q.first_reminder_sent_at
-    if (!sentAt || !(await reminderStands(db, q.id))) {
-      everyFinalSent = false
-      continue
-    }
-    if (!finalSentAt || sentAt.getTime() > finalSentAt.getTime()) finalSentAt = sentAt
+    const s = await reminderStanding(tx, q.id)
+    if (s.state === 'sent') {
+      if (!sentAt || s.sentAt.getTime() > sentAt.getTime()) sentAt = s.sentAt
+    } else if (s.state === 'failed') failed = true
+    else unsent = true
   }
+  const everySent = open.length > 0 && !failed && !unsent && sentAt !== null
   const cadence = questionCadence(config)
+  const availableAt =
+    everySent && sentAt && cadence ? new Date(sentAt.getTime() + cadence.closeAfterReminderHours * HOUR_MS) : null
+  if (open.length === 0) reasons.push('NO_OPEN_QUESTION')
+  else if (failed) reasons.push('REMINDER_FAILED')
+  else if (!everySent) reasons.push('FINAL_REMINDER_NOT_SENT')
+  else if (!availableAt || availableAt.getTime() > now.getTime()) reasons.push('TOO_EARLY')
+  if (!cadence) reasons.push('CONFIG_MISSING')
+  const responded = await customerResponded(tx, { requestId: request.id, projectId: request.projectId, since: sentAt })
+  if (responded) reasons.push('CUSTOMER_REPLIED')
+  const obligations = await obligationFacts(tx, request.projectId, checks)
+  if (obligations.workAccepted || obligations.appointmentExists || obligations.moneyReceived)
+    reasons.push('OWNER_REVIEW_REQUIRED')
   return {
-    openQuestions: open.length,
-    finalReminderSentAt: everyFinalSent ? finalSentAt : undefined,
-    noResponseCloseHours: cadence?.closeAfterReminderHours,
-    availableAt:
-      everyFinalSent && finalSentAt && cadence
-        ? new Date(finalSentAt.getTime() + cadence.closeAfterReminderHours * HOUR_MS)
-        : null,
-    now,
+    reasons,
+    availableAt,
+    facts: {
+      ...obligations,
+      customerResponded: responded,
+      ...(everySent && sentAt ? { finalReminderSentAt: sentAt } : {}),
+      ...(cadence ? { noResponseCloseHours: cadence.closeAfterReminderHours } : {}),
+    },
   }
 }
 
-/** Whether a reminder of the question is sent or delivered now (any of its subjects). */
-async function reminderStands(db: Db | Tx, questionId: string): Promise<boolean> {
-  const row = await db
-    .selectFrom('platform.message_deliveries')
-    .select('id')
-    .where('message_key', '=', QUESTION_REMINDER)
-    .where('subject_key', 'in', reminderSubjects(questionId))
-    .where('state', 'in', ['sent', 'delivered'])
-    .limit(1)
+/**
+ * Whether an unanswered question of the open request has a reminder whose deliveries all failed (TSK-0148, OWN-DEC-208
+ * "the request goes to staff follow-up instead").
+ */
+export async function reminderFollowUpNeeded(tx: Tx, requestId: string): Promise<boolean> {
+  const open = await tx
+    .selectFrom('intake.questions as q')
+    .innerJoin('intake.requests as r', 'r.id', 'q.request_id')
+    .select(['q.id', 'r.state'])
+    .where('q.request_id', '=', requestId)
+    .where('q.state', '=', 'published')
+    .execute()
+  for (const q of open) {
+    if (isClosedState(q.state)) return false
+    if ((await reminderStanding(tx, q.id)).state === 'failed') return true
+  }
+  return false
+}
+
+/**
+ * The request's question_reminder item follows its reminders' delivery (TSK-0148): a failed reminder opens it as
+ * "question_reminder_failed" (assigned to the responsible staff member, who follows up with the customer another way);
+ * once no reminder of an unanswered question has failed any more, that follow-up is resolved. Other reasons of the
+ * item are left as they are.
+ */
+export async function syncReminderFollowUp(tx: Tx, requestId: string): Promise<void> {
+  if (await reminderFollowUpNeeded(tx, requestId)) {
+    const target = await noticeTarget(tx, requestId)
+    if (!target) return
+    await openQueueItem(tx, {
+      type: 'question_reminder',
+      subjectId: requestId,
+      reason: 'question_reminder_failed',
+      projectId: target.projectId,
+      reference: target.reference,
+      status: target.state,
+      assignedStaffId: target.responsibleStaffId,
+    })
+    return
+  }
+  const item = await tx
+    .selectFrom('ops.queue_items')
+    .select('reason')
+    .where('type', '=', 'question_reminder')
+    .where('subject_id', '=', requestId)
+    .where('resolved_at', 'is', null)
     .executeTakeFirst()
-  return row !== undefined
+  if (item?.reason === 'question_reminder_failed')
+    await resolveQueueItem(tx, { type: 'question_reminder', subjectId: requestId, resolution: 'handled' })
 }
 
 /** Every open reminder of the request's questions (or of one question) is cancelled: nothing old goes out. */
@@ -325,7 +428,10 @@ export async function cancelOpenReminders(tx: Tx, where: { requestId: string } |
   return Number(res.numUpdatedRows)
 }
 
-/** Resolves the request's reminder item once no reminder of its questions waits for release. */
+/**
+ * Resolves the request's reminder item once no reminder of its questions waits for release, unless a failed reminder
+ * of another unanswered question still needs staff follow-up (TSK-0148).
+ */
 export async function syncReminderItem(tx: Tx, requestId: string): Promise<void> {
   const waiting = await tx
     .selectFrom('platform.message_deliveries as d')
@@ -338,7 +444,9 @@ export async function syncReminderItem(tx: Tx, requestId: string): Promise<void>
     .where('q.state', '=', 'published')
     .limit(1)
     .executeTakeFirst()
-  if (!waiting) await resolveQueueItem(tx, { type: 'question_reminder', subjectId: requestId, resolution: 'handled' })
+  if (waiting) return
+  if (await reminderFollowUpNeeded(tx, requestId)) return syncReminderFollowUp(tx, requestId)
+  await resolveQueueItem(tx, { type: 'question_reminder', subjectId: requestId, resolution: 'handled' })
 }
 
 type DeliveryRow = {
@@ -434,6 +542,7 @@ export function questionStaffRoutes(deps: QuestionStaffDeps = {}): RouteDef[] {
         .select([
           'q.id',
           'q.kind',
+          'q.not_sure_allowed',
           'q.body',
           'q.author_staff_id',
           's.display_name',
@@ -499,6 +608,7 @@ export function questionStaffRoutes(deps: QuestionStaffDeps = {}): RouteDef[] {
         return {
           id: q.id,
           kind: q.kind as QuestionKind,
+          notSureAllowed: q.not_sure_allowed,
           text: q.body,
           author: { id: q.author_staff_id, name: q.display_name },
           publishedAt: q.published_at.toISOString(),
@@ -542,17 +652,16 @@ export function questionStaffRoutes(deps: QuestionStaffDeps = {}): RouteDef[] {
       })
       // Closing now: the same checks as the close route, read without locks.
       const closeAllowed = allowed(actor, 'request.close_no_response', res)
-      const facts = await closeFacts(ctx.db, r.id, config, t)
-      const reasons: string[] = []
-      if (r.state !== 'needs_information') reasons.push('INVALID_TRANSITION')
-      if (facts.openQuestions === 0) reasons.push('NO_OPEN_QUESTION')
-      else if (!facts.finalReminderSentAt) reasons.push('FINAL_REMINDER_NOT_SENT')
-      else if (!facts.availableAt || facts.availableAt.getTime() > t.getTime()) reasons.push('TOO_EARLY')
-      if (!cadence) reasons.push('CONFIG_MISSING')
-      const obligations = await obligationFactsRead(ctx, r.project_id, checks)
-      if (obligations) reasons.push('OWNER_REVIEW_REQUIRED')
+      const check = await withTx(ctx.db, (tx) =>
+        closeCheck(tx, { id: r.id, projectId: r.project_id, state: r.state }, config, t, checks),
+      )
+      const reasons = check.reasons
       const closedAt = await closedNoResponseAt(ctx.db, r.id)
       const days = reopenPeriodDays(config)
+      const until =
+        r.state === 'closed_no_response' && closedAt && days !== null
+          ? new Date(closedAt.getTime() + days * DAY_MS)
+          : null
       const waiting = await ctx.db
         .selectFrom('ops.queue_items')
         .select('id')
@@ -579,15 +688,16 @@ export function questionStaffRoutes(deps: QuestionStaffDeps = {}): RouteDef[] {
             allowed: closeAllowed,
             available: closeAllowed && reasons.length === 0,
             reasons,
-            availableAt: iso(facts.availableAt),
+            availableAt: iso(check.availableAt),
           },
           reopen: {
             days,
             closedAt: r.state === 'closed_no_response' ? iso(closedAt) : null,
-            until:
-              r.state === 'closed_no_response' && closedAt && days !== null
-                ? new Date(closedAt.getTime() + days * 86_400_000).toISOString()
-                : null,
+            until: iso(until),
+            // After the period a reply no longer reopens it: staff may, or the customer sends a new request (E5).
+            periodEnded: until !== null && t.getTime() > until.getTime(),
+            allowed:
+              r.state === 'closed_no_response' && r.project_state === 'closed' && allowed(actor, 'request.reopen', res),
           },
           maxLength: QUESTION_MAX_LENGTH,
         },
@@ -604,7 +714,8 @@ export function questionStaffRoutes(deps: QuestionStaffDeps = {}): RouteDef[] {
     description:
       'Staff with request.ask_question on the request, inside the caller’s scope (otherwise NOT_FOUND), with the ' +
       'request’s version (If-Match). Publishing is the release (OWN-DEC-98): the question is kept exactly as written ' +
-      '(general, or a measurement the customer may answer "I’m not sure"), the request moves to "needs information" ' +
+      '(general, or a measurement), with whether the customer may answer "I’m not sure" (notSureAllowed, any question; ' +
+      'a measurement always may, TSK-0148, OWN-DEC-197 E2), the request moves to "needs information" ' +
       '(a received request is moved to review first) or stays there, and question.published is recorded in the same ' +
       'transaction for the automatic notice "HandyHub has a question about your request. View and reply securely.", ' +
       'which links to the question through the project’s verified access. The staff member confirms the question ' +
@@ -625,7 +736,9 @@ export function questionStaffRoutes(deps: QuestionStaffDeps = {}): RouteDef[] {
     handler: async (ctx) => {
       const tx = ctx.tx as Tx
       const actor = staffActor(ctx)
-      const b = ctx.req.body as { text: string; kind: QuestionKind }
+      const b = ctx.req.body as { text: string; kind: QuestionKind; notSureAllowed?: boolean }
+      // E2 (OWN-DEC-197): any question may offer "I'm not sure"; a measurement always does (PROPOSED).
+      const notSureAllowed = b.kind === 'measurement' || b.notSureAllowed === true
       if (looksLikeCardNumber(b.text))
         throw new ApiError('VALIDATION_FAILED', {
           fieldErrors: [{ field: 'body.text', code: 'sensitive_content', message: '' }],
@@ -687,6 +800,7 @@ export function questionStaffRoutes(deps: QuestionStaffDeps = {}): RouteDef[] {
           request_id: current.id,
           project_id: current.projectId,
           kind: b.kind,
+          not_sure_allowed: notSureAllowed,
           // Exactly as the staff member wrote it.
           body: b.text,
           author_staff_id: actor.userId,
@@ -707,6 +821,7 @@ export function questionStaffRoutes(deps: QuestionStaffDeps = {}): RouteDef[] {
         summary: {
           requestId: current.id,
           kind: b.kind,
+          notSureAllowed,
           from: current.state,
           to: state,
           moved: state !== current.state,
@@ -761,13 +876,16 @@ export function questionStaffRoutes(deps: QuestionStaffDeps = {}): RouteDef[] {
     description:
       'Staff with request.close_no_response (PROPOSED: the request-handling row), inside the caller’s scope ' +
       '(otherwise NOT_FOUND), with the request’s version (If-Match). Only an unbooked request waiting on the customer ' +
-      '("needs information") whose unanswered questions all had their final reminder actually sent (and still ' +
-      'standing), at least the configured hours ago (reminders.cadences.unansweredQuestion.closeAfterFinalHours, 24, ' +
-      'OWN-DEC-101). With accepted work, an appointment or money received it is refused (OWNER_REVIEW_REQUIRED): this ' +
-      'rule never cancels accepted, scheduled or paid work. The request and project close with their history; open ' +
-      'reminders are cancelled; a customer reply within the reopen period (request.reopen_period) reopens the same ' +
-      'request. CONFLICT codes: INVALID_TRANSITION, NO_OPEN_QUESTION, FACTS_MISSING (a final reminder not sent), ' +
-      'TOO_EARLY, CONFIG_MISSING, OWNER_REVIEW_REQUIRED.',
+      '("needs information") whose unanswered questions all had their one reminder actually sent (a delivery sent or ' +
+      'delivered now; queued or scheduled never counts), at least the configured hours after the latest such send ' +
+      '(reminders.cadences.unansweredQuestion.closeAfterReminderHours, 24, OWN-DEC-208). A reminder whose deliveries all ' +
+      'failed is staff follow-up (REMINDER_FAILED), never customer non-response. A customer response since that send, or ' +
+      'one staff have not reviewed yet, keeps it open (CUSTOMER_REPLIED). With accepted work, an appointment or a ' +
+      'recorded payment it is refused (OWNER_REVIEW_REQUIRED): this rule never cancels accepted, scheduled or paid ' +
+      'work. The request and project close with their history; open reminders are cancelled; a customer reply within ' +
+      'the reopen period (request.reopen_period) reopens the same request. CONFLICT codes: INVALID_TRANSITION, ' +
+      'NO_OPEN_QUESTION, REMINDER_FAILED, FINAL_REMINDER_NOT_SENT, TOO_EARLY, CONFIG_MISSING, CUSTOMER_REPLIED, ' +
+      'OWNER_REVIEW_REQUIRED.',
     actors: ['staff'],
     permission: 'request.close_no_response',
     kind: 'write',
@@ -788,22 +906,22 @@ export function questionStaffRoutes(deps: QuestionStaffDeps = {}): RouteDef[] {
       if (current.projectState !== 'open') throw refused('PROJECT_NOT_OPEN')
       const config = await loadConfig(tx)
       const t = now()
-      const facts = await closeFacts(tx, current.id, config, t)
-      if (current.state === 'needs_information' && facts.openQuestions === 0) throw refused('NO_OPEN_QUESTION')
-      const obligations = await obligationFacts(tx, current.projectId, checks)
+      if (current.state !== 'needs_information') throw refused('INVALID_TRANSITION')
+      const check = await closeCheck(
+        tx,
+        { id: current.id, projectId: current.projectId, state: current.state },
+        config,
+        t,
+        checks,
+      )
+      if (check.reasons.length) throw refused(...check.reasons)
+      const { workAccepted, appointmentExists, moneyReceived } = check.facts
+      const obligations = { workAccepted, appointmentExists, moneyReceived }
+      // The request machine decides again from the same facts.
       const moved = apply(
         { machine: 'request.lifecycle', state: current.state, version: current.version },
         'close_no_response',
-        {
-          actor: 'staff',
-          expectedVersion: current.version,
-          now: t,
-          facts: {
-            ...obligations,
-            ...(facts.finalReminderSentAt ? { finalReminderSentAt: facts.finalReminderSentAt } : {}),
-            ...(facts.noResponseCloseHours !== undefined ? { noResponseCloseHours: facts.noResponseCloseHours } : {}),
-          },
-        },
+        { actor: 'staff', expectedVersion: current.version, now: t, facts: check.facts },
       )
       if (!moved.ok) throw refused(...(moved.problems.length ? moved.problems.map((p) => p.code) : [moved.code]))
       const closed = apply({ machine: 'project.lifecycle', state: 'open', version: current.projectVersion }, 'close', {
@@ -871,11 +989,101 @@ export function questionStaffRoutes(deps: QuestionStaffDeps = {}): RouteDef[] {
     },
   }
 
-  return [view, publish, reviewed, close]
-}
+  const reopen: RouteDef = {
+    method: 'POST',
+    path: '/staff/requests/:requestId/actions/reopen',
+    operationId: 'reopenRequest',
+    summary: 'Reopen a "Closed—no response" request',
+    description:
+      'TSK-0148 (OWN-DEC-197 E5): staff with request.reopen (PROPOSED: the request-handling row, the roles that may ' +
+      'close it), inside the caller’s scope (otherwise NOT_FOUND), with the request’s version (If-Match) and a written ' +
+      'reason (kept staff-only in the decision history). A "Closed—no response" request goes back to HandyHub’s review ' +
+      'and its project reopens, within the reopen period or after it (afterPeriod says which); the history is kept and ' +
+      'nothing else is restored (no expired estimate or appointment, no reminder). The customer’s unanswered questions ' +
+      'can be answered again. CONFLICT codes: INVALID_TRANSITION, PROJECT_NOT_CLOSED, REASON_REQUIRED.',
+    actors: ['staff'],
+    permission: 'request.reopen',
+    kind: 'write',
+    idempotency: 'required',
+    expectedVersion: 'required',
+    rateLimit: 'none',
+    audit: 'request.reopen',
+    pagination: false,
+    test: TEST,
+    resource: requestResource,
+    schema: { params: REQUEST_PARAMS, body: REOPEN_BODY, response: { 200: REOPEN_RESULT } },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const actor = staffActor(ctx)
+      const reason = (ctx.req.body as { reason: string }).reason.trim()
+      const current = await lockRequest(tx, ctx.scope, requestIdOf(ctx))
+      if (ctx.expectedVersion() !== current.version) throw stale(current)
+      if (current.state !== 'closed_no_response') throw refused('INVALID_TRANSITION')
+      if (current.projectState !== 'closed') throw refused('PROJECT_NOT_CLOSED')
+      const t = now()
+      const moved = apply(
+        { machine: 'request.lifecycle', state: current.state, version: current.version },
+        'reopen_by_staff',
+        { actor: 'staff', expectedVersion: current.version, now: t, facts: { reason } },
+      )
+      if (!moved.ok) throw refused(...(moved.problems.length ? moved.problems.map((p) => p.code) : [moved.code]))
+      const opened = apply(
+        { machine: 'project.lifecycle', state: 'closed', version: current.projectVersion },
+        'reopen',
+        { actor: 'staff', expectedVersion: current.projectVersion, now: t, facts: { requestState: moved.to } },
+      )
+      if (!opened.ok) throw refused(...(opened.problems.length ? opened.problems.map((p) => p.code) : [opened.code]))
+      // Whether a customer reply could still have reopened it (the period is read, never assumed).
+      const closedAt = await closedNoResponseAt(tx, current.id)
+      const days = reopenPeriodDays(await loadConfig(tx))
+      const afterPeriod = closedAt !== null && days !== null && t.getTime() > closedAt.getTime() + days * DAY_MS
+      await tx
+        .updateTable('intake.requests')
+        .set({ state: moved.to, state_version: moved.version })
+        .where('id', '=', current.id)
+        .execute()
+      await tx
+        .updateTable('crm.projects')
+        .set({ state: opened.to, state_version: opened.version })
+        .where('id', '=', current.projectId)
+        .execute()
+      // Who reopened it, when and why, in the project history (staff-only; the customer timeline shows its state).
+      await tx
+        .insertInto('intake.request_decisions')
+        .values({
+          request_id: current.id,
+          project_id: current.projectId,
+          action: 'reopen',
+          event: 'reopen_by_staff',
+          from_state: current.state,
+          to_state: moved.to,
+          project_from_state: current.projectState,
+          project_to_state: opened.to,
+          internal_note: reason,
+          decided_by: actor.userId,
+          decided_at: t,
+          request_version: moved.version,
+        })
+        .execute()
+      await syncNewRequestItem(tx, current.id)
+      await syncReviewHoldItem(tx, current.id)
+      await syncEstimateItem(tx, current.id)
+      await ctx.audit({
+        target: { type: 'request', id: current.id, version: moved.version },
+        summary: { action: 'reopen', from: current.state, to: moved.to, projectTo: opened.to, afterPeriod },
+      })
+      return {
+        body: {
+          requestId: current.id,
+          state: moved.to,
+          version: moved.version,
+          projectState: opened.to,
+          afterPeriod,
+        },
+        version: moved.version,
+      }
+    },
+  }
 
-/** Whether the project has accepted work, an appointment or money received (the read view, in a read transaction). */
-async function obligationFactsRead(ctx: ApiContext, projectId: string, checks: readonly ObligationCheck[]) {
-  const f = await withTx(ctx.db, (tx) => obligationFacts(tx, projectId, checks))
-  return f.workAccepted || f.appointmentExists || f.moneyReceived
+  return [view, publish, reviewed, close, reopen]
 }

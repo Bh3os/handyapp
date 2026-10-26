@@ -162,17 +162,19 @@ async function withdrawSms(
       evidence,
       at,
     })
-  if ((await currentConsent(tx, 'sms', destination, 'marketing')) === 'granted')
-    await recordConsent(tx, {
-      purpose: 'marketing',
-      channel: 'sms',
-      destination,
-      granted: false,
-      source,
-      recordedBy: 'system:notifications.sms_keywords',
-      evidence,
-      at,
-    })
+  // Marketing texts, and TSK-0134 the consent to verification codes by text, end with the SMS opt-in.
+  for (const purpose of ['marketing', 'sms_verification'] as const)
+    if ((await currentConsent(tx, 'sms', destination, purpose)) === 'granted')
+      await recordConsent(tx, {
+        purpose,
+        channel: 'sms',
+        destination,
+        granted: false,
+        source,
+        recordedBy: 'system:notifications.sms_keywords',
+        evidence,
+        at,
+      })
 }
 
 async function handleInbound(tx: Tx, r: Receipt, requestId: string): Promise<'processed' | 'left'> {
