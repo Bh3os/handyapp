@@ -1111,6 +1111,25 @@ export const TABLES = {
     classes: ['scheduling'],
     categories: [J, S],
   },
+  // TSK-0145 (0120, OWN-DEC-193 A4): the recorded basis of a follow-up visit on a completed job.
+  'work.follow_up_authorizations': {
+    holds: 'The recorded basis of a follow-up visit on a completed job (obligation, warranty, punch list, return work)',
+    classes: ['scheduling'],
+    categories: [J],
+  },
+  // TSK-0145 (0120, OWN-DEC-193 A1, OWN-DEC-208): the Owner's hazard-evaluation inspection authorizations, naming the
+  // qualified person, the safety conditions and the intake review holds they evaluate.
+  'work.hazard_inspection_authorizations': {
+    holds:
+      "The Owner's authorization of a hazard-evaluation inspection visit: qualified person, safety conditions, reason",
+    classes: ['scheduling'],
+    categories: [R, J, S],
+  },
+  'work.hazard_inspection_holds': {
+    holds: 'The intake review holds a hazard-evaluation inspection evaluates',
+    classes: ['scheduling'],
+    categories: [R, J, S],
+  },
   'work.holds': {
     holds: 'Review and safety holds and loadout task blocks with their resolution and reviewer',
     classes: ['request_details'],

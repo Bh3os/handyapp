@@ -1,4 +1,5 @@
-// Window offers (TSK-0063; HH-SCH-11, HH-SCH-05, ENT-Reservation, OWN-DEC-144). Facts and instants are synthetic.
+// Window offers (TSK-0063, TSK-0145; HH-SCH-11, HH-SCH-05, ENT-Reservation, OWN-DEC-144, OWN-DEC-194). Facts and
+// instants are synthetic.
 import { describe, expect, it } from 'vitest'
 import {
   apply,
@@ -28,15 +29,39 @@ describe('[HH-SCH-11][OWN-DEC-144] an offer holds its windows for the configured
   })
 
   it('[HH-SCH-11] an open offer ends exactly once; every ending is final', () => {
-    expect(WINDOW_OFFER_MACHINE.initial).toBe('open')
     expect(eventsFrom(WINDOW_OFFER_MACHINE, 'open').sort()).toEqual([
       'expire',
+      'replace',
       'request_other_times',
       'select',
       'withdraw',
     ])
-    for (const s of ['selected', 'other_times_requested', 'withdrawn', 'expired'] as const)
+    for (const s of ['discarded', 'selected', 'other_times_requested', 'withdrawn', 'replaced', 'expired'] as const)
       expect(eventsFrom(WINDOW_OFFER_MACHINE, s)).toEqual([])
+  })
+
+  it('[HH-SCH-11][OWN-DEC-194] an offer starts as a draft: staff publish it (the clock starts then) or discard it', () => {
+    expect(WINDOW_OFFER_MACHINE.initial).toBe('draft')
+    expect(eventsFrom(WINDOW_OFFER_MACHINE, 'draft').sort()).toEqual(['discard', 'publish'])
+    const now = new Date(offeredAt.getTime() + hour)
+    expect(apply(at('draft'), 'publish', ctx('staff', now))).toMatchObject({ ok: true, to: 'open', version: 2 })
+    expect(apply(at('draft'), 'discard', ctx('staff', now))).toMatchObject({ ok: true, to: 'discarded' })
+    // A draft is never answered by the customer and never expires: no clock runs before publication.
+    for (const event of ['select', 'request_other_times', 'expire'] as const)
+      expect(apply(at('draft'), event, ctx('customer', now, { knownPosition: true }))).toMatchObject({ ok: false })
+    // B1: the hold ends the configured hours after the publication, whenever the draft was saved.
+    const publishedAt = new Date(offeredAt.getTime() + 5 * hour)
+    expect(holdExpiresAt(publishedAt, policy).getTime() - publishedAt.getTime()).toBe(24 * hour)
+  })
+
+  it('[HH-SCH-11][OWN-DEC-194] staff replace a published offer only with a reason', () => {
+    const now = new Date(offeredAt.getTime() + hour)
+    expect(apply(at('open'), 'replace', ctx('staff', now))).toMatchObject({ ok: false, code: 'GUARD_FAILED' })
+    expect(apply(at('open'), 'replace', ctx('staff', now, { reason: 'Synthetic: crew changed' }))).toMatchObject({
+      ok: true,
+      to: 'replaced',
+    })
+    expect(apply(at('open'), 'replace', ctx('customer', now, { reason: 'x' }))).toMatchObject({ ok: false })
   })
 
   it('[HH-SCH-11][T38] the customer selects or asks for other times only while the windows are held', () => {

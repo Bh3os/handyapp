@@ -55,6 +55,8 @@ These are server rules, enforced by one policy point on every read, write, searc
 | View scheduling board | Y | Y | View (P) | Own My Day only | — | — |
 | Offer windows; confirm, reschedule, reassign, cancel visits | Y | Y | Offer estimate-visit windows (P) | — | — | — |
 | Approve a service-area coverage exception, with a reason | Y | — | — | — | — | — |
+| Authorize a hazard-evaluation inspection visit while an intake hold is open, with a reason | Y (reason) | — | — | — | — | — |
+| Record a follow-up visit's authorization on a completed job | Y | Y (P) | — | — | — | — |
 | Select an offered window | — | — | — | — | V | — |
 | Request reschedule or cancellation | — | — | — | — | V | — |
 | Cancel accepted, scheduled or paid work (financial review) | Y | — | — | — | — | — |

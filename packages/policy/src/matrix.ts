@@ -74,6 +74,10 @@ export const ACTIONS = [
   // TSK-0126 (OWN-DEC-167): the Owner's explicit approval of a coverage exception for a location outside the standard
   // service area, with a reason. Staff confirm SERVED coverage and the other site checks under visit.confirm.
   'visit.approve_coverage_exception',
+  // TSK-0145 (OWN-DEC-193 A1, OWN-DEC-208): the Owner's authorization of a hazard-evaluation inspection visit while an
+  // intake review hold stays open; (A4) the recorded basis of a follow-up visit on a completed job.
+  'visit.authorize_inspection',
+  'visit.authorize_follow_up',
   'visit.select_window',
   'visit.request_reschedule',
   'visit.request_cancellation',
@@ -480,6 +484,16 @@ export const MATRIX: readonly MatrixRow[] = [
   ),
   row(SCHEDULING, 'Approve a service-area coverage exception, with a reason', ['visit.approve_coverage_exception'], {
     owner: Y(),
+  }),
+  row(
+    SCHEDULING,
+    'Authorize a hazard-evaluation inspection visit while an intake hold is open, with a reason',
+    ['visit.authorize_inspection'],
+    { owner: Y('Y (reason)', { reason: true, audit: true }) },
+  ),
+  row(SCHEDULING, "Record a follow-up visit's authorization on a completed job", ['visit.authorize_follow_up'], {
+    owner: Y(),
+    office: Y('Y (P)', P),
   }),
   row(SCHEDULING, 'Select an offered window', ['visit.select_window'], { customer: V() }),
   row(SCHEDULING, 'Request reschedule or cancellation', ['visit.request_reschedule', 'visit.request_cancellation'], {

@@ -2499,6 +2499,18 @@ export interface WorkFieldPhotosTable {
   version: Generated<number>
 }
 
+export interface WorkFollowUpAuthorizationsTable {
+  id: Generated<string>
+  visit_id: string
+  job_id: string
+  project_id: string
+  basis: string
+  return_work_id: string | null
+  note: string
+  authorized_by: string
+  authorized_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface WorkGateExceptionsTable {
   id: Generated<string>
   job_id: string
@@ -2522,6 +2534,23 @@ export interface WorkGateExceptionsTable {
   ended_at: Timestamp | null
   ended_reason: string | null
   version: Generated<number>
+}
+
+export interface WorkHazardInspectionAuthorizationsTable {
+  id: Generated<string>
+  visit_id: string
+  project_id: string
+  qualified_person: string
+  qualification: string
+  safety_conditions: string
+  reason: string
+  authorized_by: string
+  authorized_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface WorkHazardInspectionHoldsTable {
+  authorization_id: string
+  hold_id: string
 }
 
 export interface WorkHoldsTable {
@@ -3051,14 +3080,14 @@ export interface WorkWindowOffersTable {
   id: Generated<string>
   visit_id: string
   project_id: string
-  number: number
+  number: number | null
   state: Generated<string>
   version: Generated<number>
   hold_hours: number
   policy_version: number
   offered_by: string
   offered_at: ColumnType<Date, Date | string | undefined, Date | string>
-  expires_at: Timestamp
+  expires_at: Timestamp | null
   preparation_instructions: string | null
   selected_position: number | null
   selected_by_contact: string | null
@@ -3066,6 +3095,11 @@ export interface WorkWindowOffersTable {
   closed_by: string | null
   closed_reason: string | null
   customer_note: string | null
+  published_at: Timestamp | null
+  published_by: string | null
+  replaced_by: string | null
+  worker_ids: string[] | null
+  equipment_ids: string[] | null
 }
 
 export interface WorkWorkPackageLoadoutsTable {
@@ -3318,7 +3352,10 @@ export interface Database {
   'work.escalation_calls': WorkEscalationCallsTable
   'work.field_events': WorkFieldEventsTable
   'work.field_photos': WorkFieldPhotosTable
+  'work.follow_up_authorizations': WorkFollowUpAuthorizationsTable
   'work.gate_exceptions': WorkGateExceptionsTable
+  'work.hazard_inspection_authorizations': WorkHazardInspectionAuthorizationsTable
+  'work.hazard_inspection_holds': WorkHazardInspectionHoldsTable
   'work.holds': WorkHoldsTable
   'work.issue_report_photos': WorkIssueReportPhotosTable
   'work.issue_report_reviews': WorkIssueReportReviewsTable

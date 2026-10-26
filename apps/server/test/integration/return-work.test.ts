@@ -381,6 +381,19 @@ async function fixtureVisit(
           assigned_by: ids.office,
         })
         .execute()
+    // TSK-0145 (OWN-DEC-193 A4): a return visit of a completed job rests on a recorded follow-up authorization.
+    if (purpose === 'return_work')
+      await tx
+        .insertInto('work.follow_up_authorizations')
+        .values({
+          visit_id: v.id,
+          job_id: jobId,
+          project_id: p.projectId,
+          basis: 'punch_list',
+          note: 'Synthetic: the return visit of the warranty claim.',
+          authorized_by: ids.office,
+        })
+        .execute()
     await tx
       .updateTable('work.visits')
       .set({ state: 'confirmed', version: v.version + 1 })

@@ -104,6 +104,10 @@ export const CLEARED_CATEGORIES = {
     'work.reservation_flags',
     // TSK-0151 (0098): the Owner's dismissals of reservation flags.
     'work.reservation_flag_dismissals',
+    // TSK-0145 (0120): the Owner's hazard-evaluation inspection authorizations and the follow-up authorizations.
+    'work.hazard_inspection_authorizations',
+    'work.hazard_inspection_holds',
+    'work.follow_up_authorizations',
   ],
   jobs: [
     'work.jobs',
