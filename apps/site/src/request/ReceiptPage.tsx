@@ -8,7 +8,7 @@
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { StateView } from '@handyhub/ui'
 import { useEffect, useRef, useState } from 'react'
-import { Receipt } from './Receipt.js'
+import { Receipt } from './Receipt.tsx'
 import { loadReceipt, referenceFromPath, tabStorage, type ReceiptRecord } from './receipt.js'
 
 const t = (key: CustomerKey, values?: Record<string, string | number>) => customerTranslator().t(key, values)
