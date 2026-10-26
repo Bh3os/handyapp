@@ -120,6 +120,10 @@ function ownerTemplates(markdown: string): Map<string, { subject: string; body: 
   return out
 }
 
+/** TSK-0092: the paragraph version 2 of customer_follow_up adds (migration 0101, OQ-CLOSEOUT-DETAILS). */
+const CONCERN_LINK =
+  'If anything about the work needs attention, you can report a concern or ask for help securely through your ' +
+  'project page:\n\n{projectLink}'
 const kg = (path: string) => readFileSync(new URL(`../../../../kg/${path}`, import.meta.url), 'utf8')
 const section4 = (md: string) =>
   md.slice(md.indexOf('# 4. CUSTOMER MESSAGE TEMPLATES'), md.indexOf('# 6. TEMPLATE VARIABLES'))
@@ -136,7 +140,19 @@ describe('[HH-COM-13] the owner templates are released template versions', () =>
       expect(released, templateId).not.toBeNull()
       expect(released?.templateId, templateId).toBe(templateId)
       expect(released?.subject, templateId).toBe(words.subject)
-      expect(released?.body, templateId).toBe(words.body)
+      // TSK-0092 (OWN-DEC-157 item 8): version 2 of the follow-up keeps the owner's wording and adds one PROPOSED
+      // paragraph with the secure concern link (OQ-CLOSEOUT-DETAILS); version 1 is the owner's exact wording.
+      if (templateId === 'customer_follow_up') {
+        expect(released?.body.replace(`${CONCERN_LINK}\n\n`, ''), templateId).toBe(words.body)
+        const v1 = await t.db
+          .selectFrom('platform.message_template_versions')
+          .select(['body'])
+          .where('message_key', '=', key)
+          .where('channel', '=', 'email')
+          .where('version', '=', 1)
+          .executeTakeFirstOrThrow()
+        expect(v1.body, templateId).toBe(words.body)
+      } else expect(released?.body, templateId).toBe(words.body)
       expect(released?.translationReview).toBe('source')
     }
   })
@@ -179,8 +195,9 @@ describe('[HH-COM-13] the owner templates are released template versions', () =>
       .selectAll()
       .where('template_id', 'is not', null)
       .execute()
-    // TSK-0091 (migration 0097): the unpaid-invoice reminder and follow-up add two.
-    expect(rows).toHaveLength(31)
+    // TSK-0091 (migration 0097): the unpaid-invoice reminder and follow-up add two; TSK-0092 (0101) the follow-up's
+    // version 2.
+    expect(rows).toHaveLength(32)
     for (const r of rows) {
       const draft = {
         messageKey: r.message_key,
@@ -250,7 +267,7 @@ describe('[HH-COM-13] the owner templates are released template versions', () =>
         expect(renderTemplate(tpl, less, { linkHosts: SAMPLE_LINK_HOSTS }).body.startsWith('Hi there,')).toBe(true)
       }
     }
-    expect(released.length).toBe(31)
+    expect(released.length).toBe(32)
   })
 
   it('[HH-COM-06][OWN-DEC-153] messages.automatic lists the automatic customer messages, the routine reminders too', async () => {

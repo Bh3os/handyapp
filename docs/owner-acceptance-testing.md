@@ -146,6 +146,21 @@ OQ-UNPAID-REMINDER-DETAILS.
 | G3  | `<staging>/staff/audit`      | Open the audit log.                                                   | Your sign-ins, approvals, resets and phase changes are listed and cannot be edited or deleted.            |
 | G4  | `<staging>/staff/health`     | Open System health.                                                   | Providers that are not set up show NOT CONFIGURED, never "working".                                       |
 
+### H. Closeout, reopen and follow-ups (OWN-DEC-77, OWN-DEC-157, OWN-DEC-113)
+
+Built by TSK-0092. After the quality review passes, open `<staging>/staff/closeout/<job>` (also from "Jobs to close" in
+Owner Decisions, "Follow-ups to release" in the staff queue, and the quality review page). The expected outcome comes
+from the decisions; the details no decision gives are PROPOSED in OQ-CLOSEOUT-DETAILS.
+
+| #   | Scenario                                     | Expected outcome                                                                                       |
+| --- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| H1  | Close with the invoice unpaid or a case open | Refused; the page names every item still open. Paying the invoice never closes the job by itself.       |
+| H2  | Close once nothing is open                   | Only you can close it; the history shows "Closed · final invoice paid".                                 |
+| H3  | Reopen a closed job                          | Only you, after your password and with a reason; Office cannot. The original records stay unchanged.    |
+| H4  | 48 hours after the review passed             | The "How Was Your Experience?" email is prepared for staff to send, with the project link for concerns. |
+| H5  | A complaint is open on the project           | The follow-up and review requests wait; they are offered again once every case is closed.               |
+| H6  | Review request                               | Not sendable yet: its wording and where reviews are left are NOT CONFIGURED. Never automatic.           |
+
 ## 4. Results
 
 | Walk                                    | Date | By  | Result                                                                                          |

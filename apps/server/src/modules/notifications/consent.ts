@@ -95,13 +95,20 @@ export async function currentConsent(
 /** Message types that are marketing and need the separate marketing permission (HH-COM-05, T67). */
 export const MARKETING_MESSAGES: ReadonlySet<string> = new Set(['review.request'])
 
+/**
+ * TSK-0092 (OWN-DEC-157 item 6, OWN-DEC-113): optional follow-ups after a completed job. A customer who asked for no
+ * optional follow-ups (service communication withdrawn on the channel) gets none of them.
+ */
+export const OPTIONAL_FOLLOW_UPS: ReadonlySet<string> = new Set(['reminder.satisfaction_check', 'review.request'])
+
 export type PermissionResult = { allowed: true } | { allowed: false; reason: string }
 
 /**
  * Send-time permission for one destination (HH-COM-05):
  * - every text needs no SMS withdrawal on file (a STOP is honoured for staff numbers too);
  * - a text to a customer needs a current SMS opt-in;
- * - a marketing message needs the current marketing permission on its channel as well.
+ * - a marketing message needs the current marketing permission on its channel as well;
+ * - an optional follow-up is never sent after the customer asked for none (TSK-0092).
  */
 export async function sendPermission(
   db: Db | Tx,
@@ -111,6 +118,10 @@ export async function sendPermission(
     const sms = await currentConsent(db, 'sms', input.destination, 'transactional_sms')
     if (sms === 'withdrawn') return { allowed: false, reason: 'sms_opted_out' }
     if (input.audience === 'customer' && sms !== 'granted') return { allowed: false, reason: 'sms_no_opt_in' }
+  }
+  if (OPTIONAL_FOLLOW_UPS.has(input.messageKey)) {
+    const service = await currentConsent(db, input.channel, input.destination, 'service_communication')
+    if (service === 'withdrawn') return { allowed: false, reason: 'follow_ups_opted_out' }
   }
   if (MARKETING_MESSAGES.has(input.messageKey)) {
     const marketing = await currentConsent(db, input.channel, input.destination, 'marketing')

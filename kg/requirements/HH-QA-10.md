@@ -21,3 +21,5 @@ source: "OWN-DEC-109, OWN-DEC-113 (new behaviour; guide 21.2 Follow-up/review)"
 - Opt-outs and channel restrictions are checked at execution time.
 
 **Changed by [[OWN-DEC-157]] (2026-10-21):** the satisfaction check is the service-quality follow-up (MESSAGE 18) sent 48 hours after authorized final completion, released by staff, with a secure concern link.
+
+**Built by [[TSK-0092]] (2026-10-25, migration 0101):** the follow-up draft is prepared once per completed job 48 hours after the Owner's review passed and released by the Owner or Office; while any case on the project is open it is held and offered again once every case is closed; an opt-out of optional follow-ups, a reopened job, consent and channel permission are rechecked right before it sends. Review requests are prepared and released by staff only with marketing consent (rechecked at send); the customer's recorded answer (positive, mixed or negative) never changes their eligibility (tested). The review request wording and destination are NOT CONFIGURED. PROPOSED details: [[OQ-CLOSEOUT-DETAILS]].

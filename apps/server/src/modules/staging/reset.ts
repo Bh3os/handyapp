@@ -129,6 +129,8 @@ export const CLEARED_CATEGORIES = {
     'work.issue_report_reviews',
     // TSK-0129 (0099): the recorded Call Owner, Call 911 and Owner-unreachable taps.
     'work.escalation_calls',
+    // TSK-0092 (0101): the Owner's close and reopen of jobs.
+    'work.job_closeout_events',
   ],
   payments: [
     'finance.payments',
@@ -182,6 +184,8 @@ export const CLEARED_CATEGORIES = {
     'quality.reviews',
     'quality.punch_items',
     'quality.review_events',
+    // TSK-0092 (0101): the customer's answers to the follow-up after completion.
+    'quality.satisfaction_responses',
     // TSK-0075 (0083): the job checklist, its history and handoff notes.
     'work.checklist_steps',
     'work.checklist_step_events',
