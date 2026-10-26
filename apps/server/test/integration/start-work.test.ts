@@ -301,9 +301,13 @@ async function approve(p: Project, unitPriceCents = 1250): Promise<string> {
   ).id
 }
 
-const SLOT_MINUTES = 30
+const SLOT_MINUTES = 10
 const taken = new Map<string, Set<number>>()
-/** The first free 30-minute slot after local midnight of `date` for the team (see my-day.test.ts). */
+/**
+ * The first free 10-minute slot after local midnight of `date` for the team (see my-day.test.ts). One worker has up
+ * to eight visits here; at 10 minutes a slot even the twelfth starts within two hours of midnight, so On my way
+ * (three hours before the window, OWN-DEC-107) is open whenever the suite runs on that local day, at any hour.
+ */
 function fixtureWindow(date: string, team: Person[]) {
   const midnight = resolveLocalTime(date, '00:00', ZONE)
   if (midnight.kind !== 'unique') throw new Error('fixture midnight')

@@ -27,6 +27,8 @@
 //   notify.release; a failed one (estimate, question or appointment reminder) is retried the same way, by a new
 //   notify.release job, rechecked against its record at send time. Every retry goes at once by email and at the next
 //   allowed time of the recipient's permitted hours by text.
+// - TSK-0091 (OWN-DEC-210): so is a failed unpaid-invoice reminder or follow-up (email only), rechecked against its
+//   invoice at send time.
 import { randomUUID } from 'node:crypto'
 import { sql } from 'kysely'
 import { ApiError } from '../../api/errors.js'
@@ -221,6 +223,9 @@ const RETRYABLE_RELEASED: ReadonlySet<string> = new Set([
   'reminder.unanswered_estimate',
   'reminder.unanswered_question',
   'reminder.appointment',
+  // TSK-0091: the automatic unpaid-invoice reminder and the staff-released follow-up.
+  'reminder.unpaid_invoice',
+  'reminder.unpaid_invoice_follow_up',
 ])
 
 /** The scheduling declaration of `notify.release` (its senders are the worker's own; scheduling needs none). */

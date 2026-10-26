@@ -19,3 +19,5 @@ source: "guide 10.1 HH-STAFF-03, 10.2; OWN-DEC-114, OWN-DEC-118, OWN-DEC-76, OWN
 - Owner-only decisions stay owner-only for every other role: deposit waivers, reopening a closed job, refunds, deletion approvals, cancellation and financial review routed from Not a Fit, and approval of Start Work administrative exceptions.
 - Estimators and the Owner may publish estimates directly; the Owner can change which roles may publish.
 - No role or flag can bypass the Start Job gate, stop-work rights or critical holds.
+
+**Built by [[TSK-0151]] (2026-10-24, migration 0098):** the collect capability is an explicit Owner grant that records the worker's training ([[OWN-DEC-200]] H4); the Owner may dismiss a working-hours or equipment flag with a reason, and a server check (`@handyhub/domain` overrides, backed by the database) refuses any override of a mandatory safety, legal, licensing, qualification or employee-protection restriction (H7); the Start Work gate, stop-work rights and critical holds stay non-overridable. PROPOSED details: [[OQ-STAFF-AMENDMENT-DETAILS]].

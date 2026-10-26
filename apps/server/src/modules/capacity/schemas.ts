@@ -275,3 +275,37 @@ export const CAPACITY_DAY = {
     },
   },
 } as const
+
+// TSK-0151 (OWN-DEC-200 H7): the Owner keeps an appointment as it is despite a working-hours or equipment flag.
+export const RESERVATION_PARAMS = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['reservationId'],
+  properties: { reservationId: UUID },
+} as const
+
+/** Every flag cause is accepted here, so a mandatory one is refused as such (CONFLICT MANDATORY_RESTRICTION). */
+export const DISMISS_FLAG_BODY = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['cause', 'reason'],
+  properties: {
+    cause: {
+      type: 'string',
+      enum: ['working_hours_changed', 'time_off_recorded', 'account_disabled', 'equipment_retired'],
+    },
+    reason: { type: 'string', minLength: 1, maxLength: 2000 },
+  },
+} as const
+
+export const FLAG_DISMISSED = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['reservationId', 'visitId', 'dismissed', 'flags'],
+  properties: {
+    reservationId: UUID,
+    visitId: UUID,
+    dismissed: { type: 'integer' },
+    flags: { type: 'array', items: { type: 'string' } },
+  },
+} as const

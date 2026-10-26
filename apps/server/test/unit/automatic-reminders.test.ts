@@ -11,7 +11,7 @@ const CADENCES = {
   unansweredQuestion: { afterDeliveryHours: 72, closeAfterReminderHours: 24, release: 'automatic' },
   appointment: { hoursBefore: 24, release: 'automatic' },
   satisfaction: { daysAfterCompletion: 2, release: 'staff' },
-  unpaidInvoice: { firstHours: 24, finalHours: 72, release: 'staff' },
+  unpaidInvoice: { firstDaysAfterDue: 3, secondDaysAfterDue: 7, release: 'automatic', followUp: 'staff' },
   repeatService: { schedule: 'customer_agreed', release: 'staff' },
 }
 function fakeConfig(entries: Partial<Record<ConfigKey, unknown>>): Config {

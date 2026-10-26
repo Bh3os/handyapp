@@ -151,8 +151,10 @@ export const CONFIG_KEYS = {
   // one estimate reminder a number of hours after the version was successfully delivered, one question reminder after
   // the notice was delivered ("Closed—no response" the configured hours after that reminder was actually sent), and
   // the appointment reminder before every confirmed visit (none for a visit booked less than that ahead). The
-  // satisfaction check, unpaid-invoice and repeat-service reminders stay staff-released (their tasks change them).
+  // satisfaction check and repeat-service reminders stay staff-released (their tasks change them).
   // When a message may go out by channel is messages.delivery_hours (TSK-0122), not a per-cadence flag.
+  // TSK-0091 (OWN-DEC-210; migration 0097): two automatic unpaid-invoice reminders, the configured calendar days after
+  // the invoice's due date (3 and 7), each once per invoice and stage; any further follow-up is released by staff.
   'reminders.cadences': shape({
     unansweredEstimate: shape({ afterDeliveryHours: hours, release: exactly('automatic') }),
     unansweredQuestion: shape({
@@ -162,7 +164,12 @@ export const CONFIG_KEYS = {
     }),
     appointment: shape({ hoursBefore: hours, release: exactly('automatic') }),
     satisfaction: shape({ daysAfterCompletion: int(0, 366), release: exactly('staff') }),
-    unpaidInvoice: shape({ firstHours: hours, finalHours: hours, release: exactly('staff') }),
+    unpaidInvoice: shape({
+      firstDaysAfterDue: int(1, 366),
+      secondDaysAfterDue: int(1, 366),
+      release: exactly('automatic'),
+      followUp: exactly('staff'),
+    }),
     repeatService: shape({ schedule: exactly('customer_agreed'), release: exactly('staff') }),
   }),
   'request.reopen_period': shape({ days: int(0, 3660) }),

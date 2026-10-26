@@ -179,7 +179,8 @@ describe('[HH-COM-13] the owner templates are released template versions', () =>
       .selectAll()
       .where('template_id', 'is not', null)
       .execute()
-    expect(rows).toHaveLength(29)
+    // TSK-0091 (migration 0097): the unpaid-invoice reminder and follow-up add two.
+    expect(rows).toHaveLength(31)
     for (const r of rows) {
       const draft = {
         messageKey: r.message_key,
@@ -249,7 +250,7 @@ describe('[HH-COM-13] the owner templates are released template versions', () =>
         expect(renderTemplate(tpl, less, { linkHosts: SAMPLE_LINK_HOSTS }).body.startsWith('Hi there,')).toBe(true)
       }
     }
-    expect(released.length).toBe(29)
+    expect(released.length).toBe(31)
   })
 
   it('[HH-COM-06][OWN-DEC-153] messages.automatic lists the automatic customer messages, the routine reminders too', async () => {
@@ -264,9 +265,11 @@ describe('[HH-COM-13] the owner templates are released template versions', () =>
       'reminder.unanswered_estimate',
       'reminder.unanswered_question',
       'reminder.appointment',
+      // TSK-0091 (OWN-DEC-210).
+      'reminder.unpaid_invoice',
     ])
       expect(policy.isAutomatic(k), k).toBe(true)
-    for (const k of ['job.paused', 'staff.reply', 'reminder.satisfaction_check', 'reminder.unpaid_invoice'])
+    for (const k of ['job.paused', 'staff.reply', 'reminder.satisfaction_check', 'reminder.unpaid_invoice_follow_up'])
       expect(policy.isAutomatic(k), k).toBe(false)
   })
 

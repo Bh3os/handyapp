@@ -649,6 +649,20 @@ export interface FinanceDepositWaiversTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface FinanceInvoiceCollectionStepsTable {
+  id: Generated<string>
+  invoice_id: string
+  job_id: string
+  project_id: string
+  kind: string
+  due_on: string | null
+  ends_step_id: string | null
+  delivery_id: string | null
+  note: string | null
+  recorded_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface FinanceInvoiceDepositCreditsTable {
   id: Generated<string>
   invoice_id: string
@@ -957,6 +971,27 @@ export interface IdentityCustomerSessionsTable {
   sign_in_channel: string | null
 }
 
+export interface IdentityPermissionReviewItemsTable {
+  id: Generated<string>
+  review_id: string
+  earlier_grant_id: string
+  decision: string | null
+  decided_by: string | null
+  decided_at: Timestamp | null
+  reason: string | null
+  grant_id: string | null
+}
+
+export interface IdentityPermissionReviewsTable {
+  id: Generated<string>
+  staff_user_id: string
+  status_change_id: string
+  opened_by: string
+  opened_at: ColumnType<Date, Date | string | undefined, Date | string>
+  closed_at: Timestamp | null
+  closed_reason: string | null
+}
+
 export interface IdentityProjectAccessGrantsTable {
   id: string
   project_id: string
@@ -991,6 +1026,8 @@ export interface IdentityRoleGrantsTable {
   effective_from: ColumnType<Date, Date | string | undefined, Date | string>
   ended_at: Timestamp | null
   ended_by: string | null
+  trained_on: string | null
+  training: string | null
 }
 
 export interface IdentityStaffEscalationPhonesTable {
@@ -2339,6 +2376,13 @@ export interface WorkPhotoPublicationPermissionsTable {
   recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface WorkReservationFlagDismissalsTable {
+  flag_id: string
+  dismissed_by: string
+  reason: string
+  dismissed_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface WorkReservationFlagsTable {
   id: Generated<string>
   reservation_id: string
@@ -2747,6 +2791,7 @@ export interface Database {
   'estimating.publication_approvals': EstimatingPublicationApprovalsTable
   'finance.deposit_requirements': FinanceDepositRequirementsTable
   'finance.deposit_waivers': FinanceDepositWaiversTable
+  'finance.invoice_collection_steps': FinanceInvoiceCollectionStepsTable
   'finance.invoice_deposit_credits': FinanceInvoiceDepositCreditsTable
   'finance.invoice_documents': FinanceInvoiceDocumentsTable
   'finance.invoice_lines': FinanceInvoiceLinesTable
@@ -2766,6 +2811,8 @@ export interface Database {
   'identity.customer_accounts': IdentityCustomerAccountsTable
   'identity.customer_identity_links': IdentityCustomerIdentityLinksTable
   'identity.customer_sessions': IdentityCustomerSessionsTable
+  'identity.permission_review_items': IdentityPermissionReviewItemsTable
+  'identity.permission_reviews': IdentityPermissionReviewsTable
   'identity.project_access_grants': IdentityProjectAccessGrantsTable
   'identity.rate_limits': IdentityRateLimitsTable
   'identity.role_grants': IdentityRoleGrantsTable
@@ -2858,6 +2905,7 @@ export interface Database {
   'work.jobs': WorkJobsTable
   'work.loadout_checks': WorkLoadoutChecksTable
   'work.photo_publication_permissions': WorkPhotoPublicationPermissionsTable
+  'work.reservation_flag_dismissals': WorkReservationFlagDismissalsTable
   'work.reservation_flags': WorkReservationFlagsTable
   'work.reservations': WorkReservationsTable
   'work.scheduling_tasks': WorkSchedulingTasksTable

@@ -117,8 +117,12 @@ be tested until the named task is done.
 
 ### F. Unpaid-invoice reminders (OWN-DEC-210)
 
-_Not built yet_ (TSK-0091, which depends on invoices, TSK-0085). When it is built, test each scenario. The expected
-outcome comes from OWN-DEC-210.
+Built by TSK-0091. Issue a final invoice, then open the job's payments page (`<staging>/staff/payments/<job>`): the
+**Payment reminders** panel under the invoice shows the due date, when each reminder is due (8 AM business time), why
+none is sent now, and every reminder with its state. Staff record a revised due date, a payment plan or a hold there, and
+release a follow-up. "Payment reminders to review" (staff queue) and "Overdue—owner decision" (Owner Decisions) open the
+same panel. The expected outcome comes from OWN-DEC-210; the details no decision gives are PROPOSED in
+OQ-UNPAID-REMINDER-DETAILS.
 
 | #   | Scenario                        | Expected outcome                                                                                               |
 | --- | ------------------------------- | -------------------------------------------------------------------------------------------------------------- |

@@ -617,6 +617,7 @@ export const PROJECT_VISITS = {
     'schedulingTask',
     'actions',
     'visitTimes',
+    'dismissFlags',
     'visits',
   ],
   properties: {
@@ -703,6 +704,8 @@ export const PROJECT_VISITS = {
     },
     // TSK-0070: the caller may open each started visit's Arrived and Finished times (visit.correct_timestamps).
     visitTimes: { type: 'boolean' },
+    // TSK-0151: the caller may keep an appointment as it is despite a working-hours or equipment flag (the Owner).
+    dismissFlags: { type: 'boolean' },
     visits: { type: 'array', items: VISIT },
   },
 } as const

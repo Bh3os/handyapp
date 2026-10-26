@@ -6,7 +6,11 @@
 // - AvailabilityScreen (the Staff screen, Owner): each person's working days and hours (a new version each time;
 //   none set means that person is never reserved), approved time off (no reason is kept) and the equipment items.
 //   Changes flag the appointments they touch for review; they never cancel one.
+// - Assignments (TSK-0151, OWN-DEC-200 H7): the Owner may keep an appointment as it is despite a working-hours or
+//   equipment flag, with a reason; time off and a disabled account are mandatory restrictions and offer no such action
+//   (the server refuses them too).
 // - Every time is shown with its zone, read from the UTC instants in that zone, so this device's zone never changes it.
+import { DISMISSABLE_FLAGS } from '@handyhub/domain/overrides'
 import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
@@ -289,16 +293,78 @@ export function ConfirmVisit<V>({
   )
 }
 
+/** The Owner keeps an appointment as it is despite one discretionary flag, with a reason (TSK-0151). */
+function KeepAsIs({
+  t,
+  fetchImpl,
+  reservationId,
+  flag,
+  onDone,
+}: {
+  t: T
+  fetchImpl: Fetch
+  reservationId: string
+  flag: string
+  onDone: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [reason, setReason] = useState('')
+  const [pending, setPending] = useState(false)
+  const [reasons, setReasons] = useState<string[]>([])
+  const key = useRef<string | null>(null)
+  if (!open)
+    return (
+      <Button variant="quiet" onClick={() => setOpen(true)}>
+        {t('capacity.keep.open')}
+      </Button>
+    )
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    setPending(true)
+    key.current = key.current ?? idempotencyKey()
+    const r = await call(fetchImpl, `/staff/reservations/${encodeURIComponent(reservationId)}/flags/dismiss`, {
+      method: 'POST',
+      headers: { 'idempotency-key': key.current },
+      body: { cause: flag, reason: reason.trim() },
+    })
+    setPending(false)
+    if (r.ok || r.status < 500) key.current = null
+    if (!r.ok) return setReasons(errorReasons(t, r.error))
+    setReasons([])
+    setOpen(false)
+    setReason('')
+    onDone()
+  }
+  return (
+    <form className="staff-request__form" onSubmit={(e) => void submit(e)} data-testid="keep-as-is">
+      <p className="staff-request__hint">{t('capacity.keep.hint')}</p>
+      {reasons.length ? <StateView kind="error" title={t('capacity.keep.refused')} reasons={reasons} /> : null}
+      <Field label={t('capacity.keep.reason')} required value={reason} onChange={(e) => setReason(e.target.value)} />
+      <div className="hh-button-row">
+        <Button type="submit" pending={pending}>
+          {t('capacity.keep.submit')}
+        </Button>
+        <Button variant="quiet" onClick={() => setOpen(false)}>
+          {t('staffAdmin.cancel')}
+        </Button>
+      </div>
+    </form>
+  )
+}
+
 /** A visit's reservations: the active ones with their review flags, then the ended ones as history. */
 export function Assignments({
   t,
   locale,
   zone,
   assignments,
+  dismiss,
 }: {
   t: T
   locale: StaffLocale
   zone: string
+  /** TSK-0151: given to the Owner, who may keep the appointment as it is despite a discretionary flag. */
+  dismiss?: { fetchImpl: Fetch; onDone: () => void }
   assignments: {
     id: string
     resource: string
@@ -341,6 +407,20 @@ export function Assignments({
                     <StatusBadge tone="warning">{codeLabel(t, 'reservationFlag', f)}</StatusBadge>
                   </span>
                 ))}
+                {dismiss
+                  ? a.flags
+                      .filter((f) => (DISMISSABLE_FLAGS as readonly string[]).includes(f))
+                      .map((f) => (
+                        <KeepAsIs
+                          key={`keep-${f}`}
+                          t={t}
+                          fetchImpl={dismiss.fetchImpl}
+                          reservationId={a.id}
+                          flag={f}
+                          onDone={dismiss.onDone}
+                        />
+                      ))
+                  : null}
               </li>
             ))}
           </ul>

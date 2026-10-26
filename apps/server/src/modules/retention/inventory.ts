@@ -389,6 +389,14 @@ export const TABLES = {
     categories: [F],
     protectedEvidence: true,
   },
+  // TSK-0091 (0097): what staff recorded about collecting an issued final invoice.
+  'finance.invoice_collection_steps': {
+    holds:
+      "Collection steps on an invoice: a revised due date, a payment plan or collection hold and its end, a released follow-up reminder and the Owner's overdue decision, with the staff member's note and who recorded it when",
+    classes: ['payment_reference'],
+    categories: [F],
+    protectedEvidence: true,
+  },
   // TSK-0089 (0095): the Owner's void of an issued invoice, with the reason and the fresh sign-in.
   'finance.invoice_voids': {
     holds: "The Owner's void of an issued invoice: the reason, who voided it, the session's sign-in time and when",
@@ -488,8 +496,19 @@ export const TABLES = {
     classes: ['technical'],
     categories: [SL],
   },
+  // TSK-0151 (0098): the Owner's permission review of a reactivated staff account, and each earlier grant's decision.
+  'identity.permission_reviews': {
+    holds: 'Permission reviews of re-enabled staff accounts: who opened them, when, and how they closed',
+    classes: ['staff_account'],
+    categories: [NS],
+  },
+  'identity.permission_review_items': {
+    holds: "Each earlier grant of a permission review: the Owner's decision (restored or declined), when and why",
+    classes: ['staff_account'],
+    categories: [NS],
+  },
   'identity.role_grants': {
-    holds: 'Staff role and capability grants with reasons',
+    holds: 'Staff role and capability grants with reasons (a collect grant with the training it records)',
     classes: ['staff_account'],
     categories: [NS],
   },
@@ -999,6 +1018,12 @@ export const TABLES = {
   },
   'work.reservation_flags': {
     holds: 'Appointments flagged by an availability change',
+    classes: ['scheduling'],
+    categories: [R, J],
+  },
+  // TSK-0151 (0098): the Owner kept an appointment as it is despite a working-hours or equipment flag, with a reason.
+  'work.reservation_flag_dismissals': {
+    holds: "The Owner's dismissal of a working-hours or equipment flag: who, when and the reason",
     classes: ['scheduling'],
     categories: [R, J],
   },

@@ -23,6 +23,7 @@ import { openQueueItem, resolveQueueItem } from '../queue/items.js'
 import { syncDepositItem } from './deposit-queue.js'
 import { recordDepositPayment, type PaymentMethod, type PaymentState, type RecordPaymentInput } from './deposits.js'
 import { recordInvoicePayment } from './ledger.js'
+import { syncJobInvoiceReminders } from './invoice-reminders.js'
 import { syncUnallocatedItem } from './money-events.js'
 import { syncCheckItem } from './payment-states.js'
 
@@ -292,6 +293,8 @@ export async function adjustPayment(
     if (p.method === 'check') await syncCheckItem(tx, p.job_id)
   }
   if (input.kind.startsWith('dispute_')) await syncDisputeItem(tx, p.job_id)
+  // TSK-0091: an open dispute stops the job's invoice reminders; a reopened balance opens nothing by itself.
+  await syncJobInvoiceReminders(tx, p.job_id)
   return {
     adjustmentId: adjustment.id,
     paymentId: p.id,

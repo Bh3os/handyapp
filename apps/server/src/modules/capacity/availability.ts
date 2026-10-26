@@ -40,6 +40,7 @@ import {
   toReservation,
   type Schedule,
 } from './resources.js'
+import { notDismissed } from './flags.js'
 
 type Reader = Db | Tx
 
@@ -387,6 +388,7 @@ async function reservationsIn(db: Reader, range: Interval) {
           'in',
           rows.map((r) => r.id),
         )
+        .where(notDismissed)
         .execute()
     : []
   return rows.map((r) => ({

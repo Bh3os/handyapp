@@ -6,7 +6,11 @@
 //                                                         reason, never oneself)
 //   POST /staff/members/:staffUserId/grants/end           end a grant (staff.end_grant: protective, never delayed)
 //   POST /staff/members/:staffUserId/disable              offboarding (staff.disable: never delayed)
-//   POST /staff/members/:staffUserId/enable               re-enable (staff.enable: fresh sign-in and a reason)
+//   POST /staff/members/:staffUserId/enable               re-enable (staff.enable: fresh sign-in and a reason); every
+//                                                         earlier grant ends and waits in a permission review (TSK-0151)
+//   POST /staff/members/:staffUserId/permission-review/restore  restore one earlier grant (staff.grant_role: fresh
+//                                                         sign-in, reason, never oneself)
+//   POST /staff/members/:staffUserId/permission-review/decline  decline one (staff.end_grant: protective)
 //   POST /staff/members/:staffUserId/password-recovery    email a reset link (staff.start_password_recovery)
 //   POST /staff/members/:staffUserId/mfa-reset            reset a lost authenticator (staff.reset_mfa: fresh sign-in,
 //                                                         reason, never oneself; TSK-0154)
@@ -17,6 +21,7 @@ import type { Tx } from '@handyhub/db'
 import { ApiError } from '../../api/errors.js'
 import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
 import {
+  declineGrant,
   disable,
   enable,
   endGrant,
@@ -24,14 +29,18 @@ import {
   listMembers,
   memberDetail,
   resetMfa,
+  restoreGrant,
   startRecovery,
   type GrantKind,
+  type Training,
 } from './members.js'
 import {
+  DECLINE_BODY,
   DISABLE_BODY,
   DISABLED,
   EMPTY_BODY,
   ENABLE_BODY,
+  ENABLED,
   END_GRANT_BODY,
   GRANT_BODY,
   LINK_SENT,
@@ -39,6 +48,7 @@ import {
   MEMBER_PARAMS,
   MEMBERS,
   MFA_RESET,
+  RESTORE_BODY,
 } from './schemas.js'
 
 const TEST = 'test/integration/staff-management.test.ts'
@@ -133,21 +143,32 @@ export function staffModule(): ApiModule {
     description:
       'Owner only, with a fresh sign-in and a written reason (ROLE-MATRIX staff.grant_role); nobody grants ' +
       'themselves anything. Roles: owner, office, estimator, worker (one person may hold several); capability: ' +
-      'collect, only for someone holding the Worker role (PROPOSED). Takes effect on the next request of that person. ' +
-      'Refusals: NOT_FOUND, FRESH_AUTH_REQUIRED, FORBIDDEN (self), CONFLICT (ACCOUNT_DISABLED, GRANT_EXISTS, ' +
-      'CAPABILITY_NEEDS_WORKER), VALIDATION_FAILED.',
+      'collect, only for someone holding the Worker role (PROPOSED), and only with the training it records ' +
+      '(TSK-0151, OWN-DEC-200 H4: the date it was completed, not after today, and what it covered; PROPOSED). During ' +
+      "a reactivated account's permission review, giving an earlier role or capability restores it. Takes effect on " +
+      'the next request of that person. Refusals: NOT_FOUND, FRESH_AUTH_REQUIRED, FORBIDDEN (self), CONFLICT ' +
+      '(ACCOUNT_DISABLED, GRANT_EXISTS, CAPABILITY_NEEDS_WORKER), VALIDATION_FAILED (TRAINING_REQUIRED, ' +
+      'TRAINING_NOT_USED, TRAINING_DATE_FUTURE).',
     permission: 'staff.grant_role',
     audit: 'staff.grant_role',
     schema: { params: MEMBER_PARAMS, body: GRANT_BODY, response: { 201: MEMBER } },
     handler: async (ctx) => {
       const actor = staffActor(ctx)
       const { staffUserId } = ctx.req.params as { staffUserId: string }
-      const body = ctx.req.body as { kind: GrantKind; name: string; reason: string }
+      const body = ctx.req.body as { kind: GrantKind; name: string; reason: string; training?: Training }
       const out = await grant(ctx.tx as Tx, { actorId: actor.userId, staffUserId, ...body })
       const member = await detailOf(ctx, staffUserId)
       await ctx.audit({
         target: { type: 'staff_user', id: staffUserId, version: member.version },
-        summary: { change: 'granted', kind: body.kind, name: body.name, grantId: out.grantId, roles: member.roles },
+        summary: {
+          change: 'granted',
+          kind: body.kind,
+          name: body.name,
+          grantId: out.grantId,
+          roles: member.roles,
+          ...(body.training ? { trainedOn: body.training.completedOn } : {}),
+          ...(out.restored ? { restoredItem: out.restored, reviewClosed: out.reviewClosed } : {}),
+        },
         reason: body.reason.trim(),
         stepUpUsed: true,
       })
@@ -217,6 +238,7 @@ export function staffModule(): ApiModule {
           upcomingAssignments: out.upcoming,
           flagged: out.flagged,
           mfaRemoved: out.mfaRemoved,
+          permissionReviewClosed: out.reviewClosed,
         },
         ...(reason ? { reason } : {}),
       })
@@ -240,12 +262,15 @@ export function staffModule(): ApiModule {
     summary: 'Re-enable a disabled account',
     description:
       'Owner only, with a fresh sign-in and a written reason (staff.enable, PROPOSED in the grant row; ENT-StaffUser). ' +
-      'The account returns to active (invited when it never set a password) with its role grants unchanged, and a ' +
-      'single-use reset (or invite) link is emailed through the outbox: the old password was cleared when it was ' +
-      'disabled. Refusals: NOT_FOUND, FRESH_AUTH_REQUIRED, FORBIDDEN (self), CONFLICT (ACCOUNT_NOT_DISABLED).',
+      'The account returns to active (invited when it never set a password) holding no role or capability: every ' +
+      'grant it still held ends in the same transaction (kept as history) and waits in a permission review in the ' +
+      'Owner Decisions until the Owner restores or declines each one (TSK-0151, OWN-DEC-200 H1, H3). A single-use ' +
+      'reset (or invite) link is emailed through the outbox: the old password was cleared when it was disabled, and ' +
+      'a new authenticator is enrolled at the next sign-in (OWN-DEC-202). Refusals: NOT_FOUND, FRESH_AUTH_REQUIRED, ' +
+      'FORBIDDEN (self), CONFLICT (ACCOUNT_NOT_DISABLED).',
     permission: 'staff.enable',
     audit: 'staff.enable',
-    schema: { params: MEMBER_PARAMS, body: ENABLE_BODY, response: { 200: LINK_SENT } },
+    schema: { params: MEMBER_PARAMS, body: ENABLE_BODY, response: { 200: ENABLED } },
     handler: async (ctx) => {
       const actor = staffActor(ctx)
       const { staffUserId } = ctx.req.params as { staffUserId: string }
@@ -254,11 +279,17 @@ export function staffModule(): ApiModule {
       const member = await detailOf(ctx, staffUserId)
       await ctx.audit({
         target: { type: 'staff_user', id: staffUserId, version: member.version },
-        summary: { change: 'enabled', status: out.status, linkSent: out.link },
+        summary: {
+          change: 'enabled',
+          status: out.status,
+          linkSent: out.link,
+          grantsEnded: out.grantsEnded,
+          permissionReview: out.reviewId,
+        },
         reason: reason.trim(),
         stepUpUsed: true,
       })
-      return { body: { member, linkSent: out.link } }
+      return { body: { member, linkSent: out.link, grantsEnded: out.grantsEnded } }
     },
   }
 
@@ -325,8 +356,87 @@ export function staffModule(): ApiModule {
     },
   }
 
+  const restore: RouteDef = {
+    ...write,
+    method: 'POST',
+    path: '/staff/members/:staffUserId/permission-review/restore',
+    operationId: 'restoreStaffGrant',
+    summary: 'Restore an earlier grant in a permission review',
+    description:
+      'Owner only, with a fresh sign-in and a written reason, never for oneself (staff.grant_role; TSK-0151, ' +
+      'OWN-DEC-200 H3). One earlier role or capability of a reactivated account is given again as a new grant that ' +
+      'the review item names; the earlier grant stays ended, as history. A collect grant records the training again ' +
+      '(PROPOSED). The review closes, and its Owner Decisions item resolves, once every earlier grant is restored or ' +
+      'declined. Refusals: NOT_FOUND, FRESH_AUTH_REQUIRED, FORBIDDEN (self), CONFLICT (NO_OPEN_REVIEW, ' +
+      'REVIEW_ITEM_DECIDED, GRANT_EXISTS, CAPABILITY_NEEDS_WORKER), VALIDATION_FAILED (TRAINING_REQUIRED, ' +
+      'TRAINING_DATE_FUTURE).',
+    permission: 'staff.grant_role',
+    audit: 'staff.restore_grant',
+    schema: { params: MEMBER_PARAMS, body: RESTORE_BODY, response: { 200: MEMBER } },
+    handler: async (ctx) => {
+      const actor = staffActor(ctx)
+      const { staffUserId } = ctx.req.params as { staffUserId: string }
+      const body = ctx.req.body as { itemId: string; reason: string; training?: Training }
+      const out = await restoreGrant(ctx.tx as Tx, { actorId: actor.userId, staffUserId, ...body })
+      const member = await detailOf(ctx, staffUserId)
+      await ctx.audit({
+        target: { type: 'staff_user', id: staffUserId, version: member.version },
+        summary: {
+          change: 'restored',
+          kind: out.kind,
+          name: out.name,
+          itemId: body.itemId,
+          grantId: out.grantId,
+          roles: member.roles,
+          reviewClosed: out.reviewClosed,
+          ...(body.training ? { trainedOn: body.training.completedOn } : {}),
+        },
+        reason: body.reason.trim(),
+        stepUpUsed: true,
+      })
+      return { body: member }
+    },
+  }
+
+  const decline: RouteDef = {
+    ...write,
+    method: 'POST',
+    path: '/staff/members/:staffUserId/permission-review/decline',
+    operationId: 'declineStaffGrant',
+    summary: 'Decline an earlier grant in a permission review',
+    description:
+      'Owner only (staff.end_grant; protective, no fresh sign-in, PROPOSED; TSK-0151, OWN-DEC-200 H3). One earlier ' +
+      'role or capability of a reactivated account is not given back; the reason, when given, is kept and audited. ' +
+      'PROPOSED: the last role is not declined while the person holds none (give a role or disable the account ' +
+      'instead). Refusals: NOT_FOUND, CONFLICT (NO_OPEN_REVIEW, REVIEW_ITEM_DECIDED, LAST_ROLE).',
+    permission: 'staff.end_grant',
+    audit: 'staff.decline_grant',
+    schema: { params: MEMBER_PARAMS, body: DECLINE_BODY, response: { 200: MEMBER } },
+    handler: async (ctx) => {
+      const actor = staffActor(ctx)
+      const { staffUserId } = ctx.req.params as { staffUserId: string }
+      const body = ctx.req.body as { itemId: string; reason?: string }
+      const reason = trimmed(body.reason)
+      const out = await declineGrant(ctx.tx as Tx, { actorId: actor.userId, staffUserId, itemId: body.itemId, reason })
+      const member = await detailOf(ctx, staffUserId)
+      await ctx.audit({
+        target: { type: 'staff_user', id: staffUserId, version: member.version },
+        summary: {
+          change: 'declined',
+          kind: out.kind,
+          name: out.name,
+          itemId: body.itemId,
+          roles: member.roles,
+          reviewClosed: out.reviewClosed,
+        },
+        ...(reason ? { reason } : {}),
+      })
+      return { body: member }
+    },
+  }
+
   return {
     name: 'staff',
-    routes: [list, detail, grantRoute, endRoute, disableRoute, enableRoute, recovery, mfaReset],
+    routes: [list, detail, grantRoute, endRoute, disableRoute, enableRoute, restore, decline, recovery, mfaReset],
   }
 }

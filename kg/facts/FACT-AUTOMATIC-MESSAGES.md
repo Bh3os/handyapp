@@ -47,6 +47,7 @@ source: "OWN-DEC-65, 95-111, 114, 119, 120; decision-briefs 2026-10-12T18:43-19:
 | 22 | Estimate reminder (one, 3 days after successful delivery, while pending) | the version's estimate-ready notice delivered | `estimate_reminder` | [[OWN-DEC-153]], [[OWN-DEC-151]] |
 | 23 | Question reminder (one, 3 days after the notice was delivered, while unanswered) | the question notice delivered | `question_reminder` | [[OWN-DEC-153]], [[OWN-DEC-151]] |
 | 24 | Appointment reminder (24 hours before; none for a visit booked less than 24 hours ahead) | a visit confirmed or a reschedule committed | `appointment_reminder` | [[OWN-DEC-153]], [[OWN-DEC-151]] |
+| 25 | Unpaid-invoice reminder (two, 3 and 7 calendar days after the due date, email only; stops on payment, dispute, payment plan, review or hold) | the final invoice issued (or its due date revised) | `unpaid_invoice_reminder` | [[OWN-DEC-210]], [[OWN-DEC-151]] |
 
 The estimate reminder, the question reminder and the appointment reminder ([[OWN-DEC-153]]) join this list when [[TSK-0121]] makes them automatic; until then they stay staff-released drafts with their owner-worded templates. **Built by [[TSK-0121]] (2026-10-22):** rows 22-24, `messages.automatic` version 3 (migration 0075); each is scheduled at its cadence and rechecked against its record when it sends. A message whose template is released but whose values its event does not supply yet is recorded as failed (`template_values_not_wired`) and shown to staff, never sent ([[HH-COM-13]]); [[TSK-0120]] wires the events that exist today.
 
@@ -64,3 +65,5 @@ Rules for every automatic message:
 - Customer messages are English ([[RULE-LANGUAGES]]). On staging, only approved test destinations receive them.
 
 Everything else is a draft that staff release ([[OWN-DEC-65]] as amended): every reminder in [[FACT-REMINDER-CADENCES]], review requests, satisfaction checks, deletion-outcome notices, follow-ups and anything marketing (which also needs separate consent).
+
+**Built by [[TSK-0091]] (2026-10-24):** row 25, `messages.automatic` version 4 (migration 0097). The unpaid-invoice reminder leaves the staff-released list. The follow-up after it (`unpaid_invoice_follow_up`) is released by staff. Both are email only until A2P 10DLC, and their wording is listed in [[OQ-UNPAID-REMINDER-DETAILS]].

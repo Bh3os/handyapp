@@ -14,7 +14,7 @@ source: "guide 10.2 access matrix; vault 27 sections 4-6, 9; OWN-DEC-114 role li
 ---
 These are server rules, enforced by one policy point on every read, write, search, download, export, background task and offline sync, never only in menus. One person may hold several roles; capabilities stay explicit. The AI module is disabled and holds no permissions.
 
-**Role mapping (PROPOSED, from guide 10.2 to the OWN-DEC-114 roles):** Owner/admin → Owner. Dispatcher and Customer service → Office. Estimator → Estimator. Worker → Worker. Supervisor → no role; supervision and quality review belong to the Owner (OWN-DEC-64). Bookkeeper and the guide's "limited finance role" → Office issues invoices, enters Square payment links and records payments ([[OWN-DEC-138]]); only the Owner marks a check cleared; routine reconciliation matching maps to Office and Owner (P); finance decisions stay Owner-only; the Worker gets only on-site collection recording with the collect capability.
+**Role mapping (PROPOSED, from guide 10.2 to the OWN-DEC-114 roles):** Owner/admin → Owner. Dispatcher and Customer service → Office. Estimator → Estimator. Worker → Worker. Supervisor → no role; supervision and quality review belong to the Owner (OWN-DEC-64). Bookkeeper and the guide's "limited finance role" → Office issues invoices, enters Square payment links and records payments ([[OWN-DEC-138]]); only the Owner marks a check cleared; routine reconciliation matching maps to Office and Owner (P); finance decisions stay Owner-only; the Worker gets only on-site collection recording with the Owner's collect grant recording their training ([[OWN-DEC-200]] H4).
 
 **Legend:** Y allowed · A assigned jobs only, inside the access window · V own verified project only · F fresh sign-in (password re-entry or TOTP) plus a written reason · P PROPOSED cell (not owner-decided) · — refused. Every allowed sensitive action is audited.
 
@@ -80,7 +80,7 @@ These are server rules, enforced by one policy point on every read, write, searc
 | --- | --- | --- | --- | --- | --- | --- |
 | Issue an invoice (after the Owner's quality review) | Y | Y | — | — | — | — |
 | Enter the Square payment link | Y | Y | — | — | — | — |
-| Record a verified payment | Y | Y | — | A, own on-site collection, with the collect capability (P mapping) | — | — |
+| Record a verified payment | Y | Y | — | A, own on-site collection, with the Owner's collect grant recording their training (P mapping) | — | — |
 | Mark a check cleared | Y | — | — | — | — | — |
 | Mark a check returned; reconcile | Y | Y (P) | — | — | — | — |
 | (any of the above for a payment they collected themselves) | — (P) | — (P) | — | — | — | — |
@@ -120,5 +120,7 @@ These are server rules, enforced by one policy point on every read, write, searc
 | Edit or delete audit events | — | — | — | — | — | — |
 
 **Changed by [[OWN-DEC-164]], [[OWN-DEC-195]], [[OWN-DEC-200]] (2026-10-21):** audit editing stays refused for every role, and an owner-only audit-retention action is added by [[TSK-0135]]; routine customer-authorized work-visit cancellations within policy move to Office by [[TSK-0140]]; cash collection needs an explicit Owner grant to a trained Worker by [[TSK-0151]]. Each change updates this table and the policy data in the same pull request.
+
+**Built by [[TSK-0151]] (2026-10-24, migration 0098):** the Worker's cell of "Record a verified payment" reads "with the Owner's collect grant recording their training": the `collect` grant records the date the training was completed and what it covered, and the database refuses a live collect grant without it (collect grants from before 0098 without a training record were ended). The Owner's dismissal of a working-hours or equipment flag (`visit.dismiss_flag`, with a reason) sits in "Set working days, hours and time off" (P); a mandatory restriction is never dismissed ([[OWN-DEC-200]] H7). Restoring an earlier grant in a reactivated account's permission review is "grant roles or capabilities" (F); declining one is protective, in the disable row. PROPOSED details: [[OQ-STAFF-AMENDMENT-DETAILS]].
 
 **Changed by [[OWN-DEC-173]] (2026-10-21):** publishing an estimate or change order above [[FACT-OWNER-APPROVAL-THRESHOLD]] needs the Owner's approval first; the row "Approve or reject publishing over the Owner approval threshold" is the Owner's alone, and changing the threshold is "Change policy values" (F) ([[TSK-0130]]).
