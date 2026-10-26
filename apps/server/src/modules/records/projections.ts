@@ -21,6 +21,7 @@ import {
   CUSTOMER_STEPS,
   CUSTOMER_TIMELINE_KINDS,
   DASHBOARD_SECTIONS,
+  SERIES_UNITS,
   WAITING_ON,
   type CustomerStatus,
   type DashboardSection,
@@ -54,6 +55,8 @@ export const ENTITIES = [
   'PrivacyRequest',
   // TSK-0082: the change orders sent to the customer and their decision on one.
   'ChangeOrder',
+  // TSK-0114: the repeat-service schedule the customer agreed to.
+  'ServiceSeries',
 ] as const
 export type Entity = (typeof ENTITIES)[number]
 
@@ -2260,6 +2263,56 @@ export const PROJECT_CASES = customerView(
   }),
 )
 
+// The project's repeat-service schedule as the customer agreed to it (TSK-0114; HH-SCH-10, OWN-DEC-113, OWN-DEC-148):
+// whether it runs, its next dates in the property's zone (each with whether its request was sent), how often, whether
+// reminders are wanted and the notice a change needs. Never how staff heard the agreement, staff notes, who recorded
+// it, the reminder drafts or another project's details; null when the project has no schedule.
+export const PROJECT_REPEAT_SERVICE = customerView(
+  'project.repeat_service',
+  'ServiceSeries',
+  {
+    reference: STRING,
+    schedule: {
+      anyOf: [
+        { type: 'null' },
+        object({
+          state: enumOf(['active', 'stopped']),
+          nextDates: { type: 'array', items: object({ date: STRING, requested: { type: 'boolean' } }) },
+          interval: {
+            anyOf: [{ type: 'null' }, object({ unit: enumOf(SERIES_UNITS), count: { type: 'integer' } })],
+          },
+          reminders: { type: 'boolean' },
+          changeNoticeHours: { type: ['integer', 'null'] },
+          stoppedAt: { type: ['string', 'null'], format: 'date-time' },
+        }),
+      ],
+    },
+  },
+  (r: {
+    reference: string
+    schedule: {
+      state: string
+      nextDates: readonly { date: string; requested: boolean }[]
+      interval: { unit: string; count: number } | null
+      reminders: boolean
+      changeNoticeHours: number | null
+      stoppedAt: Date | null
+    } | null
+  }) => ({
+    reference: r.reference,
+    schedule: r.schedule
+      ? {
+          state: r.schedule.state,
+          nextDates: r.schedule.nextDates.map((d) => ({ date: d.date, requested: d.requested })),
+          interval: r.schedule.interval ? { unit: r.schedule.interval.unit, count: r.schedule.interval.count } : null,
+          reminders: r.schedule.reminders,
+          changeNoticeHours: r.schedule.changeNoticeHours,
+          stoppedAt: r.schedule.stoppedAt ? r.schedule.stoppedAt.toISOString() : null,
+        }
+      : null,
+  }),
+)
+
 /**
  * The project's change orders as the customer sees them (TSK-0082; HH-CHG-02, HH-PORT-05, OWN-DEC-169): the accepted
  * estimate's total, the current authorized total (the original plus every approved change), and each change order
@@ -2421,5 +2474,6 @@ export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
     PROJECT_CASES,
     CUSTOMER_CHANGE_ORDERS,
     CUSTOMER_CHANGE_ORDER_DECISION,
+    PROJECT_REPEAT_SERVICE,
   ].map((v) => [v.name, v as CustomerView<never>]),
 )

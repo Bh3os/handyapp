@@ -445,6 +445,20 @@ export const QUEUE_ITEM_TYPES = [
     screen: 'schedule',
     path: 'closeout',
   },
+  // TSK-0114 (HH-SCH-10, OWN-DEC-113): a repeat-service reminder of a project's customer-agreed schedule was prepared on
+  // its date and may be released (one item per project while one may). A held draft (an open case) does not list it.
+  // Seen by the roles that release drafts; the link opens the project's schedule. Band PROPOSED.
+  {
+    id: 'repeat_service_release',
+    section: 'queue',
+    subject: 'project',
+    band: 'other',
+    view: 'message.release_draft',
+    reasons: ['repeat_reminder_ready'],
+    action: 'release_reminder',
+    screen: 'customers',
+    path: 'repeat-service',
+  },
   // TSK-0125 (HH-EST-15, OWN-DEC-165): a published estimate carries the requested discount although its verification
   // failed (not verified, or declined by the Owner): it cannot be approved, and the estimator writes the revised
   // estimate the customer approves. One item per request while such a version is published. Seen by the roles that

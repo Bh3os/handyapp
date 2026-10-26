@@ -10,6 +10,7 @@ links:
   uses: ["[[ENT-Visit]]", "[[ENT-Customer]]", "[[ENT-Property]]", "[[ENT-Message]]", "[[FACT-REMINDER-CADENCES]]", "[[FACT-CANCELLATION-RULES]]"]
   tested_by: ["[[T67]]"]
   part_of: ["[[C11]]"]
+  related: ["[[OQ-REPEAT-SERVICE-DETAILS]]"]
 source: "guide 14.3 HH-SCH-10; OWN-DEC-78, OWN-DEC-113"
 ---
 **P1, not built at launch:** recurring cleaning generates dated visits or jobs, each with its own scope and exceptions. Frequency, time zone and DST, pauses, skipped visits, changes, billing and duplicate prevention are defined before any automation. A series is never one endlessly edited job record.
@@ -22,3 +23,5 @@ source: "guide 14.3 HH-SCH-10; OWN-DEC-78, OWN-DEC-113"
 - Channel permissions, marketing consent and opt-outs are checked before any send.
 
 **Built by [[TSK-0113]] (2026-10-26):** "Request This Service Again" creates a new request with its own records, like every submission, linked to the earlier project (and through it to that customer and property); staff merge or relink records through the reviewed merge ([[HH-CRM-04]]). PROPOSED details in [[OQ-SAVED-PROPERTIES-DETAILS]]. The schedule and its reminders stay with [[TSK-0114]].
+
+**Built by [[TSK-0114]] (2026-10-26, migration 0124):** staff record the next service date and how often the customer agreed to on the project (or one date), in the property's zone; each occurrence is a new request through every gate of a new request, linked to its date by staff, never a reused job, price or verification; a reminder draft is prepared on each occurrence's date for staff to release (wording NOT CONFIGURED, so none is sent yet), held during an open case, stopped by an opt-out of optional follow-ups and rechecked at send; the customer turns reminders off or on, changes or stops the schedule in the project workspace, effective beyond the 24-hour notice, with dates inside it kept. Billing per visit and automatic creation of visits stay with the P1 series. PROPOSED details: [[OQ-REPEAT-SERVICE-DETAILS]].

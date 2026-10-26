@@ -27,6 +27,7 @@ import { ACTION_LABEL, SITUATION_LABEL, STEP_TEXT, t, TIMELINE_LABEL, WAITING_LA
 import { useLive } from './live'
 import { NotShown, RefreshLine } from './States'
 import { Questions } from './Questions'
+import { RepeatServiceSection } from './RepeatService'
 import { TAB_LABEL, TAB_ORDER, TabPanel, tabPath, type EstimateRoute, type Tab } from './Tabs'
 
 const usd = (c: number) => formatUsd(cents(c))
@@ -317,6 +318,8 @@ export function Workspace({
                     />
                     <h2 className="hh-visually-hidden">{t('portal.overview.title')}</h2>
                     <CaseUpdatesSection reference={reference} fetchImpl={fetchImpl} />
+                    {/* TSK-0114: the repeat-service schedule the customer agreed to, which they change or stop. */}
+                    <RepeatServiceSection reference={reference} fetchImpl={fetchImpl} />
                     {/* TSK-0051: a project HandyHub asked questions on reads them too (its timeline says so). */}
                     {live.data.timeline.some((e) => e.kind === 'more_information') ? (
                       <OverviewWithQuestions

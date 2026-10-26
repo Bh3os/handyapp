@@ -65,6 +65,8 @@ describe('organization memberships (TSK-0118, HH-ID-13)', () => {
         'access_code.set',
         'message.reply',
         'privacy.request_deletion',
+        // TSK-0114: the repeat-service schedule the customer agreed to.
+        'service_series.change',
       ]),
     )
     for (const a of own) expect(allowed(both, a)).toBe(false)

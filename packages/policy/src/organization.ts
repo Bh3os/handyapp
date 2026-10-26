@@ -2,7 +2,8 @@
 // of a customer-side organization reaches a project only when the membership's scope names it, and acts on it only as
 // far as the membership's privileges go: the customer column's V cells hold for an organization access only for the
 // actions listed here (deny by default). Everything else a project's own customer may do (answering questions, the
-// project conversation, contact, property and access-code changes, privacy requests) stays with that customer.
+// project conversation, contact, property and access-code changes, privacy requests, TSK-0114's repeat-service
+// schedule and its reminders) stays with that customer.
 // PROPOSED (no owner value, OQ-ORGANIZATION-ACCOUNTS-DETAILS): which actions each privilege covers.
 import type { Action } from './matrix.js'
 

@@ -2938,6 +2938,50 @@ export interface WorkSchedulingTasksTable {
   version: Generated<number>
 }
 
+export interface WorkServiceSeriesTable {
+  id: Generated<string>
+  project_id: string
+  state: Generated<string>
+  anchor_date: string
+  interval_unit: string | null
+  interval_count: number | null
+  reminders: boolean
+  agreed_via: string
+  recorded_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+  stopped_at: Timestamp | null
+  stopped_by: string | null
+  version: Generated<number>
+}
+
+export interface WorkServiceSeriesChangesTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  series_id: string
+  version: number
+  change: string
+  actor_kind: string
+  staff_id: string | null
+  anchor_date: string
+  interval_unit: string | null
+  interval_count: number | null
+  reminders: boolean
+  occurrence_date: string | null
+  kept_dates: Generated<string[]>
+  agreed_via: string | null
+  note: string | null
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface WorkServiceSeriesOccurrencesTable {
+  series_id: string
+  occurrence_date: string
+  state: string
+  request_id: string | null
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface WorkStabilizationRecordsTable {
   id: Generated<string>
   report_id: string
@@ -3505,6 +3549,9 @@ export interface Database {
   'work.reservation_flags': WorkReservationFlagsTable
   'work.reservations': WorkReservationsTable
   'work.scheduling_tasks': WorkSchedulingTasksTable
+  'work.service_series': WorkServiceSeriesTable
+  'work.service_series_changes': WorkServiceSeriesChangesTable
+  'work.service_series_occurrences': WorkServiceSeriesOccurrencesTable
   'work.stabilization_records': WorkStabilizationRecordsTable
   'work.start_gate_evaluations': WorkStartGateEvaluationsTable
   'work.start_site_checks': WorkStartSiteChecksTable

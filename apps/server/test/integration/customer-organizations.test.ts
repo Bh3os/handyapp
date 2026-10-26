@@ -318,6 +318,21 @@ describe('organization accounts (TSK-0118, HH-ID-13)', () => {
     })
     expect(await still()).toBe(true)
     expect(await opens(member.cookie, second.reference)).toBe(200)
+    // TSK-0114's repeat-service schedule stays the project customer's own, whatever the privileges: the customer
+    // reads it (none yet), the member finds it NOT_FOUND and cannot change or stop one.
+    expect(await opens(admin.cookie, admin.s.reference, 'repeat-service')).toBe(200)
+    expect(await opens(member.cookie, admin.s.reference, 'repeat-service')).toBe(404)
+    const stop = await app.inject({
+      method: 'POST',
+      url: `/api/v1/customer/projects/${admin.s.reference}/repeat-service/stop`,
+      headers: {
+        'x-forwarded-for': client,
+        cookie: member.cookie,
+        'idempotency-key': 'synthetic-org-repeat-stop-0001',
+      },
+      payload: {},
+    })
+    expect(stop.statusCode).toBe(404)
     expect((await dashboard(member.cookie)).find((p) => p.reference === second.reference)?.organization).toEqual({
       name: 'scope Rentals',
       approve: true,

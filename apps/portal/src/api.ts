@@ -2205,6 +2205,81 @@ async function organizationWrite(
 const orgPath = (id: string) => `/customer/account/organizations/${encodeURIComponent(id)}`
 /** A membership's scope (the references of shared projects it reaches) and privileges. */
 export type MemberScope = { approve: boolean; pay: boolean; projects: string[] }
+// TSK-0114 (HH-SCH-10, OWN-DEC-113, OWN-DEC-148): the project's repeat-service schedule as the customer agreed to it,
+// which they change or stop here (each write with an idempotency key the section keeps for its retries).
+export const REPEAT_UNITS = ['day', 'week', 'month'] as const
+export type RepeatUnit = (typeof REPEAT_UNITS)[number]
+export type RepeatInterval = { unit: RepeatUnit; count: number } | null
+export type RepeatSchedule = {
+  state: 'active' | 'stopped'
+  nextDates: { date: string; requested: boolean }[]
+  interval: RepeatInterval
+  reminders: boolean
+  changeNoticeHours: number | null
+  stoppedAt: string | null
+}
+export type RepeatService = { reference: string; schedule: RepeatSchedule | null }
+
+export function parseRepeatService(v: unknown): RepeatService | null {
+  if (!isObj(v) || !isStr(v['reference'])) return null
+  const s = v['schedule']
+  if (s === null) return { reference: v['reference'], schedule: null }
+  if (!isObj(s) || !oneOf(['active', 'stopped'] as const)(s['state']) || !Array.isArray(s['nextDates'])) return null
+  const nextDates: RepeatSchedule['nextDates'] = []
+  for (const d of s['nextDates']) {
+    if (!isObj(d) || !isStr(d['date']) || typeof d['requested'] !== 'boolean') return null
+    nextDates.push({ date: d['date'], requested: d['requested'] })
+  }
+  const i = s['interval']
+  let interval: RepeatInterval = null
+  if (i !== null) {
+    if (!isObj(i) || !oneOf(REPEAT_UNITS)(i['unit']) || typeof i['count'] !== 'number') return null
+    interval = { unit: i['unit'], count: i['count'] }
+  }
+  const notice = s['changeNoticeHours']
+  const stoppedAt = s['stoppedAt']
+  if (typeof s['reminders'] !== 'boolean') return null
+  if (notice !== null && typeof notice !== 'number') return null
+  if (stoppedAt !== null && !isDate(stoppedAt)) return null
+  return {
+    reference: v['reference'],
+    schedule: {
+      state: s['state'],
+      nextDates,
+      interval,
+      reminders: s['reminders'],
+      changeNoticeHours: notice as number | null,
+      stoppedAt: stoppedAt as string | null,
+    },
+  }
+}
+
+/** Why a change to the schedule was not made. */
+export type RepeatFailure = 'expired' | 'unavailable' | 'within_notice' | 'invalid' | 'rate_limited' | 'failed'
+async function repeatWrite(
+  fetchImpl: Fetch,
+  reference: string,
+  action: 'change' | 'reminders' | 'stop',
+  body: unknown,
+  key: string,
+): Promise<{ ok: true; data: RepeatService } | { ok: false; failure: RepeatFailure }> {
+  const r = await post(
+    fetchImpl,
+    `/customer/projects/${encodeURIComponent(reference)}/repeat-service/${action}`,
+    body,
+    key,
+  )
+  if (!r) return { ok: false, failure: 'failed' }
+  const data = r.status === 200 ? parseRepeatService(r.json) : null
+  if (data) return { ok: true, data }
+  if (r.status === 401) return { ok: false, failure: 'expired' }
+  if (r.status === 403 || r.status === 404) return { ok: false, failure: 'unavailable' }
+  if (r.status === 429) return { ok: false, failure: 'rate_limited' }
+  if (r.status === 400 && fieldCodes(r.json).includes('WITHIN_CHANGE_NOTICE'))
+    return { ok: false, failure: 'within_notice' }
+  if (r.status === 400 || r.status === 409) return { ok: false, failure: 'invalid' }
+  return { ok: false, failure: 'failed' }
+}
 
 export const portalApi = {
   projects: (f: Fetch) => read(f, '/customer/projects', parseList),
@@ -2300,4 +2375,16 @@ export const portalApi = {
   leaveOrganization: (f: Fetch, id: string) => organizationWrite(f, `${orgPath(id)}/leave`, {}),
   answerInvitation: (f: Fetch, id: string, answer: 'accept' | 'decline') =>
     organizationWrite(f, `/customer/account/organization-invitations/${encodeURIComponent(id)}/${answer}`, {}),
+  // TSK-0114: the project's repeat-service schedule, changed or stopped by the customer.
+  repeatService: (f: Fetch, reference: string) =>
+    read(f, `/customer/projects/${encodeURIComponent(reference)}/repeat-service`, parseRepeatService),
+  changeRepeatService: (
+    f: Fetch,
+    reference: string,
+    body: { nextDate: string; interval: RepeatInterval },
+    key: string,
+  ) => repeatWrite(f, reference, 'change', body, key),
+  setRepeatReminders: (f: Fetch, reference: string, on: boolean, key: string) =>
+    repeatWrite(f, reference, 'reminders', { on }, key),
+  stopRepeatService: (f: Fetch, reference: string, key: string) => repeatWrite(f, reference, 'stop', {}, key),
 }
