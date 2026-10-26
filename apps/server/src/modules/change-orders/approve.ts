@@ -92,8 +92,11 @@ export type CustomerChangeOrder = {
   /** While open: what the approval names (the digest of this content and the terms the job was accepted under). */
   approval: {
     canDecide: boolean
-    /** Why it cannot be approved now: another change was approved since it was priced (staff revise it). */
-    blockedBy: 'APPROVED_SCOPE_CHANGED' | null
+    /**
+     * Why it cannot be approved now: another change was approved since it was priced (staff revise it); TSK-0118: the
+     * reader is an organization member whose membership does not include approving.
+     */
+    blockedBy: 'APPROVED_SCOPE_CHANGED' | 'NO_APPROVAL_PRIVILEGE' | null
     contentDigest: string
     termsDocumentId: string
     termsSha256: string

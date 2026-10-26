@@ -106,7 +106,13 @@ export type ProjectSummary = {
   section: Section
   /** How many documents the project's Documents tab lists. */
   documents: number
+  /**
+   * TSK-0118 (HH-ID-13): the organization the project is shared through and the membership's privileges; null for the
+   * account's own projects.
+   */
+  organization: SharedThrough | null
 }
+export type SharedThrough = { name: string; approve: boolean; pay: boolean }
 export type ProjectList = {
   projects: ProjectSummary[]
   /** How the session came in: an account (its dashboard, with Add a project) or a single project's guest link. */
@@ -143,6 +149,8 @@ export type Payment =
       payByCardUrl: string | null
     }
   | { state: 'deposit_received'; amountCents: number }
+  // TSK-0118 (HH-ID-13): an organization member without the pay privilege.
+  | { state: 'not_shared' }
 
 export type Failure = 'expired' | 'unavailable' | 'failed'
 export type Result<T> = { ok: true; data: T } | { ok: false; failure: Failure }
@@ -166,7 +174,7 @@ function status(v: unknown): Status | null {
   return { situation, step, waitingOn, nextAction, since }
 }
 
-type Head = Omit<ProjectSummary, 'section' | 'documents'>
+type Head = Omit<ProjectSummary, 'section' | 'documents' | 'organization'>
 function summary(v: unknown): Head | null {
   if (!isObj(v)) return null
   const s = status(v['status'])
@@ -180,7 +188,12 @@ function summary(v: unknown): Head | null {
 function listed(v: unknown): ProjectSummary | null {
   const head = summary(v)
   if (!head || !isObj(v) || !oneOf(SECTIONS)(v['section']) || !isSeconds(v['documents'])) return null
-  return { ...head, section: v['section'], documents: v['documents'] }
+  // TSK-0118: absent is the same as null (the account's own project).
+  const o = v['organization'] ?? null
+  if (o === null) return { ...head, section: v['section'], documents: v['documents'], organization: null }
+  if (!isObj(o) || !isStr(o['name']) || typeof o['approve'] !== 'boolean' || typeof o['pay'] !== 'boolean') return null
+  const organization = { name: o['name'], approve: o['approve'], pay: o['pay'] }
+  return { ...head, section: v['section'], documents: v['documents'], organization }
 }
 
 export function parseList(v: unknown): ProjectList | null {
@@ -211,6 +224,7 @@ const isHttps = (v: unknown): v is string => isStr(v) && /^https:\/\//.test(v)
 function paymentOf(v: unknown): Payment | null {
   if (!isObj(v)) return null
   if (v['state'] === 'none') return { state: 'none' }
+  if (v['state'] === 'not_shared') return { state: 'not_shared' }
   if (v['state'] === 'deposit_received')
     return isCents(v['amountCents']) ? { state: v['state'], amountCents: v['amountCents'] } : null
   if (v['state'] !== 'deposit_due') return null
@@ -772,6 +786,8 @@ export const APPROVAL_REASONS = [
   // TSK-0125 (OWN-DEC-165): approval waits for the requested reduction's verification, or an updated estimate follows.
   'reduction_pending_verification',
   'reduction_not_verified',
+  // TSK-0118 (HH-ID-13): an organization member whose membership does not include approving.
+  'no_approval_privilege',
 ] as const
 export type ApprovalReason = (typeof APPROVAL_REASONS)[number]
 export const RESPONSE_KINDS = ['changes_requested', 'declined', 'update_requested'] as const
@@ -1259,7 +1275,8 @@ export type ChangeOrder = {
   decision: { kind: 'approved' | 'rejected'; method: 'portal' | 'in_person_code'; at: string } | null
   approval: {
     canDecide: boolean
-    blockedBy: 'APPROVED_SCOPE_CHANGED' | null
+    /** TSK-0118: NO_APPROVAL_PRIVILEGE for an organization member whose membership does not include approving. */
+    blockedBy: 'APPROVED_SCOPE_CHANGED' | 'NO_APPROVAL_PRIVILEGE' | null
     contentDigest: string
     termsDocumentId: string
     termsSha256: string
@@ -1335,13 +1352,15 @@ function parseChangeOrder(v: unknown): ChangeOrder | null {
       ? null
       : isObj(a) &&
           typeof a['canDecide'] === 'boolean' &&
-          (a['blockedBy'] === null || a['blockedBy'] === 'APPROVED_SCOPE_CHANGED') &&
+          (a['blockedBy'] === null ||
+            a['blockedBy'] === 'APPROVED_SCOPE_CHANGED' ||
+            a['blockedBy'] === 'NO_APPROVAL_PRIVILEGE') &&
           isStr(a['contentDigest']) &&
           isStr(a['termsDocumentId']) &&
           isStr(a['termsSha256'])
         ? {
             canDecide: a['canDecide'],
-            blockedBy: a['blockedBy'] === null ? null : ('APPROVED_SCOPE_CHANGED' as const),
+            blockedBy: a['blockedBy'] as 'APPROVED_SCOPE_CHANGED' | 'NO_APPROVAL_PRIVILEGE' | null,
             contentDigest: a['contentDigest'],
             termsDocumentId: a['termsDocumentId'],
             termsSha256: a['termsSha256'],
@@ -2015,6 +2034,177 @@ async function settingsWrite<T>(
 }
 const savedPath = (id: string) => `/customer/account/properties/${encodeURIComponent(id)}`
 
+// TSK-0118 (HH-ID-13): the signed-in account's organizations (account.organizations): the ones it administers (shared
+// projects, open memberships, history), the ones it belongs to (privileges and the projects it reaches) and the
+// invitations to its own sign-in email. Anything else is NOT_FOUND like a missing record.
+export const ORGANIZATION_EVENT_KINDS = [
+  'created',
+  'project_added',
+  'project_removed',
+  'member_invited',
+  'invitation_withdrawn',
+  'invitation_accepted',
+  'invitation_declined',
+  'member_changed',
+  'member_removed',
+  'member_left',
+  'membership_ended_account_closed',
+] as const
+export type OrganizationEventKind = (typeof ORGANIZATION_EVENT_KINDS)[number]
+export type OrganizationMember = {
+  id: string
+  email: string
+  state: 'invited' | 'active'
+  approve: boolean
+  pay: boolean
+  projects: string[]
+  invitedAt: string
+  acceptedAt: string | null
+}
+export type OrganizationHistoryEntry = {
+  kind: OrganizationEventKind
+  by: 'administrator' | 'member' | 'handyhub'
+  at: string
+  email: string | null
+  reference: string | null
+  approve: boolean | null
+  pay: boolean | null
+  scopeProjects: number | null
+}
+export type AdministeredOrganization = {
+  id: string
+  name: string
+  createdAt: string
+  projects: string[]
+  members: OrganizationMember[]
+  history: OrganizationHistoryEntry[]
+}
+export type MemberOrganization = {
+  id: string
+  name: string
+  approve: boolean
+  pay: boolean
+  projects: string[]
+  acceptedAt: string
+}
+export type OrganizationInvitation = {
+  id: string
+  organization: string
+  approve: boolean
+  pay: boolean
+  projects: number
+  invitedAt: string
+}
+export type AccountOrganizations = {
+  linkedProjects: string[]
+  administered: AdministeredOrganization[]
+  memberships: MemberOrganization[]
+  invitations: OrganizationInvitation[]
+}
+const isBool = (v: unknown): v is boolean => typeof v === 'boolean'
+const isBoolOrNull = (v: unknown): v is boolean | null => v === null || isBool(v)
+function parseMember(v: unknown): OrganizationMember | null {
+  if (!isObj(v) || !isStr(v['id']) || !isStr(v['email']) || !oneOf(['invited', 'active'] as const)(v['state']))
+    return null
+  if (!isBool(v['approve']) || !isBool(v['pay']) || !isStrings(v['projects']) || !isDate(v['invitedAt'])) return null
+  const accepted = v['acceptedAt']
+  if (accepted !== null && !isDate(accepted)) return null
+  return {
+    id: v['id'],
+    email: v['email'],
+    state: v['state'],
+    approve: v['approve'],
+    pay: v['pay'],
+    projects: v['projects'],
+    invitedAt: v['invitedAt'],
+    acceptedAt: accepted,
+  }
+}
+function parseHistory(v: unknown): OrganizationHistoryEntry | null {
+  if (!isObj(v) || !oneOf(ORGANIZATION_EVENT_KINDS)(v['kind'])) return null
+  if (!oneOf(['administrator', 'member', 'handyhub'] as const)(v['by']) || !isDate(v['at'])) return null
+  const { email, reference, approve, pay, scopeProjects } = v
+  if (!isStrOrNull(email) || !isStrOrNull(reference) || !isBoolOrNull(approve) || !isBoolOrNull(pay)) return null
+  if (scopeProjects !== null && !isSeconds(scopeProjects)) return null
+  return { kind: v['kind'], by: v['by'], at: v['at'], email, reference, approve, pay, scopeProjects }
+}
+function allOf<T>(list: unknown, parse: (v: unknown) => T | null): T[] | null {
+  if (!Array.isArray(list)) return null
+  const out = list.map(parse)
+  return out.some((x) => x === null) ? null : (out as T[])
+}
+function parseAdministered(o: unknown): AdministeredOrganization | null {
+  if (!isObj(o) || !isStr(o['id']) || !isStr(o['name']) || !isDate(o['createdAt']) || !isStrings(o['projects']))
+    return null
+  const members = allOf(o['members'], parseMember)
+  const history = allOf(o['history'], parseHistory)
+  if (!members || !history) return null
+  return { id: o['id'], name: o['name'], createdAt: o['createdAt'], projects: o['projects'], members, history }
+}
+function parseMembership(o: unknown): MemberOrganization | null {
+  if (!isObj(o) || !isStr(o['id']) || !isStr(o['name']) || !isBool(o['approve']) || !isBool(o['pay'])) return null
+  if (!isStrings(o['projects']) || !isDate(o['acceptedAt'])) return null
+  const { id, name, approve, pay, projects, acceptedAt } = o
+  return { id, name, approve, pay, projects, acceptedAt }
+}
+function parseInvitation(o: unknown): OrganizationInvitation | null {
+  if (!isObj(o) || !isStr(o['id']) || !isStr(o['organization']) || !isBool(o['approve']) || !isBool(o['pay']))
+    return null
+  if (!isSeconds(o['projects']) || !isDate(o['invitedAt'])) return null
+  const { id, organization, approve, pay, projects, invitedAt } = o
+  return { id, organization, approve, pay, projects, invitedAt }
+}
+export function parseOrganizations(v: unknown): AccountOrganizations | null {
+  if (!isObj(v) || !isStrings(v['linkedProjects'])) return null
+  const administered = allOf(v['administered'], parseAdministered)
+  const memberships = allOf(v['memberships'], parseMembership)
+  const invitations = allOf(v['invitations'], parseInvitation)
+  if (!administered || !memberships || !invitations) return null
+  return { linkedProjects: v['linkedProjects'], administered, memberships, invitations }
+}
+
+/** Why a change to an organization was not made. */
+export type OrganizationFailure =
+  | 'expired'
+  | 'unavailable'
+  | 'invalid_name'
+  | 'invalid_email'
+  | 'own_email'
+  | 'already_invited'
+  | 'already_shared'
+  | 'already_member'
+  | 'invalid_scope'
+  | 'rate_limited'
+  | 'failed'
+const ORGANIZATION_CODES = [
+  'invalid_name',
+  'invalid_email',
+  'own_email',
+  'already_invited',
+  'already_shared',
+  'already_member',
+  'invalid_scope',
+] as const
+async function organizationWrite(
+  fetchImpl: Fetch,
+  path: string,
+  body: unknown,
+): Promise<{ ok: true; data: AccountOrganizations } | { ok: false; failure: OrganizationFailure }> {
+  const r = await post(fetchImpl, path, body)
+  if (!r) return { ok: false, failure: 'failed' }
+  const data = r.status === 200 ? parseOrganizations(r.json) : null
+  if (data !== null) return { ok: true, data }
+  if (r.status === 401) return { ok: false, failure: 'expired' }
+  if (r.status === 404) return { ok: false, failure: 'unavailable' }
+  if (r.status === 429) return { ok: false, failure: 'rate_limited' }
+  const codes = fieldCodes(r.json)
+  for (const c of ORGANIZATION_CODES)
+    if ((r.status === 400 || r.status === 409) && codes.includes(c)) return { ok: false, failure: c }
+  return { ok: false, failure: 'failed' }
+}
+const orgPath = (id: string) => `/customer/account/organizations/${encodeURIComponent(id)}`
+/** A membership's scope (the references of shared projects it reaches) and privileges. */
+export type MemberScope = { approve: boolean; pay: boolean; projects: string[] }
 // TSK-0114 (HH-SCH-10, OWN-DEC-113, OWN-DEC-148): the project's repeat-service schedule as the customer agreed to it,
 // which they change or stop here (each write with an idempotency key the section keeps for its retries).
 export const REPEAT_UNITS = ['day', 'week', 'month'] as const
@@ -2169,6 +2359,22 @@ export const portalApi = {
     f: Fetch,
     body: { channel: 'email' | 'sms'; permission: AccountPermission; granted: boolean; privacyNoticeVersion?: string },
   ) => settingsWrite(f, '/customer/account/permissions', body, parsePreferences),
+  // TSK-0118: organization accounts.
+  organizations: (f: Fetch) => read(f, '/customer/account/organizations', parseOrganizations),
+  createOrganization: (f: Fetch, name: string) => organizationWrite(f, '/customer/account/organizations', { name }),
+  shareProject: (f: Fetch, id: string, reference: string) =>
+    organizationWrite(f, `${orgPath(id)}/projects`, { reference }),
+  unshareProject: (f: Fetch, id: string, reference: string) =>
+    organizationWrite(f, `${orgPath(id)}/projects/${encodeURIComponent(reference)}/remove`, {}),
+  inviteMember: (f: Fetch, id: string, email: string, scope: MemberScope) =>
+    organizationWrite(f, `${orgPath(id)}/members`, { email, ...scope }),
+  changeMember: (f: Fetch, id: string, member: string, scope: MemberScope) =>
+    organizationWrite(f, `${orgPath(id)}/members/${encodeURIComponent(member)}`, scope),
+  removeMember: (f: Fetch, id: string, member: string) =>
+    organizationWrite(f, `${orgPath(id)}/members/${encodeURIComponent(member)}/remove`, {}),
+  leaveOrganization: (f: Fetch, id: string) => organizationWrite(f, `${orgPath(id)}/leave`, {}),
+  answerInvitation: (f: Fetch, id: string, answer: 'accept' | 'decline') =>
+    organizationWrite(f, `/customer/account/organization-invitations/${encodeURIComponent(id)}/${answer}`, {}),
   // TSK-0114: the project's repeat-service schedule, changed or stopped by the customer.
   repeatService: (f: Fetch, reference: string) =>
     read(f, `/customer/projects/${encodeURIComponent(reference)}/repeat-service`, parseRepeatService),

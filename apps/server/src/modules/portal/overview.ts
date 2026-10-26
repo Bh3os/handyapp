@@ -18,6 +18,9 @@
 //   review." and nothing more: the hazard, its report and every staff detail stay on the server.
 // - TSK-0124 (HH-ID-14, OWN-DEC-160): each summary of the projects list names its dashboard section (Active, Completed
 //   for the Project History, Cancelled/Archived) and counts the documents its Documents tab lists.
+// - TSK-0118 (HH-ID-13): a project an account reaches through an organization membership names the organization and
+//   the membership's privileges; without the pay privilege its payment summary is "not shared" and its invoices are
+//   neither listed nor counted (the caller passes the payment.view scope, the policy's organization table).
 import type { Db, Tx } from '@handyhub/db'
 import {
   customerCompletion,
@@ -31,7 +34,7 @@ import {
   type ProjectState,
   type RequestState,
 } from '@handyhub/domain'
-import type { DataScope } from '@handyhub/policy'
+import { scopeIncludesProject, type DataScope } from '@handyhub/policy'
 import { loadConfig } from '../../platform/config/index.js'
 import { customerEstimateList } from '../estimates/customer.js'
 import { approvalFacts } from '../estimates/receipt.js'
@@ -67,9 +70,10 @@ export type ProjectOverview = {
   timeline: TimelineEntry[]
   /**
    * Payment summary, shown beside the status and never merged into it. TSK-0059: the job's deposit while it is due
-   * (or once verified money covers it); no invoice exists yet.
+   * (or once verified money covers it); no invoice exists yet. TSK-0118: not_shared for an organization member
+   * without the pay privilege.
    */
-  payment: CustomerDeposit
+  payment: CustomerDeposit | { state: 'not_shared' }
   /** The next confirmed visit (TSK-0063), or none. */
   appointment: CustomerAppointment | null
   refreshedAt: Date
@@ -83,7 +87,25 @@ export type ProjectSummary = Pick<ProjectOverview, 'reference' | 'services' | 'n
   section: DashboardSection
   /** TSK-0124: the estimate versions received and the issued invoices its Documents tab lists. */
   documents: number
+  /** TSK-0118: the organization the project is shared through and the membership's privileges; null when it is own. */
+  organization: SharedThrough | null
 }
+
+/** TSK-0118 (HH-ID-13): how an account reaches a project of an organization it is a member of. */
+export type SharedThrough = { name: string; approve: boolean; pay: boolean }
+
+/**
+ * What a read may show and offer (TSK-0118): `payments` is the caller's payment.view scope; a project outside it shows
+ * no deposit, invoice or payment. `organizations` names the projects shared through an organization.
+ */
+export type PortalView = {
+  payments?: DataScope
+  /** The caller's scope for appointment requests (visit.request_reschedule): outside it, none is offered. */
+  decisions?: DataScope
+  organizations?: ReadonlyMap<string, SharedThrough>
+}
+const showsPayments = (view: PortalView, projectId: string) =>
+  view.payments === undefined || scopeIncludesProject(view.payments, projectId)
 
 /** How often an open project view refreshes itself (HH-ARC-10); 0 while NOT CONFIGURED. */
 export async function refreshSeconds(db: Reader): Promise<number> {
@@ -91,7 +113,7 @@ export async function refreshSeconds(db: Reader): Promise<number> {
   return setting.state === 'CONFIGURED' ? setting.value.pollSeconds : 0
 }
 
-async function overviewFor(db: Reader, project: { id: string; reference: string }, now: Date) {
+async function overviewFor(db: Reader, project: { id: string; reference: string }, now: Date, view: PortalView = {}) {
   const p = await db.selectFrom('crm.projects').select(['state']).where('id', '=', project.id).executeTakeFirstOrThrow()
   const r = await db
     .selectFrom('intake.requests')
@@ -168,7 +190,9 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
     reopenByReply = w.window === 'reopen' && open !== undefined
   }
   // TSK-0059: the job's deposit for the payment summary (the amount due, verified and pending money, the Square link).
-  const payment = await customerDeposit(db, project.id)
+  const payment = showsPayments(view, project.id)
+    ? await customerDeposit(db, project.id)
+    : ({ state: 'not_shared' } as const)
   const visits = overviewVisitFacts(await appointmentsOf(db, project.id, now), p.state === 'approved')
   // TSK-0077 (HH-WORK-09, T48): an unresolved critical safety hold shows only "Work is paused for safety review.":
   // no hazard, report, note or worker is read for the customer (HH-INC-02).
@@ -221,7 +245,11 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
     // Newest first: the latest update leads.
     timeline: entries.reverse(),
     payment,
-    appointment: visits.appointment,
+    // TSK-0118: an organization member without the approve privilege is offered no appointment request.
+    appointment:
+      visits.appointment && view.decisions !== undefined && !scopeIncludesProject(view.decisions, project.id)
+        ? { ...visits.appointment, actions: { requestReschedule: false, requestCancellation: false } }
+        : visits.appointment,
     refreshedAt: now,
   }
 }
@@ -232,10 +260,11 @@ export async function projectOverview(
   scope: DataScope,
   reference: string,
   now = new Date(),
+  view: PortalView = {},
 ): Promise<ProjectOverview | null> {
   const project = await findProject(db, scope, { reference })
   if (!project) return null
-  const o = await overviewFor(db, project, now)
+  const o = await overviewFor(db, project, now, view)
   return o ? { ...o, refreshSeconds: await refreshSeconds(db) } : null
 }
 
@@ -248,6 +277,7 @@ async function dashboardFacts(
   scope: DataScope,
   project: { id: string; reference: string },
   now: Date,
+  view: PortalView,
 ): Promise<{ section: DashboardSection; documents: number }> {
   const row = await db
     .selectFrom('crm.projects as p')
@@ -257,7 +287,7 @@ async function dashboardFacts(
     .executeTakeFirstOrThrow()
   const jobCompleted = row.operational_state === 'operationally_complete' || row.operational_state === 'closed'
   const estimates = (await customerEstimateList(db, scope, project.reference, now)) ?? []
-  const invoices = await customerInvoiceList(db, project.id)
+  const invoices = showsPayments(view, project.id) ? await customerInvoiceList(db, project.id) : []
   return {
     section: dashboardSection(row.state as ProjectState, jobCompleted),
     documents: estimates.length + invoices.length,
@@ -265,16 +295,21 @@ async function dashboardFacts(
 }
 
 /**
- * Every project the caller's scope names (a guest link: one; an account: its linked projects), as summaries, each with
- * its dashboard section (TSK-0124). The section depends on the project only: a link's expiry never moves or hides it.
+ * Every project the caller's scope names (a guest link: one; an account: its linked projects and, TSK-0118, the
+ * projects of its organization memberships), as summaries, each with its dashboard section (TSK-0124). The section depends on the project only: a link's expiry never moves or hides it.
  */
-export async function projectSummaries(db: Reader, scope: DataScope, now = new Date()): Promise<ProjectSummary[]> {
+export async function projectSummaries(
+  db: Reader,
+  scope: DataScope,
+  now = new Date(),
+  view: PortalView = {},
+): Promise<ProjectSummary[]> {
   if (scope.kind !== 'projects') return []
   const out: ProjectSummary[] = []
   for (const id of scope.projectIds) {
     const project = await findProject(db, scope, { id })
     if (!project) continue
-    const o = await overviewFor(db, project, now)
+    const o = await overviewFor(db, project, now, view)
     if (o)
       out.push({
         reference: o.reference,
@@ -288,7 +323,8 @@ export async function projectSummaries(db: Reader, scope: DataScope, now = new D
           nextAction: o.status.nextAction,
           since: o.status.since,
         },
-        ...(await dashboardFacts(db, scope, project, now)),
+        ...(await dashboardFacts(db, scope, project, now, view)),
+        organization: view.organizations?.get(project.id) ?? null,
       })
   }
   return out

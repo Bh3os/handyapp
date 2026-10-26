@@ -1687,6 +1687,4214 @@
         }
       }
     },
+    "/api/v1/customer/account/organization-invitations/{id}/accept": {
+      "post": {
+        "operationId": "acceptOrganizationInvitation",
+        "summary": "Accept an organization invitation",
+        "description": "Accepts an open invitation to the account’s own verified sign-in email (exactly that address): from the next request the account reaches the projects of its scope with its privileges. An account that is already a member of that organization: 409 (membership, already_member). Any other invitation (another address, its domain, a withdrawn or answered one) is NOT_FOUND like a missing one. Answers the organizations.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "linkedProjects",
+                    "administered",
+                    "memberships",
+                    "invitations"
+                  ],
+                  "properties": {
+                    "linkedProjects": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "administered": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "name",
+                          "createdAt",
+                          "projects",
+                          "members",
+                          "history"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "projects": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "members": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "email",
+                                "state",
+                                "approve",
+                                "pay",
+                                "projects",
+                                "invitedAt",
+                                "acceptedAt"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "email": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "invited",
+                                    "active"
+                                  ]
+                                },
+                                "approve": {
+                                  "type": "boolean"
+                                },
+                                "pay": {
+                                  "type": "boolean"
+                                },
+                                "projects": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "invitedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "acceptedAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "history": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "by",
+                                "at",
+                                "email",
+                                "reference",
+                                "approve",
+                                "pay",
+                                "scopeProjects"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "created",
+                                    "project_added",
+                                    "project_removed",
+                                    "member_invited",
+                                    "invitation_withdrawn",
+                                    "invitation_accepted",
+                                    "invitation_declined",
+                                    "member_changed",
+                                    "member_removed",
+                                    "member_left",
+                                    "membership_ended_account_closed"
+                                  ]
+                                },
+                                "by": {
+                                  "type": "string",
+                                  "enum": [
+                                    "administrator",
+                                    "member",
+                                    "handyhub"
+                                  ]
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "email": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "reference": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "approve": {
+                                  "type": [
+                                    "boolean",
+                                    "null"
+                                  ]
+                                },
+                                "pay": {
+                                  "type": [
+                                    "boolean",
+                                    "null"
+                                  ]
+                                },
+                                "scopeProjects": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ],
+                                  "minimum": 0
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "memberships": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "name",
+                          "approve",
+                          "pay",
+                          "projects",
+                          "acceptedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "approve": {
+                            "type": "boolean"
+                          },
+                          "pay": {
+                            "type": "boolean"
+                          },
+                          "projects": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "acceptedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "invitations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "organization",
+                          "approve",
+                          "pay",
+                          "projects",
+                          "invitedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "organization": {
+                            "type": "string"
+                          },
+                          "approve": {
+                            "type": "boolean"
+                          },
+                          "pay": {
+                            "type": "boolean"
+                          },
+                          "projects": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "invitedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "account-settings",
+            "limit": 120,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.organization_accept_invitation",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-organizations.test.ts",
+          "projection": "account.organizations"
+        }
+      }
+    },
+    "/api/v1/customer/account/organization-invitations/{id}/decline": {
+      "post": {
+        "operationId": "declineOrganizationInvitation",
+        "summary": "Decline an organization invitation",
+        "description": "Declines an open invitation to the account’s own verified sign-in email; it grants nothing, ever. Any other invitation (another address, its domain, a withdrawn or answered one) is NOT_FOUND like a missing one. Answers the organizations.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "linkedProjects",
+                    "administered",
+                    "memberships",
+                    "invitations"
+                  ],
+                  "properties": {
+                    "linkedProjects": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "administered": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "name",
+                          "createdAt",
+                          "projects",
+                          "members",
+                          "history"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "projects": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "members": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "email",
+                                "state",
+                                "approve",
+                                "pay",
+                                "projects",
+                                "invitedAt",
+                                "acceptedAt"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "email": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "invited",
+                                    "active"
+                                  ]
+                                },
+                                "approve": {
+                                  "type": "boolean"
+                                },
+                                "pay": {
+                                  "type": "boolean"
+                                },
+                                "projects": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "invitedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "acceptedAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "history": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "by",
+                                "at",
+                                "email",
+                                "reference",
+                                "approve",
+                                "pay",
+                                "scopeProjects"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "created",
+                                    "project_added",
+                                    "project_removed",
+                                    "member_invited",
+                                    "invitation_withdrawn",
+                                    "invitation_accepted",
+                                    "invitation_declined",
+                                    "member_changed",
+                                    "member_removed",
+                                    "member_left",
+                                    "membership_ended_account_closed"
+                                  ]
+                                },
+                                "by": {
+                                  "type": "string",
+                                  "enum": [
+                                    "administrator",
+                                    "member",
+                                    "handyhub"
+                                  ]
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "email": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "reference": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "approve": {
+                                  "type": [
+                                    "boolean",
+                                    "null"
+                                  ]
+                                },
+                                "pay": {
+                                  "type": [
+                                    "boolean",
+                                    "null"
+                                  ]
+                                },
+                                "scopeProjects": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ],
+                                  "minimum": 0
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "memberships": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "name",
+                          "approve",
+                          "pay",
+                          "projects",
+                          "acceptedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "approve": {
+                            "type": "boolean"
+                          },
+                          "pay": {
+                            "type": "boolean"
+                          },
+                          "projects": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "acceptedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "invitations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "organization",
+                          "approve",
+                          "pay",
+                          "projects",
+                          "invitedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "organization": {
+                            "type": "string"
+                          },
+                          "approve": {
+                            "type": "boolean"
+                          },
+                          "pay": {
+                            "type": "boolean"
+                          },
+                          "projects": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "invitedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "account-settings",
+            "limit": 120,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.organization_decline_invitation",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-organizations.test.ts",
+          "projection": "account.organizations"
+        }
+      }
+    },
+    "/api/v1/customer/account/organizations": {
+      "get": {
+        "operationId": "getAccountOrganizations",
+        "summary": "Organizations",
+        "description": "For a live account session (HH-ID-13): the references of the account’s own linked projects (what it may share); the organizations it administers, each with the projects it shares, its open memberships (the invited email, invited or active, approve and pay, the projects in scope) and its history, newest first; the organizations it is a member of, each with its privileges and the projects the membership reaches now (never the other members or the other projects); and the open invitations to its own verified sign-in email, exactly that address (never its domain), each with the organization’s name, the privileges and how many projects they cover. A guest-link session is NOT_FOUND; no session is 401.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "linkedProjects",
+                    "administered",
+                    "memberships",
+                    "invitations"
+                  ],
+                  "properties": {
+                    "linkedProjects": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "administered": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "name",
+                          "createdAt",
+                          "projects",
+                          "members",
+                          "history"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "projects": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "members": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "email",
+                                "state",
+                                "approve",
+                                "pay",
+                                "projects",
+                                "invitedAt",
+                                "acceptedAt"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "email": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "invited",
+                                    "active"
+                                  ]
+                                },
+                                "approve": {
+                                  "type": "boolean"
+                                },
+                                "pay": {
+                                  "type": "boolean"
+                                },
+                                "projects": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "invitedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "acceptedAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "history": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "by",
+                                "at",
+                                "email",
+                                "reference",
+                                "approve",
+                                "pay",
+                                "scopeProjects"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "created",
+                                    "project_added",
+                                    "project_removed",
+                                    "member_invited",
+                                    "invitation_withdrawn",
+                                    "invitation_accepted",
+                                    "invitation_declined",
+                                    "member_changed",
+                                    "member_removed",
+                                    "member_left",
+                                    "membership_ended_account_closed"
+                                  ]
+                                },
+                                "by": {
+                                  "type": "string",
+                                  "enum": [
+                                    "administrator",
+                                    "member",
+                                    "handyhub"
+                                  ]
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "email": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "reference": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "approve": {
+                                  "type": [
+                                    "boolean",
+                                    "null"
+                                  ]
+                                },
+                                "pay": {
+                                  "type": [
+                                    "boolean",
+                                    "null"
+                                  ]
+                                },
+                                "scopeProjects": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ],
+                                  "minimum": 0
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "memberships": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "name",
+                          "approve",
+                          "pay",
+                          "projects",
+                          "acceptedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "approve": {
+                            "type": "boolean"
+                          },
+                          "pay": {
+                            "type": "boolean"
+                          },
+                          "projects": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "acceptedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "invitations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "organization",
+                          "approve",
+                          "pay",
+                          "projects",
+                          "invitedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "organization": {
+                            "type": "string"
+                          },
+                          "approve": {
+                            "type": "boolean"
+                          },
+                          "pay": {
+                            "type": "boolean"
+                          },
+                          "projects": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "invitedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-organizations.test.ts",
+          "projection": "account.organizations"
+        }
+      },
+      "post": {
+        "operationId": "createOrganization",
+        "summary": "Set up an organization",
+        "description": "Sets up an organization named 1 to 80 characters (trimmed; else 400 invalid_name), administered by the signed-in account. It shares nothing and nobody is a member until the administrator says so. Answers the organizations.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "linkedProjects",
+                    "administered",
+                    "memberships",
+                    "invitations"
+                  ],
+                  "properties": {
+                    "linkedProjects": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "administered": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "name",
+                          "createdAt",
+                          "projects",
+                          "members",
+                          "history"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "projects": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "members": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "email",
+                                "state",
+                                "approve",
+                                "pay",
+                                "projects",
+                                "invitedAt",
+                                "acceptedAt"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "email": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "invited",
+                                    "active"
+                                  ]
+                                },
+                                "approve": {
+                                  "type": "boolean"
+                                },
+                                "pay": {
+                                  "type": "boolean"
+                                },
+                                "projects": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "invitedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "acceptedAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "history": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "by",
+                                "at",
+                                "email",
+                                "reference",
+                                "approve",
+                                "pay",
+                                "scopeProjects"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "created",
+                                    "project_added",
+                                    "project_removed",
+                                    "member_invited",
+                                    "invitation_withdrawn",
+                                    "invitation_accepted",
+                                    "invitation_declined",
+                                    "member_changed",
+                                    "member_removed",
+                                    "member_left",
+                                    "membership_ended_account_closed"
+                                  ]
+                                },
+                                "by": {
+                                  "type": "string",
+                                  "enum": [
+                                    "administrator",
+                                    "member",
+                                    "handyhub"
+                                  ]
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "email": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "reference": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "approve": {
+                                  "type": [
+                                    "boolean",
+                                    "null"
+                                  ]
+                                },
+                                "pay": {
+                                  "type": [
+                                    "boolean",
+                                    "null"
+                                  ]
+                                },
+                                "scopeProjects": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ],
+                                  "minimum": 0
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "memberships": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "name",
+                          "approve",
+                          "pay",
+                          "projects",
+                          "acceptedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "approve": {
+                            "type": "boolean"
+                          },
+                          "pay": {
+                            "type": "boolean"
+                          },
+                          "projects": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "acceptedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "invitations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "organization",
+                          "approve",
+                          "pay",
+                          "projects",
+                          "invitedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "organization": {
+                            "type": "string"
+                          },
+                          "approve": {
+                            "type": "boolean"
+                          },
+                          "pay": {
+                            "type": "boolean"
+                          },
+                          "projects": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "invitedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "account-settings",
+            "limit": 120,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.organization_create",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-organizations.test.ts",
+          "projection": "account.organizations"
+        }
+      }
+    },
+    "/api/v1/customer/account/organizations/{id}/leave": {
+      "post": {
+        "operationId": "leaveOrganization",
+        "summary": "Leave an organization",
+        "description": "Ends the account’s own active membership of the organization (NOT_FOUND otherwise): it reaches nothing of the organization from its next request on. Answers the organizations.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "linkedProjects",
+                    "administered",
+                    "memberships",
+                    "invitations"
+                  ],
+                  "properties": {
+                    "linkedProjects": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "administered": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "name",
+                          "createdAt",
+                          "projects",
+                          "members",
+                          "history"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "projects": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "members": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "email",
+                                "state",
+                                "approve",
+                                "pay",
+                                "projects",
+                                "invitedAt",
+                                "acceptedAt"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "email": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "invited",
+                                    "active"
+                                  ]
+                                },
+                                "approve": {
+                                  "type": "boolean"
+                                },
+                                "pay": {
+                                  "type": "boolean"
+                                },
+                                "projects": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "invitedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "acceptedAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "history": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "by",
+                                "at",
+                                "email",
+                                "reference",
+                                "approve",
+                                "pay",
+                                "scopeProjects"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "created",
+                                    "project_added",
+                                    "project_removed",
+                                    "member_invited",
+                                    "invitation_withdrawn",
+                                    "invitation_accepted",
+                                    "invitation_declined",
+                                    "member_changed",
+                                    "member_removed",
+                                    "member_left",
+                                    "membership_ended_account_closed"
+                                  ]
+                                },
+                                "by": {
+                                  "type": "string",
+                                  "enum": [
+                                    "administrator",
+                                    "member",
+                                    "handyhub"
+                                  ]
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "email": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "reference": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "approve": {
+                                  "type": [
+                                    "boolean",
+                                    "null"
+                                  ]
+                                },
+                                "pay": {
+                                  "type": [
+                                    "boolean",
+                                    "null"
+                                  ]
+                                },
+                                "scopeProjects": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ],
+                                  "minimum": 0
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "memberships": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "name",
+                          "approve",
+                          "pay",
+                          "projects",
+                          "acceptedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "approve": {
+                            "type": "boolean"
+                          },
+                          "pay": {
+                            "type": "boolean"
+                          },
+                          "projects": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "acceptedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "invitations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "organization",
+                          "approve",
+                          "pay",
+                          "projects",
+                          "invitedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "organization": {
+                            "type": "string"
+                          },
+                          "approve": {
+                            "type": "boolean"
+                          },
+                          "pay": {
+                            "type": "boolean"
+                          },
+                          "projects": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "invitedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "account-settings",
+            "limit": 120,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.organization_leave",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-organizations.test.ts",
+          "projection": "account.organizations"
+        }
+      }
+    },
+    "/api/v1/customer/account/organizations/{id}/members": {
+      "post": {
+        "operationId": "inviteOrganizationMember",
+        "summary": "Invite a member",
+        "description": "Invites one exact email address to an organization the account administers (NOT_FOUND otherwise), with its scope (1 to 50 references of projects the organization shares; any other is a 400 body.projects invalid_scope) and its privileges (approve: estimate, change-order and appointment decisions; pay: balances, invoices and payment links). Not an email address: 400 (body.email, invalid_email); the administrator’s own sign-in email: 400 (own_email); an address already invited or a member: 409 (already_invited). Nothing is sent (no invitation wording is approved): the invitation waits on the dashboard of the account that signs in with exactly that address, and grants nothing until that account accepts it. A shared email domain never grants anything. Answers the organizations.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "email",
+                  "approve",
+                  "pay",
+                  "projects"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 320
+                  },
+                  "approve": {
+                    "type": "boolean"
+                  },
+                  "pay": {
+                    "type": "boolean"
+                  },
+                  "projects": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 50,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 40
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "linkedProjects",
+                    "administered",
+                    "memberships",
+                    "invitations"
+                  ],
+                  "properties": {
+                    "linkedProjects": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "administered": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "name",
+                          "createdAt",
+                          "projects",
+                          "members",
+                          "history"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "projects": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "members": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "email",
+                                "state",
+                                "approve",
+                                "pay",
+                                "projects",
+                                "invitedAt",
+                                "acceptedAt"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "email": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "invited",
+                                    "active"
+                                  ]
+                                },
+                                "approve": {
+                                  "type": "boolean"
+                                },
+                                "pay": {
+                                  "type": "boolean"
+                                },
+                                "projects": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "invitedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "acceptedAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "history": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "by",
+                                "at",
+                                "email",
+                                "reference",
+                                "approve",
+                                "pay",
+                                "scopeProjects"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "created",
+                                    "project_added",
+                                    "project_removed",
+                                    "member_invited",
+                                    "invitation_withdrawn",
+                                    "invitation_accepted",
+                                    "invitation_declined",
+                                    "member_changed",
+                                    "member_removed",
+                                    "member_left",
+                                    "membership_ended_account_closed"
+                                  ]
+                                },
+                                "by": {
+                                  "type": "string",
+                                  "enum": [
+                                    "administrator",
+                                    "member",
+                                    "handyhub"
+                                  ]
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "email": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "reference": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "approve": {
+                                  "type": [
+                                    "boolean",
+                                    "null"
+                                  ]
+                                },
+                                "pay": {
+                                  "type": [
+                                    "boolean",
+                                    "null"
+                                  ]
+                                },
+                                "scopeProjects": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ],
+                                  "minimum": 0
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "memberships": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "name",
+                          "approve",
+                          "pay",
+                          "projects",
+                          "acceptedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "approve": {
+                            "type": "boolean"
+                          },
+                          "pay": {
+                            "type": "boolean"
+                          },
+                          "projects": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "acceptedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "invitations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "organization",
+                          "approve",
+                          "pay",
+                          "projects",
+                          "invitedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "organization": {
+                            "type": "string"
+                          },
+                          "approve": {
+                            "type": "boolean"
+                          },
+                          "pay": {
+                            "type": "boolean"
+                          },
+                          "projects": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "invitedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "account-settings",
+            "limit": 120,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.organization_invite",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-organizations.test.ts",
+          "projection": "account.organizations"
+        }
+      }
+    },
+    "/api/v1/customer/account/organizations/{id}/members/{member}": {
+      "post": {
+        "operationId": "changeOrganizationMember",
+        "summary": "Change a member’s scope and privileges",
+        "description": "Replaces the scope and the privileges of an open membership (invited or active) of an organization the account administers (NOT_FOUND otherwise; an ended one too), with the same scope rules as an invitation. A project taken out of the scope, or a privilege taken away, ends that access on the member’s next request. A change that changes nothing records nothing. Answers the organizations.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          },
+          {
+            "name": "member",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "approve",
+                  "pay",
+                  "projects"
+                ],
+                "properties": {
+                  "approve": {
+                    "type": "boolean"
+                  },
+                  "pay": {
+                    "type": "boolean"
+                  },
+                  "projects": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 50,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 40
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "linkedProjects",
+                    "administered",
+                    "memberships",
+                    "invitations"
+                  ],
+                  "properties": {
+                    "linkedProjects": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "administered": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "name",
+                          "createdAt",
+                          "projects",
+                          "members",
+                          "history"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "projects": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "members": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "email",
+                                "state",
+                                "approve",
+                                "pay",
+                                "projects",
+                                "invitedAt",
+                                "acceptedAt"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "email": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "invited",
+                                    "active"
+                                  ]
+                                },
+                                "approve": {
+                                  "type": "boolean"
+                                },
+                                "pay": {
+                                  "type": "boolean"
+                                },
+                                "projects": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "invitedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "acceptedAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "history": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "by",
+                                "at",
+                                "email",
+                                "reference",
+                                "approve",
+                                "pay",
+                                "scopeProjects"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "created",
+                                    "project_added",
+                                    "project_removed",
+                                    "member_invited",
+                                    "invitation_withdrawn",
+                                    "invitation_accepted",
+                                    "invitation_declined",
+                                    "member_changed",
+                                    "member_removed",
+                                    "member_left",
+                                    "membership_ended_account_closed"
+                                  ]
+                                },
+                                "by": {
+                                  "type": "string",
+                                  "enum": [
+                                    "administrator",
+                                    "member",
+                                    "handyhub"
+                                  ]
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "email": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "reference": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "approve": {
+                                  "type": [
+                                    "boolean",
+                                    "null"
+                                  ]
+                                },
+                                "pay": {
+                                  "type": [
+                                    "boolean",
+                                    "null"
+                                  ]
+                                },
+                                "scopeProjects": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ],
+                                  "minimum": 0
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "memberships": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "name",
+                          "approve",
+                          "pay",
+                          "projects",
+                          "acceptedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "approve": {
+                            "type": "boolean"
+                          },
+                          "pay": {
+                            "type": "boolean"
+                          },
+                          "projects": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "acceptedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "invitations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "organization",
+                          "approve",
+                          "pay",
+                          "projects",
+                          "invitedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "organization": {
+                            "type": "string"
+                          },
+                          "approve": {
+                            "type": "boolean"
+                          },
+                          "pay": {
+                            "type": "boolean"
+                          },
+                          "projects": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "invitedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "account-settings",
+            "limit": 120,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.organization_change_member",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-organizations.test.ts",
+          "projection": "account.organizations"
+        }
+      }
+    },
+    "/api/v1/customer/account/organizations/{id}/members/{member}/remove": {
+      "post": {
+        "operationId": "removeOrganizationMember",
+        "summary": "Withdraw an invitation or remove a member",
+        "description": "Ends an open membership of an organization the account administers (NOT_FOUND otherwise): an invitation is withdrawn, an active member removed, and the member reaches nothing of the organization from their next request on. The membership stays in the history; inviting the address again is a new invitation. Answers the organizations.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          },
+          {
+            "name": "member",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "linkedProjects",
+                    "administered",
+                    "memberships",
+                    "invitations"
+                  ],
+                  "properties": {
+                    "linkedProjects": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "administered": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "name",
+                          "createdAt",
+                          "projects",
+                          "members",
+                          "history"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "projects": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "members": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "email",
+                                "state",
+                                "approve",
+                                "pay",
+                                "projects",
+                                "invitedAt",
+                                "acceptedAt"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "email": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "invited",
+                                    "active"
+                                  ]
+                                },
+                                "approve": {
+                                  "type": "boolean"
+                                },
+                                "pay": {
+                                  "type": "boolean"
+                                },
+                                "projects": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "invitedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "acceptedAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "history": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "by",
+                                "at",
+                                "email",
+                                "reference",
+                                "approve",
+                                "pay",
+                                "scopeProjects"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "created",
+                                    "project_added",
+                                    "project_removed",
+                                    "member_invited",
+                                    "invitation_withdrawn",
+                                    "invitation_accepted",
+                                    "invitation_declined",
+                                    "member_changed",
+                                    "member_removed",
+                                    "member_left",
+                                    "membership_ended_account_closed"
+                                  ]
+                                },
+                                "by": {
+                                  "type": "string",
+                                  "enum": [
+                                    "administrator",
+                                    "member",
+                                    "handyhub"
+                                  ]
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "email": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "reference": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "approve": {
+                                  "type": [
+                                    "boolean",
+                                    "null"
+                                  ]
+                                },
+                                "pay": {
+                                  "type": [
+                                    "boolean",
+                                    "null"
+                                  ]
+                                },
+                                "scopeProjects": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ],
+                                  "minimum": 0
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "memberships": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "name",
+                          "approve",
+                          "pay",
+                          "projects",
+                          "acceptedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "approve": {
+                            "type": "boolean"
+                          },
+                          "pay": {
+                            "type": "boolean"
+                          },
+                          "projects": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "acceptedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "invitations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "organization",
+                          "approve",
+                          "pay",
+                          "projects",
+                          "invitedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "organization": {
+                            "type": "string"
+                          },
+                          "approve": {
+                            "type": "boolean"
+                          },
+                          "pay": {
+                            "type": "boolean"
+                          },
+                          "projects": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "invitedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "account-settings",
+            "limit": 120,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.organization_remove_member",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-organizations.test.ts",
+          "projection": "account.organizations"
+        }
+      }
+    },
+    "/api/v1/customer/account/organizations/{id}/projects": {
+      "post": {
+        "operationId": "shareOrganizationProject",
+        "summary": "Share a project with an organization",
+        "description": "Shares one of the administrator’s own linked projects (named by its reference) with an organization it administers. Another organization, a reference the account’s active links do not open, a revoked link or a missing one are the same NOT_FOUND (HH-ID-03); a project already shared is a 409 (body.reference, already_shared). Sharing reaches nobody by itself: a member reaches it only once their scope names it. Answers the organizations.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reference"
+                ],
+                "properties": {
+                  "reference": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "linkedProjects",
+                    "administered",
+                    "memberships",
+                    "invitations"
+                  ],
+                  "properties": {
+                    "linkedProjects": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "administered": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "name",
+                          "createdAt",
+                          "projects",
+                          "members",
+                          "history"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "projects": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "members": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "email",
+                                "state",
+                                "approve",
+                                "pay",
+                                "projects",
+                                "invitedAt",
+                                "acceptedAt"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "email": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "invited",
+                                    "active"
+                                  ]
+                                },
+                                "approve": {
+                                  "type": "boolean"
+                                },
+                                "pay": {
+                                  "type": "boolean"
+                                },
+                                "projects": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "invitedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "acceptedAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "history": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "by",
+                                "at",
+                                "email",
+                                "reference",
+                                "approve",
+                                "pay",
+                                "scopeProjects"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "created",
+                                    "project_added",
+                                    "project_removed",
+                                    "member_invited",
+                                    "invitation_withdrawn",
+                                    "invitation_accepted",
+                                    "invitation_declined",
+                                    "member_changed",
+                                    "member_removed",
+                                    "member_left",
+                                    "membership_ended_account_closed"
+                                  ]
+                                },
+                                "by": {
+                                  "type": "string",
+                                  "enum": [
+                                    "administrator",
+                                    "member",
+                                    "handyhub"
+                                  ]
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "email": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "reference": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "approve": {
+                                  "type": [
+                                    "boolean",
+                                    "null"
+                                  ]
+                                },
+                                "pay": {
+                                  "type": [
+                                    "boolean",
+                                    "null"
+                                  ]
+                                },
+                                "scopeProjects": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ],
+                                  "minimum": 0
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "memberships": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "name",
+                          "approve",
+                          "pay",
+                          "projects",
+                          "acceptedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "approve": {
+                            "type": "boolean"
+                          },
+                          "pay": {
+                            "type": "boolean"
+                          },
+                          "projects": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "acceptedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "invitations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "organization",
+                          "approve",
+                          "pay",
+                          "projects",
+                          "invitedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "organization": {
+                            "type": "string"
+                          },
+                          "approve": {
+                            "type": "boolean"
+                          },
+                          "pay": {
+                            "type": "boolean"
+                          },
+                          "projects": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "invitedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "account-settings",
+            "limit": 120,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.organization_share_project",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-organizations.test.ts",
+          "projection": "account.organizations"
+        }
+      }
+    },
+    "/api/v1/customer/account/organizations/{id}/projects/{reference}/remove": {
+      "post": {
+        "operationId": "unshareOrganizationProject",
+        "summary": "Stop sharing a project with an organization",
+        "description": "Stops sharing a project with an organization the account administers (NOT_FOUND otherwise): the project leaves every membership’s scope at once, so no member reaches it from their next request on. The project and its records stay exactly as they are. Answers the organizations.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          },
+          {
+            "name": "reference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "linkedProjects",
+                    "administered",
+                    "memberships",
+                    "invitations"
+                  ],
+                  "properties": {
+                    "linkedProjects": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "administered": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "name",
+                          "createdAt",
+                          "projects",
+                          "members",
+                          "history"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "projects": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "members": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "email",
+                                "state",
+                                "approve",
+                                "pay",
+                                "projects",
+                                "invitedAt",
+                                "acceptedAt"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "email": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "invited",
+                                    "active"
+                                  ]
+                                },
+                                "approve": {
+                                  "type": "boolean"
+                                },
+                                "pay": {
+                                  "type": "boolean"
+                                },
+                                "projects": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "invitedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "acceptedAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "history": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "by",
+                                "at",
+                                "email",
+                                "reference",
+                                "approve",
+                                "pay",
+                                "scopeProjects"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "created",
+                                    "project_added",
+                                    "project_removed",
+                                    "member_invited",
+                                    "invitation_withdrawn",
+                                    "invitation_accepted",
+                                    "invitation_declined",
+                                    "member_changed",
+                                    "member_removed",
+                                    "member_left",
+                                    "membership_ended_account_closed"
+                                  ]
+                                },
+                                "by": {
+                                  "type": "string",
+                                  "enum": [
+                                    "administrator",
+                                    "member",
+                                    "handyhub"
+                                  ]
+                                },
+                                "at": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "email": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "reference": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "approve": {
+                                  "type": [
+                                    "boolean",
+                                    "null"
+                                  ]
+                                },
+                                "pay": {
+                                  "type": [
+                                    "boolean",
+                                    "null"
+                                  ]
+                                },
+                                "scopeProjects": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ],
+                                  "minimum": 0
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "memberships": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "name",
+                          "approve",
+                          "pay",
+                          "projects",
+                          "acceptedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "approve": {
+                            "type": "boolean"
+                          },
+                          "pay": {
+                            "type": "boolean"
+                          },
+                          "projects": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "acceptedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "invitations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "organization",
+                          "approve",
+                          "pay",
+                          "projects",
+                          "invitedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "organization": {
+                            "type": "string"
+                          },
+                          "approve": {
+                            "type": "boolean"
+                          },
+                          "pay": {
+                            "type": "boolean"
+                          },
+                          "projects": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "invitedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "account-settings",
+            "limit": 120,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.organization_unshare_project",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-organizations.test.ts",
+          "projection": "account.organizations"
+        }
+      }
+    },
     "/api/v1/customer/account/permissions": {
       "post": {
         "operationId": "setAccountPermission",
@@ -3992,7 +8200,7 @@
       "get": {
         "operationId": "listCustomerProjects",
         "summary": "The projects this session opens, with their status and dashboard section",
-        "description": "For a live customer session: every project it opens (a guest link session: exactly one; an account: its linked projects), each with its reference, services and customer status: the situation, its next step, who is waiting and the one next action. TSK-0124 (HH-ID-14, OWN-DEC-160): each project’s dashboard section (active; completed, the Project History; archived, cancelled or closed without completed work) and the number of documents its Documents tab lists; and how the session came in (account, or project_link for a guest link). Without a session, 401. Nothing about any other project.",
+        "description": "For a live customer session: every project it opens (a guest link session: exactly one; an account: its linked projects), each with its reference, services and customer status: the situation, its next step, who is waiting and the one next action. TSK-0124 (HH-ID-14, OWN-DEC-160): each project’s dashboard section (active; completed, the Project History; archived, cancelled or closed without completed work) and the number of documents its Documents tab lists; and how the session came in (account, or project_link for a guest link). TSK-0118 (HH-ID-13): an account also lists the projects in the scope of its organization memberships, each naming the organization and the membership’s approve and pay privileges (organization; null for the account’s own projects); without pay, its invoices are not counted. Without a session, 401. Nothing about any other project.",
         "tags": [
           "portal"
         ],
@@ -4024,7 +8232,8 @@
                           "submittedAt",
                           "status",
                           "section",
-                          "documents"
+                          "documents",
+                          "organization"
                         ],
                         "properties": {
                           "reference": {
@@ -4137,6 +8346,33 @@
                           "documents": {
                             "type": "integer",
                             "minimum": 0
+                          },
+                          "organization": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "name",
+                                  "approve",
+                                  "pay"
+                                ],
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "approve": {
+                                    "type": "boolean"
+                                  },
+                                  "pay": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              }
+                            ]
                           }
                         }
                       }
@@ -5849,7 +10085,7 @@
       "get": {
         "operationId": "getCustomerChangeOrders",
         "summary": "The project’s change orders as the customer received them",
-        "description": "For a project the caller’s session opens (HH-PORT-05, OWN-DEC-169): the accepted estimate’s total, the current authorized total (the original plus every approved change order) and each change order that was sent to the customer (its latest sent version): reason, scope, schedule impact, the charge and credit lines and totals in integer cents, when it was sent and until when it is valid, its status (issued, approved, rejected, expired, withdrawn, superseded) and the decision. While one is open: whether it can be decided now (blockedBy APPROVED_SCOPE_CHANGED when another change was approved since it was priced), the digest of its content and the estimate terms an approval names. Drafts and reviews never appear. Any other project and a malformed reference are NOT_FOUND (T19).",
+        "description": "For a project the caller’s session opens (HH-PORT-05, OWN-DEC-169): the accepted estimate’s total, the current authorized total (the original plus every approved change order) and each change order that was sent to the customer (its latest sent version): reason, scope, schedule impact, the charge and credit lines and totals in integer cents, when it was sent and until when it is valid, its status (issued, approved, rejected, expired, withdrawn, superseded) and the decision. While one is open: whether it can be decided now (blockedBy APPROVED_SCOPE_CHANGED when another change was approved since it was priced), the digest of its content and the estimate terms an approval names (TSK-0118: never decidable, blockedBy NO_APPROVAL_PRIVILEGE, for an organization member without the approve privilege). Drafts and reviews never appear. Any other project and a malformed reference are NOT_FOUND (T19).",
         "tags": [
           "portal"
         ],
@@ -6124,7 +10360,8 @@
                                       {
                                         "type": "string",
                                         "enum": [
-                                          "APPROVED_SCOPE_CHANGED"
+                                          "APPROVED_SCOPE_CHANGED",
+                                          "NO_APPROVAL_PRIVILEGE"
                                         ]
                                       }
                                     ]
@@ -7473,7 +11710,8 @@
                               "expired",
                               "not_published",
                               "reduction_pending_verification",
-                              "reduction_not_verified"
+                              "reduction_not_verified",
+                              "no_approval_privilege"
                             ]
                           }
                         },
@@ -9213,7 +13451,7 @@
       "post": {
         "operationId": "saveEstimateSelection",
         "summary": "Select options on the current estimate version",
-        "description": "The options the customer selects on the current version (by line position), kept on the server for this verified contact so a verification that went stale never loses them (HH-ID-07). Answers the server’s subtotal, discount row, total and deposit for that choice in integer cents: the version’s own line amounts with the discount share and deposit rule version it pinned (FACT-DEPOSIT-RULE), never the client’s arithmetic. A position that is not an option line is VALIDATION_FAILED; a version that is not current is CONFLICT naming its status. Never approves anything. Any other project, estimate or version is NOT_FOUND (T19).",
+        "description": "The options the customer selects on the current version (by line position), kept on the server for this verified contact so a verification that went stale never loses them (HH-ID-07). Answers the server’s subtotal, discount row, total and deposit for that choice in integer cents: the version’s own line amounts with the discount share and deposit rule version it pinned (FACT-DEPOSIT-RULE), never the client’s arithmetic. A position that is not an option line is VALIDATION_FAILED; a version that is not current is CONFLICT naming its status. Never approves anything. Any other project, estimate or version is NOT_FOUND (T19); TSK-0118: so is a project an organization member reaches without the approve privilege.",
         "tags": [
           "portal"
         ],
@@ -10027,7 +14265,7 @@
       "get": {
         "operationId": "getCustomerProjectOverview",
         "summary": "The project Overview",
-        "description": "The Overview of a project the caller’s session opens (HH-PORT-02, HH-PORT-03): the plain-language status as codes (situation, next step, who is waiting, one next action, since when, and the customer text staff published with it), the filtered timeline (the request and the decisions published to the customer, newest first), the confirmed appointment and the payment summary as separate fields, the server time of the read and the refresh interval (portal.refresh; 0 while NOT CONFIGURED). No internal note, staff detail, qualification or internal decision. Any other project, an unknown or a malformed reference is the same NOT_FOUND (T19), recorded as a security event when the project exists.",
+        "description": "The Overview of a project the caller’s session opens (HH-PORT-02, HH-PORT-03): the plain-language status as codes (situation, next step, who is waiting, one next action, since when, and the customer text staff published with it), the filtered timeline (the request and the decisions published to the customer, newest first), the confirmed appointment and the payment summary as separate fields, the server time of the read and the refresh interval (portal.refresh; 0 while NOT CONFIGURED). No internal note, staff detail, qualification or internal decision. TSK-0118 (HH-ID-13): for an organization member, the payment summary is not_shared without the pay privilege, and the appointment offers no request without the approve privilege. Any other project, an unknown or a malformed reference is the same NOT_FOUND (T19), recorded as a security event when the project exists.",
         "tags": [
           "portal"
         ],
@@ -10437,6 +14675,21 @@
                               "type": "integer"
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "state"
+                          ],
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "not_shared"
+                              ]
+                            }
+                          }
                         }
                       ]
                     },
@@ -10537,7 +14790,7 @@
       "get": {
         "operationId": "getCustomerProjectPayments",
         "summary": "The project Payments tab",
-        "description": "The Payments tab (TSK-0087, HH-PORT-12). state \"listed\": the approved total (the current approved scope), the deposit (due with what is verified and pending and its Pay by Card link, received, or none), each issued invoice with its total, credits, confirmed, pending (a check until cleared) and balance in integer cents and its Pay by Card link (only while a balance remains and staff pasted a Square link), the recorded payments (date, method, amount, confirmed, pending, returned, voided or disputed, with the receipt shown voided once the payment no longer counts; never who recorded them), the totals, and the payment instructions from configuration with their placeholder flag (a placeholder is never a payment destination). Nothing here, and no return from a Square link, marks anything paid: staff record verified payments. state \"none\": no approved total, deposit, invoice or recorded payment exists yet. With the server time of the read and the refresh interval (portal.refresh; 0 while NOT CONFIGURED). Any other project, an unknown or a malformed reference is the same NOT_FOUND (T19).",
+        "description": "The Payments tab (TSK-0087, HH-PORT-12). state \"listed\": the approved total (the current approved scope), the deposit (due with what is verified and pending and its Pay by Card link, received, or none), each issued invoice with its total, credits, confirmed, pending (a check until cleared) and balance in integer cents and its Pay by Card link (only while a balance remains and staff pasted a Square link), the recorded payments (date, method, amount, confirmed, pending, returned, voided or disputed, with the receipt shown voided once the payment no longer counts; never who recorded them), the totals, and the payment instructions from configuration with their placeholder flag (a placeholder is never a payment destination). Nothing here, and no return from a Square link, marks anything paid: staff record verified payments. state \"none\": no approved total, deposit, invoice or recorded payment exists yet. Authorized by payment.view (ROLE-MATRIX \"View balances and payments\": Customer V; an organization member only with the pay privilege). With the server time of the read and the refresh interval (portal.refresh; 0 while NOT CONFIGURED). Any other project, an unknown or a malformed reference is the same NOT_FOUND (T19).",
         "tags": [
           "portal"
         ],
@@ -10917,7 +15170,7 @@
           "actors": [
             "customer"
           ],
-          "permission": "request.view",
+          "permission": "payment.view",
           "kind": "read",
           "idempotency": "none",
           "expectedVersion": "none",
@@ -14666,7 +18919,7 @@
       "get": {
         "operationId": "getCustomerRepeatService",
         "summary": "My repeat-service schedule",
-        "description": "For a project the caller’s session opens (request.view, customer V): the schedule the customer agreed to, its next dates in the property’s zone (each with whether its request was sent), how often, whether reminders are on, and the notice a change needs (OWN-DEC-148); the latest stopped one when none runs; null when there is none. Never how staff heard the agreement, a staff note or the reminder drafts. Any other project is NOT_FOUND (T19).",
+        "description": "For a project the caller’s session opens (request.view, customer V): the schedule the customer agreed to, its next dates in the property’s zone (each with whether its request was sent), how often, whether reminders are on, and the notice a change needs (OWN-DEC-148); the latest stopped one when none runs; null when there is none. Never how staff heard the agreement, a staff note or the reminder drafts. Any other project is NOT_FOUND (T19); TSK-0118: so is a project an organization member reaches (the schedule stays the customer’s own).",
         "tags": [
           "repeat-service"
         ],

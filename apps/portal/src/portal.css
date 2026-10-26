@@ -480,3 +480,30 @@
 .portal-appointment__preparation {
   white-space: pre-line;
 }
+
+/* TSK-0118: organizations, their people, scopes and history. */
+.portal-organizations__form {
+  display: grid;
+  gap: var(--hh-space-3);
+  justify-items: start;
+  margin: var(--hh-space-3) 0;
+}
+
+.portal-organizations__form .hh-field {
+  width: 100%;
+}
+
+.portal-organizations__privileges,
+.portal-organizations__projects {
+  margin: 0;
+  padding-left: var(--hh-space-4);
+}
+
+.portal-organizations__projects li {
+  margin: var(--hh-space-1) 0;
+}
+
+.portal-organizations__history ol {
+  margin: var(--hh-space-2) 0 0;
+  padding-left: var(--hh-space-4);
+}

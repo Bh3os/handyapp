@@ -9,6 +9,9 @@
 // projects offers Request This Service Again (the request form starts from that project's services, address and
 // contact, which the customer confirms are still current). A guest link's session offers neither. Wording PROPOSED
 // (OQ-SAVED-PROPERTIES-DETAILS) except "Request This Service Again", the owner's words.
+// TSK-0118 (HH-ID-13): an account's dashboard links to its organizations, and a project shared with it through an
+// organization membership says by which organization (it offers no Request This Service Again: the request belongs to
+// the project's own customer). Wording PROPOSED (OQ-ORGANIZATION-ACCOUNTS-DETAILS).
 import type { CustomerKey } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
@@ -32,6 +35,11 @@ function Item({ p, account }: { p: ProjectSummary; account: boolean }) {
         </a>
       </h3>
       <p>{[...p.services, ...(p.notSure ? [t('request.services.notSure')] : [])].join(', ')}</p>
+      {p.organization ? (
+        <p className="hh-small">
+          <StatusBadge tone="info">{t('portal.projects.sharedBy', { organization: p.organization.name })}</StatusBadge>
+        </p>
+      ) : null}
       <p>
         <strong>{t(SITUATION_LABEL[p.status.situation])}</strong>{' '}
         <StatusBadge tone={p.status.waitingOn === 'customer' ? 'warning' : 'neutral'}>
@@ -44,7 +52,7 @@ function Item({ p, account }: { p: ProjectSummary; account: boolean }) {
         </a>{' '}
         <span className="hh-small hh-muted">{t('portal.projects.documents.count', { count: p.documents })}</span>
       </p>
-      {account ? (
+      {account && !p.organization ? (
         <p>
           <a
             className="hh-button hh-button--secondary"
@@ -227,6 +235,7 @@ export function Projects({ fetchImpl }: { fetchImpl: Fetch }) {
             <nav className="portal-account__links" aria-label={t('portal.account.links')}>
               <a href="/portal/properties">{t('portal.account.properties')}</a>
               <a href="/portal/preferences">{t('portal.account.preferences')}</a>
+              <a href="/portal/organizations">{t('portal.account.organizations')}</a>
             </nav>
           ) : null}
           {live.data.projects.length === 0 ? (

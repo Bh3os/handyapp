@@ -19,3 +19,5 @@ An optional login for a customer contact, signed in with a one-time code to a ve
 **Who may change:** the customer (preferences, closure request); the Owner deletes the login account after review ([[HH-PRIV-03]]).
 
 **Changed by [[TSK-0113]] (2026-10-26):** preferences are the contact method new requests start with (`identity.customer_account_preferences`) and the customer's own names for properties of the account's history (`identity.customer_saved_properties`); permissions stay consent records ([[ENT-ConsentPreference]]). Details PROPOSED in [[OQ-SAVED-PROPERTIES-DETAILS]].
+
+**Changed by [[TSK-0118]] (2026-10-26):** an account may administer organizations (`identity.organizations`, the projects it shares, `identity.organization_memberships` with their scopes and privileges, and the append-only `identity.organization_events`) and be a member of others; closing the login also ends its memberships and those of the organizations it administers. Details PROPOSED in [[OQ-ORGANIZATION-ACCOUNTS-DETAILS]].

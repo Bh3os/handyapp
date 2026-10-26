@@ -9,11 +9,13 @@
 //   /portal/p/<reference>/privacy  your data and privacy requests about this project's customer (TSK-0100)
 //   /portal/properties     the signed-in account's saved properties (TSK-0113)
 //   /portal/preferences    the signed-in account's preferences (TSK-0113)
+//   /portal/organizations  the signed-in account's organizations, memberships and invitations (TSK-0118)
 // Every read is authorized and scoped on the server; the page only shows what the customer views return.
 import { customerTranslator } from '@handyhub/i18n'
 import { useCallback, useEffect, useState } from 'react'
 import { REFERENCE, WORKSPACE_TABS, type Fetch, type WorkspaceTab } from './api'
 import { PreferencesPage } from './Preferences'
+import { OrganizationsPage } from './Organizations'
 import { PrivacyPage } from './Privacy'
 import { Projects } from './Projects'
 import { SavedPropertiesPage } from './SavedProperties'
@@ -30,6 +32,8 @@ export type PortalRoute =
   /** TSK-0113 (HH-ID-12): the signed-in account's saved properties and preferences (not a project's). */
   | { page: 'properties' }
   | { page: 'preferences' }
+  /** TSK-0118 (HH-ID-13): the signed-in account's organizations. */
+  | { page: 'organizations' }
 
 /** An estimate number as the server issues it (migration 0026): the project reference and E<n>. */
 const ESTIMATE_NUMBER = /^HH-[0-9A-HJKMNP-TV-Z]{8}-E[1-9][0-9]{0,3}$/
@@ -41,6 +45,7 @@ export function routeOf(pathname: string): PortalRoute {
   const rest = pathname.replace(/^\/portal(?=\/|$)/, '')
   if (/^\/properties\/?$/.test(rest)) return { page: 'properties' }
   if (/^\/preferences\/?$/.test(rest)) return { page: 'preferences' }
+  if (/^\/organizations\/?$/.test(rest)) return { page: 'organizations' }
   const terms = /^\/terms\/([a-z][a-z0-9-]{0,38}[0-9])\/?$/.exec(rest)
   if (terms) return { page: 'terms', documentId: terms[1] as string }
   const doc = /^\/p\/([^/]+)\/documents\/([^/]+)\/([1-9][0-9]{0,3})\/?$/.exec(rest)
@@ -89,6 +94,8 @@ export function App({ path, fetchImpl = browserFetch }: { path?: string; fetchIm
           <SavedPropertiesPage fetchImpl={fetchImpl} />
         ) : route.page === 'preferences' ? (
           <PreferencesPage fetchImpl={fetchImpl} />
+        ) : route.page === 'organizations' ? (
+          <OrganizationsPage fetchImpl={fetchImpl} />
         ) : route.page === 'terms' ? (
           <TermsPage documentId={route.documentId} />
         ) : route.page === 'privacy' ? (

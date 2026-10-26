@@ -477,3 +477,4 @@ export {
   type StartedSession,
   type StartSessionInput,
 } from './customer-sessions.js'
+export { organizationAccessOf, type OrganizationProjectAccess } from './organization-access.js'
