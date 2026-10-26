@@ -131,6 +131,8 @@ export const LABEL_FAMILIES = {
     'discount_owner_review',
     'cancellation_review',
     'visit_cancellation_review',
+    // TSK-0140: an estimate booking of a customer with repeated short-notice cancellations or no-shows.
+    'cancellation_pattern_review',
     // TSK-0130: an estimate version waiting for the Owner's approval before publishing.
     'estimate_publication_approval',
     'change_order_publication_approval',
@@ -210,6 +212,8 @@ export const LABEL_FAMILIES = {
     // TSK-0151: an account re-enabled; its earlier grants wait for the Owner.
     'account_reenabled',
     'work_cancellation_requested',
+    // TSK-0140 (OWN-DEC-163 7).
+    'repeat_short_notice_cancellations',
     'critical_shortage',
     // TSK-0067: an appointment reminder draft waiting for release.
     'appointment_reminder',
@@ -366,6 +370,8 @@ export const LABEL_FAMILIES = {
     'payment.instructions',
     'payment.square_link_hosts',
     'cancellation.rules',
+    // TSK-0140: the repeat pattern that flags an estimate booking for the Owner's review.
+    'cancellation.repeat_review',
     'contact.hours',
     'business.timezone',
     // TSK-0136: the internal business-day calendar and the privacy request targets.
@@ -888,15 +894,26 @@ export const LABEL_FAMILIES = {
     'TEAM_UNCHANGED',
     'OWNER_CANCELS_WORK',
     'CANCELLATION_RULES_NOT_CONFIGURED',
+    // TSK-0140: Office's routine cancellations, the Owner's fee waiver and the circumstances.
+    'NOT_ROUTINE_CANCELLATION',
+    'OWNER_WAIVES_FEE',
+    'NO_FEE_TO_WAIVE',
+    'WAIVER_NOT_BELOW_FEE',
+    'CIRCUMSTANCE_NOT_APPLICABLE',
   ],
   /** The outcome of a final cancellation under FACT-CANCELLATION-RULES (TSK-0066; @handyhub/domain/cancellation). */
   cancellationOutcome: [
     'full_refund_no_charge',
     'late_cancellation',
+    // TSK-0140 (OWN-DEC-161, OWN-DEC-163).
+    'late_no_charge',
+    'estimate_visit_free',
     'work_started',
     'customer_chooses',
     'owner_review',
   ],
+  /** Why a customer's cancellation is not charged automatically (TSK-0140; OWN-DEC-161; @handyhub/domain). */
+  cancellationCircumstance: ['unsafe_conditions', 'emergency', 'legally_protected', 'owner_review'],
   /** Who initiated a change of a booked visit (TSK-0066). */
   changeInitiator: ['customer', 'handyhub'],
   /** Why HandyHub cancels or moves a visit (TSK-0066; OWN-DEC-134 names weather, a safety stop and a sick worker). */

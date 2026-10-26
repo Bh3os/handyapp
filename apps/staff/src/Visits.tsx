@@ -37,6 +37,7 @@ import { NoticeLine, OfferWindows, VisitOffers, type Notice, type Offer, type Of
 import { codeLabel } from './Requests'
 import { countyVerificationText, type CountyVerification } from './Property'
 import { SiteChecksPanel, type SiteChecks } from './SiteChecks'
+import { InitiatorFields, type Initiator } from './VisitChanges'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
 type StaffRef = { id: string; name: string | null }
@@ -441,6 +442,9 @@ function ChangeWindow({
     windowEnd: visit.window.end,
   })
   const [reason, setReason] = useState('')
+  const [initiator, setInitiator] = useState<Initiator>('')
+  const [cause, setCause] = useState('')
+  const booked = visit.state === 'confirmed'
   const [errors, setErrors] = useState<{ fields: Record<string, string>; general: string[] }>({
     fields: {},
     general: [],
@@ -464,7 +468,12 @@ function ChangeWindow({
     const r = await call<ProjectVisits>(fetchImpl, `/staff/visits/${encodeURIComponent(visit.id)}/window`, {
       method: 'POST',
       headers: { 'idempotency-key': key.current, 'if-match': `"${visit.version}"` },
-      body: { ...windowBody(entry), ...(reason.trim() ? { reason: reason.trim() } : {}) },
+      body: {
+        ...windowBody(entry),
+        ...(reason.trim() ? { reason: reason.trim() } : {}),
+        ...(booked && initiator ? { initiator } : {}),
+        ...(booked && initiator === 'handyhub' && cause ? { handyhubCause: cause } : {}),
+      },
     })
     setPending(false)
     if (r.ok || r.status < 500) key.current = null
@@ -486,7 +495,10 @@ function ChangeWindow({
         onChange={setEntry}
         errors={errors.fields}
       />
-      {/* TSK-0066: a booked visit's reschedule records its reason (the server refuses it without one). */}
+      {/* TSK-0066, TSK-0140: a booked visit's reschedule records who started it and why (the server refuses it without). */}
+      {booked ? (
+        <InitiatorFields t={t} initiator={initiator} cause={cause} onInitiator={setInitiator} onCause={setCause} />
+      ) : null}
       <Field
         label={t(visit.state === 'confirmed' ? 'change.reason' : 'visits.change.reason')}
         value={reason}

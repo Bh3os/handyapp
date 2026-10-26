@@ -282,8 +282,14 @@ const move = (who: Person, v: { id: string }, version: number, date: string, sta
     who,
     'POST',
     `/api/v1/staff/visits/${v.id}/window`,
-    // TSK-0066: a reschedule of a confirmed visit records its reason.
-    { localDate: date, windowStart: start, windowEnd: end, reason: 'Synthetic: moved on the board.' },
+    // TSK-0066, TSK-0140: a reschedule of a confirmed visit records its reason and who started it.
+    {
+      localDate: date,
+      windowStart: start,
+      windowEnd: end,
+      reason: 'Synthetic: moved on the board.',
+      initiator: 'customer',
+    },
     version,
   )
 const projectVisit = async (p: Project, id: string) =>

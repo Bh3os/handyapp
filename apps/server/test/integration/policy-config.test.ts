@@ -44,8 +44,10 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
     // reminders (OWN-DEC-210): reminders.cadences version 3 and messages.automatic version 4. TSK-0139 (migration 0104)
     // recorded the decided window hours as request.window_hours version 2 (OWN-DEC-170). TSK-0125 (migration 0105)
     // recorded the customer's choice of one discount and how eligibility is verified (OWN-DEC-165): discount.rule and
-    // discount.eligibility_verification version 2.
+    // discount.eligibility_verification version 2. TSK-0140 (migration 0115) recorded the cancellation rules of
+    // OWN-DEC-161, OWN-DEC-163 and OWN-DEC-195 as cancellation.rules version 2.
     const expected: Record<string, number> = {
+      'cancellation.rules': 2,
       'messages.automatic': 4,
       'business.timezone': 2,
       'reminders.cadences': 3,
@@ -90,7 +92,8 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
 
   it('reading an open fact yields NOT_CONFIGURED (FACT-BUSINESS-ADDRESS, FACT-PUBLIC-CONTACT)', async () => {
     const config = await loadConfig(t.db)
-    for (const key of ['business.mailing_address', 'business.public_contact'] as const) {
+    // TSK-0140: the numbers of the repeated-cancellation review are not decided (OQ-CANCELLATION-RULES-DETAILS).
+    for (const key of ['business.mailing_address', 'business.public_contact', 'cancellation.repeat_review'] as const) {
       expect(config.get(key)).toMatchObject({ state: 'NOT_CONFIGURED', version: 1 })
       expect(() => requireConfigured(config.get(key))).toThrow(/NOT CONFIGURED/)
     }
@@ -134,7 +137,17 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
       chime: '[Payment handle or details]',
       checkPayee: '[Payee name]',
     })
-    expect(v('cancellation.rules')).toEqual({ rescheduleFree: true, noticeHours: 24, lateCancellationCents: 5000 })
+    // TSK-0140 (OWN-DEC-161, OWN-DEC-163, OWN-DEC-195): version 2 states how the capped fee and the exceptions apply.
+    expect(v('cancellation.rules')).toEqual({
+      rescheduleFree: true,
+      noticeHours: 24,
+      lateCancellationCents: 5000,
+      depositBelowFee: 'keep_deposit_only',
+      noDepositInvoice: 'only_if_disclosed_and_accepted',
+      estimateVisits: 'never_charged',
+      rescheduleInitiator: 'required',
+      feeEnforcement: 'attorney_approval_pending',
+    })
     expect(v('contact.hours')).toEqual({ days: 'every_day', open: '08:00', close: '22:00' })
     // TSK-0121 (OWN-DEC-153, FACT-REMINDER-CADENCES): one automatic 3-day estimate reminder, one automatic 3-day question
     // reminder ("Closed—no response" 24 hours after it was actually sent, OWN-DEC-208), the 24-hour appointment reminder.

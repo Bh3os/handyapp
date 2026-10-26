@@ -58,6 +58,7 @@ These are server rules, enforced by one policy point on every read, write, searc
 | Select an offered window | — | — | — | — | V | — |
 | Request reschedule or cancellation | — | — | — | — | V | — |
 | Cancel accepted, scheduled or paid work (financial review) | Y | — | — | — | — | — |
+| Cancel a work visit for a routine customer-authorized cancellation within policy | Y | Y | — | — | — | — |
 | Set working days, hours and time off | Y | — | — | — | — | — |
 | Tap On my way, Arrived, Finished | A | — | — | A | — | — |
 | Extend a worker's visit-day access | Y (reason) | — | — | — | — | — |
@@ -91,6 +92,7 @@ These are server rules, enforced by one policy point on every read, write, searc
 | Waive a required deposit | F | — | — | — | — | — |
 | Refund, credit, write-off, void, payment correction | F | Request only (P) | — | — | — | — |
 | Apply a cancellation outcome: deposit refund or the $50.00 late-cancellation amount ([[FACT-CANCELLATION-RULES]]) | F | Request only (P) | — | — | — | — |
+| Waive or reduce a cancellation fee, with a documented reason | F | — | — | — | — | — |
 | Release payment reminders | Y | Y | — | — | — | — |
 | Decide "Overdue—owner decision" | Y | — | — | — | — | — |
 | Business details and payment instructions | Y | — | — | — | — | — |
@@ -126,6 +128,8 @@ These are server rules, enforced by one policy point on every read, write, searc
 | Archive or delete audit records past 7 years in the audit-retention workflow | F | — | — | — | — | — |
 
 **Changed by [[OWN-DEC-164]], [[OWN-DEC-195]], [[OWN-DEC-200]] (2026-10-21):** audit editing stays refused for every role, and an owner-only audit-retention action is added by [[TSK-0135]]; routine customer-authorized work-visit cancellations within policy move to Office by [[TSK-0140]]; cash collection needs an explicit Owner grant to a trained Worker by [[TSK-0151]]. Each change updates this table and the policy data in the same pull request.
+
+**Built by [[TSK-0140]] (2026-10-26, migration 0115):** the row "Cancel a work visit for a routine customer-authorized cancellation within policy" (`work.cancel_routine`) lets Office cancel a work visit the customer asked to cancel when the outcome is one the rules decide (full refund, the capped late fee, a late cancellation with nothing to charge); any other work-visit cancellation (HandyHub's own, after contracted work started, an exception the Owner reviews) stays "Cancel accepted, scheduled or paid work (financial review)". The Owner's row "Waive or reduce a cancellation fee, with a documented reason" (`cancellation_fee.waive`, [[OWN-DEC-161]]) is recorded on the cancellation; applying a refund or the fee stays "Apply a cancellation outcome". PROPOSED details: [[OQ-CANCELLATION-RULES-DETAILS]].
 
 **Built by [[TSK-0135]] (2026-10-26, migration 0114):** the row "Archive or delete audit records past 7 years in the audit-retention workflow" is the Owner's with a fresh sign-in and a reason (`audit.retention_archive`, `audit.retention_delete`); reading the workflow, its trail and the chain's verification sits in the Owner's retention review (`retention.view`). "Edit or delete audit events" still refuses every role. PROPOSED details: [[OQ-AUDIT-RETENTION-DETAILS]].
 

@@ -679,7 +679,13 @@ describe('[HH-PKT-01][HH-PKT-02][HH-PKT-07] the versioned job packet', () => {
       'office',
       'POST',
       `/api/v1/staff/visits/${v1.id}/window`,
-      { localDate: day(6), windowStart: '09:00', windowEnd: '10:00', reason: 'Synthetic: the customer asked' },
+      {
+        localDate: day(6),
+        windowStart: '09:00',
+        windowEnd: '10:00',
+        reason: 'Synthetic: the customer asked',
+        initiator: 'customer',
+      },
       v1.version,
     )
     expect(moved.statusCode, moved.body).toBe(200)

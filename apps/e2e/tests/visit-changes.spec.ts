@@ -355,7 +355,8 @@ test.describe('Reschedule, reassign, cancel and customer change requests (TSK-00
       await p.reload()
       const asked = p.getByTestId('board-selected').getByTestId('change-request')
       await expect(asked).toContainText('Request Cancellation')
-      await expect(asked.getByTestId('cancellation-outcome')).toContainText('Full deposit refund, no charge')
+      // TSK-0140 (OWN-DEC-163): an estimate visit is never charged, whatever the notice.
+      await expect(asked.getByTestId('cancellation-outcome')).toContainText('Estimate visit: never charged')
       await asked.getByRole('button', { name: 'Cancel the visit as asked' }).click()
       const cancel = p.getByTestId('board-selected').getByRole('form', { name: 'Cancel the visit' })
       await expect(cancel).toContainText("This confirms the customer's cancellation request.")

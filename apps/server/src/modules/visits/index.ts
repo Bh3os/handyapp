@@ -215,9 +215,10 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
       'alternatives, and the booking stays exactly as it was. A confirmed visit is moved only while every ' +
       'confirmation precondition still holds (TSK-0064: the approval, the deposit, the gates, no blocking hold), named ' +
       'with the capacity problems. TSK-0066 (HH-SCH-07): a reschedule of a confirmed visit needs a reason ' +
-      '(REASON_REQUIRED) and may name who initiated it (initiator customer or handyhub, with handyhubCause weather, ' +
-      'safety_stop, sick_worker or other; rescheduling is always free) and the customer reschedule request it confirms ' +
-      '(changeRequestId; REQUEST_NOT_FOR_VISIT, REQUEST_<state>). It writes one change record and the committed ' +
+      '(REASON_REQUIRED) and who initiated it (TSK-0140, OWN-DEC-195 C2: required, INITIATOR_REQUIRED; initiator ' +
+      'customer or handyhub, with handyhubCause weather, safety_stop, sick_worker or other; rescheduling is always ' +
+      "free), or the customer reschedule request it confirms (changeRequestId, the customer's; REQUEST_NOT_FOR_VISIT, " +
+      'REQUEST_<state>). It writes one change record and the committed ' +
       'appointment.change_committed event: after commit the customer gets the automatic "Appointment changed" notice ' +
       '(FACT-AUTOMATIC-MESSAGES #11) and the affected workers the staff notice, once per change (wording NOT ' +
       "CONFIGURED: each delivery is recorded as not configured, never as sent). Returns the project's visits.",
@@ -520,18 +521,27 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
     operationId: 'cancelVisit',
     summary: 'Cancel a confirmed visit',
     description:
-      'Staff with visit.cancel (Owner, Office), with If-Match: the visit version shown (TSK-0066, HH-SCH-07, ' +
-      'HH-PORT-04, T25). A work visit is accepted, scheduled work: only the Owner cancels it (cancellation and ' +
-      'financial review, work.cancel_with_financial_review; FORBIDDEN OWNER_CANCELS_WORK otherwise). Names who initiated ' +
-      'it (initiator customer or handyhub, with handyhubCause weather, safety_stop, sick_worker or other) and a reason ' +
-      "(required), or the customer's open cancellation request it confirms (changeRequestId). The server computes the " +
-      'outcome of FACT-CANCELLATION-RULES from the active cancellation.rules (NOT CONFIGURED while unset): the notice ' +
-      "(from the customer's request, or now), whether work started (PROPOSED: the job past preparation, or a work " +
-      'visit arrived or completed) and the verified deposit (an uncleared check is shown apart, never counted): ' +
-      'full_refund_no_charge (24 hours or more before work starts), late_cancellation ($50.00 kept from the deposit ' +
-      'and the rest refunded, or invoiced with no deposit), work_started (work done plus materials, which the Owner ' +
-      'determines), customer_chooses (HandyHub cancels: a free reschedule or a full refund) or owner_review (a case the ' +
-      'rules do not decide). The visit is canceled, its reservations end and stay as history, the outcome is kept on ' +
+      'Staff with visit.cancel (Owner, Office), with If-Match: the visit version shown (TSK-0066, TSK-0140, ' +
+      'HH-SCH-07, HH-PORT-04, T25). A work visit is accepted, scheduled work: the Owner cancels it (cancellation and ' +
+      'financial review, work.cancel_with_financial_review); Office cancels one only for a routine customer-authorized ' +
+      'cancellation within policy (work.cancel_routine, OWN-DEC-195 C6: the customer asked, no circumstance, and the ' +
+      'outcome full_refund_no_charge, late_cancellation or late_no_charge; FORBIDDEN NOT_ROUTINE_CANCELLATION ' +
+      'otherwise, OWNER_CANCELS_WORK for a role with neither). Names who initiated it (initiator customer or handyhub, ' +
+      "with handyhubCause weather, safety_stop, sick_worker or other) and a reason (required), or the customer's open " +
+      "cancellation request it confirms (changeRequestId); optionally the circumstance that keeps a customer's " +
+      'cancellation from being charged automatically (unsafe_conditions, emergency, legally_protected, owner_review) ' +
+      "and the Owner's waiver or reduction of the fee (feeWaiver: the fee after it, below the computed fee, and a " +
+      'documented reason; cancellation_fee.waive with a fresh sign-in, FORBIDDEN OWNER_WAIVES_FEE for anyone else, ' +
+      'FRESH_AUTH_REQUIRED, CONFLICT NO_FEE_TO_WAIVE). The server computes the outcome of FACT-CANCELLATION-RULES ' +
+      "from the active cancellation.rules (NOT CONFIGURED while unset): the notice (from the customer's request, or " +
+      "now), whether contracted work started (Start Work; a worker's arrival or preparation alone never is, OWN-DEC-195 " +
+      'C4), the verified deposit (an uncleared check is shown apart, never counted) and whether the accepted terms ' +
+      'disclosed the fee: full_refund_no_charge (24 hours or more before work starts), late_cancellation (at most ' +
+      '$50.00 kept from the deposit and the rest refunded, a smaller deposit kept and nothing more invoiced, or $50.00 ' +
+      'invoiced with no deposit only where disclosed and accepted in advance), late_no_charge (late, no deposit, not ' +
+      'disclosed), estimate_visit_free (an estimate visit is never charged), work_started (work done plus materials, ' +
+      'which the Owner determines), customer_chooses (HandyHub cancels: a free reschedule or a full refund) or ' +
+      'owner_review (a circumstance the Owner decides). The visit is canceled, its reservations end and stay as history, the outcome is kept on ' +
       "the change record, and an outcome with money opens the Owner's cancellation_outcome item: nothing is refunded, " +
       'kept or invoiced automatically (HH-FIN-14). The affected workers get the staff notice after commit; a ' +
       "cancellation is not on the customer's automatic list. Returns the project's visits.",
@@ -553,6 +563,7 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
       const out = await cancelVisit(tx, actor, ctx.scope, visitId, ctx.req.body as CancelInput, {
         now: new Date(),
         expectedVersion: ctx.expectedVersion(),
+        sessionId: ctx.req.staffSession?.sessionId,
       })
       await ctx.audit({
         target: { type: 'visit', id: out.id, version: out.version },
@@ -571,6 +582,8 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
           depositPaidCents: out.facts.depositPaidCents,
           workStarted: out.facts.workStarted,
           rulesVersion: out.rulesVersion,
+          circumstance: out.circumstance,
+          feeWaivedFromCents: out.waiver?.fromCents ?? null,
         },
         reason: out.reason,
       })
