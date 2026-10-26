@@ -9,8 +9,10 @@
 // - Access codes: only their kind, label and last confirmation, with the note that a code is revealed separately,
 //   online, on the visit date, in the audited flow (POST .../reveal). No access code is in any packet, view or export.
 // - What no record holds is said, never filled in: materials are not recorded yet (TSK-0071), no approved care notes
-//   exist (OWN-DEC-81: shown only after the Owner approves them), and the Owner's escalation contact is NOT
-//   CONFIGURED (FACT-SVC-ESCALATION-PATH keeps it an owner decision).
+//   exist (OWN-DEC-81: shown only after the Owner approves them).
+// - TSK-0129 (HH-PKT-09, OWN-DEC-172): the Owner's escalation contact is read when the packet is read, from the number
+//   the Owner entered in their own staff profile (never stored in the packet: entering or changing it makes no new
+//   version), or NOT CONFIGURED while there is none; Call 911 is always there.
 import type { Db, Tx } from '@handyhub/db'
 import {
   itemText,
@@ -21,6 +23,7 @@ import {
   type SopStep,
 } from '@handyhub/domain'
 import type { ObjectStorage } from '../../providers/index.js'
+import { ownerEscalationContact } from '../escalation/store.js'
 import type { PacketRow } from './content.js'
 
 type Reader = Db | Tx
@@ -276,7 +279,8 @@ export async function packetView(
     careNotes: { state: 'none_approved' as const },
     communication: {
       siteContact,
-      escalationContact: { state: 'not_configured' as const },
+      escalationContact: await ownerEscalationContact(db),
+      emergency: { call911: 'tel:911' },
       stopWork: derived.stopWork,
     },
   }

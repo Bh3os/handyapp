@@ -5,6 +5,8 @@
 // - A restricted report (an injury, an incident) shows what was reported, its text, resolution, photos and
 //   stabilization only to the Owner and the worker who reported it; everyone else sees the masked record (OWN-DEC-143).
 // - The work-paused customer notice is listed for the Owner only, who alone releases or dismisses it (OWN-DEC-152).
+// - TSK-0129 (HH-PKT-09): the Owner's escalation contact in force (or NOT CONFIGURED) beside Call 911, and the recorded
+//   Call Owner / Call 911 / Owner-unreachable taps: every one for the Owner, the caller's own for everyone else.
 import type { Db, Tx } from '@handyhub/db'
 import {
   HAZARD_REVIEWER,
@@ -15,6 +17,7 @@ import {
   type ReportKind,
 } from '@handyhub/domain'
 import { decide, type Action, type Resource, type StaffActor } from '@handyhub/policy'
+import { escalationCalls, ownerEscalationContact } from '../escalation/store.js'
 import { NOTICE_RECORD_TYPE, WORK_PAUSED_MESSAGE_KEY } from './actions.js'
 
 type Reader = Db | Tx
@@ -195,6 +198,7 @@ export async function reportsView(db: Reader, actor: StaffActor, jobId: string, 
     }),
     workPackages: packages.map((p) => ({ workPackageId: p.id, serviceCode: p.code, state: p.state })),
     emergency: { call911: 'tel:911' },
+    escalation: { owner: await ownerEscalationContact(db), calls: await escalationCalls(db, actor, jobId) },
     actions: {
       reportHazard: allowed(actor, 'hazard.report', facts),
       reportIssue: allowed(actor, 'job.report_issue', facts),

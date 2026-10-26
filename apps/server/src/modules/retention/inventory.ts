@@ -534,6 +534,13 @@ export const TABLES = {
     classes: ['staff_account'],
     categories: [NS],
   },
+  // TSK-0129 (HH-PKT-09, OWN-DEC-172): the Owner's escalation number, entered by the Owner in their own profile.
+  'identity.staff_escalation_phones': {
+    holds:
+      "The Owner's escalation phone number (Call Owner in every job packet), entered by the Owner; cleared, never deleted",
+    classes: ['staff_account', 'contact'],
+    categories: [NS],
+  },
   'identity.staff_users': {
     holds: 'Staff accounts: name, email, language, status',
     classes: ['staff_account'],
@@ -1046,6 +1053,14 @@ export const TABLES = {
       "A worker's site checks before Start Work (property, access, customer present, hazards reviewed, site as " +
       'described or different with their note)',
     classes: ['request_details'],
+    categories: [J, S],
+  },
+  // TSK-0129 (0099): the Call Owner, Call 911 and Owner-unreachable taps staff phones recorded.
+  'work.escalation_calls': {
+    holds:
+      "Call Owner, Call 911 and Owner-unreachable taps: the phone's UUID, who, the job, its visit and report, the " +
+      "phone's time and the server's",
+    classes: ['incident', 'staff_account'],
     categories: [J, S],
   },
   // TSK-0080 (0090): the field events phones uploaded (the sync queue), kept as received, and the Owner's review.

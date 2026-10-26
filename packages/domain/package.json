@@ -63,6 +63,11 @@
       "@handyhub/source": "./src/launch.ts",
       "types": "./dist/launch.d.ts",
       "default": "./dist/launch.js"
+    },
+    "./escalation": {
+      "@handyhub/source": "./src/escalation.ts",
+      "types": "./dist/escalation.d.ts",
+      "default": "./dist/escalation.js"
     }
   },
   "scripts": {

@@ -28,3 +28,5 @@ Owner answers of 2026-10-05 that fill parts of this path:
 - "How should urgent field alerts (hazard, injury, stop-work) and system alerts reach you?" = "Text + app alert (Recommended)".
 - Lone work: no interval check-ins; a worker alone records only Arrived and Finished ([[OWN-DEC-149]]).
 - "After a non-critical stop clearly ends (storm passed, dog secured), who decides to resume?" = "Lead worker on site". Critical holds clear only with a recorded qualified assessment ([[RULE-SAFETY-GATES]]).
+
+**Built by [[TSK-0129]] (2026-10-24):** `<owner decision: emergency contact>` is the Call 911 action and `<owner decision: escalation order>` the Call Owner action of every job packet, dialling the number the Owner entered on their own account (NOT CONFIGURED until then; never in the repository). The 2026-10-05 backup answer is not used ([[OWN-DEC-208]]). The SOP wording stays pending competent safety review ([[OQ-SAFETY-REVIEW]]); details in [[OQ-ESCALATION-DETAILS]].

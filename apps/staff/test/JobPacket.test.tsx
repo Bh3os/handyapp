@@ -11,6 +11,7 @@ import { memoryStore, setOfflineStore } from '../src/offline/store'
 afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
+  window.localStorage.clear()
 })
 
 const JOB = '55555555-5555-4555-8555-555555555555'
@@ -136,6 +137,8 @@ function view(over: Partial<JobPacketView> = {}): JobPacketView {
     materials: { state: 'not_recorded', packages: [] },
     communication: {
       siteContact: null,
+      escalationContact: { state: 'not_configured' },
+      emergency: { call911: 'tel:911' },
       stopWork: [
         {
           workPackageId: 'w1',
@@ -212,7 +215,7 @@ describe('job packet screen (TSK-0069)', () => {
     expect(screen.getByTestId('packet-address').textContent).toContain('169 Synthetic Lane, Testville, KY 40000')
     expect(screen.getByText('(Customer by phone, confirmed', { exact: false })).toBeTruthy()
     expect(screen.getByTestId('packet-escalation').textContent).toBe(
-      'NOT CONFIGURED: the Owner has not set the escalation contact yet — ask the office',
+      'NOT CONFIGURED: the Owner has not entered a phone number in their staff profile yet. In an emergency, call 911.',
     )
     expect(screen.getByText(/No materials list recorded for this job yet/)).toBeTruthy()
     expect(screen.getByText('No pre-work evidence recorded in the SOP — ask the office.')).toBeTruthy()
@@ -327,6 +330,52 @@ describe('job packet screen (TSK-0069)', () => {
     ).toBe('unknown_code')
   })
 })
+
+describe('[HH-PKT-09][OWN-DEC-172] the escalation procedure in the packet (TSK-0129)', () => {
+  const owner = {
+    state: 'configured' as const,
+    phone: '+15025550142',
+    display: '(502) 555-0142',
+    tel: 'tel:+15025550142',
+  }
+  const withOwner = () => view({ communication: { ...view().communication, escalationContact: owner } })
+
+  it('Call Owner dials the number the Owner entered, the procedure is stated, and the tap is recorded', async () => {
+    const posts: { url: string; body: Record<string, unknown> }[] = []
+    const fetchImpl = api(withOwner(), (url, init) => {
+      if (!url.endsWith('/escalation-calls')) return undefined
+      posts.push({ url, body: JSON.parse(String(init?.body)) as Record<string, unknown> })
+      return json(201, { clientId: 'c1', action: 'call_owner', workStaysPaused: false, owner })
+    })
+    renderPacket(fetchImpl)
+    const link = await screen.findByRole('link', { name: 'Call Owner — Report a Problem' })
+    expect(link.getAttribute('href')).toBe('tel:+15025550142')
+    expect(screen.getByTestId('packet-escalation').textContent).toContain('(502) 555-0142')
+    expect(screen.getByTestId('escalation-procedure').textContent).toContain(
+      'Call 911 immediately, without waiting for Owner approval',
+    )
+    expect(screen.getByTestId('escalation-procedure').textContent).toContain(
+      'If the Owner cannot be reached and the issue is not an emergency, keep the affected work paused',
+    )
+    // The packet's contact is kept on this phone for Call Owner offline.
+    expect(JSON.parse(window.localStorage.getItem('hh.staff.ownerContact') ?? 'null')).toEqual(owner)
+    fireEvent.click(link)
+    await waitFor(() => expect(posts).toHaveLength(1))
+    expect(posts[0]?.url).toBe(`/api/v1/staff/jobs/${JOB}/escalation-calls`)
+    expect(posts[0]?.body).toMatchObject({ action: 'call_owner' })
+    expect(window.localStorage.getItem('hh.staff.pendingEscalations')).toBeNull()
+  })
+
+  it('in Spanish the packet states the owner’s Spanish instruction exactly as given', async () => {
+    renderPacket(api(withOwner()), 'es')
+    await screen.findByRole('link', { name: 'Llamar al propietario — Reportar un problema' })
+    expect(within(screen.getByTestId('escalation-procedure')).getByText(OWNER_SPANISH)).toBeTruthy()
+  })
+})
+
+/** The owner's Spanish instruction, verbatim (OWN-DEC-172 item 6). */
+const OWNER_SPANISH =
+  'Si ocurre un problema, detén el trabajo afectado y llama primero al propietario para recibir instrucciones. Si hay una emergencia médica grave, un incendio, una fuga peligrosa de gas o cualquier peligro inmediato para la vida, llama al 911 sin esperar autorización. Avisa al propietario cuando sea seguro hacerlo.'
 
 describe('your job packets on My Day (TSK-0069)', () => {
   it('[HH-PKT-02][HH-OFF-09] lists the assigned jobs with their version and what changed since viewed', async () => {

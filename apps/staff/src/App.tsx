@@ -43,6 +43,7 @@ import { StaffScreen } from './StaffManagement'
 import { JobPhotosPage } from './JobPhotos'
 import { StartReviewPage, StartWorkPage } from './StartWork'
 import { JobSafety, SafetyHoldPage, flushPendingStops } from './StopWork'
+import { OwnerEscalationPhone, flushPendingEscalations, rememberOwnerContact } from './Escalation'
 import { StagingTools } from './StagingTools'
 import { LaunchPhaseSetting } from './LaunchPhase'
 import { ConfigurationScreen, HealthScreen } from './System'
@@ -232,7 +233,8 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
   // phone is back online, with its own key (recorded once).
   useEffect(() => {
     if (!session) return
-    const flush = () => void flushPendingStops(doFetch)
+    // TSK-0129: so are the Call Owner / Call 911 taps saved on this phone (each with its own UUID).
+    const flush = () => void flushPendingStops(doFetch).then(() => flushPendingEscalations(doFetch))
     flush()
     window.addEventListener('online', flush)
     return () => window.removeEventListener('online', flush)
@@ -258,6 +260,8 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
     // TSK-0079 (HH-OFF-02): the offline copies never stay on the device after sign-out. TSK-0080 (HH-OFF-07): drafts
     // the server has are cleared too; unsynced ones stay on this phone, only after the warning said so.
     rememberSession(null)
+    // TSK-0129: the Owner's number kept for Call Owner offline goes with the offline copies.
+    rememberOwnerContact(null)
     const store = offlineStore()
     try {
       for (const p of await store.listPackets()) await store.deletePacket(p.jobId)
@@ -362,6 +366,7 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
               fetchImpl={doFetch}
               session={session}
               onSignedOut={() => (setSession(null), go('/sign-in'))}
+              onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
             />
           ) : route.page === 'search' ? (
             <SearchScreen t={t} query={route.query} />
@@ -826,18 +831,20 @@ function SetPassword({
 
 /**
  * The person's own account: who is signed in, Sign out everywhere and the mandatory authenticator's status
- * (TSK-0014, TSK-0015, TSK-0154).
+ * (TSK-0014, TSK-0015, TSK-0154); for the Owner, the escalation number of every job packet (TSK-0129).
  */
 function Account({
   t,
   fetchImpl,
   session,
   onSignedOut,
+  onSession,
 }: {
   t: T
   fetchImpl: Fetch
   session: Session
   onSignedOut: () => void
+  onSession?: (s: { csrfToken: string }) => void
 }) {
   const [pending, setPending] = useState(false)
   async function signOutEverywhere() {
@@ -856,6 +863,10 @@ function Account({
         </Button>
       </div>
       <Security t={t} fetchImpl={fetchImpl} />
+      {/* TSK-0129 (HH-PKT-09): the Owner enters the number every packet's Call Owner dials (hidden for other roles). */}
+      {session.roles.includes('owner') ? (
+        <OwnerEscalationPhone t={t} fetchImpl={fetchImpl} {...(onSession ? { onSession } : {})} />
+      ) : null}
     </section>
   )
 }

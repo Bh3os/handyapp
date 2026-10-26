@@ -11,6 +11,7 @@ import {
   NEXT_OWNERS,
   REPORT_KINDS,
 } from '@handyhub/domain'
+import { CALL, OWNER_CONTACT } from '../escalation/schemas.js'
 
 const UUID_PATTERN = '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
 const UUID = { type: 'string', pattern: UUID_PATTERN } as const
@@ -202,6 +203,8 @@ export const REPORTS_VIEW = obj({
   reports: arr(REPORT),
   workPackages: arr(obj({ workPackageId: STR, serviceCode: STR, state: STR })),
   emergency: obj({ call911: STR }),
+  // TSK-0129 (HH-PKT-09): the Owner's contact in force and the recorded Call Owner / Call 911 taps the caller may see.
+  escalation: obj({ owner: OWNER_CONTACT, calls: arr(CALL) }),
   actions: obj({ reportHazard: BOOL, reportIssue: BOOL }),
 })
 

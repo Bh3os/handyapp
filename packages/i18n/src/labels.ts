@@ -1827,6 +1827,8 @@ export const LABEL_FAMILIES = {
     'incident',
   ],
   issueSeverity: ['critical', 'major', 'minor'],
+  /** TSK-0129 (HH-PKT-09): the escalation taps a phone records (packages/domain/src/escalation.ts). */
+  escalationAction: ['call_owner', 'call_911', 'owner_unreachable'],
   reportProblem: [
     'RESOLVE_ON_SITE_NOT_OFFERED',
     'SAFETY_HOLD_OPEN',

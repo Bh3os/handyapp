@@ -21,4 +21,5 @@ source: "TSK-0103 (2026-10-23): OWN-DEC-79 states the rule; the details below ar
   - The latest comparison of an English version decides; a later failed comparison takes the release back.
   - The English competent review ([[OWN-DEC-17]]) is unchanged: in production a pending English version still blocks every worker.
 - **Waiting for a later task:** the owner's Spanish escalation instruction ([[OWN-DEC-172]]) and the Call Owner / Call 911 block come with [[TSK-0129]] (the owner's phone number is NOT CONFIGURED).
+  - **Built by [[TSK-0129]] (2026-10-24):** the packet states the owner's Spanish instruction word for word (the owner's own wording, not a translation); the other new Spanish staff texts of the escalation block are AI translations, not released as AI-reviewed (the comparison covers SOP texts only). Details in [[OQ-ESCALATION-DETAILS]].
 - **Until answered:** the PROPOSED details above are used; each is a small change to the tool, the nodes or the code.

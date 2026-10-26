@@ -18,7 +18,9 @@
 //   only by the documented path of the start module (0074: the Owner, never one they raised, with evidence, the
 //   reviewer and their qualification); nothing here, and no role, flag or AI, releases it.
 // - Every answer carries Call 911 (tel:911): the staff app shows it first, before anything else, and never waits for
-//   this server (owner amendment; OWN-DEC-172, OWN-DEC-208). The Owner's own number is TSK-0129.
+//   this server (owner amendment; OWN-DEC-172, OWN-DEC-208). TSK-0129: the reports view also carries the Owner's
+//   escalation contact (the number the Owner entered in their own profile, or NOT CONFIGURED) and the recorded Call
+//   Owner / Call 911 taps (apps/server/src/modules/escalation).
 // - Every write is audited; texts stay on their records, never in the audit summary.
 import { withTx, type Tx } from '@handyhub/db'
 import type { StaffActor } from '@handyhub/policy'
@@ -259,7 +261,9 @@ export function hazardsModule(deps: { storage: ObjectStorage | null }): ApiModul
       'details (an injury or an incident: what was reported, the text, the resolution, photos, stabilization, the ' +
       'reporter) are shown only to the Owner (audited) and the worker who reported it; everyone else sees that it ' +
       'exists and its status (OWN-DEC-143). The Owner also sees the work-paused customer notice drafts and may release ' +
-      "or dismiss them. Lists the job's work packages for the forms and always carries Call 911. What the caller may " +
+      "or dismiss them. Lists the job's work packages for the forms and always carries Call 911, with the Owner's " +
+      'escalation contact (the number the Owner entered, or NOT CONFIGURED) and the recorded Call Owner / Call 911 ' +
+      "taps (every one for the Owner, the caller's own for everyone else). What the caller may " +
       'do next: report a hazard, report an issue, add a photo, record stabilization, review.',
     actors: ['staff'],
     permission: 'work.stop',

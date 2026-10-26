@@ -9,17 +9,30 @@
 // - Print: the server records and audits the print first; the print view carries the version and "Printed <time>;
 //   check the app for changes", and leaves out photos, code labels and any revealed code. Download PDF: the server's
 //   PDF, recorded and audited as an export.
-// - What no record holds is said, never filled in: a service without a loadout list (TSK-0071) says NOT CONFIGURED, no approved care notes, the Owner's
-//   escalation contact NOT CONFIGURED. The emergency section says emergency action never waits for the app.
+// - What no record holds is said, never filled in: a service without a loadout list (TSK-0071) says NOT CONFIGURED and
+//   no approved care notes exist. The emergency section says emergency action never waits for the app.
+// - TSK-0129 (HH-PKT-09, OWN-DEC-172): the communication section dials the number the Owner entered in their own
+//   profile (Call Owner — Report a Problem), or says NOT CONFIGURED and to call 911 in an emergency, and states the
+//   escalation procedure (in Spanish the owner's instruction exactly as given). Each packet read keeps the contact on
+//   this phone, so Call Owner works offline on every job screen.
 // - Your review (TSK-0072; HH-DATA-08, HH-WORK-10, T44, ENT-Acknowledgment): where the caller's own acknowledgment
 //   stands (needed, standing, no longer counting after a critical change, a removal or a disabled account) with what
 //   changed since the acknowledged version, and, for an assigned worker, a personal acknowledgment of this exact
 //   version (a checkbox, then the button; the server refuses anyone not assigned and a version that changed). Each
 //   assigned worker's state is listed; nobody acknowledges for another person. It releases no hold.
+import type { OwnerContact } from '@handyhub/domain/escalation'
 import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { Button, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { call, type Fetch } from './api'
+import {
+  EscalationProcedure,
+  OwnerCallLine,
+  recordEscalation,
+  rememberedOwnerContact,
+  rememberOwnerContact,
+  useOwnerContact,
+} from './Escalation'
 import { purgeOfflineCopies, readOfflineCopy, storeOfflineCopy, type OfflineState } from './offline/packet'
 import { offlineStore, type StoredPacket } from './offline/store'
 import { JobIncidents } from './Cases'
@@ -135,6 +148,9 @@ export type JobPacketView = {
   }
   communication: {
     siteContact: Detail | null
+    /** TSK-0129: absent from an offline copy saved before the escalation contact existed. */
+    escalationContact?: OwnerContact
+    emergency?: { call911: string }
     stopWork: {
       workPackageId: string
       serviceCode: string
@@ -529,9 +545,13 @@ export function JobPacketPage({
     const r = await call<JobPacketView>(fetchImpl, `/staff/jobs/${encodeURIComponent(jobId)}/packet`)
     if (r.ok) {
       setCopy(null)
+      rememberOwnerContact(r.data.communication.escalationContact)
       return setView(r.data)
     }
     const stored = r.status === 0 ? await readOfflineCopy(offlineStore(), jobId) : null
+    // Offline: the copy's contact only when this phone keeps none newer.
+    if (stored && !rememberedOwnerContact())
+      rememberOwnerContact((stored.view as JobPacketView).communication?.escalationContact)
     setCopy(stored)
     setView(stored ? (stored.view as JobPacketView) : null)
   }, [fetchImpl, jobId])
@@ -1004,9 +1024,12 @@ export function JobPacketPage({
           </div>
           <div>
             <dt>{t('packet.field.escalation')}</dt>
-            <dd data-testid="packet-escalation">{t('packet.escalationNotConfigured')}</dd>
+            <dd data-testid="packet-escalation">
+              <PacketOwnerCall t={t} fetchImpl={fetchImpl} jobId={v.job.id} given={v.communication.escalationContact} />
+            </dd>
           </div>
         </dl>
+        <EscalationProcedure t={t} />
         {v.communication.stopWork.map((g) => (
           <details key={g.workPackageId}>
             <summary>{t('packet.print.stopWork', { service: g.serviceCode })}</summary>
@@ -1051,6 +1074,23 @@ export function JobPacketPage({
       )}
     </article>
   )
+}
+
+/** Call Owner in the packet: the contact this packet carries, else the one this phone kept; the tap is recorded. */
+function PacketOwnerCall({
+  t,
+  fetchImpl,
+  jobId,
+  given,
+}: {
+  t: T
+  fetchImpl: Fetch
+  jobId: string
+  given: OwnerContact | undefined
+}) {
+  const contact = useOwnerContact(given ?? null)
+  if (contact?.state === 'not_configured') return <>{t('packet.escalationNotConfigured')}</>
+  return <OwnerCallLine t={t} contact={contact} onCall={() => void recordEscalation(fetchImpl, jobId, 'call_owner')} />
 }
 
 /** Whether this phone holds a verified offline copy of the packet (TSK-0079). */
@@ -1126,6 +1166,8 @@ export function MyJobPackets({ t, fetchImpl, href }: { t: T; fetchImpl: Fetch; h
         const full = await call<JobPacketView>(fetchImpl, `/staff/jobs/${encodeURIComponent(p.jobId)}/packet`)
         let state: OfflineState = { state: 'failed' }
         if (full.ok) {
+          // TSK-0129: the Owner's contact goes with the copies, for Call Owner offline.
+          rememberOwnerContact(full.data.communication?.escalationContact)
           // The SOP checklist of each pinned work package goes with the copy; a missing one leaves it not ready.
           const sops: Record<string, unknown> = {}
           let complete = true

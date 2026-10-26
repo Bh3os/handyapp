@@ -1030,6 +1030,13 @@ export interface IdentityRoleGrantsTable {
   training: string | null
 }
 
+export interface IdentityStaffEscalationPhonesTable {
+  staff_user_id: string
+  phone: string | null
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
+}
+
 export interface IdentityStaffLinksTable {
   id: Generated<string>
   staff_user_id: string
@@ -2078,6 +2085,18 @@ export interface WorkEquipmentTable {
   retired_by: string | null
 }
 
+export interface WorkEscalationCallsTable {
+  client_id: string
+  job_id: string
+  project_id: string
+  visit_id: string | null
+  report_id: string | null
+  action: string
+  actor_id: string
+  device_recorded_at: Timestamp
+  received_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface WorkFieldEventsTable {
   client_id: string
   actor_id: string
@@ -2797,6 +2816,7 @@ export interface Database {
   'identity.project_access_grants': IdentityProjectAccessGrantsTable
   'identity.rate_limits': IdentityRateLimitsTable
   'identity.role_grants': IdentityRoleGrantsTable
+  'identity.staff_escalation_phones': IdentityStaffEscalationPhonesTable
   'identity.staff_links': IdentityStaffLinksTable
   'identity.staff_mfa': IdentityStaffMfaTable
   'identity.staff_recovery_codes': IdentityStaffRecoveryCodesTable
@@ -2867,6 +2887,7 @@ export interface Database {
   'work.checklist_step_events': WorkChecklistStepEventsTable
   'work.checklist_steps': WorkChecklistStepsTable
   'work.equipment': WorkEquipmentTable
+  'work.escalation_calls': WorkEscalationCallsTable
   'work.field_events': WorkFieldEventsTable
   'work.field_photos': WorkFieldPhotosTable
   'work.gate_exceptions': WorkGateExceptionsTable
