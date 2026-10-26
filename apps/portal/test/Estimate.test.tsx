@@ -284,6 +284,51 @@ describe('portal routes and parsers (TSK-0056)', () => {
   })
 })
 
+describe('[HH-EST-15] a requested discount pending verification (TSK-0125, OWN-DEC-165)', () => {
+  it('marks the discount row pending, says why approval waits, and names nothing about verification', async () => {
+    const pending = () =>
+      estimate({
+        subtotalCents: 127_500,
+        reduction: { label: 'Discount (senior) -10%', amountCents: 12_750, pendingVerification: true },
+        totalCents: 114_750,
+        approval: { ...estimate().approval, reasons: ['reduction_pending_verification'] },
+      })
+    const { fetchImpl, setDetail } = api({ detail: pending })
+    open(fetchImpl)
+    const totals = await screen.findByTestId('estimate-totals', undefined, { timeout: 5_000 })
+    expect(within(totals).getByText('Discount (senior) -10%')).toBeTruthy()
+    expect(within(totals).getByText('Pending verification')).toBeTruthy()
+    expect(screen.getByTestId('estimate-reduction-pending').textContent).toContain('ask for an owner review')
+    expect(
+      screen.getByText(
+        'The discount on this estimate is pending verification. You can approve the estimate once it is confirmed.',
+      ),
+    ).toBeTruthy()
+    expect(screen.queryByText(/photo ID|veteran|date of birth/)).toBeNull()
+    cleanup()
+    // Not verified: an updated estimate follows; the row is no longer marked pending.
+    setDetail(() =>
+      estimate({
+        reduction: { label: 'Discount (senior) -10%', amountCents: 12_750, pendingVerification: false },
+        totalCents: 114_750,
+        approval: { ...estimate().approval, reasons: ['reduction_not_verified'] },
+      }),
+    )
+    open(fetchImpl)
+    expect(
+      await screen.findByText(
+        "We could not confirm the discount on this estimate. We'll send you an updated estimate to review.",
+      ),
+    ).toBeTruthy()
+    expect(screen.queryByText('Pending verification')).toBeNull()
+  })
+
+  it('[HH-PORT-06] a discount row without its verification flag is not the declared view', () => {
+    const bad = estimate({ reduction: { label: 'Discount (senior) -10%', amountCents: 12_750 } })
+    expect(parseEstimate(bad)).toBeNull()
+  })
+})
+
 describe('the customer estimate view (TSK-0056, HH-EST-06, HH-EST-09)', () => {
   it('[HH-PORT-10] the Documents tab lists the version with its status; Review this estimate opens the tab', async () => {
     const { fetchImpl } = api()

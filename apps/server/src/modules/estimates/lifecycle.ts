@@ -21,6 +21,10 @@
 //   revised from. Every version is kept (history).
 // - Accepting is the approval transaction (TSK-0057). acceptanceCheck is its rule: only the current, unexpired
 //   published version; otherwise the current version to show, or none ("Request an Updated Estimate").
+// - TSK-0125 (HH-EST-15, OWN-DEC-165): a version carrying a discount is accepted only once that discount is verified
+//   (DISCOUNT_PENDING_VERIFICATION, DISCOUNT_NOT_VERIFIED); publishing, withdrawing, declining and expiring keep the
+//   discount's queue items in line (a revised estimate to write while a published version carries a failed one), and a
+//   revision leaves out a discount whose verification failed.
 import { createHash, randomUUID } from 'node:crypto'
 import type { Db, Tx } from '@handyhub/db'
 import {
@@ -51,6 +55,7 @@ import { customerPdfInput, renderCustomerPdf } from './customer-pdf.js'
 import { PDF_TYPE } from './document-content.js'
 import { isUuid, saveDraft, TEXT_LISTS, type DraftInput } from './model.js'
 import { discountFor, pricingPolicies } from './pricing.js'
+import { discountProblem, projectDiscount, syncDiscountItems } from './discounts.js'
 import { estimatePublicationGate } from './owner-approval.js'
 import { publishReadiness, type PublishProblem } from './readiness.js'
 import { stopEstimateReminders } from './reminders.js'
@@ -343,6 +348,7 @@ export async function publishVersion(
     }
     await syncEstimateItem(tx, r.id)
   }
+  await syncDiscountItems(tx, row.project_id)
 
   const requestId = currentContext()?.requestId ?? `estimate-publish:${versionId}`
   await outbox.add(tx, {
@@ -419,6 +425,7 @@ export async function changeVersionState(
       .execute()
     for (const r of requests) await syncEstimateItem(tx, r.id)
   }
+  await syncDiscountItems(tx, row.project_id)
   return { from: moved.from, to: moved.to, rowVersion: moved.version }
 }
 
@@ -440,6 +447,7 @@ export async function expireIfDue(tx: Tx, versionId: string): Promise<'expired' 
     .where('id', '=', versionId)
     .execute()
   await stopEstimateReminders(tx, versionId)
+  await syncDiscountItems(tx, row.project_id)
   return 'expired'
 }
 
@@ -568,7 +576,12 @@ export async function reviseVersion(
       { now: new Date(), online: true },
     ).effect === 'allow'
   const policies = pricingPolicies(await loadConfig(tx))
+  // A discount the active rule no longer lists, or one the customer did not request or whose verification failed
+  // (TSK-0125), is left out of the revision.
   const discount = discountFor(policies, full.discount_category)
+  const keepsDiscount =
+    discount.ok &&
+    discountProblem(full.discount_category, await projectDiscount(tx, source.project_id), 'publish') === null
   const num = (v: string | number | null) => (v === null ? null : Number(v))
   const texts: Record<(typeof TEXT_LISTS)[number], string[]> = {
     assumptions: full.assumptions,
@@ -596,7 +609,7 @@ export async function reviseVersion(
           }
         : {}),
     })),
-    discountCategory: discount.ok ? full.discount_category : null,
+    discountCategory: keepsDiscount ? full.discount_category : null,
     texts,
     ...(seesInternal && internals
       ? { internal: { markupAssumptions: internals.markup_assumptions, estimatorNotes: internals.estimator_notes } }
@@ -615,7 +628,7 @@ export async function reviseVersion(
     versionId: created.id,
     version: next,
     rowVersion: saved.rowVersion,
-    discountDropped: full.discount_category !== null && !discount.ok,
+    discountDropped: full.discount_category !== null && !keepsDiscount,
   }
 }
 
@@ -639,7 +652,7 @@ export type AcceptanceCheck =
   | { readonly acceptable: true }
   | {
       readonly acceptable: false
-      /** SUPERSEDED, EXPIRED or NOT_PUBLISHED. */
+      /** SUPERSEDED, EXPIRED or NOT_PUBLISHED; TSK-0125: DISCOUNT_PENDING_VERIFICATION or DISCOUNT_NOT_VERIFIED. */
       readonly code: string
       /** The version to review instead, or null: offer "Request an Updated Estimate" (OWN-DEC-103). */
       readonly current: { readonly versionId: string; readonly version: number } | null
@@ -658,7 +671,7 @@ export async function acceptanceCheck(
   if (!isUuid(versionId)) return null
   const v = await db
     .selectFrom('estimating.estimate_versions')
-    .select(['estimate_id', 'version', 'state', 'valid_until'])
+    .select(['estimate_id', 'project_id', 'version', 'state', 'valid_until', 'discount_category'])
     .where('id', '=', versionId)
     .executeTakeFirst()
   if (!v) return null
@@ -674,7 +687,11 @@ export async function acceptanceCheck(
     { newerVersionPublished: newer !== undefined, ...(v.valid_until ? { validUntil: v.valid_until } : {}) },
     now,
   )
-  if (!problem) return { acceptable: true }
+  if (!problem) {
+    // TSK-0125: the version stays the one to review; it can be approved once its discount is verified.
+    const discount = discountProblem(v.discount_category, await projectDiscount(db, v.project_id), 'approve')
+    return discount ? { acceptable: false, code: discount, current: null } : { acceptable: true }
+  }
   const current = await currentVersion(db, v.estimate_id, now)
   return { acceptable: false, code: problem.code, current: current?.versionId === versionId ? null : current }
 }

@@ -1,7 +1,7 @@
 // The wizard's final review and the draft's send (TSK-0030; HH-INT-19, HH-INT-10, T11). Synthetic values only.
 import { describe, expect, it } from 'vitest'
 import { DraftStore, draftKey, newSend, type DraftStorage } from '../src/request/draft.js'
-import { EMPTY_VALUES, offeredWindows, type FormService, type FormValues } from '../src/request/form.js'
+import { EMPTY_VALUES, offeredWindows, toBody, type FormService, type FormValues } from '../src/request/form.js'
 import { addressLines, dateText, REVIEW_SECTIONS, reviewSections, SECTION_STEP } from '../src/request/review.js'
 
 const services: FormService[] = [
@@ -191,5 +191,26 @@ describe("the draft's send (TSK-0030, HH-INT-10, T11)", () => {
     store.save(values, 'review', now, newSend(now))
     store.clear()
     expect(store.load(now)).toBeNull()
+  })
+})
+
+describe('[HH-EST-15] a requested discount (TSK-0125, OWN-DEC-165)', () => {
+  it('is sent as the one category chosen, shown pending verification in the review, and never otherwise', () => {
+    const meta = { formVersion: 'wizard-1', privacyNoticeVersion: 'none-yet' }
+    expect(toBody({ ...values, requestedDiscount: 'senior' }, meta, services).requestedDiscount).toBe('senior')
+    expect('requestedDiscount' in toBody(values, meta, services)).toBe(false)
+    // A code the form does not offer is never sent.
+    expect('requestedDiscount' in toBody({ ...values, requestedDiscount: 'student' }, meta, services)).toBe(false)
+    const contact = (v: FormValues) => {
+      const s = reviewSections(v, services, { windows }).find((x) => x.id === 'contact')
+      return s ? flat(s) : []
+    }
+    expect(contact({ ...values, requestedDiscount: 'returning_customer' }).at(-1)).toEqual([
+      '',
+      'Discount requested',
+      'Returning customer (pending verification)',
+    ])
+    expect(contact(values).some((r) => r[1] === 'Discount requested')).toBe(false)
+    expect(EMPTY_VALUES.requestedDiscount).toBe('')
   })
 })

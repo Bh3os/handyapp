@@ -27,6 +27,10 @@
 //   with the same options and total answers with that first approval (two tabs, a retry under a new key); anything
 //   else is a CONFLICT. The same idempotency key is answered by the API's stored response (claim/store).
 // - Approval never confirms an appointment, reserves capacity or marks a deposit paid (OWN-DEC-103, HH-EST-08).
+// - TSK-0125 (HH-EST-15, OWN-DEC-165): a version carrying a discount is approved only once the customer's requested
+//   discount is verified, read under the project's lock (a verification takes the same lock), so the price approved
+//   never rests on a discount that is pending or failed; CONFLICT DISCOUNT_PENDING_VERIFICATION or
+//   DISCOUNT_NOT_VERIFIED (the database refuses the same).
 import { createHash } from 'node:crypto'
 import { pinJobSops, type Db, type Tx } from '@handyhub/db'
 import { apply, type EstimateVersionState, type ProjectState } from '@handyhub/domain'
@@ -41,6 +45,7 @@ import { outbox } from '../../platform/outbox.js'
 import { currentContext } from '../../platform/request-context.js'
 import type { CustomerSession } from '../identity/index.js'
 import { currentVersion } from './lifecycle.js'
+import { discountProblem, projectDiscount } from './discounts.js'
 import { customerVersionContent, type CustomerVersionContent } from './projections.js'
 import { stopEstimateReminders } from './reminders.js'
 import { customerVersionRow, customerVersionStatus, type CustomerVersionRef } from './responses.js'
@@ -80,6 +85,7 @@ type VersionPricing = {
   total_cents: string | null
   discount_percent_bps: number | null
   discount_rule_version: number | null
+  discount_category: string | null
   deposit_state: string | null
   deposit_cents: string | null
   deposit_rule_version: number | null
@@ -113,6 +119,7 @@ async function versionPricing(db: Reader, versionId: string, lock = false): Prom
       'v.total_cents',
       'v.discount_percent_bps',
       'v.discount_rule_version',
+      'v.discount_category',
       'v.deposit_state',
       'v.deposit_cents',
       'v.deposit_rule_version',
@@ -530,6 +537,9 @@ export async function approveVersion(
     throw new ApiError('FORBIDDEN', { fieldErrors: [field('verification', 'FRESH_VERIFICATION_REQUIRED')] })
   if (!(await accessStillValid(tx, input.session, v.project_id, now)))
     throw new ApiError('FORBIDDEN', { fieldErrors: [field('access', 'ACCESS_REVOKED')] })
+  // TSK-0125: only a verified discount, read under the project's lock.
+  const discount = discountProblem(v.discount_category, await projectDiscount(tx, v.project_id), 'approve')
+  if (discount) throw new ApiError('CONFLICT', { fieldErrors: [field('discount', discount)] })
 
   // The project: open, with no job yet (one job per approved project).
   const hasJob = await tx.selectFrom('work.jobs').select('id').where('project_id', '=', v.project_id).executeTakeFirst()

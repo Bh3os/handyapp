@@ -361,6 +361,25 @@ export type {
   PublicationInvalidationReason,
   PublicationSubject,
 } from './publication-approval.js'
+// TSK-0125 (HH-EST-15, OWN-DEC-165): discount requests and their staff verification.
+export {
+  DISCOUNT_CATEGORIES,
+  DISCOUNT_RESULT_PROBLEMS,
+  DISCOUNT_RESULTS,
+  DISCOUNT_STATES,
+  discountFailed,
+  discountResultProblem,
+  discountState,
+  isDiscountCategory,
+  returningWindowStart,
+} from './discount.js'
+export type {
+  DiscountCategory,
+  DiscountResult,
+  DiscountResultInput,
+  DiscountResultProblem,
+  DiscountState,
+} from './discount.js'
 // TSK-0093 (HH-QA-06, HH-INC-01, HH-INC-02, HH-INC-04, ENT-Case): cases, their lifecycles and customer updates.
 export {
   CASE_EVENTS,
