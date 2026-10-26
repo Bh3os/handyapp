@@ -451,9 +451,33 @@ const TYPES: readonly MessageType[] = [
     supplied: [],
     sourceIds: ['OWN-DEC-78', 'FACT-REMINDER-CADENCES', 'OWN-DEC-157'],
   },
+  // TSK-0091 (OWN-DEC-210): the unpaid-invoice reminder sends automatically, 3 and 7 calendar days after the invoice's
+  // due date, by email only (SMS reminders stay off until A2P 10DLC and consent, OWN-DEC-190). It is scheduled after
+  // the final invoice is issued (or its due date is revised) and sent by the notify.release job at its time, after the
+  // send-time recheck of the invoice. No amount: the first name, the invoice number and the portal link (OWN-DEC-158).
+  {
+    key: 'reminder.unpaid_invoice',
+    templateId: 'unpaid_invoice_reminder',
+    audience: 'customer',
+    channels: ['email'],
+    triggerEvents: ['invoice.issued', 'invoice.due_date_revised'],
+    variables: vars('customerName', 'invoiceNumber', 'invoiceLink'),
+    sourceIds: ['OWN-DEC-210', 'FACT-REMINDER-CADENCES', 'OWN-DEC-151', 'OWN-DEC-158'],
+  },
+  // TSK-0091 (OWN-DEC-210 "any further collection follow-up must be reviewed and explicitly released by authorized
+  // staff"): the follow-up the Owner or Office releases after the second reminder, or after a payment suspended the
+  // reminders. Email only; its values are read from the invoice when it sends.
+  {
+    key: 'reminder.unpaid_invoice_follow_up',
+    templateId: 'unpaid_invoice_follow_up',
+    audience: 'customer',
+    channels: ['email'],
+    triggerEvents: [],
+    variables: vars('customerName', 'invoiceNumber', 'invoiceLink'),
+    sourceIds: ['OWN-DEC-210', 'FACT-REMINDER-CADENCES', 'OWN-DEC-151', 'OWN-DEC-158'],
+  },
   ...(
     [
-      ['reminder.unpaid_invoice', 'OWN-DEC-112'],
       ['reminder.repeat_service', 'OWN-DEC-113'],
       ['review.request', 'OWN-DEC-113'],
     ] as const

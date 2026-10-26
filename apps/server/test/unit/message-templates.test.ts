@@ -96,10 +96,13 @@ describe('[HH-COM-13] one central registry declares every template variable', ()
     expect(TEMPLATE_VARIABLES.customerName.fallback).toEqual({ line: 'Hi {customerName},', text: 'Hi there,' })
   })
 
-  it('[HH-COM-13] maps the 28 owner template IDs to one message type each', () => {
+  it('[HH-COM-13] maps the 28 owner template IDs and the two of TSK-0091 to one message type each', () => {
     const ids = [...MESSAGE_TYPES.values()].flatMap((t) => (t.templateId ? [t.templateId] : []))
     expect(new Set(ids).size).toBe(ids.length)
-    expect([...ids].sort()).toEqual([...OWNER_21, ...SEVEN].sort())
+    // TSK-0091 (OWN-DEC-210): the unpaid-invoice reminder and the staff-released follow-up.
+    expect([...ids].sort()).toEqual(
+      [...OWNER_21, ...SEVEN, 'unpaid_invoice_reminder', 'unpaid_invoice_follow_up'].sort(),
+    )
     // The mapping the task names (TSK-0119).
     expect(messageType('request.receipt').templateId).toBe('request_received')
     expect(messageType('project.access_link').templateId).toBe('secure_access_link')
