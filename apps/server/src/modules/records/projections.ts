@@ -1286,6 +1286,8 @@ export const SESSION_VERIFICATION = customerView(
 export type QuestionRecord = {
   id: string
   kind: 'general' | 'measurement'
+  /** TSK-0148 (OWN-DEC-197 E2): the reply may say "I'm not sure". */
+  notSureAllowed: boolean
   text: string
   askedAt: Date
   state: 'waiting' | 'answered'
@@ -1301,6 +1303,7 @@ const PHOTO_COUNTS = object({
 const QUESTION_ITEM = object({
   id: STRING,
   kind: enumOf(['general', 'measurement']),
+  notSureAllowed: { type: 'boolean' },
   text: STRING,
   askedAt: DATE,
   state: enumOf(['waiting', 'answered']),
@@ -1334,6 +1337,7 @@ export const PROJECT_QUESTIONS = customerView(
     questions: r.questions.map((q) => ({
       id: q.id,
       kind: q.kind,
+      notSureAllowed: q.notSureAllowed,
       text: q.text,
       askedAt: q.askedAt.toISOString(),
       state: q.state,

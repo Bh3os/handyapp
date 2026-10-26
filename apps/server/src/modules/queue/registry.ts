@@ -338,7 +338,13 @@ export const QUEUE_ITEM_TYPES = [
     subject: 'request',
     band: 'time_sensitive',
     view: 'message.release_draft',
-    reasons: ['question_reminder_first', 'question_reminder_final', 'no_response_close_available'],
+    // TSK-0148 (OWN-DEC-208): a reminder whose deliveries all failed is staff follow-up, never customer non-response.
+    reasons: [
+      'question_reminder_first',
+      'question_reminder_final',
+      'no_response_close_available',
+      'question_reminder_failed',
+    ],
     action: 'release_reminder',
     screen: 'requests',
   },

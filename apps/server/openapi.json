@@ -11403,7 +11403,7 @@
       "get": {
         "operationId": "listCustomerQuestions",
         "summary": "Questions from HandyHub",
-        "description": "The questions HandyHub published in a project the caller’s session opens (HH-LEAD-03), oldest first: each text exactly as staff wrote it, whether it is a measurement (a reply may say \"I’m not sure\"), when it was asked, whether it waits on the customer and whether a reply can be sent now, and the customer’s own reply (text as written, \"I’m not sure\", attached photos counted by state). replyWindow says whether replies are open, reopen a \"Closed—no response\" request (until reopenUntil), or are no longer possible. Never an author, a delivery or a reminder. Authorized by request.reply (ROLE-MATRIX \"Reply to a question\"). Any other project, an unknown or a malformed reference is the same NOT_FOUND (T19).",
+        "description": "The questions HandyHub published in a project the caller’s session opens (HH-LEAD-03), oldest first: each text exactly as staff wrote it, whether it is a measurement, whether a reply may say \"I’m not sure\" (notSureAllowed, TSK-0148), when it was asked, whether it waits on the customer and whether a reply can be sent now, and the customer’s own reply (text as written, \"I’m not sure\", attached photos counted by state). replyWindow says whether replies are open, reopen a \"Closed—no response\" request (until reopenUntil), or are no longer possible. Never an author, a delivery or a reminder. Authorized by request.reply (ROLE-MATRIX \"Reply to a question\"). Any other project, an unknown or a malformed reference is the same NOT_FOUND (T19).",
         "tags": [
           "questions"
         ],
@@ -11456,6 +11456,7 @@
                         "required": [
                           "id",
                           "kind",
+                          "notSureAllowed",
                           "text",
                           "askedAt",
                           "state",
@@ -11472,6 +11473,9 @@
                               "general",
                               "measurement"
                             ]
+                          },
+                          "notSureAllowed": {
+                            "type": "boolean"
                           },
                           "text": {
                             "type": "string"
@@ -11656,7 +11660,7 @@
       "post": {
         "operationId": "replyToQuestion",
         "summary": "Reply to a question",
-        "description": "For the verified customer of the project (request.reply). The reply to one open question: text exactly as written, \"I’m not sure\" (measurement questions only), and the photos uploaded under this reply’s capability (Upload-Capability header; received or still processing; a rejected or unknown photo is refused). At least one of them. Card numbers are refused. The question is answered and its reminders stop; other questions stay open. The last open question answered moves a request waiting on the customer back to HandyHub’s review; a \"Closed—no response\" request within the reopen period (request.reopen_period) is reopened, keeping its history and restoring nothing else. The responsible staff member is notified (queue item and automatic staff notification). With the same Idempotency-Key a retried reply returns the first answer and records nothing more. CONFLICT ALREADY_ANSWERED, REQUEST_CLOSED, REOPEN_PERIOD_ENDED. The audit event never holds the text.",
+        "description": "For the verified customer of the project (request.reply). The reply to one open question: text exactly as written, \"I’m not sure\" (only where staff offered it, notSureAllowed; TSK-0148), and the photos uploaded under this reply’s capability (Upload-Capability header; received or still processing; a rejected or unknown photo is refused). At least one of them. Card numbers are refused. The question is answered and its reminders stop; other questions stay open. The last open question answered moves a request waiting on the customer back to HandyHub’s review; a \"Closed—no response\" request within the reopen period (request.reopen_period) is reopened, keeping its history and restoring nothing else. The responsible staff member is notified (queue item and automatic staff notification). With the same Idempotency-Key a retried reply returns the first answer and records nothing more. CONFLICT ALREADY_ANSWERED, REQUEST_CLOSED, REOPEN_PERIOD_ENDED. The audit event never holds the text.",
         "tags": [
           "questions"
         ],
@@ -153381,7 +153385,7 @@
       "post": {
         "operationId": "closeRequestNoResponse",
         "summary": "Close the request \"Closed—no response\"",
-        "description": "Staff with request.close_no_response (PROPOSED: the request-handling row), inside the caller’s scope (otherwise NOT_FOUND), with the request’s version (If-Match). Only an unbooked request waiting on the customer (\"needs information\") whose unanswered questions all had their final reminder actually sent (and still standing), at least the configured hours ago (reminders.cadences.unansweredQuestion.closeAfterFinalHours, 24, OWN-DEC-101). With accepted work, an appointment or money received it is refused (OWNER_REVIEW_REQUIRED): this rule never cancels accepted, scheduled or paid work. The request and project close with their history; open reminders are cancelled; a customer reply within the reopen period (request.reopen_period) reopens the same request. CONFLICT codes: INVALID_TRANSITION, NO_OPEN_QUESTION, FACTS_MISSING (a final reminder not sent), TOO_EARLY, CONFIG_MISSING, OWNER_REVIEW_REQUIRED.",
+        "description": "Staff with request.close_no_response (PROPOSED: the request-handling row), inside the caller’s scope (otherwise NOT_FOUND), with the request’s version (If-Match). Only an unbooked request waiting on the customer (\"needs information\") whose unanswered questions all had their one reminder actually sent (a delivery sent or delivered now; queued or scheduled never counts), at least the configured hours after the latest such send (reminders.cadences.unansweredQuestion.closeAfterReminderHours, 24, OWN-DEC-208). A reminder whose deliveries all failed is staff follow-up (REMINDER_FAILED), never customer non-response. A customer response since that send, or one staff have not reviewed yet, keeps it open (CUSTOMER_REPLIED). With accepted work, an appointment or a recorded payment it is refused (OWNER_REVIEW_REQUIRED): this rule never cancels accepted, scheduled or paid work. The request and project close with their history; open reminders are cancelled; a customer reply within the reopen period (request.reopen_period) reopens the same request. CONFLICT codes: INVALID_TRANSITION, NO_OPEN_QUESTION, REMINDER_FAILED, FINAL_REMINDER_NOT_SENT, TOO_EARLY, CONFIG_MISSING, CUSTOMER_REPLIED, OWNER_REVIEW_REQUIRED.",
         "tags": [
           "questions"
         ],
@@ -154360,6 +154364,231 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/staff-requests.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/requests/{requestId}/actions/reopen": {
+      "post": {
+        "operationId": "reopenRequest",
+        "summary": "Reopen a \"Closed—no response\" request",
+        "description": "TSK-0148 (OWN-DEC-197 E5): staff with request.reopen (PROPOSED: the request-handling row, the roles that may close it), inside the caller’s scope (otherwise NOT_FOUND), with the request’s version (If-Match) and a written reason (kept staff-only in the decision history). A \"Closed—no response\" request goes back to HandyHub’s review and its project reopens, within the reopen period or after it (afterPeriod says which); the history is kept and nothing else is restored (no expired estimate or appointment, no reminder). The customer’s unanswered questions can be answered again. CONFLICT codes: INVALID_TRANSITION, PROJECT_NOT_CLOSED, REASON_REQUIRED.",
+        "tags": [
+          "questions"
+        ],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "requestId",
+                    "state",
+                    "version",
+                    "projectState",
+                    "afterPeriod"
+                  ],
+                  "properties": {
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "projectState": {
+                      "type": "string"
+                    },
+                    "afterPeriod": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "request.reopen",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "request.reopen",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/questions.test.ts"
         }
       }
     },
@@ -155646,6 +155875,7 @@
                         "required": [
                           "id",
                           "kind",
+                          "notSureAllowed",
                           "text",
                           "author",
                           "publishedAt",
@@ -155665,6 +155895,9 @@
                               "general",
                               "measurement"
                             ]
+                          },
+                          "notSureAllowed": {
+                            "type": "boolean"
                           },
                           "text": {
                             "type": "string"
@@ -155964,7 +156197,9 @@
                       "required": [
                         "days",
                         "closedAt",
-                        "until"
+                        "until",
+                        "periodEnded",
+                        "allowed"
                       ],
                       "properties": {
                         "days": {
@@ -155984,6 +156219,12 @@
                             "string",
                             "null"
                           ]
+                        },
+                        "periodEnded": {
+                          "type": "boolean"
+                        },
+                        "allowed": {
+                          "type": "boolean"
                         }
                       }
                     },
@@ -156087,7 +156328,7 @@
       "post": {
         "operationId": "publishRequestQuestion",
         "summary": "Publish a question to the customer",
-        "description": "Staff with request.ask_question on the request, inside the caller’s scope (otherwise NOT_FOUND), with the request’s version (If-Match). Publishing is the release (OWN-DEC-98): the question is kept exactly as written (general, or a measurement the customer may answer \"I’m not sure\"), the request moves to \"needs information\" (a received request is moved to review first) or stays there, and question.published is recorded in the same transaction for the automatic notice \"HandyHub has a question about your request. View and reply securely.\", which links to the question through the project’s verified access. The staff member confirms the question never asks the customer to inspect a hazardous area (noHazardInspection). Card numbers are refused. Refused from any other state (CONFLICT INVALID_TRANSITION) or for a project that is not open (PROJECT_NOT_OPEN). The audit event never holds the text.",
+        "description": "Staff with request.ask_question on the request, inside the caller’s scope (otherwise NOT_FOUND), with the request’s version (If-Match). Publishing is the release (OWN-DEC-98): the question is kept exactly as written (general, or a measurement), with whether the customer may answer \"I’m not sure\" (notSureAllowed, any question; a measurement always may, TSK-0148, OWN-DEC-197 E2), the request moves to \"needs information\" (a received request is moved to review first) or stays there, and question.published is recorded in the same transaction for the automatic notice \"HandyHub has a question about your request. View and reply securely.\", which links to the question through the project’s verified access. The staff member confirms the question never asks the customer to inspect a hazardous area (noHazardInspection). Card numbers are refused. Refused from any other state (CONFLICT INVALID_TRANSITION) or for a project that is not open (PROJECT_NOT_OPEN). The audit event never holds the text.",
         "tags": [
           "questions"
         ],
@@ -156145,6 +156386,9 @@
                       "general",
                       "measurement"
                     ]
+                  },
+                  "notSureAllowed": {
+                    "type": "boolean"
                   },
                   "noHazardInspection": {
                     "const": true

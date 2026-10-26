@@ -27,6 +27,9 @@ export const ACTIONS = [
   // PROPOSED (TSK-0051): closing an unbooked request "Closed—no response" (OWN-DEC-101) is part of handling it, in the
   // same row.
   'request.close_no_response',
+  // PROPOSED (TSK-0148, OWN-DEC-197 E5): the authorized reopening of a "Closed—no response" request, with a written
+  // reason, is part of handling it, in the same row (the roles that may close it).
+  'request.reopen',
   'request.reply',
   'customer.view',
   'customer.edit',
@@ -343,6 +346,7 @@ export const MATRIX: readonly MatrixRow[] = [
       'request.add_note',
       'request.record_conversation',
       'request.close_no_response',
+      'request.reopen',
     ],
     { owner: Y(), office: Y(), estimator: Y('Y (P)', P) },
   ),

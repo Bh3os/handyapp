@@ -1209,6 +1209,7 @@ export interface IntakeQuestionsTable {
   first_reminder_sent_at: Timestamp | null
   final_reminder_sent_at: Timestamp | null
   version: Generated<number>
+  not_sure_allowed: Generated<boolean>
 }
 
 export interface IntakeReceiptCapabilitiesTable {

@@ -1409,6 +1409,8 @@ export type ReplyWindow = (typeof REPLY_WINDOWS)[number]
 export type Question = {
   id: string
   kind: 'general' | 'measurement'
+  /** TSK-0148: the reply may say "I'm not sure". */
+  notSureAllowed: boolean
   text: string
   askedAt: string
   state: 'waiting' | 'answered'
@@ -1432,10 +1434,11 @@ function counts(v: unknown): PhotoCounts | null {
 
 function question(v: unknown): Question | null {
   if (!isObj(v)) return null
-  const { id, kind, text, askedAt, state, canReply, reply } = v
+  const { id, kind, notSureAllowed, text, askedAt, state, canReply, reply } = v
   if (!isStr(id) || !oneOf(['general', 'measurement'] as const)(kind) || !isStr(text) || !isDate(askedAt)) return null
+  if (typeof notSureAllowed !== 'boolean') return null
   if (!oneOf(['waiting', 'answered'] as const)(state) || typeof canReply !== 'boolean') return null
-  if (reply === null) return { id, kind, text, askedAt, state, canReply, reply: null }
+  if (reply === null) return { id, kind, notSureAllowed, text, askedAt, state, canReply, reply: null }
   if (!isObj(reply) || (reply['text'] !== null && !isStr(reply['text'])) || typeof reply['notSure'] !== 'boolean')
     return null
   const photos = counts(reply['photos'])
@@ -1443,6 +1446,7 @@ function question(v: unknown): Question | null {
   return {
     id,
     kind,
+    notSureAllowed,
     text,
     askedAt,
     state,

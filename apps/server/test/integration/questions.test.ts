@@ -1,6 +1,7 @@
 // Staff questions, customer replies and no-response handling against PostgreSQL 16 and the provider fakes (TSK-0051;
 // HH-LEAD-03, HH-LEAD-06, HH-COM-06, HH-COM-09, HH-COM-05, HH-COM-02, HH-PORT-09, HH-SEC-05, T30, T65, OWN-DEC-98,
-// OWN-DEC-101, FACT-REMINDER-CADENCES, FACT-REOPEN-PERIOD, RULE-SERVER-AUTHZ). Every staff member, customer, address,
+// OWN-DEC-101, FACT-REMINDER-CADENCES, FACT-REOPEN-PERIOD, RULE-SERVER-AUTHZ; TSK-0148: OWN-DEC-197 E2, E4, E5,
+// OWN-DEC-208). Every staff member, customer, address,
 // number, question and reply here is synthetic and built at runtime (RULE-SYNTHETIC-DATA); nothing reaches a real
 // provider.
 import { randomUUID } from 'node:crypto'
@@ -61,6 +62,9 @@ let app: FastifyInstance
 const staff = {} as Record<StaffRole, { id: string; cookie: string; csrf: string }>
 /** Projects the test says have an appointment (an obligation check of the visits module, TSK-0061, stands in). */
 const booked = new Set<string>()
+/** TSK-0148: projects the test says have accepted work or a recorded payment (the approvals and payments checks). */
+const accepted = new Set<string>()
+const paid = new Set<string>()
 
 const fast = (a: Automation): Automation => ({ ...a, retry: { maxAttempts: 2, baseDelayMs: 1, maxDelayMs: 1 } })
 // TSK-0122: the send jobs judge the permitted text hours at a fixed 10 AM, never at the time the suite runs.
@@ -168,11 +172,12 @@ async function publish(
   kind: 'general' | 'measurement' = 'general',
   role: StaffRole = 'office',
   key?: string,
+  extra: { notSureAllowed?: boolean } = {},
 ) {
   return write(
     role,
     `/staff/requests/${p.requestId}/questions`,
-    { text, kind, noHazardInspection: true },
+    { text, kind, noHazardInspection: true, ...extra },
     { version: await versionOf(p), ...(key ? { key } : {}) },
   )
 }
@@ -183,6 +188,7 @@ type StaffView = {
     id: string
     text: string
     state: string
+    notSureAllowed: boolean
     notice: {
       state: string
       sentAt: string | null
@@ -204,7 +210,7 @@ type StaffView = {
   canPublish: boolean
   repliesWaiting: boolean
   close: { allowed: boolean; available: boolean; reasons: string[]; availableAt: string | null }
-  reopen: { days: number | null; closedAt: string | null; until: string | null }
+  reopen: { days: number | null; closedAt: string | null; until: string | null; periodEnded: boolean; allowed: boolean }
 }
 const staffView = async (p: Submitted, role: StaffRole = 'office') => {
   const res = await get(role, `/staff/requests/${p.requestId}/questions`)
@@ -226,6 +232,7 @@ type CustomerQuestions = {
   questions: {
     id: string
     kind: string
+    notSureAllowed: boolean
     text: string
     state: string
     canReply: boolean
@@ -287,21 +294,23 @@ const jobsOf = (automation: string, questionId: string) =>
     .orderBy('job_key')
     .execute()
 /** The provider reports the subject's handed-over deliveries sent (a status webhook): the send is successful now. */
-async function reportSent(subject: string) {
+async function reportSent(subject: string, status: 'sent' | 'bounced' = 'sent') {
   for (const d of await deliveriesOf(subject)) {
-    if (!d.provider_message_id || d.state !== 'queued') continue
+    if (!d.provider_message_id || d.state !== (status === 'sent' ? 'queued' : 'sent')) continue
     const sms = d.channel === 'sms'
+    const eventType = sms ? `sms.${status === 'sent' ? 'sent' : 'failed'}` : `email.${status}`
     await runWithContext({ requestId: `req-questions-${randomUUID()}` }, () =>
       withTx(t.db, (tx) =>
         recordWebhookReceipt(tx, {
           provider: sms ? 'bird' : 'resend',
           deliveryId: `evt-questions-${randomUUID()}`,
-          eventType: sms ? 'sms.sent' : 'email.sent',
+          eventType,
           providerMessageId: d.provider_message_id as string,
-          eventOccurredAt: new Date(),
+          // A bounce is reported after the send it takes back.
+          eventOccurredAt: new Date(Date.now() + (status === 'sent' ? 0 : 1_000)),
           payload: sms
-            ? { type: 'sms.sent', data: { sms_id: d.provider_message_id } }
-            : { type: 'email.sent', data: { email_id: d.provider_message_id } },
+            ? { type: eventType, data: { sms_id: d.provider_message_id } }
+            : { type: eventType, data: { email_id: d.provider_message_id } },
           rawBody: Buffer.from('{}'),
         }),
       ),
@@ -341,7 +350,11 @@ beforeAll(async () => {
     m.name === 'questions'
       ? questionsModule({
           now: () => clock,
-          obligationChecks: [{ fact: 'appointmentExists', source: 'test', check: async (_tx, id) => booked.has(id) }],
+          obligationChecks: [
+            { fact: 'appointmentExists', source: 'test', check: async (_tx, id) => booked.has(id) },
+            { fact: 'workAccepted', source: 'test', check: async (_tx, id) => accepted.has(id) },
+            { fact: 'moneyReceived', source: 'test', check: async (_tx, id) => paid.has(id) },
+          ],
         })
       : m,
   )
@@ -512,9 +525,10 @@ describe('publishing a question is the release; its notice is automatic (TSK-005
     })
     expect(photo.statusCode, photo.body).toBe(201)
     const photoId = photo.json<{ id: string }>().id
-    // "I'm not sure" is for measurements only; card numbers are refused; an empty reply says nothing.
+    // "I'm not sure" only where staff offered it (here the measurement, TSK-0148); card numbers are refused; an empty
+    // reply says nothing.
     expect((await replyTo(cookie, p, q2, { notSure: true })).json()).toMatchObject({
-      error: { fieldErrors: [{ code: 'not_a_measurement' }] },
+      error: { fieldErrors: [{ code: 'not_sure_not_offered' }] },
     })
     expect((await replyTo(cookie, p, q2, { text: `Synthetic ${CARD}` })).json()).toMatchObject({
       error: { fieldErrors: [{ code: 'sensitive_content' }] },
@@ -846,6 +860,310 @@ describe('unanswered questions: reminders, contact hours and Closed—no respons
     expect((await replyTo(cookie, p, id, { text: 'Synthetic.' })).json()).toMatchObject({
       error: { fieldErrors: [{ code: 'REQUEST_CLOSED' }] },
     })
+  })
+})
+
+describe('TSK-0148: "I\'m not sure" beyond measurements; closing checks real delivery; reopening (OWN-DEC-197 E2, E4, E5)', () => {
+  it('[HH-LEAD-03][T30][OWN-DEC-197] staff offer "I\'m not sure" on any question, a measurement always; elsewhere it is refused', async () => {
+    clock = TEN_AM
+    const p = await submit('questions-not-sure@example.test', '(502) 555-0162')
+    const idOf = (r: Awaited<ReturnType<typeof publish>>) => {
+      expect(r.statusCode, r.body).toBe(201)
+      return r.json<{ questionId: string }>().questionId
+    }
+    const offered = idOf(
+      await publish(p, 'Synthetic: what kind of pipe is it?', 'general', 'office', undefined, { notSureAllowed: true }),
+    )
+    const plain = idOf(await publish(p, 'Synthetic: which room is it in?'))
+    const measured = idOf(
+      await publish(p, 'Synthetic: how long is the crack?', 'measurement', 'office', undefined, {
+        notSureAllowed: false,
+      }),
+    )
+    expect((await staffView(p)).questions.map((q) => [q.id, q.notSureAllowed])).toEqual([
+      [offered, true],
+      [plain, false],
+      [measured, true],
+    ])
+    const cookie = await customerCookie(p)
+    expect((await questionsOf(cookie, p)).questions.map((q) => [q.kind, q.notSureAllowed])).toEqual([
+      ['general', true],
+      ['general', false],
+      ['measurement', true],
+    ])
+    // Never forced to guess: "I'm not sure" is accepted where it was offered, and refused where it was not.
+    expect((await replyTo(cookie, p, plain, { notSure: true })).json()).toMatchObject({
+      error: { code: 'VALIDATION_FAILED', fieldErrors: [{ code: 'not_sure_not_offered' }] },
+    })
+    const res = await replyTo(cookie, p, offered, { notSure: true })
+    expect(res.statusCode, res.body).toBe(201)
+    expect((await questionsOf(cookie, p)).questions[0]?.reply).toMatchObject({ text: null, notSure: true })
+    expect((await staffView(p)).questions[0]?.reply).toMatchObject({ text: null, notSure: true })
+    // The choice is part of the published question: it never changes afterwards.
+    await expect(
+      sql`UPDATE intake.questions SET not_sure_allowed = false, version = version + 1 WHERE id = ${offered}`.execute(
+        t.db,
+      ),
+    ).rejects.toThrow(/QUESTION_IMMUTABLE/)
+    const audit = await t.db
+      .selectFrom('platform.audit_events')
+      .select('summary')
+      .where('action', '=', 'question.publish')
+      .where('target_id', '=', offered)
+      .executeTakeFirstOrThrow()
+    expect(audit.summary).toMatchObject({ kind: 'general', notSureAllowed: true })
+  })
+
+  it('[HH-LEAD-06][T65][OWN-DEC-208] a queued but unsent reminder never allows closing, however long after it was due', async () => {
+    clock = TEN_AM
+    const p = await submit('questions-unsent@example.test', '(502) 555-0163')
+    const id = (await publish(p, 'Synthetic: is the attic hatch in the hallway?')).json<{ questionId: string }>()
+      .questionId
+    await drain()
+    await reportSent(`question:${id}`)
+    // Scheduled, then overdue by weeks on the clock of the routes: never sent, so closing is refused.
+    let view = await staffView(p)
+    expect(view.questions[0]?.reminder.state).toBe('scheduled')
+    expect(view.close.reasons).toEqual(['FINAL_REMINDER_NOT_SENT'])
+    clock = new Date(Date.now() + 40 * DAY)
+    view = await staffView(p)
+    expect(view.questions[0]?.reminder.state).toBe('queued')
+    expect(view.close).toMatchObject({ available: false, reasons: ['FINAL_REMINDER_NOT_SENT'], availableAt: null })
+    // Due and handed to the provider, which has not reported it sent: queued is not sent either.
+    await reminderDue(id)
+    await drain()
+    expect(
+      (await deliveriesOf(`question:${id}:reminder`)).map((d) => [d.state, d.provider_message_id !== null]),
+    ).toEqual([['queued', true]])
+    view = await staffView(p)
+    expect(view.close.reasons).toEqual(['FINAL_REMINDER_NOT_SENT'])
+    const refused = await write(
+      'office',
+      `/staff/requests/${p.requestId}/actions/close-no-response`,
+      {},
+      { version: view.version },
+    )
+    expect(refused.json()).toMatchObject({
+      error: { code: 'CONFLICT', fieldErrors: [{ code: 'FINAL_REMINDER_NOT_SENT' }] },
+    })
+    expect((await questionRow(id)).final_reminder_sent_at).toBeNull()
+    expect(await jobsOf('questions.close_available', id)).toEqual([])
+    expect(await openItems('question_reminder', p.requestId)).toEqual([])
+    expect((await requestRow(p)).state).toBe('needs_information')
+    clock = TEN_AM
+  })
+
+  it('[HH-LEAD-06][HH-COM-02][OWN-DEC-208] a reminder that failed to deliver is staff follow-up, never closing; Retry counts from its own send', async () => {
+    clock = TEN_AM
+    const p = await submit('questions-reminder-failed@example.test', '(502) 555-0164')
+    const id = (await publish(p, 'Synthetic: is the water shut off?')).json<{ questionId: string }>().questionId
+    await drain()
+    await reportSent(`question:${id}`)
+    fakeEmail.script({ outcome: 'rejected', errorCode: 'synthetic_bounce' })
+    await reminderDue(id)
+    await drain()
+    const [d] = await deliveriesOf(`question:${id}:reminder`)
+    expect([d?.state, d?.error_code]).toEqual(['failed', 'synthetic_bounce'])
+    // The request goes to the responsible staff member's follow-up, beside the delivery issue with Retry.
+    expect(await openItems('question_reminder', p.requestId)).toEqual([
+      expect.objectContaining({
+        reason: 'question_reminder_failed',
+        reference: p.reference,
+        assigned_staff_id: staff.office.id,
+      }),
+    ])
+    expect(await openItems('delivery_failed', d?.id as string)).toHaveLength(1)
+    clock = new Date(Date.now() + 10 * DAY)
+    const view = await staffView(p)
+    expect(view.questions[0]?.reminder.state).toBe('failed')
+    expect(view.close).toMatchObject({ available: false, reasons: ['REMINDER_FAILED'] })
+    expect(
+      (
+        await write('office', `/staff/requests/${p.requestId}/actions/close-no-response`, {}, { version: view.version })
+      ).json(),
+    ).toMatchObject({ error: { code: 'CONFLICT', fieldErrors: [{ code: 'REMINDER_FAILED' }] } })
+    // Retry sends it; once the provider reports it sent the follow-up resolves, and closing counts from that send.
+    const retried = await write('office', `/staff/message-deliveries/${d?.id}/retry`, {})
+    expect(retried.statusCode, retried.body).toBe(200)
+    await drain()
+    await reportSent(`question:${id}:reminder`)
+    expect(await openItems('question_reminder', p.requestId)).toEqual([])
+    const sentAt = (await questionRow(id)).final_reminder_sent_at as Date
+    clock = new Date(sentAt.getTime() + 23 * HOUR)
+    expect((await staffView(p)).close.reasons).toEqual(['TOO_EARLY'])
+    clock = new Date(sentAt.getTime() + 24 * HOUR)
+    expect((await staffView(p)).close).toMatchObject({ available: true, reasons: [] })
+    clock = TEN_AM
+  })
+
+  it('[HH-LEAD-06][OWN-DEC-208] a reminder that bounces after it was sent no longer counts; the request goes to staff follow-up', async () => {
+    clock = TEN_AM
+    const p = await submit('questions-reminder-bounce@example.test', '(502) 555-0165')
+    const { id, finalSentAt } = await throughFinalReminder(p, 'Synthetic: is the crack wider than a coin?')
+    clock = new Date(finalSentAt.getTime() + 25 * HOUR)
+    expect((await staffView(p)).close.available).toBe(true)
+    await reportSent(`question:${id}:reminder`, 'bounced')
+    expect((await deliveriesOf(`question:${id}:reminder`)).map((d) => d.state)).toEqual(['failed'])
+    expect((await staffView(p)).close).toMatchObject({ available: false, reasons: ['REMINDER_FAILED'] })
+    expect(await openItems('question_reminder', p.requestId)).toEqual([
+      expect.objectContaining({ reason: 'question_reminder_failed', assigned_staff_id: staff.office.id }),
+    ])
+    // The "may close" job of the earlier send finds the follow-up: it never says the request may be closed.
+    await sql`UPDATE platform.jobs SET run_at = now() WHERE automation = 'questions.close_available'
+      AND target_id = ${id} AND state = 'queued'`.execute(t.db)
+    await drain()
+    expect((await jobsOf('questions.close_available', id)).map((j) => j.state)).toEqual(['succeeded'])
+    expect((await openItems('question_reminder', p.requestId)).map((i) => i.reason)).toEqual([
+      'question_reminder_failed',
+    ])
+    clock = TEN_AM
+  })
+
+  it('[HH-LEAD-06][OWN-DEC-208] a customer reply staff have not reviewed, or a message since the reminder, keeps the request from closing', async () => {
+    clock = TEN_AM
+    const p = await submit('questions-responded@example.test', '(502) 555-0166')
+    const q1 = (await publish(p, 'Synthetic: is there a second bathroom?')).json<{ questionId: string }>().questionId
+    const q2 = (await publish(p, 'Synthetic: is the leak above the sink?')).json<{ questionId: string }>().questionId
+    await drain()
+    await reportSent(`question:${q1}`)
+    await reportSent(`question:${q2}`)
+    // The customer answers the first question (before any reminder); the second still waits on them.
+    const cookie = await customerCookie(p)
+    expect((await replyTo(cookie, p, q1, { text: 'Synthetic: yes, upstairs.' })).statusCode).toBe(201)
+    expect((await requestRow(p)).state).toBe('needs_information')
+    await reminderDue(q2)
+    await drain()
+    await reportSent(`question:${q2}:reminder`)
+    const sentAt = (await questionRow(q2)).final_reminder_sent_at as Date
+    clock = new Date(sentAt.getTime() + 25 * HOUR)
+    let view = await staffView(p)
+    expect(view.close).toMatchObject({ available: false, reasons: ['CUSTOMER_REPLIED'] })
+    expect(
+      (
+        await write('office', `/staff/requests/${p.requestId}/actions/close-no-response`, {}, { version: view.version })
+      ).json(),
+    ).toMatchObject({ error: { code: 'CONFLICT', fieldErrors: [{ code: 'CUSTOMER_REPLIED' }] } })
+    // Reviewed, and nothing came after the reminder: it may close.
+    expect((await write('office', `/staff/requests/${p.requestId}/questions/replies-reviewed`, {})).statusCode).toBe(
+      200,
+    )
+    expect((await staffView(p)).close).toMatchObject({ available: true, reasons: [] })
+    // A message in the project's conversation after the reminder is a response too.
+    clock = new Date(sentAt.getTime() + 26 * HOUR)
+    const sent = await customerPost(cookie, `/customer/projects/${p.reference}/messages`, {
+      text: 'Synthetic: I will check the ceiling tonight.',
+    })
+    expect(sent.statusCode, sent.body).toBe(201)
+    view = await staffView(p)
+    expect(view.close.reasons).toEqual(['CUSTOMER_REPLIED'])
+    // The "may close" job finds the response: it says nothing about closing.
+    await sql`UPDATE platform.jobs SET run_at = now() WHERE automation = 'questions.close_available'
+      AND target_id = ${q2} AND state = 'queued'`.execute(t.db)
+    await drain()
+    expect(await openItems('question_reminder', p.requestId)).toEqual([])
+    expect((await requestRow(p)).state).toBe('needs_information')
+    clock = TEN_AM
+  })
+
+  it('[HH-LEAD-06][HH-STATE-02][OWN-DEC-208] accepted work, an appointment or a recorded payment each keep the request from closing', async () => {
+    clock = TEN_AM
+    const p = await submit('questions-obligations@example.test', '(502) 555-0167')
+    const { finalSentAt } = await throughFinalReminder(p, 'Synthetic: is the outlet near the door?')
+    clock = new Date(finalSentAt.getTime() + 25 * HOUR)
+    const version = (await staffView(p)).version
+    for (const facts of [accepted, booked, paid]) {
+      facts.add(p.projectId)
+      expect((await staffView(p)).close).toMatchObject({ available: false, reasons: ['OWNER_REVIEW_REQUIRED'] })
+      expect(
+        (await write('office', `/staff/requests/${p.requestId}/actions/close-no-response`, {}, { version })).json(),
+      ).toMatchObject({ error: { code: 'CONFLICT', fieldErrors: [{ code: 'OWNER_REVIEW_REQUIRED' }] } })
+      facts.delete(p.projectId)
+    }
+    expect((await staffView(p)).close).toMatchObject({ available: true, reasons: [] })
+    expect((await requestRow(p)).state).toBe('needs_information')
+    clock = TEN_AM
+  })
+
+  it('[HH-LEAD-06][T30][OWN-DEC-197] after the reopen period staff reopen it with authorization and a reason; the customer can answer again', async () => {
+    clock = TEN_AM
+    const p = await submit('questions-staff-reopen@example.test', '(502) 555-0168')
+    const { id, finalSentAt } = await throughFinalReminder(p, 'Synthetic: is the fence gate locked?')
+    clock = new Date(finalSentAt.getTime() + 25 * HOUR)
+    expect(
+      (
+        await write(
+          'office',
+          `/staff/requests/${p.requestId}/actions/close-no-response`,
+          {},
+          { version: (await staffView(p)).version },
+        )
+      ).statusCode,
+    ).toBe(200)
+    const closedAt = clock
+    // Within the period the customer's reply is the way back; staff may reopen too.
+    let view = await staffView(p)
+    expect(view.reopen).toMatchObject({ periodEnded: false, allowed: true })
+    // After it, the customer is pointed to a new request.
+    clock = new Date(closedAt.getTime() + 31 * DAY)
+    const cookie = await customerCookie(p)
+    expect((await questionsOf(cookie, p)).replyWindow).toBe('period_ended')
+    expect((await replyTo(cookie, p, id, { text: 'Synthetic: very late.' })).json()).toMatchObject({
+      error: { fieldErrors: [{ code: 'REOPEN_PERIOD_ENDED' }] },
+    })
+    view = await staffView(p)
+    expect(view.reopen).toMatchObject({ periodEnded: true, allowed: true })
+    const url = `/staff/requests/${p.requestId}/actions/reopen`
+    const reason = 'Synthetic: the customer called and wants to continue.'
+    // Authorization is checked on the server: a Worker never reopens; a reason is required.
+    expect((await write('worker', url, { reason }, { version: view.version })).statusCode).toBe(403)
+    expect((await write('office', url, { reason: '   ' }, { version: view.version })).statusCode).toBe(400)
+    expect((await write('office', url, { reason }, { version: view.version - 1 })).json()).toMatchObject({
+      error: { code: 'STALE_VERSION' },
+    })
+    const res = await write('office', url, { reason }, { version: view.version })
+    expect(res.statusCode, res.body).toBe(200)
+    expect(res.json()).toMatchObject({ state: 'reviewing', projectState: 'open', afterPeriod: true })
+    expect(await requestRow(p)).toMatchObject({ state: 'reviewing', project_state: 'open' })
+    // The history is kept: who reopened it, when and why (staff-only), after the close.
+    const decisions = await t.db
+      .selectFrom('intake.request_decisions')
+      .select(['action', 'event', 'internal_note', 'decided_by', 'project_to_state'])
+      .where('request_id', '=', p.requestId)
+      .orderBy('decided_at')
+      .execute()
+    expect(decisions.map((d) => d.action)).toEqual(['ask_question', 'close_no_response', 'reopen'])
+    expect(decisions[2]).toEqual({
+      action: 'reopen',
+      event: 'reopen_by_staff',
+      internal_note: reason,
+      decided_by: staff.office.id,
+      project_to_state: 'open',
+    })
+    const audit = await t.db
+      .selectFrom('platform.audit_events')
+      .select('summary')
+      .where('action', '=', 'request.reopen')
+      .where('target_id', '=', p.requestId)
+      .executeTakeFirstOrThrow()
+    expect(audit.summary).toMatchObject({ from: 'closed_no_response', to: 'reviewing', afterPeriod: true })
+    expect(JSON.stringify(audit.summary)).not.toContain('called')
+    // The customer timeline never shows the staff-only decision.
+    const overview = (await customerGet(cookie, `/customer/projects/${p.reference}/overview`)).json<{
+      timeline: { kind: string }[]
+    }>()
+    expect(overview.timeline.map((e) => e.kind)).toEqual(['closed_no_response', 'more_information', 'received'])
+    // The unanswered question can be answered again; nothing else is restored (no new reminder).
+    const list = await questionsOf(cookie, p)
+    expect([list.replyWindow, list.questions[0]?.canReply]).toEqual(['open', true])
+    const replied = await replyTo(cookie, p, id, { text: 'Synthetic: the gate code is with the neighbor.' })
+    expect(replied.statusCode, replied.body).toBe(201)
+    expect(replied.json()).toMatchObject({ reopened: false })
+    expect((await deliveriesOf(`question:${id}:reminder`)).map((d) => d.state)).toEqual(['sent'])
+    // Reopening an open request is refused.
+    expect((await write('office', url, { reason }, { version: (await staffView(p)).version })).json()).toMatchObject({
+      error: { code: 'CONFLICT', fieldErrors: [{ code: 'INVALID_TRANSITION' }] },
+    })
+    clock = TEN_AM
   })
 })
 

@@ -13,8 +13,13 @@
 //   successful send; "Closed—no response" 24 hours after that reminder was actually sent, OWN-DEC-153, OWN-DEC-208)
 //   and the reopen period is request.reopen_period (30 days, FACT-REOPEN-PERIOD). While either is NOT CONFIGURED
 //   nothing is guessed: no reminder is scheduled, and closing or reopening is refused.
+// - TSK-0148 (OWN-DEC-197 E2, E4, E5; OWN-DEC-208): staff mark whether a question offers "I'm not sure" (any question,
+//   a measurement always); the reminder counts for closing only while one of its deliveries is sent or delivered, from
+//   its earliest such send; a reminder whose deliveries all failed asks for staff follow-up; a customer response since
+//   the reminder (or one not reviewed yet) keeps the request open.
 import type { Db, Tx } from '@handyhub/db'
 import { REQUEST_CLOSED_STATES, type RequestState } from '@handyhub/domain'
+import { sql } from 'kysely'
 import type { Config } from '../../platform/config/index.js'
 import type { Destination } from '../notifications/index.js'
 
@@ -190,6 +195,90 @@ export async function noticeTarget(db: Reader, requestId: string): Promise<Notic
     responsibleStaffId: r.responsible_staff_id && UUID_RE.test(r.responsible_staff_id) ? r.responsible_staff_id : null,
     destinations,
   }
+}
+
+/**
+ * Where a question's reminder stands for "Closed—no response" (TSK-0148, OWN-DEC-208): 'sent' while one of its
+ * deliveries (any reminder subject) is sent or delivered now, from the earliest time such a delivery first succeeded
+ * (a bounced one no longer counts, so a later send by another channel is the actual send); 'pending' while one is
+ * still a draft or queued (handed to the provider is not sent); 'failed' when the rest failed or were suppressed (staff
+ * follow-up, never customer non-response); 'none' when nothing was scheduled or only cancelled rows exist.
+ */
+export type ReminderStanding = { state: 'sent'; sentAt: Date } | { state: 'pending' | 'failed' | 'none'; sentAt: null }
+
+export async function reminderStanding(db: Reader, questionId: string): Promise<ReminderStanding> {
+  const rows = await db
+    .selectFrom('platform.message_deliveries as d')
+    .select([
+      'd.state',
+      sql<Date | null>`coalesce((SELECT min(e.occurred_at) FROM platform.message_delivery_events e
+        WHERE e.delivery_id = d.id AND e.to_state IN ('sent', 'delivered')), d.status_at, d.sent_at)`.as(
+        'succeeded_at',
+      ),
+    ])
+    .where('d.message_key', '=', QUESTION_REMINDER)
+    .where('d.subject_key', 'in', reminderSubjects(questionId))
+    .execute()
+  const sent = rows.filter((r) => r.state === 'sent' || r.state === 'delivered')
+  if (sent.length) {
+    const times = sent.map((r) => (r.succeeded_at ? new Date(r.succeeded_at).getTime() : Number.POSITIVE_INFINITY))
+    const first = Math.min(...times)
+    if (Number.isFinite(first)) return { state: 'sent', sentAt: new Date(first) }
+    // A success with no recorded time is still a success: the question's recorded send time stands in for it.
+    const q = await db
+      .selectFrom('intake.questions')
+      .select(['first_reminder_sent_at', 'final_reminder_sent_at'])
+      .where('id', '=', questionId)
+      .executeTakeFirst()
+    const at = q?.final_reminder_sent_at ?? q?.first_reminder_sent_at
+    if (at) return { state: 'sent', sentAt: at }
+  }
+  if (rows.some((r) => r.state === 'draft' || r.state === 'queued')) return { state: 'pending', sentAt: null }
+  if (rows.some((r) => r.state === 'failed' || r.state === 'suppressed')) return { state: 'failed', sentAt: null }
+  return { state: 'none', sentAt: null }
+}
+
+/**
+ * Whether the customer responded in a way that keeps the request from "Closed—no response" (TSK-0148, OWN-DEC-208 "if
+ * the customer replied"; PROPOSED reading, OQ-QUESTION-AMENDMENT-DETAILS): a reply to any question of the request, or
+ * a message of the customer placed on the project (portal, text or email), after `since` (the reminder's send); or a
+ * reply or customer message staff have not reviewed yet (its queue item is still open).
+ */
+export async function customerResponded(
+  db: Reader,
+  input: { requestId: string; projectId: string; since: Date | null },
+): Promise<boolean> {
+  const waiting = await db
+    .selectFrom('ops.queue_items')
+    .select('id')
+    .where('resolved_at', 'is', null)
+    .where((eb) =>
+      eb.or([
+        eb.and([eb('type', '=', 'question_replied'), eb('subject_id', '=', input.requestId)]),
+        eb.and([eb('type', '=', 'customer_replied'), eb('project_id', '=', input.projectId)]),
+      ]),
+    )
+    .limit(1)
+    .executeTakeFirst()
+  if (waiting) return true
+  if (!input.since) return false
+  const reply = await db
+    .selectFrom('intake.question_replies')
+    .select('id')
+    .where('request_id', '=', input.requestId)
+    .where('created_at', '>', input.since)
+    .limit(1)
+    .executeTakeFirst()
+  if (reply) return true
+  const message = await db
+    .selectFrom('comms.messages')
+    .select('id')
+    .where('project_id', '=', input.projectId)
+    .where('direction', '=', 'inbound')
+    .where('received_at', '>', input.since)
+    .limit(1)
+    .executeTakeFirst()
+  return message !== undefined
 }
 
 /** Whether any delivery of this subject is sent or delivered now (a later bounce takes a success back). */
