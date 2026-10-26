@@ -395,6 +395,7 @@ export const LABEL_FAMILIES = {
     'legal.sms_terms',
     'legal.website_terms',
     'legal.sms_disclosure',
+    'legal.sms_verification_disclosure',
     'legal.estimate_terms',
     'retention.audit_log',
     'retention.requests_not_converted',
@@ -503,9 +504,9 @@ export const LABEL_FAMILIES = {
   /** A merge or relink (crm.record_links, TSK-0046): in effect, reversed by the Owner, or replaced by a later relink. */
   recordLinkState: ['current', 'reversed', 'replaced'],
   /** Consent records (ENT-ConsentPreference; apps/server/src/modules/notifications/consent.ts). */
-  consentPurpose: ['service_communication', 'transactional_sms', 'marketing'],
+  consentPurpose: ['service_communication', 'transactional_sms', 'marketing', 'sms_verification'],
   consentChannel: ['email', 'sms'],
-  consentSource: ['request_form', 'portal', 'sms_keyword', 'provider_suppression', 'staff_recorded'],
+  consentSource: ['request_form', 'receipt', 'portal', 'sms_keyword', 'provider_suppression', 'staff_recorded'],
   consentState: ['granted', 'withdrawn', 'none'],
   /** Fields a staff edit of a customer or contact changes (crm.record_changes). */
   recordField: ['displayName', 'fullName', 'email', 'phone', 'preferredChannel'],

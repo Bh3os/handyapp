@@ -15,3 +15,5 @@ Append-only records of a contact's permissions per purpose and channel.
 **Invariants:** service communication, marketing and photo publication are separate; having a phone number is not texting consent; the latest record is the current state; texts need a current SMS opt-in ([[HH-INT-22]], [[OWN-DEC-147]]); STOP on SMS withdraws it and START records a new one; checked at send time.
 
 **Who may change:** the customer; Office and Owner record a customer's instruction with evidence.
+
+**Changed by [[OWN-DEC-178]] (built by [[TSK-0134]], 2026-10-26):** a fourth purpose, verification codes by text (`sms_verification`, channel SMS), recorded from the request receipt (source `receipt`) with the disclosure version and the request as evidence. It permits the verification code message only; STOP and a staff-recorded opt-out withdraw it with the SMS opt-in.
