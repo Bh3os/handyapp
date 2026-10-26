@@ -29,6 +29,7 @@ import {
   type AdjustmentKind,
   type AdjustmentView,
 } from './exceptions.js'
+import { syncInvoiceReminders } from './invoice-reminders.js'
 import { syncCheckItem } from './payment-states.js'
 import { issuePaymentReceipt } from './receipts.js'
 
@@ -278,6 +279,8 @@ export async function recordInvoicePayment(
   await issuePaymentReceipt(tx, payment.id)
   // TSK-0088: a check waits in the Owner's queue until it clears.
   if (checked.method === 'check') await syncCheckItem(tx, i.job_id)
+  // TSK-0091 (OWN-DEC-210): any payment, partial or pending, suspends the invoice's waiting reminders at once.
+  await syncInvoiceReminders(tx, i.id)
   const after = await tx.selectFrom('finance.invoices').select('state').where('id', '=', i.id).executeTakeFirstOrThrow()
   return {
     paymentId: payment.id,

@@ -649,6 +649,20 @@ export interface FinanceDepositWaiversTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface FinanceInvoiceCollectionStepsTable {
+  id: Generated<string>
+  invoice_id: string
+  job_id: string
+  project_id: string
+  kind: string
+  due_on: string | null
+  ends_step_id: string | null
+  delivery_id: string | null
+  note: string | null
+  recorded_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface FinanceInvoiceDepositCreditsTable {
   id: Generated<string>
   invoice_id: string
@@ -2758,6 +2772,7 @@ export interface Database {
   'estimating.publication_approvals': EstimatingPublicationApprovalsTable
   'finance.deposit_requirements': FinanceDepositRequirementsTable
   'finance.deposit_waivers': FinanceDepositWaiversTable
+  'finance.invoice_collection_steps': FinanceInvoiceCollectionStepsTable
   'finance.invoice_deposit_credits': FinanceInvoiceDepositCreditsTable
   'finance.invoice_documents': FinanceInvoiceDocumentsTable
   'finance.invoice_lines': FinanceInvoiceLinesTable

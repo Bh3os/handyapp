@@ -36,8 +36,9 @@ beforeAll(async () => {
   t = await createTestDatabase()
   // Synthetic template versions for the drafts these tests release (the real wording is the owner's, T74).
   await withTx(t.db, async (tx) => {
-    // TSK-0121: the appointment reminder is automatic now; the unpaid-invoice reminder stays a staff-released draft.
-    for (const messageKey of ['review.request', 'reminder.unpaid_invoice'])
+    // TSK-0121: the appointment reminder is automatic now; TSK-0091: so is the unpaid-invoice reminder (OWN-DEC-210).
+    // The repeat-service reminder stays a staff-released draft.
+    for (const messageKey of ['review.request', 'reminder.repeat_service'])
       for (const channel of ['email', 'sms'] as const)
         await releaseTemplateVersion(tx, {
           messageKey,
@@ -355,7 +356,7 @@ describe('send-time rechecks of consent and record state (TSK-0048, HH-COM-05, T
     const f = fakes()
     const release = releaseAutomation(f.providers)
     const subject = await releaseReminder({
-      messageKey: 'reminder.unpaid_invoice',
+      messageKey: 'reminder.repeat_service',
       channel: 'sms',
       destination: '+15025550120',
       record: { type: 'invoice', id: 'inv-no-opt-in' },
@@ -371,7 +372,7 @@ describe('send-time rechecks of consent and record state (TSK-0048, HH-COM-05, T
     await optIn('+15025550121')
     const release = releaseAutomation(f.providers)
     const subject = await releaseReminder({
-      messageKey: 'reminder.unpaid_invoice',
+      messageKey: 'reminder.repeat_service',
       channel: 'sms',
       destination: '+15025550121',
       record: { type: 'invoice', id: 'inv-stop' },
@@ -394,7 +395,7 @@ describe('send-time rechecks of consent and record state (TSK-0048, HH-COM-05, T
     const checks: RecordChecks = { invoice: async () => 'stale' }
     const release = releaseAutomation(f.providers, { recordChecks: checks })
     const subject = await releaseReminder({
-      messageKey: 'reminder.unpaid_invoice',
+      messageKey: 'reminder.repeat_service',
       channel: 'sms',
       destination: '+15025550122',
       record: { type: 'invoice', id: 'inv-paid' },
@@ -462,7 +463,7 @@ describe('send-time rechecks of consent and record state (TSK-0048, HH-COM-05, T
     await optIn('+15025550123')
     const release = releaseAutomation(f.providers, { recordChecks: { invoice: async () => 'current' } })
     const subject = await releaseReminder({
-      messageKey: 'reminder.unpaid_invoice',
+      messageKey: 'reminder.repeat_service',
       channel: 'sms',
       destination: '+15025550123',
       record: { type: 'invoice', id: 'inv-ok' },

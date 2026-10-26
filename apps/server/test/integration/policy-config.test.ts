@@ -40,11 +40,12 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
     // TSK-0123: migration 0066 recorded the decided business time zone as its second version (OWN-DEC-159).
     // Every key is at version 1 except these: TSK-0121 (migration 0075) recorded the automatic reminder cadences
     // (OWN-DEC-153) and messages.automatic version 3; TSK-0144 (migration 0073) recorded the owner's sign-off of
-    // estimate terms v1.0 as its second version (OWN-DEC-187).
+    // estimate terms v1.0 as its second version (OWN-DEC-187); TSK-0091 (migration 0097) recorded the unpaid-invoice
+    // reminders (OWN-DEC-210): reminders.cadences version 3 and messages.automatic version 4.
     const expected: Record<string, number> = {
-      'messages.automatic': 3,
+      'messages.automatic': 4,
       'business.timezone': 2,
-      'reminders.cadences': 2,
+      'reminders.cadences': 3,
       'legal.estimate_terms': 2,
     }
     for (const e of entries) expect(e.version, e.key).toBe(expected[e.key] ?? 1)
@@ -126,7 +127,7 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
       unansweredQuestion: { afterDeliveryHours: 72, closeAfterReminderHours: 24, release: 'automatic' },
       appointment: { hoursBefore: 24, release: 'automatic' },
       satisfaction: { daysAfterCompletion: 2, release: 'staff' },
-      unpaidInvoice: { firstHours: 24, finalHours: 72, release: 'staff' },
+      unpaidInvoice: { firstDaysAfterDue: 3, secondDaysAfterDue: 7, release: 'automatic', followUp: 'staff' },
       repeatService: { schedule: 'customer_agreed', release: 'staff' },
     })
     // TSK-0122 (OWN-DEC-154, OWN-DEC-207, OWN-DEC-190): emails at any hour, texts in the recipient's permitted hours,

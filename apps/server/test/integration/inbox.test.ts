@@ -767,10 +767,10 @@ describe('linking corrections, internal conversations and scope (TSK-0049, HH-CO
       email: 'outbound-49@example.test',
       phone: '(502) 555-0421',
     })
-    // A staff-released draft (TSK-0121: the appointment reminder is automatic now; the unpaid-invoice one is not).
+    // A staff-released draft (TSK-0121, TSK-0091: the appointment and unpaid-invoice reminders are automatic now).
     await withTx(t.db, (tx) =>
       releaseTemplateVersion(tx, {
-        messageKey: 'reminder.unpaid_invoice',
+        messageKey: 'reminder.repeat_service',
         channel: 'email',
         locale: 'en',
         subject: 'Synthetic test subject',
@@ -787,7 +787,7 @@ describe('linking corrections, internal conversations and scope (TSK-0049, HH-CO
     const { id } = await withTx(t.db, (tx) =>
       createDraft(tx, {
         config,
-        messageKey: 'reminder.unpaid_invoice',
+        messageKey: 'reminder.repeat_service',
         destination: { channel: 'email', destination: 'outbound-49@example.test', permission: 'preferred' },
         recipient: { kind: 'customer_contact', id: s.contactId, destinations: [] },
         subjectKey: `invoice:${s.projectId}`,
@@ -816,7 +816,7 @@ describe('linking corrections, internal conversations and scope (TSK-0049, HH-CO
     const thread = (await get('office', `/staff/inbox/conversations/${reply.conversation_id}`)).json<{
       deliveries: { id: string; messageKey: string }[]
     }>()
-    expect(thread.deliveries).toEqual([expect.objectContaining({ id, messageKey: 'reminder.unpaid_invoice' })])
+    expect(thread.deliveries).toEqual([expect.objectContaining({ id, messageKey: 'reminder.repeat_service' })])
   })
 })
 

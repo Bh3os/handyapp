@@ -75668,6 +75668,498 @@
         }
       }
     },
+    "/api/v1/staff/invoices/{invoiceId}/overdue-decision": {
+      "post": {
+        "operationId": "decideInvoiceOverdue",
+        "summary": "The Owner’s Overdue—owner decision",
+        "description": "The Owner (invoice.decide_overdue), while the invoice waits in Owner Decisions after the second reminder: records the decision with a note (staff keep following up with released reminders) and resolves the item. A payment plan, collection hold or revised due date (the steps route) or a write-off (TSK-0089) also resolves it. Never collections, a late fee or an automatic write-off. CONFLICT (NOT_OVERDUE, INVOICE_PAID). Audited. Returns the view.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "note"
+                ],
+                "properties": {
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2100
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "invoiceId",
+                    "jobId",
+                    "projectReference",
+                    "invoiceNumber",
+                    "invoiceState",
+                    "cadence",
+                    "dueOn",
+                    "dueRevised",
+                    "stageDueAt",
+                    "stoppedBy",
+                    "reminders",
+                    "steps",
+                    "review",
+                    "overdue",
+                    "actions"
+                  ],
+                  "properties": {
+                    "invoiceId": {
+                      "type": "string"
+                    },
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "projectReference": {
+                      "type": "string"
+                    },
+                    "invoiceNumber": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "invoiceState": {
+                      "type": "string"
+                    },
+                    "cadence": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "CONFIGURED",
+                            "NOT_CONFIGURED"
+                          ]
+                        },
+                        "proposed": {
+                          "type": "boolean"
+                        },
+                        "firstDaysAfterDue": {
+                          "type": "integer"
+                        },
+                        "secondDaysAfterDue": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "dueOn": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "dueRevised": {
+                      "type": "boolean"
+                    },
+                    "stageDueAt": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "stage",
+                          "dueAt"
+                        ],
+                        "properties": {
+                          "stage": {
+                            "type": "integer",
+                            "enum": [
+                              1,
+                              2
+                            ]
+                          },
+                          "dueAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "stoppedBy": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "invoice_not_found",
+                        "not_final_invoice",
+                        "invoice_not_issued",
+                        "invoice_voided",
+                        "invoice_paid",
+                        "no_balance",
+                        "payment_plan",
+                        "collection_hold",
+                        "payment_disputed",
+                        "dispute_case_open",
+                        "billing_complaint_open",
+                        "refund_or_credit_review",
+                        "payment_recorded",
+                        null
+                      ]
+                    },
+                    "reminders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "stage",
+                          "release",
+                          "state",
+                          "reason",
+                          "scheduledAt",
+                          "sentAt",
+                          "cancelledAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "stage": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ],
+                            "enum": [
+                              1,
+                              2,
+                              null
+                            ]
+                          },
+                          "release": {
+                            "type": "string",
+                            "enum": [
+                              "automatic",
+                              "staff_released"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "draft",
+                              "queued",
+                              "sent",
+                              "delivered",
+                              "failed",
+                              "suppressed",
+                              "cancelled"
+                            ]
+                          },
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "scheduledAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "sentAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "cancelledAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "steps": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "kind",
+                          "dueOn",
+                          "endsStepId",
+                          "ended",
+                          "note",
+                          "recordedBy",
+                          "recordedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "revised_due_date",
+                              "payment_plan",
+                              "collection_hold",
+                              "arrangement_ended",
+                              "follow_up_released",
+                              "overdue_decided"
+                            ]
+                          },
+                          "dueOn": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date"
+                          },
+                          "endsStepId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "ended": {
+                            "type": "boolean"
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "recordedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "review": {
+                      "type": "boolean"
+                    },
+                    "overdue": {
+                      "type": "boolean"
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "recordStep",
+                        "releaseFollowUp",
+                        "followUpBlockedBy",
+                        "decideOverdue"
+                      ],
+                      "properties": {
+                        "recordStep": {
+                          "type": "boolean"
+                        },
+                        "releaseFollowUp": {
+                          "type": "boolean"
+                        },
+                        "followUpBlockedBy": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "decideOverdue": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "invoice.decide_overdue",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "invoice.overdue_decided",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/invoice-reminders.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/invoices/{invoiceId}/payment-link": {
       "put": {
         "operationId": "setInvoicePaymentLink",
@@ -78883,6 +79375,1449 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/invoices.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/invoices/{invoiceId}/reminders": {
+      "get": {
+        "operationId": "getInvoiceReminders",
+        "summary": "A final invoice's unpaid-balance reminders",
+        "description": "The Owner and Office (payment_reminder.release). The automatic reminders of one final invoice (OWN-DEC-210): the configured days after the due date (reminders.cadences.unpaidInvoice, 3 and 7), the due date they count from (the issue date for due on receipt, or the latest revised due date) and when each stage is due; the stop rule as the records are now (invoice_not_found, not_final_invoice, invoice_not_issued, invoice_voided, invoice_paid, no_balance, payment_plan, collection_hold, payment_disputed, dispute_case_open, billing_complaint_open, refund_or_credit_review, payment_recorded); every reminder and follow-up with its state and why it stopped, waits or failed (also not_configured, due_date_revised, stage_already_sent, stage_time_passed, no_email_address); the collection steps staff recorded; whether the invoice waits for staff review or for the Owner’s Overdue—owner decision; and what this caller may do. Email only; the destination is not shown. NOT_FOUND when there is no final invoice.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "invoiceId",
+                    "jobId",
+                    "projectReference",
+                    "invoiceNumber",
+                    "invoiceState",
+                    "cadence",
+                    "dueOn",
+                    "dueRevised",
+                    "stageDueAt",
+                    "stoppedBy",
+                    "reminders",
+                    "steps",
+                    "review",
+                    "overdue",
+                    "actions"
+                  ],
+                  "properties": {
+                    "invoiceId": {
+                      "type": "string"
+                    },
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "projectReference": {
+                      "type": "string"
+                    },
+                    "invoiceNumber": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "invoiceState": {
+                      "type": "string"
+                    },
+                    "cadence": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "CONFIGURED",
+                            "NOT_CONFIGURED"
+                          ]
+                        },
+                        "proposed": {
+                          "type": "boolean"
+                        },
+                        "firstDaysAfterDue": {
+                          "type": "integer"
+                        },
+                        "secondDaysAfterDue": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "dueOn": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "dueRevised": {
+                      "type": "boolean"
+                    },
+                    "stageDueAt": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "stage",
+                          "dueAt"
+                        ],
+                        "properties": {
+                          "stage": {
+                            "type": "integer",
+                            "enum": [
+                              1,
+                              2
+                            ]
+                          },
+                          "dueAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "stoppedBy": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "invoice_not_found",
+                        "not_final_invoice",
+                        "invoice_not_issued",
+                        "invoice_voided",
+                        "invoice_paid",
+                        "no_balance",
+                        "payment_plan",
+                        "collection_hold",
+                        "payment_disputed",
+                        "dispute_case_open",
+                        "billing_complaint_open",
+                        "refund_or_credit_review",
+                        "payment_recorded",
+                        null
+                      ]
+                    },
+                    "reminders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "stage",
+                          "release",
+                          "state",
+                          "reason",
+                          "scheduledAt",
+                          "sentAt",
+                          "cancelledAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "stage": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ],
+                            "enum": [
+                              1,
+                              2,
+                              null
+                            ]
+                          },
+                          "release": {
+                            "type": "string",
+                            "enum": [
+                              "automatic",
+                              "staff_released"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "draft",
+                              "queued",
+                              "sent",
+                              "delivered",
+                              "failed",
+                              "suppressed",
+                              "cancelled"
+                            ]
+                          },
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "scheduledAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "sentAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "cancelledAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "steps": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "kind",
+                          "dueOn",
+                          "endsStepId",
+                          "ended",
+                          "note",
+                          "recordedBy",
+                          "recordedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "revised_due_date",
+                              "payment_plan",
+                              "collection_hold",
+                              "arrangement_ended",
+                              "follow_up_released",
+                              "overdue_decided"
+                            ]
+                          },
+                          "dueOn": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date"
+                          },
+                          "endsStepId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "ended": {
+                            "type": "boolean"
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "recordedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "review": {
+                      "type": "boolean"
+                    },
+                    "overdue": {
+                      "type": "boolean"
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "recordStep",
+                        "releaseFollowUp",
+                        "followUpBlockedBy",
+                        "decideOverdue"
+                      ],
+                      "properties": {
+                        "recordStep": {
+                          "type": "boolean"
+                        },
+                        "releaseFollowUp": {
+                          "type": "boolean"
+                        },
+                        "followUpBlockedBy": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "decideOverdue": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "payment_reminder.release",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/invoice-reminders.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/invoices/{invoiceId}/reminders/follow-up": {
+      "post": {
+        "operationId": "releaseInvoiceFollowUp",
+        "summary": "Release a follow-up reminder",
+        "description": "The Owner or Office (payment_reminder.release): one follow-up email in the owner-authorized wording (unpaid_invoice_follow_up; no amount), after the second automatic reminder was sent or after a payment suspended the reminders, while no plan, hold, dispute or review stops them. Sent at once by notify.release and rechecked then (a payment recorded after the release cancels it). CONFLICT (AUTOMATIC_REMINDERS_PENDING, FOLLOW_UP_WAITING, a stop reason, NO_EMAIL_ADDRESS). Audited. Returns the view.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "note": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 2100
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "invoiceId",
+                    "jobId",
+                    "projectReference",
+                    "invoiceNumber",
+                    "invoiceState",
+                    "cadence",
+                    "dueOn",
+                    "dueRevised",
+                    "stageDueAt",
+                    "stoppedBy",
+                    "reminders",
+                    "steps",
+                    "review",
+                    "overdue",
+                    "actions"
+                  ],
+                  "properties": {
+                    "invoiceId": {
+                      "type": "string"
+                    },
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "projectReference": {
+                      "type": "string"
+                    },
+                    "invoiceNumber": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "invoiceState": {
+                      "type": "string"
+                    },
+                    "cadence": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "CONFIGURED",
+                            "NOT_CONFIGURED"
+                          ]
+                        },
+                        "proposed": {
+                          "type": "boolean"
+                        },
+                        "firstDaysAfterDue": {
+                          "type": "integer"
+                        },
+                        "secondDaysAfterDue": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "dueOn": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "dueRevised": {
+                      "type": "boolean"
+                    },
+                    "stageDueAt": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "stage",
+                          "dueAt"
+                        ],
+                        "properties": {
+                          "stage": {
+                            "type": "integer",
+                            "enum": [
+                              1,
+                              2
+                            ]
+                          },
+                          "dueAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "stoppedBy": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "invoice_not_found",
+                        "not_final_invoice",
+                        "invoice_not_issued",
+                        "invoice_voided",
+                        "invoice_paid",
+                        "no_balance",
+                        "payment_plan",
+                        "collection_hold",
+                        "payment_disputed",
+                        "dispute_case_open",
+                        "billing_complaint_open",
+                        "refund_or_credit_review",
+                        "payment_recorded",
+                        null
+                      ]
+                    },
+                    "reminders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "stage",
+                          "release",
+                          "state",
+                          "reason",
+                          "scheduledAt",
+                          "sentAt",
+                          "cancelledAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "stage": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ],
+                            "enum": [
+                              1,
+                              2,
+                              null
+                            ]
+                          },
+                          "release": {
+                            "type": "string",
+                            "enum": [
+                              "automatic",
+                              "staff_released"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "draft",
+                              "queued",
+                              "sent",
+                              "delivered",
+                              "failed",
+                              "suppressed",
+                              "cancelled"
+                            ]
+                          },
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "scheduledAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "sentAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "cancelledAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "steps": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "kind",
+                          "dueOn",
+                          "endsStepId",
+                          "ended",
+                          "note",
+                          "recordedBy",
+                          "recordedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "revised_due_date",
+                              "payment_plan",
+                              "collection_hold",
+                              "arrangement_ended",
+                              "follow_up_released",
+                              "overdue_decided"
+                            ]
+                          },
+                          "dueOn": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date"
+                          },
+                          "endsStepId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "ended": {
+                            "type": "boolean"
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "recordedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "review": {
+                      "type": "boolean"
+                    },
+                    "overdue": {
+                      "type": "boolean"
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "recordStep",
+                        "releaseFollowUp",
+                        "followUpBlockedBy",
+                        "decideOverdue"
+                      ],
+                      "properties": {
+                        "recordStep": {
+                          "type": "boolean"
+                        },
+                        "releaseFollowUp": {
+                          "type": "boolean"
+                        },
+                        "followUpBlockedBy": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "decideOverdue": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "payment_reminder.release",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "invoice.follow_up_released",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/invoice-reminders.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/invoices/{invoiceId}/reminders/steps": {
+      "post": {
+        "operationId": "recordInvoiceCollectionStep",
+        "summary": "Record a revised due date, a payment plan, a collection hold or its end",
+        "description": "The Owner or Office (payment_reminder.release), on an issued final invoice with a balance, with a note of what was agreed: revised_due_date (dueOn, from today to 365 days ahead in the business time zone, PROPOSED): the reminder stages still unsent count from it at once, those waiting under the earlier date are cancelled; payment_plan or collection_hold: no automatic reminder while it is active (one of each at a time); arrangement_ended (endsStepId): ends an active plan or hold, which restarts nothing by itself. CONFLICT (INVOICE_PAID, INVOICE_VOIDED, ARRANGEMENT_ACTIVE, ARRANGEMENT_NOT_ACTIVE). Audited. Returns the view.",
+        "tags": [
+          "finance"
+        ],
+        "parameters": [
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "note"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "revised_due_date",
+                      "payment_plan",
+                      "collection_hold",
+                      "arrangement_ended"
+                    ]
+                  },
+                  "dueOn": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 10
+                  },
+                  "endsStepId": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                      }
+                    ]
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2100
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "invoiceId",
+                    "jobId",
+                    "projectReference",
+                    "invoiceNumber",
+                    "invoiceState",
+                    "cadence",
+                    "dueOn",
+                    "dueRevised",
+                    "stageDueAt",
+                    "stoppedBy",
+                    "reminders",
+                    "steps",
+                    "review",
+                    "overdue",
+                    "actions"
+                  ],
+                  "properties": {
+                    "invoiceId": {
+                      "type": "string"
+                    },
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "projectReference": {
+                      "type": "string"
+                    },
+                    "invoiceNumber": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "invoiceState": {
+                      "type": "string"
+                    },
+                    "cadence": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "CONFIGURED",
+                            "NOT_CONFIGURED"
+                          ]
+                        },
+                        "proposed": {
+                          "type": "boolean"
+                        },
+                        "firstDaysAfterDue": {
+                          "type": "integer"
+                        },
+                        "secondDaysAfterDue": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "dueOn": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "dueRevised": {
+                      "type": "boolean"
+                    },
+                    "stageDueAt": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "stage",
+                          "dueAt"
+                        ],
+                        "properties": {
+                          "stage": {
+                            "type": "integer",
+                            "enum": [
+                              1,
+                              2
+                            ]
+                          },
+                          "dueAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "stoppedBy": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "enum": [
+                        "invoice_not_found",
+                        "not_final_invoice",
+                        "invoice_not_issued",
+                        "invoice_voided",
+                        "invoice_paid",
+                        "no_balance",
+                        "payment_plan",
+                        "collection_hold",
+                        "payment_disputed",
+                        "dispute_case_open",
+                        "billing_complaint_open",
+                        "refund_or_credit_review",
+                        "payment_recorded",
+                        null
+                      ]
+                    },
+                    "reminders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "stage",
+                          "release",
+                          "state",
+                          "reason",
+                          "scheduledAt",
+                          "sentAt",
+                          "cancelledAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "stage": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ],
+                            "enum": [
+                              1,
+                              2,
+                              null
+                            ]
+                          },
+                          "release": {
+                            "type": "string",
+                            "enum": [
+                              "automatic",
+                              "staff_released"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "draft",
+                              "queued",
+                              "sent",
+                              "delivered",
+                              "failed",
+                              "suppressed",
+                              "cancelled"
+                            ]
+                          },
+                          "reason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "scheduledAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "sentAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "cancelledAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "steps": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "kind",
+                          "dueOn",
+                          "endsStepId",
+                          "ended",
+                          "note",
+                          "recordedBy",
+                          "recordedAt"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "revised_due_date",
+                              "payment_plan",
+                              "collection_hold",
+                              "arrangement_ended",
+                              "follow_up_released",
+                              "overdue_decided"
+                            ]
+                          },
+                          "dueOn": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date"
+                          },
+                          "endsStepId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "ended": {
+                            "type": "boolean"
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "recordedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "recordedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "review": {
+                      "type": "boolean"
+                    },
+                    "overdue": {
+                      "type": "boolean"
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "recordStep",
+                        "releaseFollowUp",
+                        "followUpBlockedBy",
+                        "decideOverdue"
+                      ],
+                      "properties": {
+                        "recordStep": {
+                          "type": "boolean"
+                        },
+                        "releaseFollowUp": {
+                          "type": "boolean"
+                        },
+                        "followUpBlockedBy": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "decideOverdue": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "payment_reminder.release",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "invoice.collection_step",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/invoice-reminders.test.ts"
         }
       }
     },
@@ -133285,6 +135220,7 @@
                 "deposit_due",
                 "check_to_clear",
                 "reconciliation_item",
+                "invoice_reminder_review",
                 "visit_flagged",
                 "visit_outcome",
                 "field_event_review",
@@ -133428,6 +135364,7 @@
                               "deposit_due",
                               "check_to_clear",
                               "reconciliation_item",
+                              "invoice_reminder_review",
                               "visit_flagged",
                               "visit_outcome",
                               "field_event_review",
@@ -133729,6 +135666,7 @@
                           "deposit_due",
                           "check_to_clear",
                           "reconciliation_item",
+                          "invoice_reminder_review",
                           "visit_flagged",
                           "visit_outcome",
                           "field_event_review",
@@ -133892,6 +135830,7 @@
                 "deposit_due",
                 "check_to_clear",
                 "reconciliation_item",
+                "invoice_reminder_review",
                 "visit_flagged",
                 "visit_outcome",
                 "field_event_review",
@@ -134035,6 +135974,7 @@
                               "deposit_due",
                               "check_to_clear",
                               "reconciliation_item",
+                              "invoice_reminder_review",
                               "visit_flagged",
                               "visit_outcome",
                               "field_event_review",
@@ -134336,6 +136276,7 @@
                           "deposit_due",
                           "check_to_clear",
                           "reconciliation_item",
+                          "invoice_reminder_review",
                           "visit_flagged",
                           "visit_outcome",
                           "field_event_review",

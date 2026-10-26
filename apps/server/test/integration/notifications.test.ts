@@ -70,12 +70,23 @@ describe('the automatic-message list is configuration (TSK-0047, HH-COM-06, RULE
     expect(entry.state).toBe('CONFIGURED')
     if (entry.state !== 'CONFIGURED') return
     expect(entry.sourceIds).toContain('FACT-AUTOMATIC-MESSAGES')
-    // The 21 of TSK-0119 and the three routine reminders of OWN-DEC-153 (TSK-0121, migration 0075).
-    expect(entry.value.customer).toHaveLength(24)
+    // The 21 of TSK-0119, the three routine reminders of OWN-DEC-153 (TSK-0121, migration 0075) and the unpaid-invoice
+    // reminder of OWN-DEC-210 (TSK-0091, migration 0097).
+    expect(entry.value.customer).toHaveLength(25)
     const policy = automaticPolicy(config)
-    for (const k of ['staff.reply', 'reminder.unpaid_invoice', 'reminder.satisfaction_check', 'review.request'])
+    for (const k of [
+      'staff.reply',
+      'reminder.unpaid_invoice_follow_up',
+      'reminder.satisfaction_check',
+      'review.request',
+    ])
       expect(policy.isAutomatic(k), k).toBe(false)
-    for (const k of ['reminder.unanswered_estimate', 'reminder.unanswered_question', 'reminder.appointment'])
+    for (const k of [
+      'reminder.unanswered_estimate',
+      'reminder.unanswered_question',
+      'reminder.appointment',
+      'reminder.unpaid_invoice',
+    ])
       expect(policy.isAutomatic(k), k).toBe(true)
     const fact = readFileSync(new URL('../../../../kg/facts/FACT-AUTOMATIC-MESSAGES.md', import.meta.url), 'utf8')
     expect(fact.match(/^\| \d+ \|/gm)).toHaveLength(entry.value.customer.length)
@@ -393,7 +404,7 @@ describe('staff-released drafts (TSK-0047, HH-COM-06, HH-COM-09, T65, T66, T04)'
     await withTx(t.db, async (tx) => {
       for (const channel of ['email', 'sms'] as const)
         await releaseTemplateVersion(tx, {
-          messageKey: 'reminder.unpaid_invoice',
+          messageKey: 'reminder.repeat_service',
           channel,
           locale: 'en',
           subject: channel === 'email' ? 'Synthetic test subject' : null,
@@ -413,7 +424,7 @@ describe('staff-released drafts (TSK-0047, HH-COM-06, HH-COM-09, T65, T66, T04)'
       withTx(t.db, (tx) =>
         createDraft(tx, {
           config,
-          messageKey: 'reminder.unpaid_invoice',
+          messageKey: 'reminder.repeat_service',
           subjectKey,
           record: { type: 'invoice', id: subjectKey },
           recipient: { ...customer('customer-6@example.test'), staffLocale: 'es' },

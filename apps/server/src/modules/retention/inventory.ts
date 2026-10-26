@@ -389,6 +389,14 @@ export const TABLES = {
     categories: [F],
     protectedEvidence: true,
   },
+  // TSK-0091 (0097): what staff recorded about collecting an issued final invoice.
+  'finance.invoice_collection_steps': {
+    holds:
+      "Collection steps on an invoice: a revised due date, a payment plan or collection hold and its end, a released follow-up reminder and the Owner's overdue decision, with the staff member's note and who recorded it when",
+    classes: ['payment_reference'],
+    categories: [F],
+    protectedEvidence: true,
+  },
   // TSK-0089 (0095): the Owner's void of an issued invoice, with the reason and the fresh sign-in.
   'finance.invoice_voids': {
     holds: "The Owner's void of an issued invoice: the reason, who voided it, the session's sign-in time and when",

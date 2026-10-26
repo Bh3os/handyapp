@@ -145,6 +145,8 @@ export const CLEARED_CATEGORIES = {
     'finance.invoice_voids',
     // TSK-0090 (0096): reconciliation items.
     'finance.reconciliation_items',
+    // TSK-0091 (0097): collection steps on invoices (revised due dates, plans, holds, follow-ups, overdue decisions).
+    'finance.invoice_collection_steps',
     'finance.invoice_lines',
     'finance.invoice_deposit_credits',
     'finance.invoice_documents',
