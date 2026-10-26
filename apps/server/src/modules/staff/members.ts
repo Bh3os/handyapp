@@ -5,7 +5,7 @@
 //   the upcoming assignments with their review flags.
 // - Role and capability grants: one live grant per kind and name; a grant is ended by a new fact, never edited. Nobody
 //   grants themselves anything (the policy's not_self_subject). At least one active Owner always remains (here, and at
-//   commit in the database, migration 0054). PROPOSED: a person keeps at least one role (disable the account instead);
+//   commit in the database, migration 0054; OWN-DEC-192 H2). PROPOSED: a person keeps at least one role (disable the account instead);
 //   the `collect` capability is granted only to someone holding the Worker role (ENT-RoleGrant: "granted per worker").
 //   TSK-0151 (OWN-DEC-200 H4): a `collect` grant records the worker's training (the date it was completed, not after
 //   today, and what it covered; PROPOSED), refused without it here and in the database (migration 0098); the Worker
@@ -14,9 +14,10 @@
 //   the account is disabled, every session revoked, every open invite or reset link invalidated and the password
 //   cleared (PROPOSED: re-enabling needs a new password through a single-use link), so nothing the person held still
 //   works. Their upcoming reservations are flagged for reassignment by the database in the same transaction, and each
-//   flagged visit gets its action-queue item (migration 0054); nothing is cancelled and their history stays. PROPOSED:
-//   the Owner cannot disable their own account. TSK-0154 (OWN-DEC-202): offboarding also removes the authenticator
-//   and the recovery codes, so every previous credential is invalid and a re-enabled account enrols again.
+//   flagged visit gets its action-queue item (migration 0054); nothing is cancelled and their history stays (OWN-DEC-192
+//   H5). The Owner cannot disable their own account (OWN-DEC-192 H2). TSK-0154 (OWN-DEC-202): offboarding also removes
+//   the authenticator and the recovery codes, so every previous credential is invalid and a re-enabled account enrols
+//   again.
 // - Authenticator reset (TSK-0154, OWN-DEC-202; staff.reset_mfa, PROPOSED in the grant row: fresh sign-in, a reason,
 //   never oneself): a staff member who lost their authenticator gets it removed with its recovery codes and every
 //   session revoked at once; the next sign-in (with their password) enrols a new one before any staff screen.

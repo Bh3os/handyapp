@@ -9,7 +9,7 @@
 //   request moves to "needs information" (from review, after a received request is moved to review; from a site
 //   visit or ready-for-estimate request too), and question.published is recorded for the automatic notice. The
 //   composer carries the hazard guard: staff confirm that the question never asks the customer to inspect a hazardous
-//   area (PROPOSED: a required confirmation beside the warning). Card numbers are refused.
+//   area (a required confirmation beside the warning, OWN-DEC-192 E1). Card numbers are refused.
 // - TSK-0121 (OWN-DEC-153): the one reminder of an unanswered question is automatic, 3 days after the notice was
 //   delivered; nobody releases it (the release route of TSK-0051 is gone). Staff see it scheduled, sent, failed or
 //   cancelled; an email goes at any hour and a text waits for the recipient's permitted hours (TSK-0122).

@@ -18,7 +18,7 @@ import {
   type PacketChange,
   type PacketContent,
 } from '@handyhub/domain'
-import { jobAssignments } from './assignments.js'
+import { jobAssignmentsOf } from './assignments.js'
 import { refreshJobPacket, type PacketRow } from './content.js'
 
 type Reader = Db | Tx
@@ -41,9 +41,22 @@ export type AcknowledgmentStatus = {
 
 /** The staff members assigned to the job right now, each once (inside their access window). */
 export async function assignedNow(db: Reader, jobId: string, now = new Date()): Promise<string[]> {
-  const rows = await jobAssignments(db, jobId)
+  return (await assignedNowOf(db, [jobId], now)).get(jobId) ?? []
+}
+
+/** assignedNow() for several jobs in one statement, by job (TSK-0105, My job packets). */
+export async function assignedNowOf(
+  db: Reader,
+  jobIds: readonly string[],
+  now = new Date(),
+): Promise<Map<string, string[]>> {
   const t = now.getTime()
-  return [...new Set(rows.filter((a) => a.from.getTime() <= t && t < a.to.getTime()).map((a) => a.staffUserId))]
+  const out = new Map<string, string[]>()
+  for (const [jobId, rows] of await jobAssignmentsOf(db, jobIds))
+    out.set(jobId, [
+      ...new Set(rows.filter((a) => a.from.getTime() <= t && t < a.to.getTime()).map((a) => a.staffUserId)),
+    ])
+  return out
 }
 
 /** A person's latest acknowledgment of a job, with its recorded end (null: never acknowledged). */
@@ -52,10 +65,22 @@ export async function latestAcknowledgment(
   jobId: string,
   staffUserId: string,
 ): Promise<AcknowledgmentRecord | null> {
-  const r = await db
+  return (await latestAcknowledgmentsOf(db, [jobId], staffUserId)).get(jobId) ?? null
+}
+
+/** latestAcknowledgment() of one person for several jobs in one statement, by job (TSK-0105, My job packets). */
+export async function latestAcknowledgmentsOf(
+  db: Reader,
+  jobIds: readonly string[],
+  staffUserId: string,
+): Promise<Map<string, AcknowledgmentRecord>> {
+  const out = new Map<string, AcknowledgmentRecord>()
+  if (jobIds.length === 0) return out
+  const rows = await db
     .selectFrom('work.job_packet_acknowledgments as a')
     .leftJoin('work.job_packet_acknowledgment_invalidations as i', 'i.acknowledgment_id', 'a.id')
     .select([
+      'a.job_id',
       'a.id',
       'a.version',
       'a.acknowledged_at',
@@ -63,36 +88,46 @@ export async function latestAcknowledgment(
       'i.version as invalidated_by_version',
       'i.invalidated_at',
     ])
-    .where('a.job_id', '=', jobId)
+    .distinctOn('a.job_id')
+    .where('a.job_id', 'in', [...jobIds])
     .where('a.staff_user_id', '=', staffUserId)
+    .orderBy('a.job_id')
     .orderBy('a.acknowledged_at', 'desc')
     .orderBy('a.version', 'desc')
-    .limit(1)
-    .executeTakeFirst()
-  if (!r) return null
-  return {
-    id: r.id,
-    version: r.version,
-    acknowledgedAt: r.acknowledged_at,
-    invalidation:
-      r.reason && r.invalidated_at
-        ? {
-            reason: r.reason as AcknowledgmentInvalidation,
-            version: r.invalidated_by_version ?? null,
-            invalidatedAt: r.invalidated_at,
-          }
-        : null,
-  }
+    .execute()
+  for (const r of rows)
+    out.set(r.job_id, {
+      id: r.id,
+      version: r.version,
+      acknowledgedAt: r.acknowledged_at,
+      invalidation:
+        r.reason && r.invalidated_at
+          ? {
+              reason: r.reason as AcknowledgmentInvalidation,
+              version: r.invalidated_by_version ?? null,
+              invalidatedAt: r.invalidated_at,
+            }
+          : null,
+    })
+  return out
 }
 
 async function criticalVersions(db: Reader, jobId: string): Promise<number[]> {
+  return (await criticalVersionsOf(db, [jobId])).get(jobId) ?? []
+}
+
+/** The critical packet versions of several jobs in one statement, by job (a job with none is left out). */
+export async function criticalVersionsOf(db: Reader, jobIds: readonly string[]): Promise<Map<string, number[]>> {
+  const out = new Map<string, number[]>()
+  if (jobIds.length === 0) return out
   const rows = await db
     .selectFrom('work.job_packets')
-    .select('version')
-    .where('job_id', '=', jobId)
+    .select(['job_id', 'version'])
+    .where('job_id', 'in', [...jobIds])
     .where('critical', '=', true)
     .execute()
-  return rows.map((r) => r.version)
+  for (const r of rows) out.set(r.job_id, [...(out.get(r.job_id) ?? []), r.version])
+  return out
 }
 
 /** Where one person's acknowledgment of the job's packet stands against `row` (the latest version). */

@@ -40,7 +40,7 @@ export type ReminderStage = 'reminder' | (typeof DRAFT_REMINDER_STAGES)[number]
 
 /** The longest question (the column's limit). */
 export const QUESTION_MAX_LENGTH = 2000
-/** The longest reply or portal message (PROPOSED; the reply column's limit). */
+/** The longest reply or portal message (OWN-DEC-192 E6; the reply column's limit). */
 export const REPLY_MAX_LENGTH = 5000
 
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i

@@ -218,8 +218,8 @@ export function staffModule(): ApiModule {
       'session is revoked, every open invite or reset link invalidated, the password cleared (PROPOSED) and the ' +
       'authenticator with its recovery codes removed (OWN-DEC-202: a re-enabled account enrols again); the ' +
       'upcoming assignments are flagged for reassignment and each flagged visit opens its action-queue item, never ' +
-      'cancelled; job history and evidence stay. Refusals: NOT_FOUND, CONFLICT (ACCOUNT_DISABLED, LAST_OWNER, ' +
-      'OWN_ACCOUNT, PROPOSED).',
+      'cancelled; job history and evidence stay (OWN-DEC-192 H5). Refusals: NOT_FOUND, CONFLICT (ACCOUNT_DISABLED, ' +
+      'LAST_OWNER and OWN_ACCOUNT, OWN-DEC-192 H2).',
     permission: 'staff.disable',
     audit: 'staff.disable',
     schema: { params: MEMBER_PARAMS, body: DISABLE_BODY, response: { 200: DISABLED } },

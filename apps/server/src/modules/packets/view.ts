@@ -32,7 +32,7 @@ import type { PacketRow } from './content.js'
 
 type Reader = Db | Tx
 
-/** PROPOSED: signed photo links in a packet last 5 minutes, like request photos (PHOTO_URL_SECONDS). */
+/** Signed photo links in a packet last 5 minutes, like request photos (PHOTO_URL_SECONDS; OWN-DEC-192 D4). */
 export const PACKET_PHOTO_URL_SECONDS = 300
 
 /** The stages whose evidence is pre-work evidence, and those that make the completion preview (HH-WORK-11 order). */
@@ -48,7 +48,7 @@ export const addressLine = (a: PacketAddress) =>
   [[a.street, a.unit].filter(Boolean).join(' '), a.city, `${a.state} ${a.zip}`].join(', ')
 
 /**
- * PROPOSED (OQ-PACKET-DETAILS): the plain directions link of HH-PKT-01 opens the address in a maps app through a
+ * Decided as built (OWN-DEC-192 D5): the plain directions link of HH-PKT-01 opens the address in a maps app through a
  * public directions URL; nothing is sent anywhere until the worker taps it.
  */
 export const directionsUrl = (a: PacketAddress) =>
@@ -155,16 +155,29 @@ async function photoLinks(db: Reader, content: PacketContent, storage: ObjectSto
 
 /** The version this staff member last viewed, and when (null: never). */
 export async function lastViewed(db: Reader, jobId: string, staffUserId: string): Promise<LastViewed> {
-  const v = await db
+  return (await lastViewedOf(db, [jobId], staffUserId)).get(jobId) ?? null
+}
+
+/** lastViewed() of one staff member for several jobs in one statement, by job (TSK-0105, My job packets). */
+export async function lastViewedOf(
+  db: Reader,
+  jobIds: readonly string[],
+  staffUserId: string,
+): Promise<Map<string, NonNullable<LastViewed>>> {
+  const out = new Map<string, NonNullable<LastViewed>>()
+  if (jobIds.length === 0) return out
+  const rows = await db
     .selectFrom('work.job_packet_views')
-    .select(['version', 'viewed_at'])
-    .where('job_id', '=', jobId)
+    .select(['job_id', 'version', 'viewed_at'])
+    .distinctOn('job_id')
+    .where('job_id', 'in', [...jobIds])
     .where('staff_user_id', '=', staffUserId)
+    .orderBy('job_id')
     .orderBy('viewed_at', 'desc')
     .orderBy('id', 'desc')
-    .limit(1)
-    .executeTakeFirst()
-  return v ? { version: v.version, viewedAt: v.viewed_at } : null
+    .execute()
+  for (const v of rows) out.set(v.job_id, { version: v.version, viewedAt: v.viewed_at })
+  return out
 }
 
 /** What changed from the version a staff member last viewed to `row` (empty when it is that version or never viewed). */

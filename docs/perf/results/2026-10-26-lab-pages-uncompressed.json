@@ -1,0 +1,186 @@
+{
+  "kind": "lab",
+  "task": "TSK-0105",
+  "measuredAt": "2026-10-26T15:08:51.681Z",
+  "tool": "Playwright Chromium with DevTools-protocol throttling (Lighthouse default mobile and desktop values)",
+  "note": "Shared developer Mac (Apple M4, 10 cores): other agents' test suites running; built server on loopback (no TLS, no proxy, no compression in the app); throttling applied in Chromium",
+  "machine": {
+    "platform": "darwin 27.0.0",
+    "cpus": 10,
+    "loadAverage": [
+      2.43701171875,
+      4.08349609375,
+      6.6494140625
+    ]
+  },
+  "results": [
+    {
+      "profile": "mobile",
+      "path": "/",
+      "status": 200,
+      "runs": 3,
+      "lcpMs": 592,
+      "cls": 0.0009259672419450775,
+      "fcpMs": 592,
+      "tbtMs": 0,
+      "transferBytes": 618703,
+      "requests": 13
+    },
+    {
+      "profile": "mobile",
+      "path": "/services",
+      "status": 200,
+      "runs": 3,
+      "lcpMs": 616,
+      "cls": 0.5161242932995792,
+      "fcpMs": 616,
+      "tbtMs": 0,
+      "transferBytes": 247699,
+      "requests": 11
+    },
+    {
+      "profile": "mobile",
+      "path": "/services/interior-painting",
+      "status": 200,
+      "runs": 3,
+      "lcpMs": 608,
+      "cls": 0.0010454220330063746,
+      "fcpMs": 608,
+      "tbtMs": 0,
+      "transferBytes": 252733,
+      "requests": 11
+    },
+    {
+      "profile": "mobile",
+      "path": "/request",
+      "status": 200,
+      "runs": 3,
+      "lcpMs": 4396,
+      "cls": 0.022358287463971668,
+      "fcpMs": 544,
+      "tbtMs": 0,
+      "transferBytes": 756084,
+      "requests": 16
+    },
+    {
+      "profile": "mobile",
+      "path": "/areas",
+      "status": 200,
+      "runs": 3,
+      "lcpMs": 596,
+      "cls": 0.0009291206907566552,
+      "fcpMs": 596,
+      "tbtMs": 0,
+      "transferBytes": 628830,
+      "requests": 13
+    },
+    {
+      "profile": "mobile",
+      "path": "/account",
+      "status": 200,
+      "runs": 3,
+      "lcpMs": 3840,
+      "cls": 0.1524763328694634,
+      "fcpMs": 540,
+      "tbtMs": 0,
+      "transferBytes": 646223,
+      "requests": 12
+    },
+    {
+      "profile": "mobile",
+      "path": "/portal/",
+      "status": 200,
+      "runs": 3,
+      "lcpMs": 3480,
+      "cls": 0.000609131639530929,
+      "fcpMs": 3240,
+      "tbtMs": 0,
+      "transferBytes": 749487,
+      "requests": 5
+    },
+    {
+      "profile": "desktop",
+      "path": "/",
+      "status": 200,
+      "runs": 3,
+      "lcpMs": 184,
+      "cls": 0.001804065072016461,
+      "fcpMs": 172,
+      "tbtMs": 0,
+      "transferBytes": 618703,
+      "requests": 13
+    },
+    {
+      "profile": "desktop",
+      "path": "/services",
+      "status": 200,
+      "runs": 3,
+      "lcpMs": 176,
+      "cls": 0.27036617969821675,
+      "fcpMs": 176,
+      "tbtMs": 0,
+      "transferBytes": 247699,
+      "requests": 11
+    },
+    {
+      "profile": "desktop",
+      "path": "/services/interior-painting",
+      "status": 200,
+      "runs": 3,
+      "lcpMs": 180,
+      "cls": 0.0008766634562064033,
+      "fcpMs": 180,
+      "tbtMs": 0,
+      "transferBytes": 252733,
+      "requests": 11
+    },
+    {
+      "profile": "desktop",
+      "path": "/request",
+      "status": 200,
+      "runs": 3,
+      "lcpMs": 868,
+      "cls": 0.006725055088579518,
+      "fcpMs": 168,
+      "tbtMs": 0,
+      "transferBytes": 756084,
+      "requests": 16
+    },
+    {
+      "profile": "desktop",
+      "path": "/areas",
+      "status": 200,
+      "runs": 3,
+      "lcpMs": 172,
+      "cls": 0.0004836657619005924,
+      "fcpMs": 172,
+      "tbtMs": 0,
+      "transferBytes": 628830,
+      "requests": 13
+    },
+    {
+      "profile": "desktop",
+      "path": "/account",
+      "status": 200,
+      "runs": 3,
+      "lcpMs": 784,
+      "cls": 0.05166790305869305,
+      "fcpMs": 168,
+      "tbtMs": 0,
+      "transferBytes": 646223,
+      "requests": 12
+    },
+    {
+      "profile": "desktop",
+      "path": "/portal/",
+      "status": 200,
+      "runs": 3,
+      "lcpMs": 676,
+      "cls": 0.00018690015468581268,
+      "fcpMs": 644,
+      "tbtMs": 0,
+      "transferBytes": 749487,
+      "requests": 5
+    }
+  ]
+}

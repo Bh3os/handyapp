@@ -15,7 +15,7 @@
 //   reserved test domains that no provider delivers to. A test payment is recorded by staff as cash: no payment
 //   provider or account is called.
 import { randomUUID } from 'node:crypto'
-import { syntheticContacts, withTx, type Db, type Tx } from '@handyhub/db'
+import { syntheticContacts, withTx, type Db, type SeedContext, type Tx } from '@handyhub/db'
 import { addLocalDays, localDateOf } from '@handyhub/domain'
 import type { SubmitBody } from '@handyhub/domain/request-form'
 import type { StaffActor } from '@handyhub/policy'
@@ -112,10 +112,15 @@ type Project = {
 /** A fixed fictional identity (the designated test accounts, TSK-0142) in place of a run's own generated one. */
 export type TestIdentity = { email: string; fullName: string }
 
-/** The scenario steps, sharing one run's counters and fictional contacts. */
-function freshDataKit(deps: FreshDataDeps) {
+/**
+ * The scenario steps, sharing one run's counters and fictional contacts. TSK-0105: the performance dataset
+ * (test/perf/dataset.ts) drives the same steps at volume, with its own pool of fictional contacts.
+ */
+export function freshDataKit(
+  deps: FreshDataDeps,
+  contacts: Pick<SeedContext, 'email' | 'phone'> = syntheticContacts(),
+) {
   const invoke = routeInvoker(deps.routes, deps.requestId)
-  const contacts = syntheticContacts()
   const tag = deps.runId.slice(0, 8)
   const owner: Caller = {
     actor: deps.owner.actor,
@@ -612,7 +617,20 @@ function freshDataKit(deps: FreshDataDeps) {
     }
   }
 
-  return { run, submit, registered, published, qualify, invoke, requestVersion, owner, booked, approved, paid }
+  return {
+    run,
+    submit,
+    registered,
+    published,
+    qualify,
+    invoke,
+    requestVersion,
+    owner,
+    booked,
+    approved,
+    paid,
+    propertyChecked,
+  }
 }
 
 /** Runs every scenario; one outcome per scenario, in order. */
