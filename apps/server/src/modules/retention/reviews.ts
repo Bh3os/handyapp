@@ -165,8 +165,11 @@ export async function listReviewEntries(
     if (page.after.length !== 1 || typeof seq !== 'string' || !SEQ.test(seq)) throw invalid('querystring.cursor')
     after = seq
   }
-  // The latest decision of each entry (TSK-0100); a keep-longer whose time passed reads as pending again.
+  // The latest decision of each entry (TSK-0100); a keep-longer whose time passed reads as pending again. TSK-0135: an
+  // audit entry that no longer exists was deleted by the audit-retention workflow (the database's only delete path).
   const state = sql<string>`CASE
+      WHEN privacy.retention_reviews.record_type = 'audit_event' AND NOT EXISTS (SELECT 1 FROM platform.audit_events ae
+        WHERE ae.id = privacy.retention_reviews.record_id) THEN 'deleted'
       WHEN ld.decision IS NULL THEN 'pending'
       WHEN ld.decision = 'delete' THEN 'deleted'
       WHEN ld.decision = 'archive' THEN 'archived'

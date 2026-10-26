@@ -212,6 +212,10 @@ export const ACTIONS = [
   'export.bulk',
   'audit.edit',
   'audit.delete',
+  // TSK-0135 (OWN-DEC-164): the dedicated audit-retention workflow, the Owner's alone with a fresh sign-in and a
+  // reason; "Edit or delete audit events" stays refused for every role (no ordinary screen or API deletes an entry).
+  'audit.retention_archive',
+  'audit.retention_delete',
 ] as const
 export type Action = (typeof ACTIONS)[number]
 
@@ -743,6 +747,12 @@ export const MATRIX: readonly MatrixRow[] = [
   ),
   row(STAFF, 'Bulk export', ['export.bulk'], { owner: Y('F', F) }),
   row(STAFF, 'Edit or delete audit events', ['audit.edit', 'audit.delete'], {}, { denyReason: 'AUDIT_APPEND_ONLY' }),
+  row(
+    STAFF,
+    'Archive or delete audit records past 7 years in the audit-retention workflow',
+    ['audit.retention_archive', 'audit.retention_delete'],
+    { owner: Y('F', F) },
+  ),
 ]
 
 function startPauseResume(): Partial<Record<Action, Rule>> {

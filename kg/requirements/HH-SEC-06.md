@@ -38,3 +38,5 @@ Rules ([[OWN-DEC-123]]):
 **Changed by [[OWN-DEC-164]] (2026-10-21):** deletion after 7 years is possible only through the retention workflow of [[HH-SEC-08]]; editing stays impossible.
 
 **Changed by [[OWN-DEC-202]] (2026-10-22):** MFA enrolment, factor reset and recovery-code use stay audited; enrolment is now mandatory.
+
+**Built by [[TSK-0135]] (2026-10-26):** the 7 years of audit records are counted in calendar years in the business time zone; past them an entry is archived or deleted only in the Owner's audit-retention workflow of [[HH-SEC-08]], itself audited (`retention.audit_archive`, `retention.audit_delete`) and kept in its own trail. PROPOSED details: [[OQ-AUDIT-RETENTION-DETAILS]].
