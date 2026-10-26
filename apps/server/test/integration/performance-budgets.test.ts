@@ -14,12 +14,6 @@ import { generateDataset, proposedMix, type Generated } from '../perf/dataset.js
 import { openPerfEnvironment, type PerfEnvironment } from '../perf/environment.js'
 import { buildPlan, countQueries, phases, runClients, summarize, type LoadPlan } from '../perf/load.js'
 
-/**
- * Reads that legitimately run statements per item they list, as the requirement they implement says (recorded with
- * measured numbers in docs/perf/README.md): My job packets brings each assigned job's packet up to date first.
- */
-const PER_ITEM_BY_DESIGN = new Set(['my_job_packets'])
-
 let perf: PerfEnvironment
 let data: Generated
 let plan: LoadPlan
@@ -75,11 +69,13 @@ describe('performance budgets on a small fixed synthetic dataset (TSK-0105, HH-N
   it('[HH-NFR-01] a key read runs the same number of statements when the data doubles (no N+1 queries)', async () => {
     const reads = [...[...plan.reads.values()].flat(), ...plan.customerReads]
     const before = await countQueries(perf, reads)
-    // Twice the jobs; the new visits land on the same days as the first ones (the board shows more of them).
-    await generateDataset(perf, proposedMix(48), { firstSlot: data.visits.length })
+    // Twice the jobs. The new visits start a new round of the workers, so the first worker (whose My job packets is
+    // counted) gets a second assigned job, and they land on the same days as the first ones (the board shows more).
+    const workers = perf.staff.filter((s) => s.role === 'worker').length
+    await generateDataset(perf, proposedMix(48), { firstSlot: Math.ceil(data.visits.length / workers) * workers })
     const after = await countQueries(perf, reads)
     const grown = [...after.entries()]
-      .filter(([op, n]) => !PER_ITEM_BY_DESIGN.has(op) && n > (before.get(op) ?? 0) + 2)
+      .filter(([op, n]) => n > (before.get(op) ?? 0) + 2)
       .map(([op, n]) => `${op}: ${before.get(op)} -> ${n}`)
     expect(grown).toEqual([])
     expect(after.size).toBeGreaterThanOrEqual(15)
