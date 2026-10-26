@@ -31,3 +31,5 @@ Rules:
 - Customer pages are English only; the premium design is kept.
 
 **Changed by [[OWN-DEC-180]] (2026-10-21):** pages that pass the quality review are published in production without per-service owner approval; uncertain claims stay hidden.
+
+**Used by [[TSK-0146]] (2026-10-26):** the reviewed "Getting ready" steps are what the Owner approves, as they are or edited, as a service's default preparation instructions for window offers ([[OWN-DEC-194]] B7); every reviewed page passes the unsafe-instruction rules ([[OQ-PREPARATION-DEFAULT-DETAILS]]).

@@ -1,0 +1,23 @@
+---
+id: OQ-PREPARATION-DEFAULT-DETAILS
+type: question
+title: The default preparation instruction and unsafe-instruction details no decision gives
+status: open
+area: scheduling
+links:
+  related: ["[[OWN-DEC-194]]", "[[OWN-DEC-180]]", "[[OWN-DEC-84]]", "[[OWN-DEC-98]]", "[[HH-SCH-11]]", "[[HH-CUS-02]]", "[[FACT-SVC-SUSPECTED-HAZMAT]]", "[[OQ-SAFETY-REVIEW]]", "[[ROLE-MATRIX]]", "[[TSK-0146]]", "[[TSK-0132]]"]
+source: "TSK-0146 (2026-10-26): OWN-DEC-194 B7 states the rule; the details below are PROPOSED"
+---
+**Question:** does the owner approve, or change, these PROPOSED details of the default preparation instructions for window offers? The unsafe-instruction rules are also for the safety reviewer ([[OQ-SAFETY-REVIEW]]).
+
+- **Who answers:** the owner; the rule families and their words also a qualified safety professional.
+- **Decided, in use ([[OWN-DEC-194]] B7, [[OWN-DEC-180]], [[OWN-DEC-84]], [[OWN-DEC-98]]):** reviewed service-specific preparation instructions are the default of an offer; staff may customize them where appropriate; unsafe customer instructions are prevented: a customer is never asked to do hazardous preparation or to inspect a hazardous area.
+- **PROPOSED, in use on private staging:**
+  - **Approval before use.** The reviewed "Getting ready" steps of the 26 service pages ([[TSK-0132]]) are approved for the pages by [[OWN-DEC-180]]; no decision says they are also the offer default as they are. So no service has a default until the Owner approves one on the settings screen ("Default preparation instructions for offers"): the reviewed steps as they are, in one action, or the Owner's own edit, with an optional note. Until then the service is NOT CONFIGURED and its offers start without instructions. Every approval is the service's next version (kept, never changed); the Owner may remove a default, which makes the service NOT CONFIGURED again (migration 0123). Alternative for the owner: treat [[OWN-DEC-180]] as that approval and make the reviewed steps of all 26 services the defaults at once.
+  - **Who approves.** The Owner only, under the existing [[ROLE-MATRIX]] row "Approve care instructions, service content, estimate terms, SOP review sign-off" (`service_content.approve`); no fresh sign-in. Staff who offer windows read the default of the visit they offer.
+  - **Format.** One step per line. A visit with several services starts from each service's default under its service name, separated by a blank line; a service without a default is named to staff as not configured. A combination over the 1,000 characters an offer keeps is shown to staff to shorten.
+  - **Which services.** A work visit: its job's work packages; an estimate visit: the project's work packages, else the services of the request.
+  - **What the offer keeps.** The offer form is prefilled with the default; staff may change or clear it, or start again from it. The offer keeps exactly the text sent and how it stands against the defaults in force when it was saved: the default as given, edited (changed or cleared), written by staff (no default) or none, with the default versions it started from. A later change of a default never changes an offer already saved.
+  - **The unsafe-instruction rules.** Five families, each an action on its subject in English: hazardous materials (asbestos, vermiculite, lead paint or pipes, mold, popcorn or acoustic ceilings: remove, scrape, sand, strip, disturb, clean, spray, test …); licensed trade work (gas, propane, wiring, circuits, panels, breakers, outlets, fixtures, plumbing, water lines, water heaters, furnaces, HVAC: disconnect, rewire, cap, repair, replace, install, move, open …); structural work (load-bearing walls, beams, joists, rafters, trusses, columns, foundations: remove, cut, notch, demolish, take down …); heights and confined spaces (climb, get or step onto a roof, ladder or scaffold; enter or crawl into an attic or crawl space); a hazard inspection (inspect, check or look for gas leaks, nests, pests, hazardous materials, wiring, or in an attic, crawl space, roof, chimney or panel). A mention alone passes ("tell us about any past mold"), and so does a sentence telling the customer not to do it ("do not climb on the roof"). The reviewed steps of all 26 pages pass. Unsafe text is refused when an offer is saved and again when a draft is published, and when the Owner approves a default; staff see the same check while they type and rephrase (no override).
+  - **Staff text.** The screen and form wording in English and Spanish (staff catalogs `preparation.*`, `offers.prep.*`, `enum.preparation*`), written for this build.
+- **Until answered:** the PROPOSED details above are used; each is a small change to the nodes, the catalogs or the code.

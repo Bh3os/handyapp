@@ -36,6 +36,9 @@
 //   GET  /staff/visits/:visitId/worker-access  the assigned workers' visit-day access and the Owner's extensions, with
 //        POST .../worker-access/extensions and POST /staff/visit-access-extensions/:extensionId/end
 //                                              (TSK-0128, worker-access.ts)
+//   GET  /staff/visits/:visitId/preparation-default, GET /staff/preparation-defaults and
+//        POST /staff/services/:serviceId/preparation-defaults  the Owner-approved default preparation instructions
+//                                              offers start from (TSK-0146, preparation-routes.ts)
 // Every write takes an idempotency key and records its audit event with the local window, zone, offsets and instants.
 // The customer's side of an offer (select a window, ask for other times) is the portal module's (portal/appointments.ts).
 import type { Tx } from '@handyhub/db'
@@ -61,6 +64,7 @@ import {
   type OfferInput,
   type OfferResult,
 } from './offers.js'
+import { preparationRoutes } from './preparation-routes.js'
 import { appointmentReminderRoutes } from './reminder-routes.js'
 import { siteCheckRoutes } from './site-check-routes.js'
 import { workerAccessRoutes } from './worker-access.js'
@@ -381,7 +385,11 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
       'visit version shown (HH-SCH-11, HH-LEAD-07, OWN-DEC-144, OWN-DEC-194). Names the windows (local date and ' +
       "arrival window in the visit's zone, with the reading of a repeated hour when needed), the visit's whole team " +
       '(exactly its number of workers, the lead first, and an item for each equipment entry) and optional ' +
-      'customer-facing preparation instructions. The number of windows is the configured policy ' +
+      'customer-facing preparation instructions (TSK-0146, OWN-DEC-194 B7: the form starts them from the ' +
+      'Owner-approved defaults of the visit’s services; the offer keeps the text sent, with its basis default, ' +
+      'edited, staff or none; unsafe instructions are refused, VALIDATION_FAILED UNSAFE_<RULE> on ' +
+      'body.preparationInstructions, and checked again when a draft is published). The number of windows is the ' +
+      'configured policy ' +
       '(scheduling.window_offers: 2-3, OWN-DEC-99 and OWN-DEC-105; NOT CONFIGURED while unset), their reserved ranges ' +
       'may not overlap (OFFER_WINDOWS_OVERLAP) and each must start in the future. TSK-0145: with draft true the offer ' +
       'is only saved as a draft (B1): nothing is held, no number is given and no clock runs (one draft per visit, ' +
@@ -859,6 +867,8 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
       ...siteCheckRoutes(),
       // TSK-0128: the assigned workers' visit-day access and the Owner's extensions.
       ...workerAccessRoutes(),
+      // TSK-0146: the Owner-approved default preparation instructions offers start from.
+      ...preparationRoutes(),
     ],
   }
 }

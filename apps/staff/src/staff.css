@@ -1173,3 +1173,9 @@
   max-width: 100%;
   overflow-x: auto;
 }
+
+/* TSK-0146: an offer's preparation instructions keep their lines (one step per line). */
+.staff-offer__instructions,
+.staff-preparation__text {
+  white-space: pre-line;
+}

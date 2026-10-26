@@ -942,6 +942,12 @@ export const LABEL_FAMILIES = {
     'RETURN_WORK_NOT_DECIDED',
     'NOTE_REQUIRED',
     'REQUIRED',
+    // TSK-0146 (OWN-DEC-194 B7): unsafe preparation instructions (@handyhub/domain preparation.ts unsafeCode).
+    'UNSAFE_HAZARDOUS_MATERIALS',
+    'UNSAFE_LICENSED_TRADE',
+    'UNSAFE_STRUCTURAL',
+    'UNSAFE_HEIGHTS_AND_CONFINED_SPACES',
+    'UNSAFE_HAZARD_INSPECTION',
   ],
   /** The outcome of a final cancellation under FACT-CANCELLATION-RULES (TSK-0066; @handyhub/domain/cancellation). */
   cancellationOutcome: [
@@ -2555,6 +2561,38 @@ export const LABEL_FAMILIES = {
   /** TSK-0126 (OWN-DEC-167): what staff confirm a site contact may do, and who the customer designated. */
   siteContactAuthority: ['property_access', 'visit_coordination'],
   siteContactDesignation: ['customer', 'other'],
+  /** TSK-0146 (OWN-DEC-194 B7): the unsafe-instruction rule families (@handyhub/domain PREPARATION_RULES). */
+  preparationRule: [
+    'hazardous_materials',
+    'licensed_trade',
+    'structural',
+    'heights_and_confined_spaces',
+    'hazard_inspection',
+  ],
+  /** TSK-0146: how an offer's instructions stand against the default (@handyhub/domain PREPARATION_BASES). */
+  preparationBasis: ['default', 'edited', 'staff', 'none'],
+  /** TSK-0146: what a default version is (catalog.preparation_defaults.basis). */
+  preparationDefaultBasis: ['service_page', 'edited', 'removed'],
+  /** TSK-0146: why the Owner's default was not approved (apps/server/src/modules/visits/preparation.ts). */
+  preparationProblem: [
+    'UNSAFE_HAZARDOUS_MATERIALS',
+    'UNSAFE_LICENSED_TRADE',
+    'UNSAFE_STRUCTURAL',
+    'UNSAFE_HEIGHTS_AND_CONFINED_SPACES',
+    'UNSAFE_HAZARD_INSPECTION',
+    'TEXT_REQUIRED',
+    'TEXT_TOO_LONG',
+    'SERVICE_PAGE_NOT_REVIEWED',
+    'DEFAULT_UNCHANGED',
+    'NO_DEFAULT',
+    'STALE_VERSION',
+    'FORBIDDEN',
+    'NOT_FOUND',
+    'VALIDATION_FAILED',
+    'CONFLICT',
+    'INTERNAL',
+    'UNAVAILABLE',
+  ],
 } as const satisfies Record<string, readonly string[]>
 
 export type LabelFamily = keyof typeof LABEL_FAMILIES
