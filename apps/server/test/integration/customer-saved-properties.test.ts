@@ -230,6 +230,7 @@ const fieldCodes = (res: { json: () => { error: { fieldErrors: { field: string; 
 
 describe('saved properties (TSK-0113, HH-ID-12)', () => {
   it('[HH-ID-12][HH-ID-03][T20] only the account’s own verified history is listed; the customer names, renames and removes an address', async () => {
+    // TSK-0150 (OWN-DEC-199, portal.properties.intro): the addresses come from the account's requests, worked or not.
     const email = 'saved-owner@example.test'
     const { s: first, cookie, accountId } = await accountFor(email)
     // The same email on a request whose contact was never verified nor linked: never in the account's history.

@@ -18,6 +18,11 @@
 //   review." and nothing more: the hazard, its report and every staff detail stay on the server.
 // - TSK-0124 (HH-ID-14, OWN-DEC-160): each summary of the projects list names its dashboard section (Active, Completed
 //   for the Project History, Cancelled/Archived) and counts the documents its Documents tab lists.
+// - TSK-0150 (OWN-DEC-199, HH-PORT-02): the status reads every record that changes what the customer must do, so no
+//   sentence claims "Nothing is needed from you" or "Waiting on HandyHub" while the customer has a step: a started job
+//   is "Work in progress" (a job paused without an open safety hold is "Update pending"), a recorded "Arrived" is no
+//   longer "on the way", a change order open for the customer's decision asks to review the change, and an issued
+//   final invoice with a balance not covered by a pending check asks to pay it. The payment summary names that balance.
 import type { Db, Tx } from '@handyhub/db'
 import {
   customerCompletion,
@@ -33,6 +38,7 @@ import {
 } from '@handyhub/domain'
 import type { DataScope } from '@handyhub/policy'
 import { loadConfig } from '../../platform/config/index.js'
+import { changeOrderAwaitingDecision } from '../change-orders/approve.js'
 import { customerEstimateList } from '../estimates/customer.js'
 import { approvalFacts } from '../estimates/receipt.js'
 import { openVisitOutcome } from '../field/outcomes.js'
@@ -70,6 +76,11 @@ export type ProjectOverview = {
    * (or once verified money covers it); no invoice exists yet.
    */
   payment: CustomerDeposit
+  /**
+   * TSK-0150: the balance still owed on the issued final invoices (confirmed payments, credits and write-offs taken
+   * off; a pending check is not), shown beside the deposit; 0 while none is owed.
+   */
+  invoiceBalanceCents: number
   /** The next confirmed visit (TSK-0063), or none. */
   appointment: CustomerAppointment | null
   refreshedAt: Date
@@ -194,6 +205,16 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
   // TSK-0078 (HH-SCH-09): a recorded visit outcome still waiting for staff follow-up shows only "Update pending": no
   // reason, note, worker or arrival time.
   const outcomeOpen = await openVisitOutcome(db, project.id)
+  // TSK-0150 (OWN-DEC-199): a started job is work in progress; a job paused (by a hazard report) whose safety hold is
+  // no longer open waits on HandyHub to resume it, which the customer sees as "Update pending" and nothing more.
+  const workInProgress = job?.operational_state === 'in_progress'
+  const pausedWithoutSafetyHold = job?.operational_state === 'paused' && !safety
+  // TSK-0150 (HH-PORT-02): the issued final invoices' balance; it is the customer's to pay unless a pending check
+  // already covers it (the check counts once it has cleared).
+  const finals = (await customerInvoiceList(db, project.id)).filter((i) => i.kind === 'final' && i.state !== 'voided')
+  const invoiceBalanceCents = finals.reduce((a, i) => a + i.balanceCents, 0)
+  const invoiceDue = finals.some((i) => i.balanceCents - i.pendingCents > 0)
+  const changeToReview = await changeOrderAwaitingDecision(db, project.id)
   const facts: PortalFacts = {
     requestState: r.state as RequestState,
     projectState: p.state as ProjectState,
@@ -205,8 +226,15 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
     visitWindowsOffered: visits.visitWindowsOffered,
     workWindowsOffered: visits.workWindowsOffered,
     ...(visits.visit ? { visit: visits.visit } : {}),
-    ...(safety ? { hold: 'safety' as const } : outcomeOpen ? { hold: 'other' as const } : {}),
+    ...(safety
+      ? { hold: 'safety' as const }
+      : outcomeOpen || pausedWithoutSafetyHold
+        ? { hold: 'other' as const }
+        : {}),
     ...(completion ? { completion } : {}),
+    ...(workInProgress ? { workInProgress } : {}),
+    ...(invoiceDue ? { invoiceDue } : {}),
+    ...(changeToReview ? { changeToReview } : {}),
   }
   const status = customerStatus(facts)
   // The entry that put the project where it is now dates the status and carries its customer text.
@@ -221,6 +249,7 @@ async function overviewFor(db: Reader, project: { id: string; reference: string 
     // Newest first: the latest update leads.
     timeline: entries.reverse(),
     payment,
+    invoiceBalanceCents,
     appointment: visits.appointment,
     refreshedAt: now,
   }

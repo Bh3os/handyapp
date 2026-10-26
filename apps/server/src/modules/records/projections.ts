@@ -448,6 +448,8 @@ export const PROJECT_OVERVIEW = customerView(
         object({ state: enumOf(['deposit_received']), amountCents: { type: 'integer' } }),
       ],
     },
+    // TSK-0150 (OWN-DEC-199): the balance still owed on the issued final invoices, beside the deposit; 0 while none.
+    invoiceBalanceCents: { type: 'integer', minimum: 0 },
     refreshedAt: DATE,
     refreshSeconds: { type: 'integer', minimum: 0 },
   },
@@ -460,6 +462,7 @@ export const PROJECT_OVERVIEW = customerView(
     timeline: TimelineRecord[]
     appointment: AppointmentRecord | null
     payment: CustomerPayment
+    invoiceBalanceCents: number
     refreshedAt: Date
     refreshSeconds: number
   }) => ({
@@ -471,6 +474,7 @@ export const PROJECT_OVERVIEW = customerView(
     timeline: o.timeline.map(entry),
     appointment: o.appointment ? appointmentOf(o.appointment) : null,
     payment: customerPayment(o.payment),
+    invoiceBalanceCents: o.invoiceBalanceCents,
     refreshedAt: o.refreshedAt.toISOString(),
     refreshSeconds: o.refreshSeconds,
   }),
@@ -560,6 +564,8 @@ const ESTIMATE_LIST_ITEM = object({
   totalCents: CENTS,
   // TSK-0058 (HH-PORT-10): an approved version's approval receipt PDF, issued or being prepared; null otherwise.
   receipt: { oneOf: [{ type: 'null' }, enumOf(['preparing', 'issued'])] },
+  // TSK-0150: the zone the end of validity is shown in, as on the estimate itself.
+  validUntilZone: { oneOf: [{ type: 'null' }, object({ zone: STRING, business: { type: 'boolean' } })] },
 })
 type EstimateListRecord = {
   number: string
@@ -569,6 +575,7 @@ type EstimateListRecord = {
   validUntil: Date | null
   totalCents: number
   receipt: 'preparing' | 'issued' | null
+  validUntilZone: { zone: string; business: boolean } | null
 }
 // TSK-0085 (HH-PORT-10, HH-FIN-04): the issued invoices (never a draft), each current or superseded (voided and
 // reissued), its payment state, issue date, total, the balance still owed from confirmed payments and credits, any
@@ -620,6 +627,9 @@ const listedView = customerView(
             validUntil: e.validUntil ? e.validUntil.toISOString() : null,
             totalCents: e.totalCents,
             receipt: e.receipt,
+            validUntilZone: e.validUntilZone
+              ? { zone: e.validUntilZone.zone, business: e.validUntilZone.business }
+              : null,
           }))
         : undefined,
     invoices:
@@ -1281,6 +1291,8 @@ export const CUSTOMER_ESTIMATE = customerView(
         items: enumOf([
           'terms_not_configured',
           'terms_not_in_effect',
+          // TSK-0150: the terms changed after this version was sent; only the current terms can be accepted.
+          'terms_not_current',
           'superseded',
           'expired',
           'not_published',
@@ -2159,6 +2171,8 @@ export const CUSTOMER_CHANGE_ORDERS = customerView(
       ],
     },
     currentTotalCents: NULLABLE_CENTS,
+    // TSK-0150: the zone each "Valid until" is shown in, as on the estimate.
+    validUntilZone: { oneOf: [{ type: 'null' }, object({ zone: STRING, business: { type: 'boolean' } })] },
     changeOrders: {
       type: 'array',
       items: object({
@@ -2204,6 +2218,7 @@ export const CUSTOMER_CHANGE_ORDERS = customerView(
     reference: string
     original: { estimateNumber: string; version: number; totalCents: number } | null
     currentTotalCents: number | null
+    validUntilZone: { zone: string; business: boolean } | null
     changeOrders: readonly Record<string, unknown>[]
     refreshedAt: Date
     refreshSeconds: number
@@ -2211,6 +2226,7 @@ export const CUSTOMER_CHANGE_ORDERS = customerView(
     reference: r.reference,
     original: r.original,
     currentTotalCents: r.currentTotalCents,
+    validUntilZone: r.validUntilZone ? { zone: r.validUntilZone.zone, business: r.validUntilZone.business } : null,
     changeOrders: r.changeOrders,
     refreshedAt: r.refreshedAt.toISOString(),
     refreshSeconds: r.refreshSeconds,

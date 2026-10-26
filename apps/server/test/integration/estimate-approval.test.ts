@@ -797,6 +797,8 @@ describe('[RULE-NO-INVENTED-FACTS][HH-EST-13] terms that are not in effect are n
     expect(other.statusCode).toBe(409)
     expect(other.json()).toMatchObject({ error: { fieldErrors: [{ field: 'terms', code: 'TERMS_NOT_CURRENT' }] } })
     expect(await counts(e.projectId)).toEqual(NOTHING)
+    // TSK-0150 (OWN-DEC-199): the page says so and offers no approval the server would refuse.
+    expect((await detail(e, cookie)).approval).toMatchObject({ available: false, reasons: ['terms_not_current'] })
   })
 
   it('[OWN-DEC-187][RULE-NO-INVENTED-FACTS] in a fresh database the terms are the owner sign-off of v1.0, not attorney-reviewed', async () => {
