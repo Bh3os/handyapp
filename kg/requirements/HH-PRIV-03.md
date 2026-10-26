@@ -23,3 +23,5 @@ source: "guide 25.2 HH-PRIV-03; OWN-DEC-71, OWN-DEC-113, OWN-DEC-124"
 - Deletions and suppressions are re-applied after any backup restore.
 
 **Changed by [[OWN-DEC-175]], [[OWN-DEC-201]] (2026-10-21):** targets and deadlines of [[HH-PRIV-07]]; risk-based identity checks; exports may include audit-log data where disclosure applies; accounting checks before deletion.
+
+**Built by [[TSK-0152]] (2026-10-26):** identity checks by risk: the fresh code for every request, and the Owner's confirmation of the identity evidence before completing an export or a deletion; the secure alternative is a request the Owner records for a person verified another way, named by the email or phone on file. The export holds the requester's own data found in audit entries without summaries, reasons or staff names. A correction keeps the changes made in the records' own screens and the correction entries recorded beside protected records. Deletion checks the accounting records (found or none found) and never assumes an external payment. PROPOSED details: [[OQ-PRIVACY-REFINEMENT-DETAILS]].

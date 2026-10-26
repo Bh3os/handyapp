@@ -823,10 +823,27 @@ export const TABLES = {
   },
   'privacy.privacy_requests': {
     holds:
-      "Customers' export, correction and deletion requests: the requester, identity confirmation, the customer's " +
-      "words for a correction, the review's counts and the Owner's decision",
+      "Customers' export, correction and deletion requests: the requester, identity confirmation (a fresh code, or " +
+      "the Owner's check and note for a request made outside the portal), the customer's words for a correction, " +
+      "the review's counts and the Owner's decision",
     classes: ['contact', 'logs_audit'],
     categories: [NS],
+  },
+  // TSK-0152 (0118): corrections of records never rewritten, recorded as new entries (OWN-DEC-201 I3).
+  'privacy.request_corrections': {
+    holds:
+      'Corrections recorded on a correction request beside records that are never rewritten (approvals, invoices, ' +
+      "payments, audit entries): the record's kind and reference and the Owner's correction",
+    classes: ['contact', 'logs_audit'],
+    categories: [NS],
+  },
+  // TSK-0152 (0118): the Owner's reviews of the table-to-retention mapping (OWN-DEC-201 I5).
+  'privacy.mapping_reviews': {
+    holds:
+      "The Owner's reviews of the table-to-retention mapping: its digest, whether the CPA and the attorney confirmed " +
+      'it, and the note',
+    classes: ['configuration'],
+    categories: [SH],
   },
   'privacy.retention_decisions': {
     holds: "The Owner's Delete, Archive and Keep longer decisions on review entries, with the reason",
@@ -1435,6 +1452,13 @@ export function renderDataInventory(): string {
     '  final status remain (`privacy.request_remainders`). Consent evidence of the erased contact moves to a restricted',
     '  compliance record (`privacy.consent_evidence`) with its own review date. Site visits, cases and links between',
     '  customer records block it (OQ-REQUEST-ERASURE-DETAILS).',
+    '- TSK-0152 (OWN-DEC-201 I4): before a deletion the accounting records linked to the record are checked: issued',
+    '  invoices, payments, deposit records, refunds, credits and write-offs and reconciliation items are found (protected',
+    '  evidence) or none found; an unrecorded external payment is not assumed. An unresolved discrepancy (an open',
+    '  reconciliation item, a pending check, an open dispute, an uncertain refund) blocks it until resolved in the',
+    '  reconciliation queue.',
+    '- TSK-0152 (OWN-DEC-201 I5): in production the Delete actions stay disabled until the Owner records a review of the',
+    '  table-to-retention mapping (docs/retention-mapping-review.md) confirmed by the CPA and the attorney.',
     '- The deletion log (`privacy.deletions`, append-only) keeps actor, time, record reference, reason and counts, never',
     '  the deleted content. Account deletion is separate from business records (OWN-DEC-71).',
     "- Privacy requests (HH-PRIV-03): the customer's export, correction or deletion request is reviewed and decided by",

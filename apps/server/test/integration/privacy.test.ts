@@ -400,7 +400,9 @@ describe('the Owner Delete action on a review entry (TSK-0100, HH-PRIV-05, HH-DA
     expect(p.target.checks).toContainEqual({ check: 'signed_approvals', result: 'none_found' })
     // Not recorded by the software: never "none found", always for the Owner to confirm.
     expect(p.target.checks).toContainEqual({ check: 'disputes', result: 'not_recorded' })
-    expect(p.target.checks).toContainEqual({ check: 'issued_invoices', result: 'not_recorded' })
+    // TSK-0152 (OWN-DEC-201 I4): the accounting records are checked; none recorded is none found.
+    expect(p.target.checks).toContainEqual({ check: 'issued_invoices', result: 'none_found' })
+    expect(p.target.checks).toContainEqual({ check: 'financial_discrepancies', result: 'none_found' })
     expect(p.target.confirm.sort()).toEqual([...ALL_CHECKS].sort())
 
     // A fresh sign-in is required; nothing is deleted without it.
@@ -499,7 +501,7 @@ describe('the Owner Delete action on a review entry (TSK-0100, HH-PRIV-05, HH-DA
     expect(entries.json<{ items: { id: string }[] }>().items.map((i) => i.id)).toContain(entry.id)
   })
 
-  it('[HH-PRIV-05][HH-DATA-09] delete blocked by protected financial evidence (a signed approval; issued invoices are not recorded yet) archives instead', async () => {
+  it('[HH-PRIV-05][HH-DATA-09] delete blocked by protected financial evidence (a signed approval, its deposit and a payment) archives instead', async () => {
     const e = await withdrawnEstimate()
     await scan(later(2, 2))
     const entry = await entryFor(e.estimateId)
@@ -518,9 +520,9 @@ describe('the Owner Delete action on a review entry (TSK-0100, HH-PRIV-05, HH-DA
     expect(preview.target.checks).toContainEqual({ check: 'jobs', result: 'found', count: 1 })
     // The job's deposit requirement (TSK-0064) is protected evidence too.
     expect(preview.target.checks).toContainEqual({ check: 'deposit_records', result: 'found', count: 1 })
-    expect(preview.target.checks).toContainEqual({ check: 'issued_invoices', result: 'not_recorded' })
-    // No payment is recorded yet: the Owner still checks for one taken outside the software (never "none found").
-    expect(preview.target.checks).toContainEqual({ check: 'payments', result: 'not_recorded' })
+    // TSK-0152 (OWN-DEC-201 I4): no invoice or payment recorded is none found (an external payment is not assumed).
+    expect(preview.target.checks).toContainEqual({ check: 'issued_invoices', result: 'none_found' })
+    expect(preview.target.checks).toContainEqual({ check: 'payments', result: 'none_found' })
     // A payment recorded on the job is found.
     const job = await t.db
       .selectFrom('work.jobs as j')
@@ -598,14 +600,14 @@ describe('the Owner Delete action on a review entry (TSK-0100, HH-PRIV-05, HH-DA
       .select(['j.id'])
       .where('a.estimate_id', '=', e.estimateId)
       .executeTakeFirstOrThrow()
-    // A draft is working data: before issue the check is still the Owner's (never "none found").
+    // A draft is working data, not evidence: before issue none is found (TSK-0152, OWN-DEC-201 I4).
     const prepared = await write('office', `/staff/jobs/${job.id}/invoices/final-draft`, {})
     expect(prepared.statusCode, prepared.body).toBe(200)
     const draft = prepared.json<{ final: { id: string; version: number } }>().final
     const before = (await get('owner', `/staff/retention-reviews/${entry.id}/deletion`)).json<{
       target: { checks: { check: string; result: string; count?: number }[] }
     }>()
-    expect(before.target.checks).toContainEqual({ check: 'issued_invoices', result: 'not_recorded' })
+    expect(before.target.checks).toContainEqual({ check: 'issued_invoices', result: 'none_found' })
     // Issued after the review passes (the stand-in of fixtures/quality-review.ts, this throwaway database only).
     await standInQualityReview(t.db)
     await reviewOutcome(t.db, job.id, 'passed')
@@ -888,9 +890,8 @@ describe('privacy requests reviewed by the Owner (TSK-0100, HH-PRIV-03, OWN-DEC-
     expect(plan.plan.items).toContainEqual(
       expect.objectContaining({ category: 'accepted_agreements', disposition: 'retain', reason: 'protected_evidence' }),
     )
-    expect(plan.plan.items).toContainEqual(
-      expect.objectContaining({ category: 'financial_records', disposition: 'not_recorded' }),
-    )
+    // TSK-0152 (OWN-DEC-201 I4): the accounting records are checked, not listed for the Owner to confirm.
+    expect(plan.plan.items.some((i) => i.disposition === 'not_recorded')).toBe(false)
     expect(plan.plan.deletable.estimates.map((x) => x.reference)).toEqual([lost.number])
     expect(plan.plan.deletable.accountIds).toEqual([accountId])
 
@@ -942,6 +943,7 @@ describe('privacy requests reviewed by the Owner (TSK-0100, HH-PRIV-03, OWN-DEC-
         reason: 'Synthetic: identity confirmed; eligible data deleted.',
         confirmedChecks: ALL_CHECKS,
         closeAccess: true,
+        identityConfirmed: true,
       },
       r.version,
     )
@@ -1057,6 +1059,7 @@ describe('privacy requests reviewed by the Owner (TSK-0100, HH-PRIV-03, OWN-DEC-
         reason: 'Synthetic: hold keeps records.',
         confirmedChecks: ALL_CHECKS,
         closeAccess: true,
+        identityConfirmed: true,
       },
       plan.version,
     )
@@ -1097,7 +1100,7 @@ describe('privacy requests reviewed by the Owner (TSK-0100, HH-PRIV-03, OWN-DEC-
     const decided = await write(
       'owner',
       `/staff/privacy-requests/${row.id}/decision`,
-      { decision: 'complete', reason: 'Synthetic: export prepared.' },
+      { decision: 'complete', reason: 'Synthetic: export prepared.', identityConfirmed: true },
       reviewed.json<{ version: number }>().version,
     )
     expect(decided.statusCode, decided.body).toBe(200)

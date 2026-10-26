@@ -6,6 +6,8 @@ import { RETENTION_CATEGORIES } from '../retention/schedule.js'
 import { DISPOSITIONS, PLAN_CATEGORIES, RETAIN_REASONS } from './plan.js'
 import { PRIVACY_REQUEST_KINDS, PRIVACY_REQUEST_STATES } from './requests.js'
 import { BLOCKERS, DELETION_CHECKS, TARGET_TYPES } from './targets.js'
+import { CORRECTION_RECORD_KINDS } from './corrections.js'
+import { IDENTITY_CHECKS } from './requests.js'
 
 const STRING = { type: 'string' } as const
 const NULLABLE_STRING = { type: ['string', 'null'] } as const
@@ -108,6 +110,18 @@ const REQUEST_FIELDS = {
   targetOn: NULLABLE_DAY,
   extensions: { type: 'array', items: object({ targetOn: DAY, reason: STRING, decidedAt: DATE }) },
   deadlines: DEADLINES,
+  // TSK-0152 (OWN-DEC-201 I1): how the identity was verified, the risk and the Owner's confirmation.
+  identity: object({
+    risk: enumOf(['standard', 'elevated']),
+    method: enumOf(['fresh_session_code', 'staff_verified']),
+    via: enumOf(['link', 'account', 'owner']),
+    verifiedAt: DATE,
+    check: { type: ['string', 'null'], enum: [...IDENTITY_CHECKS, null] },
+    note: NULLABLE_STRING,
+    recordedBy: NULLABLE_STRING,
+    confirmedAt: NULLABLE_DATE,
+    confirmedBy: NULLABLE_STRING,
+  }),
 } as const
 
 export const REQUEST_ITEM = object(REQUEST_FIELDS)
@@ -132,6 +146,33 @@ export const REQUEST_DETAIL = object({
         items: { type: 'array', items: PLAN_ITEM },
         checks: { type: 'array', items: CHECK },
         at: DATE,
+      }),
+    ],
+  },
+  // TSK-0152 (OWN-DEC-201 I3): a correction request's history.
+  corrections: {
+    oneOf: [
+      { type: 'null' },
+      object({
+        changes: {
+          type: 'array',
+          items: object({
+            record: enumOf(['customer', 'contact', 'property']),
+            fields: { type: 'array', items: STRING },
+            changedAt: DATE,
+          }),
+        },
+        entries: {
+          type: 'array',
+          items: object({
+            id: STRING,
+            recordKind: enumOf(CORRECTION_RECORD_KINDS),
+            recordRef: STRING,
+            correction: STRING,
+            recordedAt: DATE,
+            recordedBy: object({ id: STRING, name: NULLABLE_STRING }),
+          }),
+        },
       }),
     ],
   },

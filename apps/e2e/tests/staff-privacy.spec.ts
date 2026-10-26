@@ -384,6 +384,8 @@ test.describe('privacy requests and customer downloads (TSK-0100)', () => {
       await detail.getByRole('button', { name: 'Start the review' }).click()
       await expect(detail.getByText('Under review')).toBeVisible()
       await detail.getByLabel('Reason (required)').fill('Synthetic e2e: identity confirmed by code; export prepared.')
+      // TSK-0152 (OWN-DEC-201 I1): an export is elevated: the Owner confirms the identity evidence first.
+      await detail.getByRole('checkbox', { name: /^I checked the identity evidence above/ }).check()
       await detail.getByRole('button', { name: 'Record the decision' }).click()
       await expect(
         detail.getByText('The data export is available to the customer in their project page.'),

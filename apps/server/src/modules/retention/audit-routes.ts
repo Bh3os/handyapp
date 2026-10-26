@@ -15,6 +15,7 @@ import { pageSchema } from '../../api/pagination.js'
 import type { ApiContext, RouteDef } from '../../api/route.js'
 import { currentContext } from '../../platform/request-context.js'
 import { FRESH_AUTH_MINUTES } from '../identity/sessions.js'
+import { deletionAllowed, mappingNotReviewed } from './mapping-review.js'
 import {
   AUDIT_RETENTION_BLOCKERS,
   AUDIT_RETENTION_CHECKS,
@@ -266,7 +267,7 @@ const read = {
 const requestIdOf = (ctx: ApiContext) => currentContext()?.requestId ?? ctx.req.id
 
 /** The archive and delete routes: the same body and outcome, the delete with its confirmations. */
-function writeRoute(kind: 'archive' | 'delete'): RouteDef {
+function writeRoute(kind: 'archive' | 'delete', environment: string): RouteDef {
   const del = kind === 'delete'
   return {
     method: 'POST',
@@ -285,7 +286,9 @@ function writeRoute(kind: 'archive' | 'delete'): RouteDef {
         'written to the protected retention-operation trail and the database deletes the range in the same ' +
         'transaction, its only delete path. Never automatic. Audited (retention.audit_delete), refusals as denied. ' +
         'Refusals: FRESH_AUTH_REQUIRED, CONFLICT (NOT_CONFIGURED, RANGE_MISSING, RANGE_TOO_LARGE, NOT_ELIGIBLE, ' +
-        'HOLD_FOUND, OVERLAPS_DELETION, CHAIN_BROKEN), VALIDATION_FAILED (CHECK_NOT_CONFIRMED, reason, range).'
+        'HOLD_FOUND, OVERLAPS_DELETION, CHAIN_BROKEN, MAPPING_NOT_REVIEWED: in production until the Owner records ' +
+        'a review of the table-to-retention mapping confirmed by the CPA and the attorney, TSK-0152), ' +
+        'VALIDATION_FAILED (CHECK_NOT_CONFIRMED, reason, range).'
       : 'Owner only (ROLE-MATRIX audit.retention_archive: fresh sign-in and a written reason; OWN-DEC-164 point 5). ' +
         'Archives the audit entries of a seq range past their period when their retention is justified: the entries ' +
         'stay exactly as they are, the chain is sealed and verified, the operation with the range’s chain hashes is ' +
@@ -330,6 +333,22 @@ function writeRoute(kind: 'archive' | 'delete'): RouteDef {
       if (ctx.actor.kind !== 'staff' || !ctx.authenticatedAt) throw new ApiError('FORBIDDEN')
       const body = ctx.req.body as { fromSeq: string; toSeq: string; reason: string; confirmedChecks?: string[] }
       const range = parseRange(body.fromSeq, body.toSeq, 'body')
+      // TSK-0152 (OWN-DEC-201 I5): no destructive production deletion on an unreviewed mapping.
+      if (del && !(await deletionAllowed(ctx.tx as Tx, environment))) {
+        await ctx.audit({
+          target: { type: 'audit_retention_range' },
+          result: 'denied',
+          summary: {
+            fromSeq: body.fromSeq,
+            toSeq: body.toSeq,
+            blockers: ['mapping_not_reviewed'],
+            refused: ['MAPPING_NOT_REVIEWED'],
+          },
+          reason: body.reason.trim(),
+          stepUpUsed: true,
+        })
+        return { body: null, refusal: mappingNotReviewed() }
+      }
       const out = await authorizeAuditRetention(ctx.tx as Tx, {
         kind,
         range,
@@ -379,7 +398,7 @@ function writeRoute(kind: 'archive' | 'delete'): RouteDef {
   }
 }
 
-export function auditRetentionRoutes(): RouteDef[] {
+export function auditRetentionRoutes(environment: string): RouteDef[] {
   const overview: RouteDef = {
     ...read,
     path: '/staff/audit-retention',
@@ -451,5 +470,12 @@ export function auditRetentionRoutes(): RouteDef[] {
     handler: async (ctx) => ({ body: await verificationView(ctx.db) }),
   }
 
-  return [overview, range, writeRoute('archive'), writeRoute('delete'), operations, verification]
+  return [
+    overview,
+    range,
+    writeRoute('archive', environment),
+    writeRoute('delete', environment),
+    operations,
+    verification,
+  ]
 }
