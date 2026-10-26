@@ -17,6 +17,12 @@ import {
 import { onTheWayAutomation } from './modules/field/index.js'
 import { caseOpenedNoticeAutomation } from './modules/cases/index.js'
 import {
+  closeoutAutomations,
+  followUpFailureItem,
+  followUpRecordCheck,
+  followUpValues,
+} from './modules/closeout/index.js'
+import {
   depositInvoiceAutomation,
   depositQueueAutomation,
   invoiceDocumentAutomation,
@@ -99,22 +105,28 @@ export const RELEASE_RECORD_CHECKS: RecordChecks = {
   hazard_report: workPausedRecordCheck,
   // TSK-0091 (OWN-DEC-210): an unpaid-invoice reminder or follow-up is sent only while the invoice may be reminded.
   invoice: unpaidReminderRecordCheck,
+  // TSK-0092 (OWN-DEC-157, OWN-DEC-113): a satisfaction check or review request is held while a case is open on the
+  // project and cancelled for a reopened job.
+  job: followUpRecordCheck,
 }
 
 /**
  * The delivery issue of a failed message sent by notify.release: a staff reply's (TSK-0050), and each routine
- * reminder's (TSK-0051, TSK-0067; TSK-0121 adds the estimate reminder's; TSK-0091 the unpaid-invoice reminder's).
+ * reminder's (TSK-0051, TSK-0067; TSK-0121 adds the estimate reminder's; TSK-0091 the unpaid-invoice reminder's;
+ * TSK-0092 the satisfaction check's and review requests').
  */
 export const releaseFailureItem: ReleaseFailureItem = async (tx, row) =>
   (await replyFailureItem(tx, row)) ??
   (await questionReminderFailureItem(tx, row)) ??
   (await appointmentReminderFailureItem(tx, row)) ??
   (await estimateReminderFailureItem(tx, row)) ??
-  (await unpaidReminderFailureItem(tx, row))
+  (await unpaidReminderFailureItem(tx, row)) ??
+  (await followUpFailureItem(tx, row))
 
 /**
  * The values notify.release reads at send time, by message (TSK-0120: the staff reply; TSK-0121: the three automatic
- * reminders in their owner wording; TSK-0091: the unpaid-invoice reminder and follow-up).
+ * reminders in their owner wording; TSK-0091: the unpaid-invoice reminder and follow-up; TSK-0092: the satisfaction
+ * check and review requests).
  */
 export function releaseValues(publicSiteUrl: string | undefined): ReleaseValues {
   const sources = [
@@ -123,6 +135,7 @@ export function releaseValues(publicSiteUrl: string | undefined): ReleaseValues 
     questionReminderValues(publicSiteUrl),
     appointmentReminderValues(publicSiteUrl),
     unpaidReminderValues(publicSiteUrl),
+    followUpValues(publicSiteUrl),
   ]
   return async (tx, row) => {
     for (const source of sources) {
@@ -239,6 +252,9 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     // the due date, sent by notify.release with the invoice's send-time check; the second one actually sent opens
     // "Overdue—owner decision".
     ...unpaidReminderAutomations(),
+    // TSK-0092 (OWN-DEC-157): the service-quality follow-up of every completed job is prepared 48 hours after the
+    // Owner's review passed, for staff to release; notify.release rechecks it with the job entry of the record checks.
+    ...closeoutAutomations(),
     // TSK-0032: the automatic receipt email, once per saved request (HH-INT-20); email only.
     receiptEmailAutomation({
       providers: { email: deps.providers.email, sms: null, replyAddress: deps.replyAddress ?? null, linkHosts },

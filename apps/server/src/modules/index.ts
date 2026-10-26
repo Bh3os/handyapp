@@ -27,6 +27,7 @@ import { auditModule } from './audit/index.js'
 import { capacityModule } from './capacity/index.js'
 import { casesModule } from './cases/index.js'
 import { qualityModule } from './quality/index.js'
+import { closeoutModule } from './closeout/index.js'
 import { RETURN_WORK_MODULE } from './return-work/index.js'
 import { changeOrdersModule } from './change-orders/index.js'
 import { checklistModule } from './checklist/index.js'
@@ -171,6 +172,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     casesModule({ storage: deps.storage ?? null }),
     // TSK-0084: the Owner's quality review of every job, punch items, corrections and re-checks.
     qualityModule(),
+    // TSK-0092: closing a job, the Owner's reopen, the satisfaction check and review requests.
+    closeoutModule(),
     // TSK-0094: return work of a case: classification, the Owner's decision, return visits, items and costs.
     RETURN_WORK_MODULE,
     // TSK-0075: the job checklist in six ordered stages, step evidence, pause, resume, skip, reopen and handoffs.

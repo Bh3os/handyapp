@@ -261,6 +261,12 @@ export function QualityReviewPage({
       {data.review?.reviewer ? (
         <p className="staff-request__hint">{t('quality.reviewer', { name: who(data.review.reviewer) })}</p>
       ) : null}
+      {['operationally_complete', 'closed', 'reopened'].includes(data.jobState) ? (
+        // TSK-0092: once the review passed, the job's closeout and follow-ups.
+        <p>
+          <a href={href(`/closeout/${jobId}`)}>{t('quality.openCloseout')}</a>
+        </p>
+      ) : null}
       {data.actions.start ? <Start t={t} fetchImpl={fetchImpl} base={base} onDone={load} /> : null}
 
       <Section title={t('quality.toReview')} testId="quality-to-review">

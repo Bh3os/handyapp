@@ -92,6 +92,8 @@ export const LABEL_FAMILIES = {
     'reconciliation_item',
     // TSK-0091: a payment suspended an invoice's reminders; staff confirm the next step.
     'invoice_reminder_review',
+    // TSK-0092: a job's prepared satisfaction check or review request waiting for staff release.
+    'follow_up_release',
     // TSK-0149: a request for help signing in or getting a new project link.
     'access_help_request',
     'visit_flagged',
@@ -110,6 +112,8 @@ export const LABEL_FAMILIES = {
     'permission_review',
     'deposit_waiver',
     'quality_review',
+    // TSK-0092: a job operationally complete (or reopened) waiting for the Owner's close.
+    'job_closeout',
     'start_work_exception',
     // TSK-0086: a job's unallocated money (an overpayment) for the Owner's credit or refund decision.
     'unallocated_credit',
@@ -234,6 +238,11 @@ export const LABEL_FAMILIES = {
     // TSK-0088: a check still to deposit, or deposited and waiting to clear.
     'check_received',
     'check_deposited',
+    // TSK-0092: a follow-up to release; a job to close, or reopened.
+    'satisfaction_check_ready',
+    'review_request_ready',
+    'closeout_pending',
+    'job_reopened',
   ],
   /** The one action button of a queue item (HH-OPS-02); it opens the record's screen. */
   queueAction: [
@@ -264,6 +273,7 @@ export const LABEL_FAMILIES = {
     'reconcile',
     'review_permissions',
     'help_access',
+    'close_job',
   ],
   // TSK-0078 (HH-SCH-09): the outcomes a worker records on a visit, and why one is refused.
   visitOutcomeKind: ['delay', 'no_access', 'customer_absent', 'weather', 'missing_resources', 'readiness_issue'],
@@ -871,6 +881,9 @@ export const LABEL_FAMILIES = {
    * modules record them. An area not listed here is shown by its code.
    */
   auditArea: [
+    // TSK-0092: a job's close and reopen; the follow-ups after completion.
+    'job',
+    'follow_up',
     // TSK-0149: requests for help signing in or getting a new project link.
     'access_help',
     // TSK-0094: return work of a case.
@@ -1280,7 +1293,74 @@ export const LABEL_FAMILIES = {
     'no_email_address',
     'follow_up_waiting',
     'automatic_reminders_pending',
+    // TSK-0092 (OWN-DEC-157, OWN-DEC-113): why a satisfaction check or review request waits, stopped or was suppressed
+    // (apps/server/src/modules/closeout/follow-ups.ts; the consent recheck of notifications/consent.ts).
+    'follow_ups_opted_out',
+    'no_marketing_consent',
+    'held_case_active',
+    'job_reopened',
+    'job_not_complete',
+    'job_not_found',
   ],
+  /**
+   * TSK-0092 (HH-QA-09, HH-STATE-02): what is still open before a job may close, as the domain names it
+   * (packages/domain/src/closeout.ts CLOSEOUT_OBLIGATIONS), and a fact the server could not read.
+   */
+  closeoutObligation: [
+    'QUALITY_REVIEW_NOT_PASSED',
+    'PUNCH_ITEMS_OPEN',
+    'WORK_PACKAGES_OPEN',
+    'VISITS_OPEN',
+    'CHANGE_ORDERS_PENDING',
+    'HOLDS_OPEN',
+    'FINAL_INVOICE_NOT_ISSUED',
+    'BALANCE_NOT_TRACKED',
+    'INVOICES_OPEN',
+    'PENDING_CHECKS',
+    'PAYMENT_DISPUTE_OPEN',
+    'ADJUSTMENT_UNDER_REVIEW',
+    'UNALLOCATED_MONEY',
+    'OPEN_CASES',
+    'FACTS_MISSING',
+  ],
+  /** Why a closeout or follow-up action was refused (TSK-0092), by the field code the server answers. */
+  closeoutRefusal: [
+    'JOB_NOT_COMPLETE',
+    'INVALID_STATE',
+    'REASON_REQUIRED',
+    'CASE_ACTIVE',
+    'JOB_REOPENED',
+    'NO_EMAIL_ADDRESS',
+    'FOLLOW_UPS_OPTED_OUT',
+    'NO_MARKETING_CONSENT',
+    'REVIEW_REQUEST_WAITING',
+    'REVIEW_REQUEST_SENT',
+    'TEMPLATE_NOT_CONFIGURED',
+    'NOT_A_DRAFT',
+    'required',
+    'TOO_LONG',
+  ],
+  /** The Owner's close and reopen of a job (TSK-0092; work.job_closeout_events). */
+  closeoutEvent: ['closed', 'reopened'],
+  /** How the money stood when a job closed (TSK-0092; the domain's FINANCIAL_BASES). */
+  financialBasis: ['paid', 'payment_plan', 'collection_hold', 'overdue_decided'],
+  /** Why a follow-up may not go now (TSK-0092; the domain's FOLLOW_UP_BLOCKS and the review request's own two). */
+  followUpBlock: [
+    'job_not_complete',
+    'job_reopened',
+    'case_active',
+    'follow_ups_opted_out',
+    'no_marketing_consent',
+    'no_email_address',
+    'already_prepared',
+    'template_not_configured',
+    'review_request_waiting',
+    'review_request_sent',
+  ],
+  /** The two follow-ups after a completed job (TSK-0092). */
+  followUpKind: ['satisfaction', 'review'],
+  /** The customer's answer to the follow-up as staff record it (TSK-0092, PROPOSED scale). */
+  satisfactionAnswer: ['positive', 'mixed', 'negative'],
   /** The collection steps staff record on an issued final invoice (TSK-0091; finance.invoice_collection_steps). */
   collectionStep: [
     'revised_due_date',
