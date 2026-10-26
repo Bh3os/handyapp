@@ -343,6 +343,7 @@ export const LABEL_FAMILIES = {
     'error_tracking',
     'backups',
     'restore_drill',
+    'security_signals',
   ],
   healthStatus: ['ok', 'attention', 'failed', 'not_configured', 'unknown'],
   healthMetric: [
@@ -362,6 +363,9 @@ export const LABEL_FAMILIES = {
     'configured',
     'not_configured',
     'proposed',
+    'denied_access',
+    'failed_verifications',
+    'privileged_changes',
   ],
   healthNote: [
     'migrations_unreadable',
@@ -372,6 +376,7 @@ export const LABEL_FAMILIES = {
     'no_error_tracker',
     'backups_not_observable',
     'no_restore_drill_recorded',
+    'security_signals_partly_in_logs',
   ],
   providerChannel: ['email', 'sms', 'storage'],
   providerMode: ['real', 'fake', 'not_configured', 'unknown'],

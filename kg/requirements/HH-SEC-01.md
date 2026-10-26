@@ -29,3 +29,5 @@ Each material threat maps to a server control, a negative test, monitoring ([[HH
 Security review before real customer data ([[OWN-DEC-136]]): AI agents run a full multi-angle security review covering at least the threats above, and every finding is fixed. No human reviewer is required for go-live. The review, its findings and the fixes are recorded as release evidence. The data purpose and access inventory is in [[HH-PRIV-01]].
 
 **Changed by [[OWN-DEC-202]] (2026-10-22):** staff password sign-in with mandatory MFA for every active staff account.
+
+**Reviewed by [[TSK-0109]] (2026-10-26):** the threat model above is mapped to server controls, negative tests, monitoring and residual risk in `docs/security/review-2026.md`; the review was done by AI agents ([[OWN-DEC-136]]) and every finding is fixed or recorded as a PROPOSED item in [[OQ-SECURITY-REVIEW-DETAILS]].

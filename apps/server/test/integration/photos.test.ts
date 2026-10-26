@@ -181,7 +181,7 @@ describe('server-side validation of photos (TSK-0031, HH-INT-06, T14)', () => {
     ])
   })
 
-  it('accepts a 15 MiB JPEG and refuses one byte more, using the configured limit', async () => {
+  it('[T14][HH-SEC-03] accepts a 15 MiB JPEG and refuses one byte more, using the configured limit', async () => {
     const d = await newDraft()
     expect((await upload(d.capability, jpeg(15 * MiB), 'image/jpeg')).statusCode).toBe(201)
     const over = await upload(d.capability, jpeg(15 * MiB + 1), 'image/jpeg')
@@ -189,7 +189,7 @@ describe('server-side validation of photos (TSK-0031, HH-INT-06, T14)', () => {
     expect(over.json().error.code).toBe('PAYLOAD_TOO_LARGE')
   })
 
-  it('refuses a PDF, a non-image, a mismatched type, appended data and markup, storing nothing', async () => {
+  it('[T14][HH-SEC-03] refuses a PDF, a non-image, a mismatched type, appended data and markup, storing nothing', async () => {
     const d = await newDraft()
     const before = await t.db.selectFrom('intake.photos').select('id').execute()
     expect((await upload(d.capability, pdf(), 'application/pdf')).statusCode).toBe(415)
@@ -208,7 +208,7 @@ describe('server-side validation of photos (TSK-0031, HH-INT-06, T14)', () => {
     expect(await t.db.selectFrom('intake.photos').select('id').execute()).toHaveLength(before.length)
   })
 
-  it('refuses an 11th photo; a removed photo frees its place', async () => {
+  it('[T14] refuses an 11th photo; a removed photo frees its place', async () => {
     const d = await newDraft()
     const ids: string[] = []
     for (let i = 0; i < 10; i++) ids.push((await upload(d.capability, png(100 + i), 'image/png')).json().id)

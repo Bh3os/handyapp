@@ -2,7 +2,16 @@
 // The integration-test harness is the separate entry point `@handyhub/db/testing`.
 export const PACKAGE_NAME = '@handyhub/db'
 
-export { createDb, createPool, typeParsers, type Database, type Db, type PoolOptions, type Tx } from './client.js'
+export {
+  createDb,
+  createPool,
+  SERVER_POOL_CONNECT_TIMEOUT_MS,
+  typeParsers,
+  type Database,
+  type Db,
+  type PoolOptions,
+  type Tx,
+} from './client.js'
 export { withTx, type TxOptions } from './tx.js'
 export {
   checksum,

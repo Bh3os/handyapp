@@ -95,6 +95,45 @@ describe('redacting logger (TSK-0011, RULE-SERVER-AUTHZ, HH-SEC-04)', () => {
     expect(done?.['res']).toEqual({ statusCode: 200 })
   })
 
+  it('[HH-SEC-04][T74] masks a staff invite or reset token in request paths, and never echoes a query back (TSK-0109 LINK-1, LOG-3)', async () => {
+    const out = capture()
+    const app = await buildApp({ config: testConfig(), logger: createLogger({ level: 'info' }, out.stream) })
+    const token = secret('link').replace(/-/g, '_')
+    for (const url of [`/staff/invite/${token}`, `/reset/${token}`, `/invite/${token}/`]) {
+      await app.inject({ method: 'GET', url })
+    }
+    const missing = await app.inject({ method: 'GET', url: `/api/v1/nothing-here?code=${secret('query-code')}` })
+    await app.close()
+    expect(out.raw()).not.toMatch(/synthetic/)
+    const paths = out.lines
+      .filter((l) => l['msg'] === 'incoming request')
+      .map((l) => (l['req'] as { path: string }).path)
+    expect(paths).toEqual([
+      `/staff/invite/${REDACTED}`,
+      `/reset/${REDACTED}`,
+      `/invite/${REDACTED}/`,
+      '/api/v1/nothing-here',
+    ])
+    expect(missing.statusCode).toBe(404)
+    expect(missing.body).not.toMatch(/synthetic|code=/)
+  })
+
+  it('[HH-SEC-04][T74] logs a database error without the values its detail quotes (TSK-0109 LOG-2)', () => {
+    const out = capture()
+    const log = createLogger({ level: 'info' }, out.stream)
+    const email = ['synthetic', 'customer@example.test'].join('-')
+    const err = Object.assign(new Error('duplicate key value violates unique constraint "customers_email_key"'), {
+      detail: `Key (email)=(${email}) already exists.`,
+      where: `SQL statement with ${email}`,
+      hint: `Try ${email}`,
+      constraint: 'customers_email_key',
+      table: 'customers',
+    })
+    log.error({ err }, 'API_INTERNAL_ERROR')
+    expect(out.raw()).not.toContain(email)
+    expect(out.lines[0]?.['err']).toMatchObject({ constraint: 'customers_email_key', table: 'customers' })
+  })
+
   it('replaces a malformed incoming request ID with a new one', async () => {
     const app = await buildApp({ config: testConfig() })
     const res = await app.inject({ method: 'GET', url: '/', headers: { 'x-request-id': 'bad id\n' } })

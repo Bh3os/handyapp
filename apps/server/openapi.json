@@ -28696,7 +28696,11 @@
           "kind": "write",
           "idempotency": "none",
           "expectedVersion": "none",
-          "rateLimit": "none",
+          "rateLimit": {
+            "bucket": "ai_assist",
+            "limit": 60,
+            "windowSeconds": 3600
+          },
           "freshAuthMinutes": null,
           "secondFactor": "required",
           "csrf": "required_with_staff_session",
@@ -28874,7 +28878,11 @@
           "kind": "write",
           "idempotency": "none",
           "expectedVersion": "none",
-          "rateLimit": "none",
+          "rateLimit": {
+            "bucket": "ai_assist",
+            "limit": 60,
+            "windowSeconds": 3600
+          },
           "freshAuthMinutes": null,
           "secondFactor": "required",
           "csrf": "required_with_staff_session",
@@ -29052,7 +29060,11 @@
           "kind": "write",
           "idempotency": "none",
           "expectedVersion": "none",
-          "rateLimit": "none",
+          "rateLimit": {
+            "bucket": "ai_assist",
+            "limit": 60,
+            "windowSeconds": 3600
+          },
           "freshAuthMinutes": null,
           "secondFactor": "required",
           "csrf": "required_with_staff_session",
@@ -29230,7 +29242,11 @@
           "kind": "write",
           "idempotency": "none",
           "expectedVersion": "none",
-          "rateLimit": "none",
+          "rateLimit": {
+            "bucket": "ai_assist",
+            "limit": 60,
+            "windowSeconds": 3600
+          },
           "freshAuthMinutes": null,
           "secondFactor": "required",
           "csrf": "required_with_staff_session",
@@ -29408,7 +29424,11 @@
           "kind": "write",
           "idempotency": "none",
           "expectedVersion": "none",
-          "rateLimit": "none",
+          "rateLimit": {
+            "bucket": "ai_assist",
+            "limit": 60,
+            "windowSeconds": 3600
+          },
           "freshAuthMinutes": null,
           "secondFactor": "required",
           "csrf": "required_with_staff_session",
@@ -29586,7 +29606,11 @@
           "kind": "write",
           "idempotency": "none",
           "expectedVersion": "none",
-          "rateLimit": "none",
+          "rateLimit": {
+            "bucket": "ai_assist",
+            "limit": 60,
+            "windowSeconds": 3600
+          },
           "freshAuthMinutes": null,
           "secondFactor": "required",
           "csrf": "required_with_staff_session",
@@ -29764,7 +29788,11 @@
           "kind": "write",
           "idempotency": "none",
           "expectedVersion": "none",
-          "rateLimit": "none",
+          "rateLimit": {
+            "bucket": "ai_assist",
+            "limit": 60,
+            "windowSeconds": 3600
+          },
           "freshAuthMinutes": null,
           "secondFactor": "required",
           "csrf": "required_with_staff_session",
@@ -29942,7 +29970,11 @@
           "kind": "write",
           "idempotency": "none",
           "expectedVersion": "none",
-          "rateLimit": "none",
+          "rateLimit": {
+            "bucket": "ai_assist",
+            "limit": 60,
+            "windowSeconds": 3600
+          },
           "freshAuthMinutes": null,
           "secondFactor": "required",
           "csrf": "required_with_staff_session",
@@ -208909,7 +208941,8 @@
                               "scheduling_conflicts",
                               "error_tracking",
                               "backups",
-                              "restore_drill"
+                              "restore_drill",
+                              "security_signals"
                             ]
                           },
                           "status": {
@@ -208950,7 +208983,10 @@
                                     "missing",
                                     "configured",
                                     "not_configured",
-                                    "proposed"
+                                    "proposed",
+                                    "denied_access",
+                                    "failed_verifications",
+                                    "privileged_changes"
                                   ]
                                 },
                                 "value": {
@@ -208993,6 +209029,7 @@
                               "no_error_tracker",
                               "backups_not_observable",
                               "no_restore_drill_recorded",
+                              "security_signals_partly_in_logs",
                               null
                             ]
                           },
