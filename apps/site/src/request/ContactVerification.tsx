@@ -11,6 +11,13 @@
 //   signs in to the one that value has) with this request's project in it (account/AccountEnrollment.tsx).
 // - TSK-0034: a verified code also starts this browser's session for the request's one project; the receipt then
 //   offers View My Request.
+// - TSK-0134 (OWN-DEC-178, OWN-DEC-190 opt-in point B): without a current SMS opt-in on the request, the phone row
+//   offers a separate, unchecked checkbox for a one-time verification code by text, with the owner's label and
+//   disclosure (SMS_VERIFICATION_DISCLOSURE) and links to the Privacy Policy, the SMS Terms and the Website Terms.
+//   "Text me a code" first records the consent (the server keeps the disclosure version shown) and only then asks for
+//   the code; without the box checked nothing is sent or recorded. Leaving it unchecked keeps the phone unverified and
+//   the email verification works as before; the request is saved either way.
+import { legalDocument, SMS_VERIFICATION_DISCLOSURE } from '@handyhub/domain/legal'
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { Button, Field, StatusBadge } from '@handyhub/ui'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
@@ -29,6 +36,7 @@ import {
   type ContactStatus,
   type Fetch,
   type Notice,
+  type SmsCodeConsent,
 } from './verification.js'
 
 const t = (key: CustomerKey, values?: Record<string, string | number>) => customerTranslator().t(key, values)
@@ -44,13 +52,41 @@ const browserFetch: Fetch = (input, init) => fetch(input, init)
 type RowProps = {
   channel: Channel
   status: ChannelStatus
+  /** TSK-0134: the phone row's consent to a verification code by text. */
+  smsCodeConsent: SmsCodeConsent
   capability: string
   fetchImpl: Fetch
   onStatus: (s: ContactStatus) => void
   onProjectAccess: () => void
 }
 
-function ChannelRow({ channel, status, capability, fetchImpl, onStatus, onProjectAccess }: RowProps) {
+/** TSK-0134: the owner's disclosure beside the box and the links it names, opened in a new tab. */
+function SmsCodeDisclosure({ id }: { id: string }) {
+  const links = SMS_VERIFICATION_DISCLOSURE.blocks.flatMap((b) => (b.kind === 'link' ? [b] : []))
+  return (
+    <div id={id} className="hh-request__disclosure" data-testid="sms-code-disclosure">
+      {SMS_VERIFICATION_DISCLOSURE.blocks.map((b, i) =>
+        b.kind === 'p' ? (
+          <p key={i} data-key={b.key}>
+            {t(b.key as CustomerKey)}
+          </p>
+        ) : null,
+      )}
+      <ul>
+        {links.map((b) => (
+          <li key={b.key}>
+            <a href={legalDocument(b.to).path} target="_blank" rel="noopener">
+              {t(b.key as CustomerKey)}
+              <span className="hh-visually-hidden"> {t('request.newTab')}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function ChannelRow({ channel, status, smsCodeConsent, capability, fetchImpl, onStatus, onProjectAccess }: RowProps) {
   const [code, setCode] = useState('')
   const [changing, setChanging] = useState(false)
   const [newEmail, setNewEmail] = useState('')
@@ -59,7 +95,10 @@ function ChannelRow({ channel, status, capability, fetchImpl, onStatus, onProjec
   const [sent, setSent] = useState<{ minutes: number } | null>(null)
   const [notice, setNotice] = useState<Notice | null>(null)
   const [codeError, setCodeError] = useState<Notice | null>(null)
-  const [busy, setBusy] = useState<'send' | 'verify' | 'change' | null>(null)
+  const [busy, setBusy] = useState<'send' | 'verify' | 'change' | 'consent' | null>(null)
+  /** TSK-0134: the receipt's checkbox, unchecked until the guest checks it. */
+  const [agreed, setAgreed] = useState(false)
+  const [consentError, setConsentError] = useState<string | null>(null)
   const codeRef = useRef<HTMLDivElement>(null)
   /** Bumped after a code was sent: once the code field is on the page, it takes the focus. */
   const [focusCode, setFocusCode] = useState(0)
@@ -109,6 +148,26 @@ function ChannelRow({ channel, status, capability, fetchImpl, onStatus, onProjec
     if (r.data.projectAccess) onProjectAccess()
   }
 
+  /** TSK-0134: records the consent to a verification code by text, then asks for the code; nothing without the box. */
+  const agreeAndSend = async (event: FormEvent) => {
+    event.preventDefault()
+    if (busy) return
+    if (!agreed) return setConsentError(t('request.verify.smsConsent.required'))
+    setBusy('consent')
+    setNotice(null)
+    setConsentError(null)
+    const r = await api.smsConsent(fetchImpl, capability)
+    setBusy(null)
+    if (!r.ok) {
+      setNotice(r.notice)
+      const fresh = await api.status(fetchImpl, capability)
+      if (fresh.ok) onStatus(fresh.data)
+      return
+    }
+    onStatus(r.data)
+    await send()
+  }
+
   const change = status.change
   const live = status.state === 'pending' || change?.state === 'pending'
   const ended = !live && (status.state === 'expired' || status.state === 'failed' || change !== null)
@@ -124,9 +183,49 @@ function ChannelRow({ channel, status, capability, fetchImpl, onStatus, onProjec
       </p>
 
       {status.state === 'verified' ? null : !status.available ? (
-        <p>{t('request.verify.phoneNoTexts')}</p>
+        channel === 'phone' && smsCodeConsent === 'offered' ? (
+          <form className="hh-verify__form" onSubmit={(e) => void agreeAndSend(e)} noValidate>
+            <p>{t('request.verify.smsConsent.intro')}</p>
+            <fieldset
+              className="hh-request__group"
+              data-sms-verification-disclosure={SMS_VERIFICATION_DISCLOSURE.documentId}
+              aria-invalid={consentError ? true : undefined}
+            >
+              <legend className="hh-field__label">{t('request.verify.smsConsent.title')}</legend>
+              <label className="hh-request__option">
+                <input
+                  type="checkbox"
+                  name="sms-code-consent"
+                  aria-describedby={`${id}-disclosure${consentError ? ` ${id}-consent-error` : ''}`}
+                  checked={agreed}
+                  onChange={(e) => {
+                    setAgreed(e.currentTarget.checked)
+                    setConsentError(null)
+                  }}
+                />
+                <span>{t(SMS_VERIFICATION_DISCLOSURE.label as CustomerKey)}</span>
+              </label>
+              <SmsCodeDisclosure id={`${id}-disclosure`} />
+              {consentError ? (
+                <p id={`${id}-consent-error`} className="hh-field__error">
+                  {consentError}
+                </p>
+              ) : null}
+            </fieldset>
+            <div className="hh-request__actions">
+              <Button type="submit" pending={busy === 'consent' || busy === 'send'}>
+                {t(SEND_LABEL.phone)}
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <p>{t('request.verify.phoneNoTexts')}</p>
+        )
       ) : (
         <>
+          {channel === 'phone' && smsCodeConsent === 'recorded' ? (
+            <p>{t('request.verify.smsConsent.recorded')}</p>
+          ) : null}
           {live ? (
             <>
               <p>
@@ -222,7 +321,8 @@ export function enrollChannels(status: ContactStatus): EnrollChannel[] {
     ...(status.email.state === 'verified'
       ? [{ channel: 'email' as const, destination: status.email.destination }]
       : []),
-    ...(status.phone.state === 'verified' && status.phone.available
+    // TSK-0134: a consent to verification codes by text on the receipt is not the SMS opt-in sign-in codes need.
+    ...(status.phone.state === 'verified' && status.phone.available && status.smsCodeConsent === 'not_needed'
       ? [{ channel: 'phone' as const, destination: status.phone.destination }]
       : []),
   ]
@@ -297,6 +397,7 @@ export function ContactVerification({
                 key={channel}
                 channel={channel}
                 status={status[channel]}
+                smsCodeConsent={status.smsCodeConsent}
                 capability={capability}
                 fetchImpl={fetchImpl}
                 onStatus={setStatus}

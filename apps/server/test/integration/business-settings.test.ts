@@ -181,6 +181,8 @@ describe('[HH-EST-13][OWN-DEC-187][T33] the owner sign-off of estimate terms v1.
       'legal.sms_terms',
       'legal.website_terms',
       'legal.sms_disclosure',
+      // TSK-0134: the receipt's consent to a verification code by text.
+      'legal.sms_verification_disclosure',
       'legal.estimate_terms',
     ])
     expect(docs.find((d) => d['key'] === 'legal.estimate_terms')).toEqual({

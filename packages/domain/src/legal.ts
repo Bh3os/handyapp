@@ -17,7 +17,12 @@
 
 export type LegalDocumentCode = 'privacy_notice' | 'sms_terms' | 'website_terms'
 export type LegalConfigKey =
-  'legal.privacy_notice' | 'legal.sms_terms' | 'legal.website_terms' | 'legal.sms_disclosure' | 'legal.estimate_terms'
+  | 'legal.privacy_notice'
+  | 'legal.sms_terms'
+  | 'legal.website_terms'
+  | 'legal.sms_disclosure'
+  | 'legal.sms_verification_disclosure'
+  | 'legal.estimate_terms'
 export type LegalStatus = 'draft' | 'owner_review_pending' | 'approved'
 
 /** One block of a section. Every string is a customer catalog key. */
@@ -468,7 +473,7 @@ export function legalContent(doc: LegalContentSource, catalog: Readonly<Record<s
  *   is PROPOSED: the graph lists what the text must contain, not its sentences.
  */
 export type LegalText = {
-  readonly code: 'sms_disclosure'
+  readonly code: 'sms_disclosure' | 'sms_verification_disclosure'
   readonly configKey: LegalConfigKey
   readonly documentId: string
   readonly version: number
@@ -506,6 +511,38 @@ export const SMS_DISCLOSURE: LegalText = {
   ],
   contentSha256: '56dab52f3acdc48150550556dea7a3551e545213f137f22b7c6cdfca59edac2d',
   sources: ['HH-INT-22', 'HH-COM-12', 'OWN-DEC-147', 'HH-INT-18', 'ENT-ConsentPreference'],
+}
+
+/**
+ * TSK-0134 (OWN-DEC-178, OWN-DEC-190 opt-in point B, HH-INT-13, HH-COM-12, ENT-ConsentPreference): the consent to a
+ * one-time verification code by text, offered on the request receipt when the request has no current SMS opt-in. A
+ * legal text of its own, separate from the request form's SMS opt-in (SMS_DISCLOSURE) and from marketing permission:
+ * - the label and the disclosure are the owner's wording of OWN-DEC-190, word for word (the label is opt-in point B,
+ *   the disclosure the sentence the owner put beside each checkbox); nothing is added to them;
+ * - the links open the Privacy Policy and the SMS Terms (OWN-DEC-190) and the Website Terms ("Terms of Service",
+ *   OWN-DEC-178 item 2);
+ * - agreeing records a consent of purpose sms_verification with this text's `documentId` as the disclosure version
+ *   (legal.sms_verification_disclosure, migration 0111); it permits the verification code only, never another text,
+ *   and is never marketing permission;
+ * - owner wording that still gets attorney review before production (OQ-ATTORNEY-PRIVACY), so it stays a draft.
+ */
+export const SMS_VERIFICATION_DISCLOSURE: LegalText = {
+  code: 'sms_verification_disclosure',
+  configKey: 'legal.sms_verification_disclosure',
+  documentId: 'sms-verification-disclosure-1',
+  version: 1,
+  status: 'draft',
+  attorneyReviewed: false,
+  preparedOn: '2026-10-26',
+  label: 'legal.smsVerificationDisclosure.label',
+  blocks: [
+    p('legal.smsVerificationDisclosure.disclosure'),
+    link('legal.link.privacy', 'privacy_notice'),
+    link('legal.link.smsTerms', 'sms_terms'),
+    link('legal.link.terms', 'website_terms'),
+  ],
+  contentSha256: '5abf6a2fbb02ba1d6b87cd1434f794b9d47a98662a02a9a39d771698f30b1686',
+  sources: ['OWN-DEC-178', 'OWN-DEC-190', 'HH-INT-13', 'HH-COM-12', 'ENT-ConsentPreference'],
 }
 
 /** Every catalog key of a legal text, in reading order (label, then each block). */

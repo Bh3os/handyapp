@@ -16820,7 +16820,7 @@
       "get": {
         "operationId": "getReceiptContact",
         "summary": "The receipt's contact verification",
-        "description": "Under the Receipt-Capability header: the request's own email and phone, masked, each with its own verification state (unverified, pending, verified, expired, failed), whether a code can be sent on it (texts need this request’s SMS opt-in), and an email change waiting for its code. Never another record, account or history.",
+        "description": "Under the Receipt-Capability header: the request's own email and phone, masked, each with its own verification state (unverified, pending, verified, expired, failed), whether a code can be sent on it (texts need this request’s SMS opt-in or its receipt consent to codes by text), and an email change waiting for its code. TSK-0134: smsCodeConsent says whether the receipt offers the consent to a verification code by text (offered), recorded it (recorded) or does not need it (not_needed: the request’s SMS opt-in is current). Never another record, account or history.",
         "tags": [
           "verification"
         ],
@@ -16835,7 +16835,8 @@
                   "additionalProperties": false,
                   "required": [
                     "email",
-                    "phone"
+                    "phone",
+                    "smsCodeConsent"
                   ],
                   "properties": {
                     "email": {
@@ -16941,6 +16942,14 @@
                           }
                         }
                       }
+                    },
+                    "smsCodeConsent": {
+                      "type": "string",
+                      "enum": [
+                        "not_needed",
+                        "offered",
+                        "recorded"
+                      ]
                     }
                   }
                 }
@@ -17021,7 +17030,7 @@
       "post": {
         "operationId": "sendReceiptContactCode",
         "summary": "Send or resend a verification code",
-        "description": "Sends a one-time code (the automatic message contact.verification_code, OWN-DEC-150) to the request’s email or, with this request’s SMS opt-in, by text to its phone. With `destination` (email only, while unverified) the code goes to the new address and the contact changes only when that code is entered (Change Contact). The code lifetime and the attempt, resend and per-address limits come from session.timings and verification.limits (TSK-0016): a resend inside the cooldown or over a limit is a neutral 429 with Retry-After; while the code key or those values are NOT CONFIGURED, 503 and nothing is sent. Refusals: 400 with already_verified, sms_not_permitted, invalid_destination or change_not_available.",
+        "description": "Sends a one-time code (the automatic message contact.verification_code, OWN-DEC-150) to the request’s email or, with this request’s SMS opt-in or its recorded receipt consent to codes by text (TSK-0134), by text to its phone; without either, sms_not_permitted and no code. With `destination` (email only, while unverified) the code goes to the new address and the contact changes only when that code is entered (Change Contact). The code lifetime and the attempt, resend and per-address limits come from session.timings and verification.limits (TSK-0016): a resend inside the cooldown or over a limit is a neutral 429 with Retry-After; while the code key or those values are NOT CONFIGURED, 503 and nothing is sent. Refusals: 400 with already_verified, sms_not_permitted, invalid_destination or change_not_available.",
         "tags": [
           "verification"
         ],
@@ -17100,7 +17109,8 @@
                       "additionalProperties": false,
                       "required": [
                         "email",
-                        "phone"
+                        "phone",
+                        "smsCodeConsent"
                       ],
                       "properties": {
                         "email": {
@@ -17206,6 +17216,14 @@
                               }
                             }
                           }
+                        },
+                        "smsCodeConsent": {
+                          "type": "string",
+                          "enum": [
+                            "not_needed",
+                            "offered",
+                            "recorded"
+                          ]
                         }
                       }
                     }
@@ -17318,11 +17336,11 @@
         }
       }
     },
-    "/api/v1/public/request-receipt/contact/verify": {
+    "/api/v1/public/request-receipt/contact/sms-consent": {
       "post": {
-        "operationId": "verifyReceiptContact",
-        "summary": "Enter a verification code",
-        "description": "Checks the code of the channel’s latest send. A match marks that exact value verified (an email change then replaces the old address); the other channel is never touched. A wrong, expired, replaced, used or exhausted code is the same neutral 400 (field body.code, invalid_code); the attempt is counted and kept (the refusal commits), so the configured attempt limit holds. Verifying links nothing to any other record. TSK-0034: a match also starts this browser’s customer session for the request’s one project (Set-Cookie; projectAccess true), from the project’s live access grant; a verified email change first revokes the project’s grants and their sessions and issues a new grant. Without a usable grant, projectAccess is false.",
+        "operationId": "recordReceiptSmsCodeConsent",
+        "summary": "Agree to a one-time verification code by text",
+        "description": "TSK-0134 (OWN-DEC-178, OWN-DEC-190 opt-in point B): the guest checked the receipt’s separate, unchecked box “I agree to receive a one-time SMS verification code from HandyHub at the phone number provided.” Records an append-only consent of purpose sms_verification for the request’s current phone number with the disclosure version shown (a published legal.sms_verification_disclosure), the time and as evidence this request, the receipt capability and the HTTP request; agreeing again while it is current records nothing new. It permits the verification code message only: never another text, never the SMS opt-in, never marketing; STOP ends it. No code is sent here. Refusals: 400 with already_verified (body.agreed), not_needed (the request’s SMS opt-in is current) or unknown_version (body.disclosureVersion).",
         "tags": [
           "verification"
         ],
@@ -17335,21 +17353,18 @@
                 "type": "object",
                 "additionalProperties": false,
                 "required": [
-                  "channel",
-                  "code"
+                  "agreed",
+                  "disclosureVersion"
                 ],
                 "properties": {
-                  "channel": {
-                    "type": "string",
-                    "enum": [
-                      "email",
-                      "phone"
-                    ]
+                  "agreed": {
+                    "type": "boolean",
+                    "const": true
                   },
-                  "code": {
+                  "disclosureVersion": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 20
+                    "maxLength": 100
                   }
                 }
               }
@@ -17365,40 +17380,20 @@
                   "type": "object",
                   "additionalProperties": false,
                   "required": [
-                    "verified",
+                    "recorded",
                     "contact"
                   ],
                   "properties": {
-                    "verified": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "required": [
-                        "channel",
-                        "changed",
-                        "projectAccess"
-                      ],
-                      "properties": {
-                        "channel": {
-                          "type": "string",
-                          "enum": [
-                            "email",
-                            "phone"
-                          ]
-                        },
-                        "changed": {
-                          "type": "boolean"
-                        },
-                        "projectAccess": {
-                          "type": "boolean"
-                        }
-                      }
+                    "recorded": {
+                      "type": "boolean"
                     },
                     "contact": {
                       "type": "object",
                       "additionalProperties": false,
                       "required": [
                         "email",
-                        "phone"
+                        "phone",
+                        "smsCodeConsent"
                       ],
                       "properties": {
                         "email": {
@@ -17504,6 +17499,321 @@
                               }
                             }
                           }
+                        },
+                        "smsCodeConsent": {
+                          "type": "string",
+                          "enum": [
+                            "not_needed",
+                            "offered",
+                            "recorded"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "guest",
+            "customer"
+          ],
+          "permission": "request.submit",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "public-sms-code-consent",
+            "limit": 30,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "contact_verification.sms_code_consent",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/contact-verification.test.ts"
+        }
+      }
+    },
+    "/api/v1/public/request-receipt/contact/verify": {
+      "post": {
+        "operationId": "verifyReceiptContact",
+        "summary": "Enter a verification code",
+        "description": "Checks the code of the channel’s latest send. A match marks that exact value verified (an email change then replaces the old address); the other channel is never touched. A wrong, expired, replaced, used or exhausted code is the same neutral 400 (field body.code, invalid_code); the attempt is counted and kept (the refusal commits), so the configured attempt limit holds. Verifying links nothing to any other record. TSK-0034: a match also starts this browser’s customer session for the request’s one project (Set-Cookie; projectAccess true), from the project’s live access grant; a verified email change first revokes the project’s grants and their sessions and issues a new grant. Without a usable grant, projectAccess is false.",
+        "tags": [
+          "verification"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "channel",
+                  "code"
+                ],
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "email",
+                      "phone"
+                    ]
+                  },
+                  "code": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "verified",
+                    "contact"
+                  ],
+                  "properties": {
+                    "verified": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "channel",
+                        "changed",
+                        "projectAccess"
+                      ],
+                      "properties": {
+                        "channel": {
+                          "type": "string",
+                          "enum": [
+                            "email",
+                            "phone"
+                          ]
+                        },
+                        "changed": {
+                          "type": "boolean"
+                        },
+                        "projectAccess": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "contact": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "email",
+                        "phone",
+                        "smsCodeConsent"
+                      ],
+                      "properties": {
+                        "email": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "destination",
+                            "state",
+                            "available",
+                            "change"
+                          ],
+                          "properties": {
+                            "destination": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "unverified",
+                                "pending",
+                                "verified",
+                                "expired",
+                                "failed"
+                              ]
+                            },
+                            "available": {
+                              "type": "boolean"
+                            },
+                            "change": {
+                              "type": [
+                                "object",
+                                "null"
+                              ],
+                              "additionalProperties": false,
+                              "required": [
+                                "destination",
+                                "state"
+                              ],
+                              "properties": {
+                                "destination": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "pending",
+                                    "expired",
+                                    "failed"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "phone": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "destination",
+                            "state",
+                            "available",
+                            "change"
+                          ],
+                          "properties": {
+                            "destination": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "unverified",
+                                "pending",
+                                "verified",
+                                "expired",
+                                "failed"
+                              ]
+                            },
+                            "available": {
+                              "type": "boolean"
+                            },
+                            "change": {
+                              "type": [
+                                "object",
+                                "null"
+                              ],
+                              "additionalProperties": false,
+                              "required": [
+                                "destination",
+                                "state"
+                              ],
+                              "properties": {
+                                "destination": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "pending",
+                                    "expired",
+                                    "failed"
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "smsCodeConsent": {
+                          "type": "string",
+                          "enum": [
+                            "not_needed",
+                            "offered",
+                            "recorded"
+                          ]
                         }
                       }
                     }
@@ -42346,6 +42656,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -44505,6 +44816,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -46944,6 +47256,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -48956,6 +49269,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -51144,6 +51458,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -53156,6 +53471,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -55535,6 +55851,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -57736,6 +58053,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -59928,6 +60246,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -62120,6 +62439,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -64317,6 +64637,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -66807,6 +67128,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -68999,6 +69321,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -71396,6 +71719,7 @@
                                   "legal.sms_terms",
                                   "legal.website_terms",
                                   "legal.sms_disclosure",
+                                  "legal.sms_verification_disclosure",
                                   "legal.estimate_terms",
                                   "retention.audit_log",
                                   "retention.requests_not_converted",
@@ -168234,6 +168558,7 @@
                               "legal.sms_terms",
                               "legal.website_terms",
                               "legal.sms_disclosure",
+                              "legal.sms_verification_disclosure",
                               "legal.estimate_terms"
                             ]
                           },
@@ -170870,6 +171195,7 @@
                               "legal.sms_terms",
                               "legal.website_terms",
                               "legal.sms_disclosure",
+                              "legal.sms_verification_disclosure",
                               "legal.estimate_terms",
                               "retention.audit_log",
                               "retention.requests_not_converted",

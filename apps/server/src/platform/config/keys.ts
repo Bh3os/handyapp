@@ -304,6 +304,8 @@ export const CONFIG_KEYS = {
   'legal.sms_terms': legalDocument,
   'legal.website_terms': legalDocument,
   'legal.sms_disclosure': legalDocument,
+  // TSK-0134 (OWN-DEC-178, OWN-DEC-190): the receipt's consent to verification codes by text (migration 0111).
+  'legal.sms_verification_disclosure': legalDocument,
   // TSK-0053 (HH-EST-13, OWN-DEC-127): the estimate terms each published version carries. NOT CONFIGURED (migration
   // 0028); publish readiness names it while it is missing. TSK-0056 wrote terms v1.0 (ESTIMATE_TERMS of
   // @handyhub/domain/legal, documentId estimate-terms-1); the customer view shows its wording only while the recorded

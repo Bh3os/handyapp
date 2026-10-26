@@ -25,3 +25,5 @@ source: "guide 7.3 HH-INT-13, 23 (contact verification states); OWN-DEC-96"
 - Staff see separate email and phone verification badges on the request ([[HH-LEAD-01]]).
 
 **Changed by [[OWN-DEC-178]] (2026-10-21):** without an SMS opt-in the receipt offers a separate verification-code consent; declining leaves email verification.
+
+**Built by [[TSK-0134]] (2026-10-26, migration 0111):** without a current SMS opt-in on the request, the receipt's phone row offers the separate, unchecked consent to a one-time verification code by text in the owner's wording ([[OWN-DEC-190]] opt-in point B); agreeing records the consent before any code can be asked for, and the phone is then verified by its code with the existing limits. Leaving it unchecked records nothing and leaves email verification. PROPOSED details: [[OQ-PHONE-OPT-IN-DETAILS]].
