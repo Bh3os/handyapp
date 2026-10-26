@@ -464,11 +464,40 @@ const booked = (over: Partial<BoardVisit> = {}) =>
       depositPaidCents: 0,
       depositPendingCents: 0,
       workStarted: false,
+      markers: { arrivedAt: null, preparationStartedAt: null, contractedWorkStartedAt: null, completedAt: null },
+      feeDisclosed: false,
+      feeEnforcement: 'attorney_approval_pending',
       customer: outcome('full_refund_no_charge', { refundCents: 0 }),
       handyhub: outcome('customer_chooses', { refundCents: 0 }),
+      mayCommit: { customer: true, handyhub: true },
+      mayWaive: false,
       rulesProposed: false,
     },
     ...over,
+  })
+/** A booked work visit with a $300.00 deposit, cancelled late by the customer: $50.00 kept, the rest refunded. */
+const lateWork = (preview: object) =>
+  booked({
+    purpose: 'service',
+    cancellationPreview: {
+      depositPaidCents: 30_000,
+      depositPendingCents: 0,
+      workStarted: false,
+      markers: {
+        arrivedAt: '2026-11-02T14:05:00.000Z',
+        preparationStartedAt: null,
+        contractedWorkStartedAt: null,
+        completedAt: null,
+      },
+      feeDisclosed: false,
+      feeEnforcement: 'attorney_approval_pending',
+      customer: outcome('late_cancellation', { noticeMinutes: 120, keptCents: 5000, refundCents: 25_000 }),
+      handyhub: outcome('customer_chooses'),
+      mayCommit: { customer: true, handyhub: false },
+      mayWaive: false,
+      rulesProposed: false,
+      ...preview,
+    },
   })
 
 describe('changes of a booked visit on the board (TSK-0066, HH-SCH-07, HH-PORT-04)', () => {
@@ -606,6 +635,92 @@ describe('changes of a booked visit on the board (TSK-0066, HH-SCH-07, HH-PORT-0
       reason: 'Sintético: tormenta.',
       initiator: 'handyhub',
       handyhubCause: 'weather',
+    })
+  })
+
+  const cancelForm = async (fetchImpl: ReturnType<typeof api>) => {
+    show(fetchImpl)
+    const entry = await within(await screen.findByRole('region', { name: 'Synthetic Ann' })).findByRole('button', {
+      name: /Work visit/,
+    })
+    fireEvent.click(entry)
+    fireEvent.click(within(screen.getByTestId('board-selected')).getByRole('button', { name: 'Cancel the visit' }))
+    return screen.getByRole('form', { name: 'Cancel the visit' })
+  }
+
+  it("[HH-SCH-07][OWN-DEC-195] Office: a routine customer cancellation of a work visit is allowed; HandyHub or a circumstance is the Owner's; arrival is not the start of work", async () => {
+    const posts: { url: string; init: RequestInit }[] = []
+    const fetchImpl = api(
+      (url) => (url.startsWith('/api/v1/staff/schedule') ? json(200, board('day', [lateWork({})])) : undefined),
+      (url, init) => {
+        if (init?.method !== 'POST') return undefined
+        posts.push({ url, init })
+        return json(200, {})
+      },
+    )
+    const form = await cancelForm(fetchImpl)
+    fireEvent.click(within(form).getByLabelText('HandyHub'))
+    expect(within(form).getByRole('button', { name: 'Cancel the visit' }).hasAttribute('disabled')).toBe(true)
+    expect(form.textContent).toContain('Only the Owner cancels this: it is not a routine cancellation within policy.')
+    fireEvent.click(within(form).getByLabelText('The customer'))
+    const shown = within(form).getByTestId('cancellation-outcome')
+    expect(shown.getAttribute('data-outcome')).toBe('late_cancellation')
+    expect(shown.textContent).toContain('Kept: $50.00')
+    expect(shown.textContent).toContain('A worker arrived.')
+    expect(shown.textContent).toContain('Arrival and preparation are not the start of contracted work.')
+    expect(shown.textContent).toContain("Charging the fee waits for the attorney's approval of the cancellation terms.")
+    // Office never sees the Owner's waiver; a circumstance makes it the Owner's.
+    expect(within(form).queryByTestId('fee-waiver')).toBeNull()
+    fireEvent.change(within(form).getByLabelText('Circumstance (optional)'), { target: { value: 'emergency' } })
+    expect(within(form).getByTestId('cancellation-exception').textContent).toContain('the Owner decides')
+    expect(within(form).getByRole('button', { name: 'Cancel the visit' }).hasAttribute('disabled')).toBe(true)
+    fireEvent.change(within(form).getByLabelText('Circumstance (optional)'), { target: { value: '' } })
+    fireEvent.change(within(form).getByLabelText('Reason (required)'), { target: { value: 'Synthetic: the call.' } })
+    fireEvent.click(within(form).getByRole('button', { name: 'Cancel the visit' }))
+    await screen.findByText('The visit was canceled.')
+    expect(JSON.parse(String(posts[0]?.init.body))).toEqual({ reason: 'Synthetic: the call.', initiator: 'customer' })
+  })
+
+  it('[HH-FIN-14][OWN-DEC-161] the Owner reduces the fee with a documented reason; a fresh sign-in is asked for when needed', async () => {
+    const posts: { url: string; init: RequestInit }[] = []
+    let first = true
+    const fetchImpl = api(
+      (url) =>
+        url.startsWith('/api/v1/staff/schedule')
+          ? json(200, board('day', [lateWork({ mayCommit: { customer: true, handyhub: true }, mayWaive: true })]))
+          : undefined,
+      (url) => (url === '/api/v1/staff/auth/reauth' ? json(200, { csrfToken: 'rotated' }) : undefined),
+      (url, init) => {
+        if (init?.method !== 'POST') return undefined
+        posts.push({ url, init })
+        if (first) {
+          first = false
+          return json(403, { error: { code: 'FRESH_AUTH_REQUIRED', message: '', fieldErrors: [] } })
+        }
+        return json(200, {})
+      },
+    )
+    const form = await cancelForm(fetchImpl)
+    fireEvent.click(within(form).getByLabelText('The customer'))
+    const waiver = within(form).getByTestId('fee-waiver')
+    fireEvent.click(within(waiver).getByLabelText('Waive or reduce the fee'))
+    expect(waiver.textContent).toContain('The fee under the rules: $50.00. Enter 0 to waive it.')
+    fireEvent.change(within(waiver).getByLabelText('Fee after the waiver (USD)'), { target: { value: '20.00' } })
+    fireEvent.change(within(waiver).getByLabelText('Why (required, documented)'), {
+      target: { value: 'Synthetic: first late cancellation.' },
+    })
+    fireEvent.change(within(form).getByLabelText('Reason (required)'), { target: { value: 'Synthetic: the call.' } })
+    fireEvent.click(within(form).getByRole('button', { name: 'Cancel the visit' }))
+    const again = await screen.findByTestId('board-cancel-reauth')
+    fireEvent.change(within(again).getByLabelText('Password'), { target: { value: 'synthetic pass' } })
+    fireEvent.click(within(again).getByRole('button', { name: 'Confirm password' }))
+    await screen.findByText('The visit was canceled.')
+    const cancels = posts.filter((p) => p.url.endsWith('/cancel'))
+    expect(cancels).toHaveLength(2)
+    expect(JSON.parse(String(cancels[1]?.init.body))).toEqual({
+      reason: 'Synthetic: the call.',
+      initiator: 'customer',
+      feeWaiver: { feeCents: 2000, reason: 'Synthetic: first late cancellation.' },
     })
   })
 })

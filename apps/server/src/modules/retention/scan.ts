@@ -6,15 +6,16 @@
 //   (privacy.retention_reviews, append-only) and one audit event naming how many entries it opened.
 // - A category whose configuration is NOT CONFIGURED opens nothing. A record that already has an entry gets no second
 //   one, so a repeated run (a retried job, a second worker) opens nothing twice.
-// - Periods are added in UTC calendar years to the recorded start (closing decision, final estimate state, the audit
-//   entry's time); nothing else is assumed. TSK-0138: the provisional defaults (staff accounts, consent records,
-//   expired sessions and links; ./defaults.ts) count calendar years or days in the business time zone.
-import type { Tx } from '@handyhub/db'
+// - Periods are added in UTC calendar years to the recorded start (closing decision, final estimate state); nothing
+//   else is assumed. TSK-0138: the provisional defaults (staff accounts, consent records, expired sessions and links;
+//   ./defaults.ts) count calendar years or days in the business time zone; TSK-0135: so do the audit entries' years.
+import type { Db, Tx } from '@handyhub/db'
 import { REQUEST_CLOSED_STATES } from '@handyhub/domain'
 import { sql } from 'kysely'
 import { audit } from '../../platform/audit.js'
 import { loadConfig } from '../../platform/config/index.js'
 import { activeCaseCounts } from '../cases/active.js'
+import { auditEligibleBound, auditEventEnd, auditEventProject } from './audit-events.js'
 import { findConsentHistories, findExpiredBatches, findStaffAccounts, type Candidate, type Finder } from './defaults.js'
 import {
   CATEGORY_DEFINITIONS,
@@ -47,8 +48,6 @@ export type ScanResult = {
   /** Some category had more due records than one batch: another run follows soon. */
   more: boolean
 }
-
-const UUID_TEXT = '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
 
 /** The period end of a start column: the start plus whole UTC calendar years. */
 const endOf = (column: string, years: number | null) =>
@@ -98,27 +97,19 @@ const FINDERS: Partial<Record<PeriodCategory, Finder>> = {
     return rows
   },
   // Every audit entry, from the time it was recorded (OWN-DEC-142). The project of the record it names, where there
-  // is one, decides the hold check. The first condition only lets the index on occurred_at narrow the scan.
-  audit_log: async (tx, { years, now, limit }) => {
+  // is one, decides the hold check (./audit-retention.ts). The first condition only lets the index on occurred_at
+  // narrow the scan.
+  // TSK-0135: the 7 years are calendar years in the business time zone, like the provisional defaults.
+  audit_log: async (tx, { years, now, limit, zone }) => {
+    const auditEnd = auditEventEnd(sql.ref('ae.occurred_at'), years ?? 0, zone)
     const { rows } = await sql<Candidate>`
       SELECT 'audit_event' AS record_type, ae.id AS record_id,
              ('#' || ae.seq::text || ' ' || ae.action) AS record_ref,
-             CASE WHEN ae.target_id ~ ${UUID_TEXT} THEN
-               CASE ae.target_type
-                 WHEN 'project' THEN (SELECT p.id FROM crm.projects p WHERE p.id = ae.target_id::uuid)
-                 WHEN 'request' THEN (SELECT r.project_id FROM intake.requests r WHERE r.id = ae.target_id::uuid)
-                 WHEN 'estimate_version' THEN
-                   (SELECT v.project_id FROM estimating.estimate_versions v WHERE v.id = ae.target_id::uuid)
-                 WHEN 'job' THEN (SELECT j.project_id FROM work.jobs j WHERE j.id = ae.target_id::uuid)
-                 WHEN 'visit' THEN (SELECT w.project_id FROM work.visits w WHERE w.id = ae.target_id::uuid)
-                 WHEN 'hold' THEN (SELECT h.project_id FROM work.holds h WHERE h.id = ae.target_id::uuid)
-               END
-             END AS project_id,
-             ae.occurred_at AS started_at, ${endOf('ae.occurred_at', years)} AS ends_at
+             ${auditEventProject('ae')} AS project_id,
+             ae.occurred_at AS started_at, ${auditEnd} AS ends_at
         FROM platform.audit_events ae
-       WHERE ae.occurred_at <= ((${now}::timestamptz AT TIME ZONE 'UTC') - make_interval(years => ${years}))
-                                AT TIME ZONE 'UTC'
-         AND ${endOf('ae.occurred_at', years)} <= ${now}::timestamptz
+       WHERE ae.occurred_at <= ${auditEligibleBound(now, years ?? 0, zone)}
+         AND ${auditEnd} <= ${now}::timestamptz
          AND ${notQueued('audit_event', 'ae.id')}
        ORDER BY ae.seq
        LIMIT ${limit}`.execute(tx)
@@ -131,7 +122,7 @@ const FINDERS: Partial<Record<PeriodCategory, Finder>> = {
 }
 
 /** Unresolved holds per project (ENT-Hold states open and under review). */
-async function openHolds(tx: Tx, projectIds: readonly string[]): Promise<Map<string, number>> {
+export async function openHolds(tx: Db | Tx, projectIds: readonly string[]): Promise<Map<string, number>> {
   if (projectIds.length === 0) return new Map()
   const rows = await tx
     .selectFrom('work.holds')

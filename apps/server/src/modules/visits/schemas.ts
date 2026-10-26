@@ -4,6 +4,7 @@ import {
   ADDRESS_PROBLEMS,
   CANCELLATION_INITIATORS,
   CANCELLATION_OUTCOMES,
+  CUSTOMER_CIRCUMSTANCES,
   HANDYHUB_CAUSES,
   SITE_CONTACT_AUTHORITIES,
   SITE_CONTACT_DESIGNATIONS,
@@ -108,6 +109,17 @@ export const CANCEL_BODY = {
     reason: { type: 'string', maxLength: CHANGE_LIMITS.reason },
     ...INITIATION_FIELDS,
     changeRequestId: UUID,
+    // TSK-0140 (OWN-DEC-161): why a customer's cancellation is not charged automatically, and the Owner's waiver.
+    circumstance: { type: 'string', enum: [...CUSTOMER_CIRCUMSTANCES] },
+    feeWaiver: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['feeCents', 'reason'],
+      properties: {
+        feeCents: { type: 'integer', minimum: 0, maximum: Number.MAX_SAFE_INTEGER },
+        reason: { type: 'string', maxLength: CHANGE_LIMITS.waiverReason },
+      },
+    },
   },
 } as const
 
@@ -348,13 +360,45 @@ const CANCELLATION_PREVIEW = {
     {
       type: 'object',
       additionalProperties: false,
-      required: ['depositPaidCents', 'depositPendingCents', 'workStarted', 'customer', 'handyhub', 'rulesProposed'],
+      required: [
+        'depositPaidCents',
+        'depositPendingCents',
+        'workStarted',
+        'markers',
+        'feeDisclosed',
+        'feeEnforcement',
+        'customer',
+        'handyhub',
+        'mayCommit',
+        'mayWaive',
+        'rulesProposed',
+      ],
       properties: {
         depositPaidCents: { type: 'integer' },
         depositPendingCents: { type: 'integer' },
         workStarted: { type: 'boolean' },
+        markers: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['arrivedAt', 'preparationStartedAt', 'contractedWorkStartedAt', 'completedAt'],
+          properties: {
+            arrivedAt: NULLABLE_STRING,
+            preparationStartedAt: NULLABLE_STRING,
+            contractedWorkStartedAt: NULLABLE_STRING,
+            completedAt: NULLABLE_STRING,
+          },
+        },
+        feeDisclosed: { type: 'boolean' },
+        feeEnforcement: { type: 'string' },
         customer: OUTCOME,
         handyhub: OUTCOME,
+        mayCommit: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['customer', 'handyhub'],
+          properties: { customer: { type: 'boolean' }, handyhub: { type: 'boolean' } },
+        },
+        mayWaive: { type: 'boolean' },
         rulesProposed: { type: 'boolean' },
       },
     },
@@ -402,13 +446,33 @@ const CHANGE = {
         {
           type: 'object',
           additionalProperties: false,
-          required: ['outcome', 'workStarted', 'depositPaidCents', 'depositPendingCents', 'rulesVersion'],
+          required: [
+            'outcome',
+            'workStarted',
+            'depositPaidCents',
+            'depositPendingCents',
+            'rulesVersion',
+            'circumstance',
+            'feeWaiver',
+          ],
           properties: {
             outcome: OUTCOME,
             workStarted: { type: 'boolean' },
             depositPaidCents: { type: 'integer' },
             depositPendingCents: { type: 'integer' },
             rulesVersion: { type: 'integer' },
+            circumstance: NULLABLE_STRING,
+            feeWaiver: {
+              anyOf: [
+                {
+                  type: 'object',
+                  additionalProperties: false,
+                  required: ['fromCents', 'reason'],
+                  properties: { fromCents: { type: 'integer' }, reason: { type: 'string' } },
+                },
+                { type: 'null' },
+              ],
+            },
           },
         },
         { type: 'null' },

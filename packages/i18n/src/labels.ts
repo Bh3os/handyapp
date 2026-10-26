@@ -131,6 +131,8 @@ export const LABEL_FAMILIES = {
     'discount_owner_review',
     'cancellation_review',
     'visit_cancellation_review',
+    // TSK-0140: an estimate booking of a customer with repeated short-notice cancellations or no-shows.
+    'cancellation_pattern_review',
     // TSK-0130: an estimate version waiting for the Owner's approval before publishing.
     'estimate_publication_approval',
     'change_order_publication_approval',
@@ -202,12 +204,16 @@ export const LABEL_FAMILIES = {
     'question_reminder_first',
     'question_reminder_final',
     'no_response_close_available',
+    // TSK-0148: a question reminder that failed to deliver, for staff follow-up.
+    'question_reminder_failed',
     'assignee_disabled',
     'availability_changed',
     'equipment_retired',
     // TSK-0151: an account re-enabled; its earlier grants wait for the Owner.
     'account_reenabled',
     'work_cancellation_requested',
+    // TSK-0140 (OWN-DEC-163 7).
+    'repeat_short_notice_cancellations',
     'critical_shortage',
     // TSK-0067: an appointment reminder draft waiting for release.
     'appointment_reminder',
@@ -364,6 +370,8 @@ export const LABEL_FAMILIES = {
     'payment.instructions',
     'payment.square_link_hosts',
     'cancellation.rules',
+    // TSK-0140: the repeat pattern that flags an estimate booking for the Owner's review.
+    'cancellation.repeat_review',
     'contact.hours',
     'business.timezone',
     // TSK-0136: the internal business-day calendar and the privacy request targets.
@@ -393,6 +401,7 @@ export const LABEL_FAMILIES = {
     'legal.sms_terms',
     'legal.website_terms',
     'legal.sms_disclosure',
+    'legal.sms_verification_disclosure',
     'legal.estimate_terms',
     'retention.audit_log',
     'retention.requests_not_converted',
@@ -462,6 +471,8 @@ export const LABEL_FAMILIES = {
     'not_a_fit_owner_review',
     // TSK-0051 (OWN-DEC-101).
     'close_no_response',
+    // TSK-0148 (OWN-DEC-197 E5): staff reopened a "Closed—no response" request.
+    'reopen',
   ],
   /** Project lifecycle states (the project.lifecycle machine, PROPOSED). */
   projectState: ['open', 'approved', 'completed', 'closed', 'cancellation_review', 'canceled'],
@@ -499,9 +510,9 @@ export const LABEL_FAMILIES = {
   /** A merge or relink (crm.record_links, TSK-0046): in effect, reversed by the Owner, or replaced by a later relink. */
   recordLinkState: ['current', 'reversed', 'replaced'],
   /** Consent records (ENT-ConsentPreference; apps/server/src/modules/notifications/consent.ts). */
-  consentPurpose: ['service_communication', 'transactional_sms', 'marketing'],
+  consentPurpose: ['service_communication', 'transactional_sms', 'marketing', 'sms_verification'],
   consentChannel: ['email', 'sms'],
-  consentSource: ['request_form', 'portal', 'sms_keyword', 'provider_suppression', 'staff_recorded'],
+  consentSource: ['request_form', 'receipt', 'portal', 'sms_keyword', 'provider_suppression', 'staff_recorded'],
   consentState: ['granted', 'withdrawn', 'none'],
   /** Fields a staff edit of a customer or contact changes (crm.record_changes). */
   recordField: ['displayName', 'fullName', 'email', 'phone', 'preferredChannel'],
@@ -619,6 +630,10 @@ export const LABEL_FAMILIES = {
     'QUESTION_ANSWERED',
     'REQUEST_CLOSED',
     'NO_DRAFT',
+    // TSK-0148 (OWN-DEC-197 E4, E5; OWN-DEC-208).
+    'REMINDER_FAILED',
+    'CUSTOMER_REPLIED',
+    'PROJECT_NOT_CLOSED',
   ],
   /** Staff questions to the customer (TSK-0051; apps/server/src/modules/questions). */
   questionKind: ['general', 'measurement'],
@@ -879,15 +894,26 @@ export const LABEL_FAMILIES = {
     'TEAM_UNCHANGED',
     'OWNER_CANCELS_WORK',
     'CANCELLATION_RULES_NOT_CONFIGURED',
+    // TSK-0140: Office's routine cancellations, the Owner's fee waiver and the circumstances.
+    'NOT_ROUTINE_CANCELLATION',
+    'OWNER_WAIVES_FEE',
+    'NO_FEE_TO_WAIVE',
+    'WAIVER_NOT_BELOW_FEE',
+    'CIRCUMSTANCE_NOT_APPLICABLE',
   ],
   /** The outcome of a final cancellation under FACT-CANCELLATION-RULES (TSK-0066; @handyhub/domain/cancellation). */
   cancellationOutcome: [
     'full_refund_no_charge',
     'late_cancellation',
+    // TSK-0140 (OWN-DEC-161, OWN-DEC-163).
+    'late_no_charge',
+    'estimate_visit_free',
     'work_started',
     'customer_chooses',
     'owner_review',
   ],
+  /** Why a customer's cancellation is not charged automatically (TSK-0140; OWN-DEC-161; @handyhub/domain). */
+  cancellationCircumstance: ['unsafe_conditions', 'emergency', 'legally_protected', 'owner_review'],
   /** Who initiated a change of a booked visit (TSK-0066). */
   changeInitiator: ['customer', 'handyhub'],
   /** Why HandyHub cancels or moves a visit (TSK-0066; OWN-DEC-134 names weather, a safety stop and a sick worker). */
@@ -951,6 +977,9 @@ export const LABEL_FAMILIES = {
     'return_work',
     // TSK-0095: a job's cost entries and the Owner's category confirmations.
     'job_cost',
+    // TSK-0096: the Owner Dashboard's CSV and the accountant's files.
+    'dashboard',
+    'accounting',
     'access_code',
     'account_offer',
     'appointment_reminder',
@@ -1134,7 +1163,41 @@ export const LABEL_FAMILIES = {
     'audit_append_only',
     'record_missing',
     'already_deleted',
+    // TSK-0137.
+    'linked_records',
   ],
+  /** TSK-0135: the checks of an audit-retention range (apps/server/src/modules/retention/audit-retention.ts). */
+  auditRetentionCheck: [
+    'open_holds',
+    'complaints',
+    'warranties',
+    'disputes',
+    'claims',
+    'investigations',
+    'unfiled_tax_returns',
+    'legal_holds',
+    'insurance_holds',
+    'litigation',
+    'tax_requirements',
+    'accounting_requirements',
+    'contractual_requirements',
+    'security_incidents',
+  ],
+  /** TSK-0135: why an archive or a deletion of audit entries is refused (AUDIT_RETENTION_BLOCKERS). */
+  auditRetentionBlocker: [
+    'not_configured',
+    'range_missing',
+    'range_too_large',
+    'not_eligible',
+    'hold_found',
+    'overlaps_deletion',
+    'already_archived',
+    'chain_broken',
+  ],
+  /** TSK-0135: the operations of the retention-operation trail. */
+  auditRetentionKind: ['archive', 'delete'],
+  /** TSK-0135: where the audit hash chain stopped matching (audit-chain.ts ChainMismatch). */
+  auditChainMismatch: ['seal', 'archive_start', 'archive_end', 'deletion', 'deleted_event_present'],
   /** TSK-0100: what goes with a deleted record or stays (the confirmation and the log's counts). */
   deletionKind: [
     'estimate_versions',
@@ -1153,11 +1216,34 @@ export const LABEL_FAMILIES = {
     'sessions',
     'project_links',
     'access_links',
+    // TSK-0137: a request that never became a job (privacy/request-erasure.ts).
+    'request_submission',
+    'request_answers',
+    'photos',
+    'internal_notes',
+    'questions',
+    'conversations',
+    'message_deliveries',
+    'handling_history',
+    'work_packages',
+    'discount_requests',
+    'estimates',
+    'publication_approvals',
+    'project_details',
+    'help_requests',
+    'stored_responses',
+    'waiting_jobs',
+    'project_record',
+    'customer_profile',
+    'property_record',
+    'request_remainder',
+    'consent_evidence',
+    'revoked_sessions',
   ],
   /** TSK-0100: where a deletion decision came from (privacy.deletions.source). */
   deletionSource: ['retention_review', 'privacy_request', 'restore_reapply'],
   /** TSK-0100: the record types the deletion log names. */
-  deletionRecordType: ['estimate', 'customer_account'],
+  deletionRecordType: ['estimate', 'customer_account', 'request'],
   /** TSK-0100: privacy request kinds and states (ENT-PrivacyRequest). */
   privacyRequestKind: ['export', 'correction', 'deletion'],
   privacyRequestState: ['received', 'under_review', 'completed', 'partially_completed', 'declined'],
@@ -2205,6 +2291,102 @@ export const LABEL_FAMILIES = {
   jobCostEvent: ['cost_recorded', 'cost_voided', 'category_confirmed', 'category_reopened'],
   /** The server's refusal codes of the job-cost routes (apps/server/src/modules/job-costs). */
   jobCostCode: ['CATEGORY_CONFIRMED', 'CATEGORY_NOT_CONFIRMED', 'COST_VOIDED', 'IN_FUTURE', 'AMOUNT_INVALID'],
+  // TSK-0096 (HH-FIN-18, HH-FIN-16): the Owner Dashboard's sections, figures and value states, the report bases
+  // (@handyhub/domain owner-dashboard.ts, report-sources.ts), the accountant's files and the dashboard's refusals.
+  dashboardSection: ['overview', 'response', 'estimates', 'quality', 'payments', 'costs', 'cases'],
+  dashboardFigure: [
+    'overview.new_requests',
+    'overview.estimates_awaiting',
+    'overview.owner_approvals',
+    'overview.scheduled_jobs',
+    'overview.awaiting_review',
+    'overview.overdue_invoices',
+    'overview.overdue_decisions',
+    'overview.open_cases',
+    'overview.privacy_open',
+    'overview.privacy_overdue',
+    'overview.privacy_legal_overdue',
+    'response.received',
+    'response.answered',
+    'response.awaiting',
+    'response.within_target',
+    'response.within_target_share',
+    'response.average_minutes',
+    'response.median_minutes',
+    'response.not_configured',
+    'estimates.sent',
+    'estimates.approved',
+    'estimates.declined',
+    'estimates.expired',
+    'estimates.withdrawn',
+    'estimates.awaiting',
+    'quality.completed_jobs',
+    'quality.reviews_decided',
+    'quality.reviews_passed_first',
+    'quality.pass_rate',
+    'quality.open_punch_items',
+    'quality.return_visits',
+    'payments.invoices_issued',
+    'payments.invoiced',
+    'payments.received.square_payment_link',
+    'payments.received.square_tap_to_pay',
+    'payments.received.cash',
+    'payments.received.check',
+    'payments.received.zelle',
+    'payments.received.cash_app',
+    'payments.received.chime',
+    'payments.received',
+    'payments.pending_checks_count',
+    'payments.pending_checks',
+    'payments.refunds',
+    'payments.credits',
+    'payments.fees',
+    'payments.payouts',
+    'payments.outstanding',
+    'payments.overdue',
+    'payments.write_offs',
+    'costs.jobs',
+    'costs.complete',
+    'costs.incomplete',
+    'costs.recorded',
+    'costs.return_work',
+    'cases.open_complaints',
+    'cases.open_damage_injury',
+    'cases.open_unassigned',
+    'cases.overdue_follow_ups',
+    'cases.open_by_assignee',
+  ],
+  dashboardFigureState: ['known', 'incomplete', 'unavailable', 'not_configured'],
+  reportBasis: [
+    'estimates',
+    'invoiced_revenue',
+    'cash_received',
+    'pending_payments',
+    'refunds_and_credits',
+    'provider_fees',
+    'settlement',
+    'balances',
+    'job_costs',
+    'estimated_profit',
+  ],
+  accountingDataset: [
+    'invoices',
+    'payments',
+    'payment_allocations',
+    'refunds_credits_write_offs',
+    'deposits',
+    'provider_fees',
+    'payouts',
+    'job_costs',
+    'arrived_finished',
+  ],
+  dashboardCode: [
+    'RANGE_INVALID',
+    'RANGE_TOO_LONG',
+    'UNKNOWN_FIGURE',
+    'NOT_A_PERIOD_FIGURE',
+    'BUSINESS_TIMEZONE_NOT_CONFIGURED',
+  ],
   qualityGate: ['quality_review_not_recorded', 'passed', 'owner_may_issue', 'blocked'],
   qualityEvent: [
     'start',

@@ -338,7 +338,13 @@ export const QUEUE_ITEM_TYPES = [
     subject: 'request',
     band: 'time_sensitive',
     view: 'message.release_draft',
-    reasons: ['question_reminder_first', 'question_reminder_final', 'no_response_close_available'],
+    // TSK-0148 (OWN-DEC-208): a reminder whose deliveries all failed is staff follow-up, never customer non-response.
+    reasons: [
+      'question_reminder_first',
+      'question_reminder_final',
+      'no_response_close_available',
+      'question_reminder_failed',
+    ],
     action: 'release_reminder',
     screen: 'requests',
   },
@@ -744,6 +750,19 @@ export const QUEUE_ITEM_TYPES = [
     band: 'time_sensitive',
     view: 'work.cancel_with_financial_review',
     reasons: ['work_cancellation_requested'],
+    action: 'decide',
+    screen: 'schedule',
+  },
+  // TSK-0140 (OWN-DEC-163 7): an estimate visit booked for a customer with repeated short-notice cancellations or
+  // no-shows (cancellation.repeat_review), for the Owner's review: never a charge or a block. Resolved when the visit
+  // is no longer booked (migration 0115). View and band PROPOSED.
+  {
+    id: 'cancellation_pattern_review',
+    section: 'owner_decisions',
+    subject: 'visit',
+    band: 'other',
+    view: 'work.cancel_with_financial_review',
+    reasons: ['repeat_short_notice_cancellations'],
     action: 'decide',
     screen: 'schedule',
   },

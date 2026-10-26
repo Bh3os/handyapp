@@ -372,7 +372,13 @@ const move = (v: VisitView, date: string) =>
   staffWrite(
     'office',
     `/api/v1/staff/visits/${v.id}/window`,
-    { localDate: date, windowStart: '11:00', windowEnd: '12:00', reason: 'Synthetic: the customer asked to move it.' },
+    {
+      localDate: date,
+      windowStart: '11:00',
+      windowEnd: '12:00',
+      reason: 'Synthetic: the customer asked to move it.',
+      initiator: 'customer',
+    },
     v.version,
   )
 const cancel = (v: VisitView) =>

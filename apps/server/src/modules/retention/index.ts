@@ -7,11 +7,15 @@
 // (retention.review_scan) opens the entries; nothing in this module deletes, archives or changes a record.
 // TSK-0138 (OWN-DEC-177): the provisional defaults (staff accounts, consent records, settings history, technical logs,
 // expired sessions and links), with periods in years or calendar days, and batch entries.
+// TSK-0135 (OWN-DEC-164, HH-SEC-08): the audit-retention workflow (./audit-routes.ts): the Owner archives or deletes
+// audit entries past their 7 years, with its own protected trail and a hash chain the daily job seals.
 import type { Tx } from '@handyhub/db'
 import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
 import { pageSchema } from '../../api/pagination.js'
 import type { Automation } from '../../platform/automation.js'
 import { scheduleJob } from '../../platform/jobs.js'
+import { sealChain } from './audit-chain.js'
+import { auditRetentionRoutes } from './audit-routes.js'
 import { ENTRY_STATES, RETENTION_AUTOMATION, listReviewEntries, retentionOverview } from './reviews.js'
 import { RETENTION_PROCESS, runRetentionScan, type ScanResult } from './scan.js'
 import { HOLD_CHECKS, PERIOD_CATEGORIES, RETENTION_CATEGORIES } from './schedule.js'
@@ -19,6 +23,8 @@ import { HOLD_CHECKS, PERIOD_CATEGORIES, RETENTION_CATEGORIES } from './schedule
 export { CATEGORY_DEFINITIONS, HOLD_CHECKS, PERIOD_CATEGORIES, RETENTION_CATEGORIES } from './schedule.js'
 export { RETENTION_AUTOMATION, listReviewEntries, retentionOverview } from './reviews.js'
 export { RETENTION_PROCESS, SCAN_BATCH, holdChecksFor, runRetentionScan, type ScanResult } from './scan.js'
+export * from './audit-chain.js'
+export * from './audit-retention.js'
 
 const TEST = 'test/integration/retention.test.ts'
 
@@ -45,8 +51,8 @@ export function retentionReviewAutomation(): Automation {
     idempotency:
       'one job per UTC day and batch (key: day:<date>:<batch>); a record already in the queue gets no second entry',
     effect:
-      'opens owner deletion-review entries for records past their retention period; never deletes, archives or ' +
-      'changes a record',
+      'opens owner deletion-review entries for records past their retention period and seals the audit hash chain ' +
+      'up to the entries recorded a day before (TSK-0135); never deletes, archives or changes a record',
     retry: { maxAttempts: 5, baseDelayMs: 60_000, maxDelayMs: 3_600_000 },
     timeoutMs: 60_000,
     exceptionOwner: 'owner',
@@ -54,6 +60,8 @@ export function retentionReviewAutomation(): Automation {
     handle: async ({ tx, job }) => {
       const result = await runRetentionScan(tx, { requestId: job.requestId })
       const now = new Date(result.at)
+      // TSK-0135: the chain's seals make any later change, removal or insertion of an entry detectable.
+      await sealChain(tx, { now, by: RETENTION_PROCESS, requestId: job.requestId })
       const [, date = utcDate(now), batch = '1'] =
         /^day:(\d{4}-\d{2}-\d{2}):(\d+)$/.exec(String(job.payload['key'] ?? '')) ?? []
       const next = result.more
@@ -86,7 +94,10 @@ export async function ensureRetentionScan(tx: Tx, requestId: string, now = new D
 
 /** Runs one scan now, outside the schedule (the operator command; the same effect as the job). */
 export async function scanNow(tx: Tx, requestId: string): Promise<ScanResult> {
-  return runRetentionScan(tx, { requestId, process: `${RETENTION_PROCESS}.command` })
+  const process = `${RETENTION_PROCESS}.command`
+  const result = await runRetentionScan(tx, { requestId, process })
+  await sealChain(tx, { now: new Date(result.at), by: process, requestId })
+  return result
 }
 
 const read = {
@@ -279,5 +290,5 @@ export function retentionModule(): ApiModule {
     },
   }
 
-  return { name: 'retention', routes: [overview, list] }
+  return { name: 'retention', routes: [overview, list, ...auditRetentionRoutes()] }
 }

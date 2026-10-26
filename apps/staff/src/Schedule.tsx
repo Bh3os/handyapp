@@ -1113,9 +1113,11 @@ function MoveVisit({
       {booked && !changeRequestId ? (
         <div className="staff-queue__select">
           <label htmlFor={`${ids}-initiator`}>{t('change.initiator')}</label>
+          {/* TSK-0140 (OWN-DEC-195 C2): who started a reschedule is required (the server refuses it without). */}
           <select
             id={`${ids}-initiator`}
             value={initiator}
+            aria-required="true"
             onChange={(e) => setInitiator(e.target.value as '' | 'customer' | 'handyhub')}
           >
             <option value="">{t('change.initiator.none')}</option>

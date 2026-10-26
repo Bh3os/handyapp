@@ -720,7 +720,13 @@ describe('[HH-PKT-08][HH-DATA-08][OWN-DEC-171] access ends at once with the assi
       'office',
       'POST',
       `/api/v1/staff/visits/${v.id}/window`,
-      { localDate: dayIn(EASTERN, 6), windowStart: '09:00', windowEnd: '10:00', reason: 'Synthetic: asked to move' },
+      {
+        localDate: dayIn(EASTERN, 6),
+        windowStart: '09:00',
+        windowEnd: '10:00',
+        reason: 'Synthetic: asked to move',
+        initiator: 'customer',
+      },
       v.version,
     )
     expect(moved.statusCode, moved.body).toBe(200)

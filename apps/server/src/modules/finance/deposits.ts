@@ -239,6 +239,15 @@ export type DepositView = {
   actions: { enterPaymentLink: boolean; recordPayment: boolean; waive: boolean }
 }
 
+/** A job's deposit money: verified (cleared) and pending (an uncleared check); null without a deposit requirement. */
+export async function depositAmountsOfJob(
+  db: Reader,
+  jobId: string,
+): Promise<{ verified: number; pending: number } | null> {
+  const r = await requirementOfJob(db, jobId)
+  return r ? amounts(db, r.id) : null
+}
+
 /** The staff view of a job's deposit, with the actions the server would allow this caller now. */
 export async function depositView(db: Reader, actor: StaffActor, jobId: string): Promise<DepositView | null> {
   const r = await requirementOfJob(db, jobId)

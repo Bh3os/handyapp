@@ -185,6 +185,7 @@ const DOCUMENT_NAMES: Record<string, StaffKey> = {
   'legal.sms_terms': 'legalDocuments.name.smsTerms',
   'legal.website_terms': 'legalDocuments.name.websiteTerms',
   'legal.sms_disclosure': 'legalDocuments.name.smsDisclosure',
+  'legal.sms_verification_disclosure': 'legalDocuments.name.smsVerificationDisclosure',
   'legal.estimate_terms': 'legalDocuments.name.estimateTerms',
 }
 const STATUS: Record<NonNullable<LegalDocumentEntry['status']>, StaffKey> = {

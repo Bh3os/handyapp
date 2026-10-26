@@ -1,6 +1,7 @@
 // Contact verification and the account offer on the receipt (TSK-0033; HH-INT-13, HH-ID-03, HH-INT-14, OWN-DEC-94,
 // OWN-DEC-96, RULE-SERVER-AUTHZ, RULE-NO-INVENTED-FACTS). Synthetic values only (RULE-SYNTHETIC-DATA).
 import { readFileSync } from 'node:fs'
+import { SMS_VERIFICATION_DISCLOSURE } from '@handyhub/domain/legal'
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { describe, expect, it } from 'vitest'
 import { copyProblems } from '../src/site/claims.js'
@@ -25,6 +26,7 @@ const CAP = ['Synthetic', 'receipt', 'capability', '0123456789abcd'].join('_')
 const status = (email = 'unverified', phone = 'unverified'): ContactStatus => ({
   email: { destination: 'c***@example.test', state: email as 'unverified', available: true, change: null },
   phone: { destination: '***0143', state: phone as 'unverified', available: false, change: null },
+  smsCodeConsent: 'offered',
 })
 const record = (over: Record<string, unknown> = {}) => ({
   v: 1,
@@ -84,6 +86,10 @@ describe('the server’s answers in the customer’s words (TSK-0033, HH-INT-13,
   it('[HH-INT-13] a status is read defensively', () => {
     expect(parseStatus(status())).toEqual(status())
     expect(parseStatus({ email: status().email })).toBeNull()
+    // TSK-0134: the receipt's consent to a verification code by text is part of every status.
+    expect(parseStatus({ email: status().email, phone: status().phone })).toBeNull()
+    expect(parseStatus({ ...status(), smsCodeConsent: 'granted' })).toBeNull()
+    expect(parseStatus({ ...status(), smsCodeConsent: 'recorded' })?.smsCodeConsent).toBe('recorded')
     expect(parseStatus({ ...status(), phone: { ...status().phone, state: 'linked' } })).toBeNull()
     expect(parseStatus(null)).toBeNull()
   })
@@ -104,13 +110,16 @@ describe('the calls carry only the receipt capability (TSK-0033, RULE-SERVER-AUT
     })
     const verified = fakeFetch({ status: 200, body: { verified: { channel: 'email', changed: false }, contact: s } })
     expect(await api.verify(verified.f, CAP, 'email', ' 123456 ')).toMatchObject({ ok: true, data: { changed: false } })
+    const consent = fakeFetch({ status: 200, body: { recorded: true, contact: { ...s, smsCodeConsent: 'recorded' } } })
+    expect(await api.smsConsent(consent.f, CAP)).toMatchObject({ ok: true, data: { smsCodeConsent: 'recorded' } })
     const declined = fakeFetch({ status: 204 })
     expect(await api.decline(declined.f, CAP)).toEqual({ ok: true, data: true })
-    const all = [...calls, ...sent.calls, ...verified.calls, ...declined.calls]
+    const all = [...calls, ...sent.calls, ...verified.calls, ...consent.calls, ...declined.calls]
     expect(all.map((c) => `${c.init.method} ${c.url}`)).toEqual([
       'GET /api/v1/public/request-receipt/contact',
       'POST /api/v1/public/request-receipt/contact/codes',
       'POST /api/v1/public/request-receipt/contact/verify',
+      'POST /api/v1/public/request-receipt/contact/sms-consent',
       'POST /api/v1/public/request-receipt/account-offer/decline',
     ])
     for (const c of all) {
@@ -120,6 +129,11 @@ describe('the calls carry only the receipt capability (TSK-0033, RULE-SERVER-AUT
     expect(JSON.parse(String(sent.calls[0]?.init.body))).toEqual({ channel: 'email', destination: 'new@example.test' })
     expect(JSON.parse(String(verified.calls[0]?.init.body))).toEqual({ channel: 'email', code: '123456' })
     expect(JSON.parse(String(declined.calls[0]?.init.body))).toEqual({})
+    // TSK-0134 [OWN-DEC-178]: agreeing sends the disclosure version the page showed, and nothing else.
+    expect(JSON.parse(String(consent.calls[0]?.init.body))).toEqual({
+      agreed: true,
+      disclosureVersion: SMS_VERIFICATION_DISCLOSURE.documentId,
+    })
   })
 
   it('[HH-INT-13] a refused or failed call becomes the customer’s notice', async () => {

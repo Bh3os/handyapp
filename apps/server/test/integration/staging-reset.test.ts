@@ -587,14 +587,17 @@ describe('The database guards stand aside only for a permitted staging reset (TS
 
 describe('The TRUNCATE privileges, exercised by a role that is not a superuser (TSK-0141, migration 0070)', () => {
   it('[HH-OPS-05] the owner of the protected logs has no TRUNCATE; only a permitted reset grants it, until it ends', async () => {
-    // A throwaway database and role of this test: the deletion log and the retention reviews (and the decisions
-    // that reference both) are owned by an ordinary role, as a hosted database's migrating owner holds them. A
-    // superuser skips every privilege check, so the other tests cannot show this.
+    // A throwaway database and role of this test: the deletion log and the retention reviews (and the decisions,
+    // and since TSK-0137 the request remainders and consent evidence, that reference them) are owned by an ordinary
+    // role, as a hosted database's migrating owner holds them. A superuser skips every privilege check, so the other
+    // tests cannot show this.
     const own = await createTestDatabase()
     const role = `hh_reset_owner_${randomUUID().replace(/-/g, '').slice(0, 12)}`
     const admin = new pg.Client({ connectionString: own.url })
     await admin.connect()
-    const tables = 'privacy.deletions, privacy.retention_reviews, privacy.retention_decisions'
+    const tables =
+      'privacy.deletions, privacy.retention_reviews, privacy.retention_decisions, privacy.request_remainders, ' +
+      'privacy.consent_evidence'
     try {
       await admin.query(`CREATE ROLE ${role} NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE`)
       for (const table of tables.split(', ')) await admin.query(`ALTER TABLE ${table} OWNER TO ${role}`)

@@ -273,6 +273,8 @@ test.describe('Scheduling board: by worker, stale edits and small screens (TSK-0
       await form.getByLabel('Arrival window ends').fill('11:00')
       // TSK-0066: a booked visit's reschedule records its reason.
       await form.getByLabel('Reason (required)').fill('Synthetic: the customer asked for later')
+      // TSK-0140 (OWN-DEC-195 C2): and who started it.
+      await form.getByLabel('Who asked for the change').selectOption('customer')
 
       // Meanwhile someone else moves it first, from another screen.
       const current = await withDb((db) =>
@@ -280,7 +282,13 @@ test.describe('Scheduling board: by worker, stale edits and small screens (TSK-0
       )
       const first = await write(
         `/api/v1/staff/visits/${two.id}/window`,
-        { localDate: date, windowStart: '11:00', windowEnd: '12:00', reason: 'Synthetic: the other editor' },
+        {
+          localDate: date,
+          windowStart: '11:00',
+          windowEnd: '12:00',
+          reason: 'Synthetic: the other editor',
+          initiator: 'customer',
+        },
         current.version,
       )
       expect(first.status()).toBe(200)

@@ -17,3 +17,5 @@ source: "owner answers 2026-10-20"
 - Cancellation after work started: work done plus materials.
 - HandyHub cancels or moves a visit: customer chooses free reschedule or full refund.
 - Refunds are owner-only. Customer wording pending attorney review ([[OQ-ATTORNEY-TERMS]]).
+
+**Value:** `cancellation.rules` version 2 (migration 0115 of [[TSK-0140]]): notice 24 hours, late-cancellation amount 5000 cents as the cap of the fee, a smaller deposit kept only, the no-deposit invoice only where disclosed and accepted in advance, estimate visits never charged, the reschedule initiator required, fee enforcement waiting for the attorney. The repeated-cancellation review numbers are `cancellation.repeat_review`, NOT CONFIGURED ([[OQ-CANCELLATION-RULES-DETAILS]]).

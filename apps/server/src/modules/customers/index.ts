@@ -664,7 +664,15 @@ const recordWithdrawal = writeRoute({
     }
     if (purpose === 'transactional_sms' && channel !== 'sms') throw invalid('body.channel')
     const destination = channel === 'sms' ? contact.phone_e164 : contact.email
-    if ((await currentConsent(tx, channel, destination, purpose)) === 'withdrawn') {
+    // TSK-0134: an instruction to stop texts also ends a consent to verification codes by text (like STOP).
+    const purposes = purpose === 'transactional_sms' ? (['transactional_sms', 'sms_verification'] as const) : [purpose]
+    const open: (typeof purposes)[number][] = []
+    for (const p of purposes) {
+      const state = await currentConsent(tx, channel, destination, p)
+      // The opt-in is withdrawn unless it already is; the verification-code consent only while it is granted.
+      if (p === 'sms_verification' ? state === 'granted' : state !== 'withdrawn') open.push(p)
+    }
+    if (open.length === 0) {
       await ctx.audit({
         target: { type: 'contact', id: contact.id },
         summary: { customerId: customer.id, purpose, channel, recorded: false },
@@ -672,17 +680,18 @@ const recordWithdrawal = writeRoute({
       })
       return { body: { state: 'withdrawn', recorded: false } }
     }
-    await recordConsent(tx, {
-      purpose,
-      channel,
-      destination,
-      granted: false,
-      source: 'staff_recorded',
-      recordedBy: actor.userId,
-      subject: { kind: 'customer_contact', id: contact.id },
-      // Safe evidence: the request this was recorded in; the reason is in the audit event.
-      evidence: { requestId: correlation(ctx) },
-    })
+    for (const p of open)
+      await recordConsent(tx, {
+        purpose: p,
+        channel,
+        destination,
+        granted: false,
+        source: 'staff_recorded',
+        recordedBy: actor.userId,
+        subject: { kind: 'customer_contact', id: contact.id },
+        // Safe evidence: the request this was recorded in; the reason is in the audit event.
+        evidence: { requestId: correlation(ctx) },
+      })
     await ctx.audit({
       target: { type: 'contact', id: contact.id },
       summary: { customerId: customer.id, purpose, channel, recorded: true },

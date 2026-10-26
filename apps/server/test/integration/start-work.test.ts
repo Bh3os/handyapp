@@ -38,6 +38,7 @@ import { createStaffUser, setPasswordHash } from '../../src/modules/identity/acc
 import { startCustomerSession } from '../../src/modules/identity/customer-sessions.js'
 import { readCodeKey, type CodeKeySettings } from '../../src/modules/identity/index.js'
 import { hashPassword } from '../../src/modules/identity/passwords.js'
+import { cancellationFacts, workMarkers } from '../../src/modules/visits/changes.js'
 import { recordPolicyVersion } from '../../src/platform/config/index.js'
 import { FakeObjectStorage } from '../../src/providers/r2/index.js'
 import { verifyCountyOf } from '../fixtures/county.js'
@@ -604,6 +605,13 @@ describe('[HH-WORK-01][HH-WORK-04][T46] the gate names every missing item; Start
   })
 
   it('[T46][OWN-DEC-195] a passing start records versions, actor, acknowledgment and server time; the job is in progress', async () => {
+    // TSK-0140 (OWN-DEC-195 C4, HH-STATE-02): arrived and prepared (site check, before photos), not started: a
+    // cancellation now would not be "after work started".
+    const prepared = await cancellationFacts(t.db, { id: visitId, purpose: 'service', job_id: jobId })
+    expect(prepared.markers.arrived).not.toBeNull()
+    expect(prepared.markers.preparation_started).not.toBeNull()
+    expect(prepared.markers.contracted_work_started).toBeNull()
+    expect(prepared.workStarted).toBe(false)
     const g = await gate('ann', visitId)
     const before = Date.now()
     const res = await start('ann', visitId, g.packet?.version as number)
@@ -643,6 +651,11 @@ describe('[HH-WORK-01][HH-WORK-04][T46] the gate names every missing item; Start
       .executeTakeFirstOrThrow()
     expect(ack).toEqual({ staff_user_id: ids.ann, version: g.packet?.version })
     expect(await jobState(jobId)).toBe('in_progress')
+    // TSK-0140 (OWN-DEC-195 C4): Start Work is "contracted work started", the only marker that is the start of work.
+    const started = await workMarkers(t.db, { id: visitId, job_id: jobId })
+    expect(started.contracted_work_started?.getTime()).toBe(row.started_at.getTime())
+    expect(started.completed).toBeNull()
+    expect((await cancellationFacts(t.db, { id: visitId, purpose: 'service', job_id: jobId })).workStarted).toBe(true)
     const pkgs = await t.db.selectFrom('work.work_packages').select('state').where('job_id', '=', jobId).execute()
     expect(pkgs.map((x) => x.state)).toEqual(['in_progress'])
     const audit = await t.db
