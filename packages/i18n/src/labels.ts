@@ -1052,6 +1052,8 @@ export const LABEL_FAMILIES = {
     'accounting',
     'access_code',
     'account_offer',
+    // TSK-0116: the AI gateway's refusals (AI is disabled; every request is refused and audited).
+    'ai',
     'appointment_reminder',
     'approval_receipt',
     'automation',

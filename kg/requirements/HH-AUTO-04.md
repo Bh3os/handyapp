@@ -9,9 +9,10 @@ links:
   decided_by: ["[[OWN-DEC-74]]", "[[OWN-DEC-15]]"]
   depends_on: ["[[HH-AUTO-03]]"]
   constrained_by: ["[[RULE-AI-WAVE2]]", "[[RULE-SERVER-AUTHZ]]"]
+  related: ["[[OQ-AI-GUARDRAILS-DETAILS]]"]
 source: "guide 21.3; OWN-DEC-74"
 ---
-Not built; designed when the owner approves plan 33 and a provider ([[OWN-DEC-74]]).
+AI stays off until the owner approves plan 33 and a provider ([[OWN-DEC-74]]). The guardrails are built in their disabled state ([[TSK-0116]]): every request for AI assistance is refused, audited and answered with the manual path; the bounds, privacy destinations and instructions of each use stay NOT CONFIGURED until then ([[OQ-AI-GUARDRAILS-DETAILS]]).
 
 When AI is enabled:
 - customer text, photos and documents are untrusted data, never instructions to the model;
