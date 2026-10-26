@@ -197,6 +197,8 @@ describe('retention reviews screen (TSK-0099, HH-PRIV-01)', () => {
       if (url.includes('/staff/deletions')) return json(200, { items: [], nextCursor: null })
       // TSK-0135: the audit-retention section has its own screen tests (AuditRetention.test.tsx).
       if (url.includes('/staff/audit-retention')) return json(404, { error: { code: 'NOT_FOUND', fieldErrors: [] } })
+      // TSK-0152: the mapping review has its own screen tests (MappingReview.test.tsx).
+      if (url.includes('/staff/retention-mapping')) return json(404, { error: { code: 'NOT_FOUND', fieldErrors: [] } })
       return json(200, { items: [batch], nextCursor: null })
     })
     render(<RetentionScreen t={t} locale="en" fetchImpl={fetchImpl as unknown as typeof fetch} />)

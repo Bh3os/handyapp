@@ -10,7 +10,12 @@
 // deadline once recorded) and its overdue alerts; the Owner extends the target with a reason the customer is shown,
 // and records the legal deadline the attorney defines. Nothing closes when a date passes. An Owner Decisions item
 // opens one request (/privacy/<id>).
-import type { StaffKey, StaffLocale } from '@handyhub/i18n'
+// TSK-0152 (OWN-DEC-201): each request shows how the identity was verified and its risk; completing an export or a
+// deletion asks the Owner to confirm the identity evidence (I1). The Owner records a request for a person verified
+// outside the portal (the secure alternative, I1). A correction request shows its history: the changes made in the
+// records' own screens since it arrived, and the corrections recorded as new entries beside records that are never
+// rewritten, which the Owner adds here (I3). The accounting checks are found or none found (I4).
+import { LABEL_FAMILIES, type StaffKey, type StaffLocale } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useState, type FormEvent } from 'react'
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
@@ -52,6 +57,31 @@ export type PrivacyRequestItem = {
     accessClosed: boolean
   } | null
   deadlines: Deadlines
+  /** TSK-0152: how the identity was verified, the request's risk and the Owner's confirmation. */
+  identity: {
+    risk: 'standard' | 'elevated'
+    method: 'fresh_session_code' | 'staff_verified'
+    via: 'link' | 'account' | 'owner'
+    verifiedAt: string
+    check: string | null
+    note: string | null
+    recordedBy: string | null
+    confirmedAt: string | null
+    confirmedBy: string | null
+  }
+}
+
+/** TSK-0152 (I3): a correction request's history. */
+export type CorrectionHistory = {
+  changes: { record: string; fields: string[]; changedAt: string }[]
+  entries: {
+    id: string
+    recordKind: string
+    recordRef: string
+    correction: string
+    recordedAt: string
+    recordedBy: { id: string; name: string | null }
+  }[]
 }
 
 /** TSK-0136: the request's dates as the server counted them, and its overdue alerts today. */
@@ -85,6 +115,7 @@ export type PrivacyRequestDetail = PrivacyRequestItem & {
     }
   }
   findings: { items: PlanItem[]; checks: unknown[]; at: string } | null
+  corrections: CorrectionHistory | null
 }
 
 const STATE_TONE = {
@@ -270,6 +301,270 @@ function DateChange({
   )
 }
 
+/**
+ * TSK-0152 (OWN-DEC-201 I3): a correction request's history, and the Owner's correction of a record that is never
+ * rewritten, recorded as a new entry beside it (no fresh sign-in: nothing is disclosed or removed, PROPOSED).
+ */
+function Corrections({
+  t,
+  locale,
+  d,
+  corrections,
+  fetchImpl,
+  onDone,
+}: {
+  t: T
+  locale: StaffLocale
+  d: PrivacyRequestDetail
+  corrections: CorrectionHistory
+  fetchImpl: Fetch
+  onDone: (d: PrivacyRequestDetail) => void
+}) {
+  const ids = useId()
+  const [kind, setKind] = useState<string>(LABEL_FAMILIES.correctionRecordKind[0])
+  const [ref, setRef] = useState('')
+  const [text, setText] = useState('')
+  const [pending, setPending] = useState(false)
+  const [outcome, setOutcome] = useState<{ ok: true } | { ok: false; reasons: string[] } | null>(null)
+  const time = new Intl.DateTimeFormat(bcp47(locale), { dateStyle: 'medium', timeStyle: 'short' })
+  const missing = !ref.trim() || !text.trim()
+  async function submit(e: FormEvent) {
+    e.preventDefault()
+    if (missing) return
+    setPending(true)
+    const r = await call<PrivacyRequestDetail>(fetchImpl, `/staff/privacy-requests/${d.id}/corrections`, {
+      method: 'POST',
+      body: { recordKind: kind, recordRef: ref, correction: text },
+      headers: { 'idempotency-key': idempotencyKey() },
+    })
+    setPending(false)
+    if (!r.ok) return setOutcome({ ok: false, reasons: reasons(t, r.error) })
+    setOutcome({ ok: true })
+    setRef('')
+    setText('')
+    onDone(r.data)
+  }
+  return (
+    <section aria-labelledby={`${ids}-title`} data-testid="privacy-corrections">
+      <h3 id={`${ids}-title`} className="staff-queue__title">
+        {t('privacy.corrections.title')}
+      </h3>
+      <p>{t('privacy.corrections.intro')}</p>
+      {corrections.changes.length + corrections.entries.length === 0 ? (
+        <p>{t('privacy.corrections.none')}</p>
+      ) : (
+        <ul aria-labelledby={`${ids}-title`}>
+          {corrections.changes.map((c, i) => (
+            <li key={`c-${i}`}>
+              {t('privacy.corrections.change', {
+                record: codeLabel(t, 'correctionRecord', c.record),
+                fields: c.fields.join(', '),
+                time: time.format(new Date(c.changedAt)),
+              })}
+            </li>
+          ))}
+          {corrections.entries.map((e) => (
+            <li key={e.id}>
+              {t('privacy.corrections.entry', {
+                kind: codeLabel(t, 'correctionRecordKind', e.recordKind),
+                reference: e.recordRef,
+                correction: e.correction,
+                name: e.recordedBy.name ?? '',
+                time: time.format(new Date(e.recordedAt)),
+              })}
+            </li>
+          ))}
+        </ul>
+      )}
+      {d.state === 'under_review' ? (
+        <form
+          className="staff-privacy__decision"
+          aria-label={t('privacy.corrections.add')}
+          onSubmit={(e) => void submit(e)}
+        >
+          <h4 className="staff-queue__title">{t('privacy.corrections.add')}</h4>
+          <p>{t('privacy.corrections.addIntro')}</p>
+          <div className="staff-queue__select">
+            <label htmlFor={`${ids}-kind`}>{t('privacy.corrections.kind')}</label>
+            <select id={`${ids}-kind`} value={kind} onChange={(e) => setKind(e.target.value)}>
+              {LABEL_FAMILIES.correctionRecordKind.map((k) => (
+                <option key={k} value={k}>
+                  {codeLabel(t, 'correctionRecordKind', k)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Field
+            label={t('privacy.corrections.reference')}
+            name="correction-reference"
+            value={ref}
+            maxLength={160}
+            onChange={(e) => setRef(e.target.value)}
+          />
+          <Field
+            label={t('privacy.corrections.text')}
+            multiline
+            name="correction-text"
+            value={text}
+            maxLength={2000}
+            onChange={(e) => setText(e.target.value)}
+          />
+          <div className="hh-button-row">
+            <Button
+              type="submit"
+              variant="secondary"
+              pending={pending}
+              {...(missing ? { disabledReason: t('privacy.change.fieldsFirst') } : {})}
+            >
+              {t('privacy.corrections.submit')}
+            </Button>
+          </div>
+          {outcome?.ok ? <StateView kind="success" title={t('privacy.corrections.done')} /> : null}
+          {outcome && !outcome.ok ? (
+            <StateView kind="error" title={t('privacy.change.refused')} reasons={outcome.reasons} />
+          ) : null}
+        </form>
+      ) : null}
+    </section>
+  )
+}
+
+/**
+ * TSK-0152 (OWN-DEC-201 I1): the secure alternative. The Owner records a request for a person they verified outside
+ * the portal (the check and a note), naming the project and the email or phone on file; a fresh sign-in is asked for.
+ */
+function RecordRequest({
+  t,
+  fetchImpl,
+  onSession,
+  onRecorded,
+}: {
+  t: T
+  fetchImpl: Fetch
+  onSession?: (s: { csrfToken: string }) => void
+  onRecorded: (d: PrivacyRequestDetail) => void
+}) {
+  const ids = useId()
+  const [kind, setKind] = useState<PrivacyRequestItem['kind']>('export')
+  const [project, setProject] = useState('')
+  const [contact, setContact] = useState('')
+  const [details, setDetails] = useState('')
+  const [check, setCheck] = useState<string>(LABEL_FAMILIES.privacyIdentityCheck[0])
+  const [note, setNote] = useState('')
+  const [outcome, setOutcome] = useState<{ ok: true; reference: string } | { ok: false; reasons: string[] } | null>(
+    null,
+  )
+  const w = useOwnerWrite(fetchImpl, onSession)
+  const missing = !project.trim() || !contact.trim() || !note.trim() || (kind === 'correction' && !details.trim())
+  const send = () =>
+    void w.send<PrivacyRequestDetail>(
+      '/staff/privacy-requests',
+      {
+        kind,
+        project,
+        contact,
+        check,
+        note,
+        ...(kind === 'correction' ? { details } : {}),
+      },
+      (r) => {
+        if (!r.ok) return setOutcome({ ok: false, reasons: reasons(t, r.error) })
+        setOutcome({ ok: true, reference: r.data.reference })
+        setNote('')
+        setDetails('')
+        onRecorded(r.data)
+      },
+    )
+  return (
+    <details className="staff-privacy__record">
+      <summary>{t('privacy.record.title')}</summary>
+      <form
+        className="staff-privacy__decision"
+        aria-label={t('privacy.record.title')}
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (!missing) send()
+        }}
+      >
+        <p>{t('privacy.record.intro')}</p>
+        <div className="staff-queue__select">
+          <label htmlFor={`${ids}-kind`}>{t('privacy.record.kind')}</label>
+          <select
+            id={`${ids}-kind`}
+            value={kind}
+            onChange={(e) => setKind(e.target.value as PrivacyRequestItem['kind'])}
+          >
+            {(['export', 'correction', 'deletion'] as const).map((k) => (
+              <option key={k} value={k}>
+                {codeLabel(t, 'privacyRequestKind', k)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <Field
+          label={t('privacy.record.project')}
+          name="record-project"
+          value={project}
+          maxLength={40}
+          onChange={(e) => setProject(e.target.value)}
+        />
+        <Field
+          label={t('privacy.record.contact')}
+          name="record-contact"
+          value={contact}
+          maxLength={254}
+          onChange={(e) => setContact(e.target.value)}
+        />
+        {kind === 'correction' ? (
+          <Field
+            label={t('privacy.record.details')}
+            multiline
+            name="record-details"
+            value={details}
+            maxLength={2000}
+            onChange={(e) => setDetails(e.target.value)}
+          />
+        ) : null}
+        <div className="staff-queue__select">
+          <label htmlFor={`${ids}-check`}>{t('privacy.record.check')}</label>
+          <select id={`${ids}-check`} value={check} onChange={(e) => setCheck(e.target.value)}>
+            {LABEL_FAMILIES.privacyIdentityCheck.map((c) => (
+              <option key={c} value={c}>
+                {codeLabel(t, 'privacyIdentityCheck', c)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <Field
+          label={t('privacy.record.note')}
+          multiline
+          name="record-note"
+          value={note}
+          maxLength={1000}
+          onChange={(e) => setNote(e.target.value)}
+        />
+        <div className="hh-button-row">
+          <Button
+            type="submit"
+            variant="secondary"
+            pending={w.pending}
+            {...(missing ? { disabledReason: t('privacy.record.fieldsFirst') } : {})}
+          >
+            {t('privacy.record.submit')}
+          </Button>
+        </div>
+        {outcome?.ok ? (
+          <StateView kind="success" title={t('privacy.record.done', { reference: outcome.reference })} />
+        ) : null}
+        {outcome && !outcome.ok ? (
+          <StateView kind="error" title={t('privacy.change.refused')} reasons={outcome.reasons} />
+        ) : null}
+      </form>
+      <ReauthForm t={t} w={w} />
+    </details>
+  )
+}
+
 export function privacyQuery(state: string, cursor?: string): string {
   const q = new URLSearchParams()
   if (state) q.set('state', state)
@@ -319,6 +614,7 @@ function Detail({
   const [reason, setReason] = useState('')
   const [closeAccess, setCloseAccess] = useState(true)
   const [checked, setChecked] = useState<string[]>([])
+  const [identityConfirmed, setIdentityConfirmed] = useState(false)
   const [refused, setRefused] = useState<string[]>([])
   const w = useOwnerWrite(fetchImpl, onSession)
   const load = useCallback(async () => {
@@ -347,6 +643,13 @@ function Detail({
     })
   const deletion = d.kind === 'deletion' && decision === 'complete'
   const missing = deletion ? d.plan.confirm.filter((c) => !checked.includes(c)) : []
+  // TSK-0152 (I1): an export or a deletion is completed once the Owner confirms the identity evidence.
+  const confirmIdentity = decision === 'complete' && d.identity.risk === 'elevated'
+  // TSK-0152 (I3): a correction is completed once a change or a correction entry is recorded.
+  const noCorrection =
+    decision === 'complete' &&
+    d.kind === 'correction' &&
+    (d.corrections?.changes.length ?? 0) + (d.corrections?.entries.length ?? 0) === 0
   const decide = () =>
     void w.send<PrivacyRequestDetail>(
       `/staff/privacy-requests/${d.id}/decision`,
@@ -354,6 +657,7 @@ function Detail({
         decision,
         reason,
         ...(deletion ? { confirmedChecks: checked, closeAccess } : {}),
+        ...(confirmIdentity ? { identityConfirmed } : {}),
       },
       after,
       { 'if-match': `"${d.version}"` },
@@ -362,7 +666,11 @@ function Detail({
     ? t('privacy.decision.reasonFirst')
     : missing.length
       ? t('privacy.decision.checkFirst')
-      : undefined
+      : confirmIdentity && !identityConfirmed
+        ? t('privacy.decision.identityFirst')
+        : noCorrection
+          ? t('privacy.decision.correctionFirst')
+          : undefined
   return (
     <section className="staff-request__section" aria-labelledby={`${ids}-title`} data-testid="privacy-detail">
       <h2 id={`${ids}-title`} className="hh-h3">
@@ -380,8 +688,30 @@ function Detail({
             phone: d.contact.phone ?? '',
           })}
         </li>
-        <li>{t(d.account ? 'privacy.detail.fromAccount' : 'privacy.detail.fromLink')}</li>
-        <li>{t('privacy.detail.identity')}</li>
+        {d.identity.method === 'staff_verified' ? (
+          <li>
+            {t('privacy.identity.owner', {
+              check: codeLabel(t, 'privacyIdentityCheck', d.identity.check ?? ''),
+              name: d.identity.recordedBy ?? '',
+              time: time.format(new Date(d.identity.verifiedAt)),
+            })}
+          </li>
+        ) : (
+          <>
+            <li>{t(d.account ? 'privacy.detail.fromAccount' : 'privacy.detail.fromLink')}</li>
+            <li>{t('privacy.detail.identity')}</li>
+          </>
+        )}
+        {d.identity.note ? <li>{t('privacy.identity.note', { note: d.identity.note })}</li> : null}
+        <li>{t('privacy.identity.risk', { risk: codeLabel(t, 'privacyRisk', d.identity.risk) })}</li>
+        {d.identity.confirmedAt ? (
+          <li>
+            {t('privacy.identity.confirmed', {
+              name: d.identity.confirmedBy ?? '',
+              time: time.format(new Date(d.identity.confirmedAt)),
+            })}
+          </li>
+        ) : null}
         <li>{t('privacy.detail.submitted', { time: time.format(new Date(d.submittedAt)) })}</li>
       </ul>
       <h3 className="staff-queue__title">{t('privacy.dates.title')}</h3>
@@ -421,6 +751,16 @@ function Detail({
           </li>
         ))}
       </ul>
+      {d.corrections ? (
+        <Corrections
+          t={t}
+          locale={locale}
+          d={d}
+          corrections={d.corrections}
+          fetchImpl={fetchImpl}
+          onDone={(next) => setD(next)}
+        />
+      ) : null}
       {d.state === 'received' ? (
         <div className="hh-button-row">
           <Button pending={w.pending} onClick={startReview}>
@@ -486,6 +826,16 @@ function Detail({
                 ))}
               </fieldset>
             </>
+          ) : null}
+          {confirmIdentity ? (
+            <label className="staff-retention__check">
+              <input
+                type="checkbox"
+                checked={identityConfirmed}
+                onChange={(e) => setIdentityConfirmed(e.target.checked)}
+              />{' '}
+              {t('privacy.decision.identityConfirmed')}
+            </label>
           ) : null}
           <Field
             label={t('privacy.decision.reason')}
@@ -621,6 +971,12 @@ export function PrivacyScreen({
           <a href={href('/access-help')}>{t('privacy.accessHelp')}</a>
         </p>
       ) : null}
+      <RecordRequest
+        t={t}
+        fetchImpl={fetchImpl}
+        {...(onSession ? { onSession } : {})}
+        onRecorded={() => setReload((n) => n + 1)}
+      />
       <form
         className="staff-queue__filters"
         aria-label={t('privacy.filter')}

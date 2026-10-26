@@ -12,10 +12,13 @@
 // of one kind and month).
 // TSK-0135 (OWN-DEC-164, HH-SEC-08): the audit-retention workflow (./AuditRetention.tsx): audit entries past their
 // period are archived or deleted only there, by range, with the protected trail and the hash chain's verification.
+// TSK-0152 (OWN-DEC-201 I5): the table-to-retention mapping review (./MappingReview.tsx); in production the Delete
+// actions stay disabled until the Owner records one confirmed by the CPA and the attorney.
 import { LABEL_FAMILIES, type StaffKey, type StaffLocale } from '@handyhub/i18n'
 import { Button, Dialog, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useState, type FormEvent } from 'react'
 import { call, type ApiErrorBody, type Fetch } from './api'
+import { MappingReview } from './MappingReview'
 import { AuditRetention } from './AuditRetention'
 import { ReauthForm, useOwnerWrite } from './OwnerWrite'
 import { codeLabel } from './Requests'
@@ -690,6 +693,7 @@ export function RetentionScreen({
         />
       ) : null}
       <DeletionLog t={t} locale={locale} fetchImpl={fetchImpl} reload={reload} />
+      <MappingReview t={t} locale={locale} fetchImpl={fetchImpl} {...(onSession ? { onSession } : {})} />
       <AuditRetention t={t} locale={locale} fetchImpl={fetchImpl} {...(onSession ? { onSession } : {})} />
     </section>
   )

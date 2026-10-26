@@ -524,6 +524,7 @@ describe('privacy request dates (TSK-0136, HH-PRIV-07, OWN-DEC-175, OWN-DEC-205)
         reason: 'Synthetic: eligible data deleted; the request record stays.',
         confirmedChecks: d.plan.confirm,
         closeAccess: false,
+        identityConfirmed: true,
       },
       d.version,
     )

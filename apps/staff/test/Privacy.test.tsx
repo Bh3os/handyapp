@@ -1,5 +1,6 @@
 // The privacy requests screen in the staff app (TSK-0100; HH-PRIV-03, ENT-PrivacyRequest, OWN-DEC-71, OWN-DEC-113;
-// TSK-0136: HH-PRIV-07, OWN-DEC-175, the dates, alerts, extension and legal deadline).
+// TSK-0136: HH-PRIV-07, OWN-DEC-175, the dates, alerts, extension and legal deadline; TSK-0152: OWN-DEC-201 I1, I3, the
+// identity confirmation, the request recorded outside the portal and the corrections).
 // The API is a synthetic stand-in (RULE-SYNTHETIC-DATA): names, references and counts are test inputs, not business
 // facts; what is deleted or retained is whatever the server sends.
 import { staffTranslator } from '@handyhub/i18n'
@@ -13,7 +14,7 @@ const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
 
 const t = staffTranslator('en').t
-const NOT_RECORDED = ['complaints', 'disputes', 'issued_invoices']
+const NOT_RECORDED = ['complaints', 'disputes', 'claims']
 
 const request = (over: Partial<PrivacyRequestDetail> = {}): PrivacyRequestDetail => ({
   id: '11111111-1111-4111-8111-111111111111',
@@ -99,6 +100,18 @@ const request = (over: Partial<PrivacyRequestDetail> = {}): PrivacyRequestDetail
     },
   },
   findings: null,
+  identity: {
+    risk: 'elevated',
+    method: 'fresh_session_code',
+    via: 'account',
+    verifiedAt: '2026-10-21T14:55:00.000Z',
+    check: null,
+    note: null,
+    recordedBy: null,
+    confirmedAt: null,
+    confirmedBy: null,
+  },
+  corrections: null,
   ...over,
 })
 
@@ -160,8 +173,14 @@ describe('privacy requests screen (TSK-0100, HH-PRIV-03)', () => {
     expect((within(detail).getByRole('button', { name: /^Record the decision/ }) as HTMLButtonElement).disabled).toBe(
       true,
     )
-    for (const label of ['Unresolved complaints', 'Disputes', 'Issued invoices'])
+    for (const label of ['Unresolved complaints', 'Disputes', 'Claims'])
       fireEvent.click(within(detail).getByLabelText(`I checked: ${label} (none found)`))
+    // TSK-0152 (OWN-DEC-201 I1): a deletion is elevated: the Owner confirms the identity evidence first.
+    expect(within(detail).getByText('Risk: elevated')).toBeTruthy()
+    expect((within(detail).getByRole('button', { name: /^Record the decision/ }) as HTMLButtonElement).disabled).toBe(
+      true,
+    )
+    fireEvent.click(within(detail).getByLabelText(/^I checked the identity evidence above/))
     expect(
       (within(detail).getByLabelText(/^Close sign-in, sessions and project access links/) as HTMLInputElement).checked,
     ).toBe(true)
@@ -174,8 +193,9 @@ describe('privacy requests screen (TSK-0100, HH-PRIV-03)', () => {
     expect(JSON.parse(String(init.body))).toEqual({
       decision: 'complete',
       reason: 'Synthetic: identity confirmed.',
-      confirmedChecks: ['complaints', 'disputes', 'issued_invoices'],
+      confirmedChecks: ['complaints', 'disputes', 'claims'],
       closeAccess: true,
+      identityConfirmed: true,
     })
     expect(init.headers['if-match']).toBe('"2"')
   })
@@ -247,6 +267,99 @@ describe('privacy requests screen (TSK-0100, HH-PRIV-03)', () => {
     expect(within(detail).getByText('Legal deadline: Dec 5, 2026 (Synthetic attorney note)')).toBeTruthy()
     expect(within(detail).queryByTestId('privacy-extend')).toBeNull()
     expect(within(detail).queryByTestId('privacy-legal-deadline')).toBeNull()
+  })
+
+  it('[HH-PRIV-03][OWN-DEC-201] a correction shows its history; a protected record is corrected by a new entry', async () => {
+    const correction = request({
+      kind: 'correction',
+      details: 'Synthetic: my phone is wrong on the invoice.',
+      identity: { ...request().identity, risk: 'standard' },
+      corrections: {
+        changes: [{ record: 'contact', fields: ['phone'], changedAt: '2026-10-21T16:30:00.000Z' }],
+        entries: [],
+      },
+    })
+    const recorded = request({
+      ...correction,
+      corrections: {
+        changes: correction.corrections?.changes ?? [],
+        entries: [
+          {
+            id: 'c1',
+            recordKind: 'invoice',
+            recordRef: 'INV-SYNTH-1',
+            correction: 'Synthetic: the phone on the issued invoice is outdated.',
+            recordedAt: '2026-10-21T16:40:00.000Z',
+            recordedBy: { id: 'o1', name: 'Synthetic Owner' },
+          },
+        ],
+      },
+    })
+    const fetchImpl = api(correction, { '/corrections': () => json(200, recorded) })
+    render(
+      <PrivacyScreen t={t} locale="en" fetchImpl={fetchImpl as unknown as typeof fetch} requestId={correction.id} />,
+    )
+    const box = await screen.findByTestId('privacy-corrections')
+    expect(within(box).getByText(/^Contact details changed on .*: phone$/)).toBeTruthy()
+    fireEvent.change(within(box).getByLabelText('Record'), { target: { value: 'invoice' } })
+    fireEvent.change(within(box).getByLabelText('Reference (estimate, invoice or entry number)'), {
+      target: { value: 'INV-SYNTH-1' },
+    })
+    fireEvent.change(within(box).getByLabelText('The correction: what is wrong and what is right'), {
+      target: { value: 'Synthetic: the phone on the issued invoice is outdated.' },
+    })
+    fireEvent.click(within(box).getByRole('button', { name: 'Record the correction' }))
+    expect(await within(box).findByText(/^Invoice INV-SYNTH-1: Synthetic: the phone/)).toBeTruthy()
+    const sent = fetchImpl.mock.calls.filter((c) => String(c[0]).endsWith('/corrections'))
+    expect(JSON.parse(String((sent[0]?.[1] as RequestInit).body))).toEqual({
+      recordKind: 'invoice',
+      recordRef: 'INV-SYNTH-1',
+      correction: 'Synthetic: the phone on the issued invoice is outdated.',
+    })
+    // A standard request needs no identity confirmation.
+    expect(screen.queryByLabelText(/^I checked the identity evidence above/)).toBeNull()
+  })
+
+  it('[HH-PRIV-03][OWN-DEC-201] the Owner records a request verified outside the portal, with the check and a note', async () => {
+    const recorded = request({
+      state: 'received',
+      reference: 'PR-000009',
+      identity: {
+        ...request().identity,
+        method: 'staff_verified',
+        via: 'owner',
+        check: 'call_to_phone_on_file',
+        note: 'Synthetic: called back on the number on file.',
+        recordedBy: 'Synthetic Owner',
+      },
+    })
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url.endsWith('/staff/privacy-requests') && init?.method === 'POST') return json(201, recorded)
+      if (url.includes('/staff/privacy-requests')) return json(200, { items: [], nextCursor: null })
+      return json(404, { error: { code: 'NOT_FOUND', fieldErrors: [] } })
+    })
+    render(<PrivacyScreen t={t} locale="en" fetchImpl={fetchImpl as unknown as typeof fetch} />)
+    fireEvent.click(await screen.findByText('Record a request verified outside the portal'))
+    const form = screen.getByRole('form', { name: 'Record a request verified outside the portal' })
+    expect((within(form).getByRole('button', { name: /^Record the request/ }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.change(within(form).getByLabelText('Project reference'), { target: { value: 'HH-SYNTH001' } })
+    fireEvent.change(within(form).getByLabelText('Email or phone on file'), {
+      target: { value: 'synthetic@example.test' },
+    })
+    fireEvent.change(within(form).getByLabelText('Verification note (required)'), {
+      target: { value: 'Synthetic: called back on the number on file.' },
+    })
+    fireEvent.click(within(form).getByRole('button', { name: 'Record the request' }))
+    expect(await within(form).findByText('Request PR-000009 is recorded.')).toBeTruthy()
+    const sent = fetchImpl.mock.calls.filter((c) => (c[1] as RequestInit | undefined)?.method === 'POST')
+    expect(JSON.parse(String((sent[0]?.[1] as RequestInit).body))).toEqual({
+      kind: 'export',
+      project: 'HH-SYNTH001',
+      contact: 'synthetic@example.test',
+      check: 'call_to_phone_on_file',
+      note: 'Synthetic: called back on the number on file.',
+    })
   })
 
   it('[HH-PRIV-03] builds the query from the state and cursor only', () => {

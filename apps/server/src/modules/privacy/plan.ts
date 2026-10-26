@@ -32,17 +32,28 @@
 //   an estimate never accepted has no job, so none is ever removed with one.
 // - exclude: other contacts of the same customer (third-party data, PROPOSED: neither exported nor deleted here). The
 //   search covers the requester's own projects: those of their requests and of their login accounts' links.
-// - financial records: the deposit records and recorded payments of the requester's projects (TSK-0064) are
-//   protected evidence and retained; invoices are not recorded yet, and a payment taken outside the software cannot be
-//   ruled out: with the complaint, dispute, claim and other hold checks the software cannot run, the Owner confirms
-//   them before any deletion (never treated as none found).
+// - financial records: the deposit records, recorded payments, issued invoices, refunds, credits and write-offs and
+//   reconciliation items of the requester's projects are protected evidence and retained. TSK-0152 (OWN-DEC-201 I4):
+//   each is checked in the accounting records (found or none found); a payment taken outside the software and never
+//   recorded is not assumed. An unresolved discrepancy (the reconciliation queue's open entries) is found and shown to
+//   the Owner, who resolves it there; it keeps the financial records but never blocks the unrelated eligible
+//   deletions (an estimate never accepted has no financial record of its own). With the complaint, dispute, claim and
+//   other hold checks the software cannot run, the Owner confirms them before any deletion (never none found).
 // An unpaid balance never blocks closing login access (OWN-DEC-113): no balance is read here.
 import type { Db, Tx } from '@handyhub/db'
 import { REQUEST_CLOSED_STATES } from '@handyhub/domain'
 import { sql } from 'kysely'
 import { loadConfig } from '../../platform/config/index.js'
 import { CATEGORY_DEFINITIONS, holdCheckOutcomes, type RetentionCategory } from '../retention/schedule.js'
-import { estimateTarget, financialEvidence, type CheckOutcome, type DeletionCheck } from './targets.js'
+import {
+  accountingChecks,
+  counted,
+  estimateTarget,
+  financialEvidence,
+  type CheckOutcome,
+  type DeletionCheck,
+  type FinancialEvidence,
+} from './targets.js'
 
 type Reader = Db | Tx
 
@@ -488,26 +499,34 @@ export async function customerPlan(db: Reader, subject: PlanSubject, now = new D
     ).n,
   )
   add('privacy_requests', 'retain', privacyRequests, 'request_record', 'not_scheduled')
-  // Deposit records, recorded payments (TSK-0064) and issued invoices (TSK-0085) are protected evidence; an invoice
-  // or a payment made outside the software cannot be ruled out: the Owner checks those.
-  let payments = 0
-  let deposits = 0
-  let invoices = 0
+  // Deposit records, recorded payments (TSK-0064), issued invoices (TSK-0085), refunds and reconciliation items are
+  // protected evidence. TSK-0152 (OWN-DEC-201 I4): each is checked in the accounting records; none recorded is none
+  // found (an unrecorded external payment is not assumed).
+  const finance: FinancialEvidence = {
+    receipts: 0,
+    deposits: 0,
+    payments: 0,
+    invoices: 0,
+    refunds: 0,
+    reconciliation: 0,
+    discrepancies: 0,
+  }
   for (const projectId of projectIds) {
     const f = await financialEvidence(db, { projectId })
-    payments += f.payments
-    deposits += f.deposits
-    invoices += f.invoices
+    for (const k of Object.keys(finance) as (keyof FinancialEvidence)[]) finance[k] += f[k]
   }
-  add('financial_records', 'retain', payments + deposits + invoices, 'protected_evidence', 'financial_records')
-  add('financial_records', 'not_recorded', 0, null, 'financial_records')
+  add(
+    'financial_records',
+    'retain',
+    finance.payments + finance.deposits + finance.invoices + finance.refunds + finance.reconciliation,
+    'protected_evidence',
+    'financial_records',
+  )
 
   const checks: CheckOutcome[] = [
     ...(holdCheckOutcomes(openHolds, caseCounts) as CheckOutcome[]),
-    { check: 'issued_invoices', result: 'not_recorded' },
-    payments > 0
-      ? { check: 'payments', result: 'found', count: payments }
-      : { check: 'payments', result: 'not_recorded' },
+    counted('deposit_records', finance.deposits),
+    ...accountingChecks(finance),
   ]
   return {
     items,

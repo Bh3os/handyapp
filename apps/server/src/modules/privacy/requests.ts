@@ -17,6 +17,15 @@
 // - TSK-0136: the acknowledgment, the substantive acknowledgment due date, the internal target, extensions and the
 //   legal deadline (deadlines.ts) are counted in the submission's transaction and kept in line with the request's
 //   Owner Decisions item at each step; nothing here closes a request when a date passes.
+// - TSK-0152 (OWN-DEC-201 I1): identity verification in proportion to the request's risk. Every request needs the fresh
+//   one-time code in the same session (as above); an export or a deletion (elevated, PROPOSED: it discloses or removes
+//   the person's data) also needs the Owner to confirm the identity evidence before completing it
+//   (IDENTITY_NOT_CONFIRMED), recorded with the decision. The secure alternative: a person who cannot complete the
+//   code (no working link, no access to the email or phone on file) asks HandyHub; the Owner verifies them another way
+//   (a call to the phone on file, a reply from the email on file, a photo ID in person: PROPOSED) and records the request
+//   with that check and a note (recordVerifiedRequest), naming the contact by the email or phone on file.
+// - TSK-0152 (OWN-DEC-201 I3): a correction keeps its history (corrections.ts); completing one needs a recorded change
+//   or a correction entry.
 import type { Db, Tx } from '@handyhub/db'
 import { sql } from 'kysely'
 import { ApiError } from '../../api/errors.js'
@@ -28,6 +37,8 @@ import { customerPlan, type Plan, type PlanItem, type PlanSubject } from './plan
 import { eraseEstimate, estimateTarget, type CheckOutcome } from './targets.js'
 import { unconfirmed } from './decisions.js'
 import { recordRequestDates, requestDeadlines, syncPrivacyDeadlineItem, type RequestDeadlines } from './deadlines.js'
+import { correctionHistory, correctionRecorded, type CorrectionHistory } from './corrections.js'
+import { normalizeUsPhone } from '@handyhub/domain/request-form'
 
 type Reader = Db | Tx
 
@@ -42,6 +53,19 @@ export const PRIVACY_REQUEST_STATES = [
 ] as const
 export type PrivacyRequestState = (typeof PRIVACY_REQUEST_STATES)[number]
 export const DETAILS_MAX = 2000
+
+/** TSK-0152 (OWN-DEC-201 I1): the risk of each kind of request (PROPOSED). */
+export const REQUEST_RISK = {
+  correction: 'standard',
+  export: 'elevated',
+  deletion: 'elevated',
+} as const satisfies Record<PrivacyRequestKind, 'standard' | 'elevated'>
+export type RequestRisk = (typeof REQUEST_RISK)[PrivacyRequestKind]
+
+/** TSK-0152: how the Owner verified a person who asked outside the portal (PROPOSED kinds). */
+export const IDENTITY_CHECKS = ['call_to_phone_on_file', 'reply_from_email_on_file', 'photo_id_in_person'] as const
+export type IdentityCheck = (typeof IDENTITY_CHECKS)[number]
+export const IDENTITY_NOTE_MAX = 1000
 
 export type Outcome = {
   deleted: { category: string; count: number }[]
@@ -68,6 +92,11 @@ type Row = {
   findings: unknown
   access_closed: boolean | null
   version: number
+  identity_method: string
+  identity_verified_at: Date
+  identity_check: string | null
+  identity_note: string | null
+  identity_confirmed_at: Date | null
 }
 
 const COLUMNS = [
@@ -87,6 +116,11 @@ const COLUMNS = [
   'findings',
   'access_closed',
   'version',
+  'identity_method',
+  'identity_verified_at',
+  'identity_check',
+  'identity_note',
+  'identity_confirmed_at',
 ] as const
 
 /** Who the session is: the verified contact (an account's own contact) and the account, for this project's customer. */
@@ -268,6 +302,18 @@ export type StaffPrivacyRequest = CustomerPrivacyRequest & {
   accessClosed: boolean | null
   /** TSK-0136: the dates, the legal deadline and the overdue alerts as they are now. */
   deadlines: RequestDeadlines
+  /** TSK-0152 (OWN-DEC-201 I1): how the identity was verified, the request's risk and the Owner's confirmation. */
+  identity: {
+    risk: RequestRisk
+    method: 'fresh_session_code' | 'staff_verified'
+    via: 'link' | 'account' | 'owner'
+    verifiedAt: Date
+    check: IdentityCheck | null
+    note: string | null
+    recordedBy: string | null
+    confirmedAt: Date | null
+    confirmedBy: string | null
+  }
 }
 
 type StaffRow = Row & {
@@ -276,6 +322,8 @@ type StaffRow = Row & {
   contact_name: string
   contact_email: string | null
   contact_phone: string | null
+  identity_recorded_name: string | null
+  identity_confirmed_name: string | null
 }
 
 function staffQuery(db: Reader) {
@@ -284,6 +332,8 @@ function staffQuery(db: Reader) {
     .innerJoin('crm.projects as p', 'p.id', 'r.project_id')
     .innerJoin('crm.customers as c', 'c.id', 'r.customer_id')
     .innerJoin('crm.contacts as k', 'k.id', 'r.contact_id')
+    .leftJoin('identity.staff_users as ir', 'ir.id', 'r.identity_recorded_by')
+    .leftJoin('identity.staff_users as ic', 'ic.id', 'r.identity_confirmed_by')
     .select([
       ...COLUMNS.map((c) => `r.${c}` as const),
       'p.reference as project_reference',
@@ -291,6 +341,8 @@ function staffQuery(db: Reader) {
       'k.full_name as contact_name',
       'k.email as contact_email',
       'k.phone_e164 as contact_phone',
+      'ir.display_name as identity_recorded_name',
+      'ic.display_name as identity_confirmed_name',
     ])
 }
 
@@ -305,6 +357,17 @@ const toStaff = (r: StaffRow, d: RequestDeadlines): StaffPrivacyRequest => ({
   account: r.account_id !== null,
   reviewStartedAt: r.review_started_at,
   accessClosed: r.access_closed,
+  identity: {
+    risk: REQUEST_RISK[r.kind as PrivacyRequestKind],
+    method: r.identity_method as 'fresh_session_code' | 'staff_verified',
+    via: r.identity_method === 'staff_verified' ? 'owner' : r.account_id ? 'account' : 'link',
+    verifiedAt: r.identity_verified_at,
+    check: r.identity_check as IdentityCheck | null,
+    note: r.identity_note,
+    recordedBy: r.identity_method === 'staff_verified' ? (r.identity_recorded_name ?? '') : null,
+    confirmedAt: r.identity_confirmed_at,
+    confirmedBy: r.identity_confirmed_at ? (r.identity_confirmed_name ?? '') : null,
+  },
 })
 
 const SEQ_CURSOR = /^PR-[0-9]{6,12}$/
@@ -349,6 +412,8 @@ export type StaffPrivacyDetail = StaffPrivacyRequest & {
   plan: Plan
   /** What the review found when it started (categories and counts). */
   findings: { items: PlanItem[]; checks: CheckOutcome[]; at: string } | null
+  /** TSK-0152 (OWN-DEC-201 I3): a correction request's history; null for the other kinds. */
+  corrections: CorrectionHistory | null
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
@@ -379,6 +444,7 @@ export async function privacyRequestDetail(
     ...toStaff(r, (await requestDeadlines(db, [r.id], now)).get(r.id) as RequestDeadlines),
     plan: await customerPlan(db, subjectOf(r), now),
     findings: (r.findings as StaffPrivacyDetail['findings']) ?? null,
+    corrections: r.kind === 'correction' ? await correctionHistory(db, r) : null,
   }
 }
 
@@ -424,6 +490,13 @@ export type DecisionInput = {
   confirmedChecks: readonly string[]
   /** Deletion requests: close sign-in, sessions and project access links (OWN-DEC-71). */
   closeAccess?: boolean
+  /** TSK-0152 (OWN-DEC-201 I1): the Owner confirms the identity evidence before completing an elevated request. */
+  identityConfirmed?: boolean
+  /**
+   * TSK-0152 (OWN-DEC-201 I5): whether record deletions may run here (production waits for the reviewed mapping);
+   * when not, the estimates are kept and said so, and closing access still runs.
+   */
+  deletionAllowed?: boolean
   requestId: string
 }
 
@@ -449,6 +522,17 @@ export async function decidePrivacyRequest(tx: Tx, input: DecisionInput): Promis
   let outcome: Outcome
   let accessClosed = false
   const plan = await customerPlan(tx, subjectOf(r), now)
+  // TSK-0152 (OWN-DEC-201 I1): an elevated request is completed only once the Owner confirms the identity evidence.
+  const confirmIdentity = input.decision === 'complete' && REQUEST_RISK[r.kind as PrivacyRequestKind] === 'elevated'
+  if (confirmIdentity && input.identityConfirmed !== true)
+    throw new ApiError('VALIDATION_FAILED', {
+      fieldErrors: [{ field: 'body.identityConfirmed', code: 'IDENTITY_NOT_CONFIRMED', message: '' }],
+    })
+  // TSK-0152 (OWN-DEC-201 I3): a correction is completed once a change or a correction entry is recorded.
+  if (input.decision === 'complete' && r.kind === 'correction') {
+    const missing = correctionRecorded(await correctionHistory(tx, { ...r, decided_at: now }))
+    if (missing) throw missing
+  }
 
   if (input.decision === 'decline') {
     state = 'declined'
@@ -463,7 +547,11 @@ export async function decidePrivacyRequest(tx: Tx, input: DecisionInput): Promis
     const deleted: Outcome['deleted'] = []
     let estimatesDeleted = 0
     let estimatesKept = 0
-    for (const e of plan.deletable.estimates) {
+    // TSK-0152 (OWN-DEC-201 I5): in production, before the mapping is reviewed, no record is erased: each estimate is
+    // kept (and said so); closing access is not a deletion of records and still runs.
+    const erasable = input.deletionAllowed === false ? [] : plan.deletable.estimates
+    const estimatesHeld = plan.deletable.estimates.length - erasable.length
+    for (const e of erasable) {
       // Checked again under the estimate's row lock; anything that now blocks it is kept, never forced.
       const t = await estimateTarget(tx, e.id, { now, lock: true })
       if (t.blockers.length > 0) {
@@ -564,6 +652,16 @@ export async function decidePrivacyRequest(tx: Tx, input: DecisionInput): Promis
         years: null,
         reviewAt: null,
       })
+    if (estimatesHeld)
+      retained.push({
+        category: 'unaccepted_estimates',
+        disposition: 'retain',
+        count: estimatesHeld,
+        reason: 'erasure_not_available',
+        retention: 'unaccepted_estimates',
+        years: null,
+        reviewAt: null,
+      })
     outcome = {
       deleted,
       retained,
@@ -593,6 +691,7 @@ export async function decidePrivacyRequest(tx: Tx, input: DecisionInput): Promis
       checks_confirmed: input.decision === 'complete' && r.kind === 'deletion' ? [...plan.confirm] : [],
       outcome: JSON.stringify(outcome),
       access_closed: accessClosed,
+      ...(confirmIdentity ? { identity_confirmed_by: input.staffUserId, identity_confirmed_at: now } : {}),
       version: eb('version', '+', 1),
     }))
     .where('id', '=', r.id)
@@ -600,4 +699,101 @@ export async function decidePrivacyRequest(tx: Tx, input: DecisionInput): Promis
   // TSK-0136: a decided request leaves Owner Decisions; its dates stay as they were.
   await syncPrivacyDeadlineItem(tx, r.id, { now, requestId: input.requestId })
   return { detail: (await privacyRequestDetail(tx, r.id, now)) as StaffPrivacyDetail, deletions }
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// TSK-0152 (OWN-DEC-201 I1): the secure alternative path
+
+export type VerifiedRequestInput = {
+  kind: PrivacyRequestKind
+  /** The project the person's request is about (its reference). */
+  project: string
+  /** The person's email or phone exactly as on file for that project's customer. */
+  contact: string
+  details: string | null
+  check: IdentityCheck
+  note: string
+  staffUserId: string
+  requestId: string
+  now?: Date
+}
+
+/** The contact of the project's customer whose email or phone on file is this value, and who asked on the project. */
+async function contactOnFile(db: Reader, projectId: string, customerId: string, value: string) {
+  const v = value.trim()
+  const phone = v.includes('@') ? null : normalizeUsPhone(v)
+  if (!v.includes('@') && !phone) return null
+  const rows = await db
+    .selectFrom('crm.contacts as k')
+    .select('k.id')
+    .where('k.customer_id', '=', customerId)
+    .where((eb) => (phone ? eb('k.phone_e164', '=', phone) : eb('k.email_normalized', '=', v.toLowerCase())))
+    .where((eb) =>
+      eb.exists(
+        eb
+          .selectFrom('intake.requests as rq')
+          .select('rq.id')
+          .whereRef('rq.contact_id', '=', 'k.id')
+          .where('rq.project_id', '=', projectId),
+      ),
+    )
+    .execute()
+  // Two contacts sharing a phone on the same project: the Owner names the email instead.
+  return rows.length === 1 ? (rows[0]?.id ?? null) : null
+}
+
+/** A request the Owner records for a person they verified outside the portal. */
+export async function recordVerifiedRequest(tx: Tx, input: VerifiedRequestInput): Promise<StaffPrivacyDetail> {
+  const now = input.now ?? new Date()
+  const project = await tx
+    .selectFrom('crm.projects')
+    .select(['id', 'customer_id'])
+    .where('reference', '=', input.project.trim())
+    .executeTakeFirst()
+  if (!project)
+    throw new ApiError('VALIDATION_FAILED', {
+      fieldErrors: [{ field: 'body.project', code: 'PROJECT_NOT_FOUND', message: '' }],
+    })
+  const contactId = await contactOnFile(tx, project.id, project.customer_id, input.contact)
+  if (!contactId)
+    throw new ApiError('VALIDATION_FAILED', {
+      fieldErrors: [{ field: 'body.contact', code: 'CONTACT_NOT_ON_FILE', message: '' }],
+    })
+  const details = input.kind === 'correction' ? (input.details?.trim() ?? '') : null
+  if (input.kind === 'correction' && (!details || details.length > DETAILS_MAX))
+    throw new ApiError('VALIDATION_FAILED', {
+      fieldErrors: [{ field: 'body.details', code: details ? 'too_long' : 'required', message: '' }],
+    })
+  await lockCustomer(tx, project.customer_id)
+  const open = await tx
+    .selectFrom('privacy.privacy_requests')
+    .select('reference')
+    .where('customer_id', '=', project.customer_id)
+    .where('kind', '=', input.kind)
+    .where('state', 'in', ['received', 'under_review'])
+    .executeTakeFirst()
+  if (open)
+    throw new ApiError('CONFLICT', { fieldErrors: [{ field: 'kind', code: 'PRIVACY_REQUEST_OPEN', message: '' }] })
+  const row = await tx
+    .insertInto('privacy.privacy_requests')
+    .values({
+      kind: input.kind,
+      customer_id: project.customer_id,
+      contact_id: contactId,
+      account_id: null,
+      project_id: project.id,
+      details,
+      identity_method: 'staff_verified',
+      identity_verified_at: now,
+      session_id: null,
+      identity_check: input.check,
+      identity_note: input.note.trim(),
+      identity_recorded_by: input.staffUserId,
+      request_id: input.requestId,
+    })
+    .returning('id')
+    .executeTakeFirstOrThrow()
+  await recordRequestDates(tx, row.id)
+  await syncPrivacyDeadlineItem(tx, row.id, { now, requestId: input.requestId })
+  return (await privacyRequestDetail(tx, row.id, now)) as StaffPrivacyDetail
 }

@@ -7,8 +7,13 @@
 //   requirements, waivers and payment allocations, and recorded payments), and the kinds it does not record yet
 //   (complaints, warranties, disputes, claims, investigations, unfiled tax returns, legal and insurance holds, issued
 //   invoices). A check that is not recorded is never "none found": the Owner confirms each one before anything is
-//   deleted. Payments: a recorded payment is found and blocks; none recorded is not "none found" (a payment taken
-//   outside the software cannot be ruled out), so the Owner still confirms it.
+//   deleted.
+// - TSK-0152 (OWN-DEC-201 I4): the accounting records are checked, not confirmed by hand: issued invoices, recorded
+//   payments, deposit records, refunds, credits and write-offs and reconciliation items linked to the record are
+//   found (protected evidence: they block) or none found. An unrecorded payment taken outside the software is not
+//   assumed to exist. An unresolved financial discrepancy (an open reconciliation item, a check still pending, an
+//   open dispute, a refund whose outcome is not certain) blocks the deletion and waits in the reconciliation queue,
+//   where the Owner reviews it (financial_discrepancy). Records that are not linked never block it.
 // - Blockers: a hold found, protected evidence found (Archive, Void or an audited correction instead), a record still
 //   in use, and a record type whose erasure this software does not perform: audit entries are append-only for every
 //   role (ROLE-MATRIX "Edit or delete audit events"; OQ-AUDIT-ENTRY-DELETION). A blocked deletion offers Archive.
@@ -66,19 +71,21 @@ export const DELETION_CHECKS = [
   'deposit_records',
   'issued_invoices',
   'payments',
+  // TSK-0152 (OWN-DEC-201 I4): the rest of the accounting records, and the discrepancies still unresolved.
+  'refunds',
+  'reconciliation_records',
+  'financial_discrepancies',
 ] as const
 export type DeletionCheck = (typeof DELETION_CHECKS)[number]
 export type CheckResult = 'found' | 'none_found' | 'not_applicable' | 'not_recorded'
 export type CheckOutcome = { check: DeletionCheck; result: CheckResult; count?: number }
 
-/** Checks the software cannot run yet: the Owner confirms each before a deletion (never treated as none found). */
-export const UNRECORDED_DELETION_CHECKS: readonly DeletionCheck[] = [
-  ...NOT_RECORDED_CHECKS,
-  // Issued invoices (finance.invoices, TSK-0085) and payments (finance.payments, TSK-0064) are recorded: one found
-  // blocks; while none is recorded the Owner still checks for any issued or taken outside the software (PROPOSED).
-  'issued_invoices',
-  'payments',
-]
+/**
+ * Checks the software cannot run yet: the Owner confirms each before a deletion (never treated as none found).
+ * TSK-0152 (OWN-DEC-201 I4): issued invoices and payments are no longer among them: the accounting records are checked
+ * and an unrecorded external payment is not assumed.
+ */
+export const UNRECORDED_DELETION_CHECKS: readonly DeletionCheck[] = [...NOT_RECORDED_CHECKS]
 
 export const BLOCKERS = [
   'hold_found',
@@ -90,6 +97,10 @@ export const BLOCKERS = [
   'linked_records',
   'record_missing',
   'already_deleted',
+  // TSK-0152 (OWN-DEC-201 I4): an unresolved financial discrepancy, escalated to the reconciliation queue.
+  'financial_discrepancy',
+  // TSK-0152 (OWN-DEC-201 I5): production deletion waits for the reviewed table-to-retention mapping.
+  'mapping_not_reviewed',
 ] as const
 export type Blocker = (typeof BLOCKERS)[number]
 
@@ -136,17 +147,47 @@ export function holdChecks(open: number | null, cases: CaseCounts | null = null)
 export const counted = (check: DeletionCheck, count: number): CheckOutcome =>
   count > 0 ? { check, result: 'found', count } : { check, result: 'none_found' }
 
-/** An issued invoice or a recorded payment is found; none recorded is still the Owner's check. */
-export const invoiceAndPaymentChecks = (invoices: number, payments: number): CheckOutcome[] => [
-  invoices > 0
-    ? { check: 'issued_invoices', result: 'found', count: invoices }
-    : { check: 'issued_invoices', result: 'not_recorded' },
-  payments > 0
-    ? { check: 'payments', result: 'found', count: payments }
-    : { check: 'payments', result: 'not_recorded' },
+export type FinancialEvidence = {
+  receipts: number
+  deposits: number
+  payments: number
+  invoices: number
+  /** TSK-0152: refunds, credits and write-offs. */
+  refunds: number
+  /** TSK-0152: reconciliation items, open or resolved. */
+  reconciliation: number
+  /**
+   * TSK-0152: unresolved discrepancies (the reconciliation queue's open entries): open reconciliation items, checks
+   * still pending, open disputes and refunds whose outcome is not certain.
+   */
+  discrepancies: number
+}
+
+/**
+ * TSK-0152 (OWN-DEC-201 I4): the accounting checks of a record, each found or none found in the accounting records
+ * (an unrecorded external payment is not assumed).
+ */
+export const accountingChecks = (f: FinancialEvidence): CheckOutcome[] => [
+  counted('issued_invoices', f.invoices),
+  counted('payments', f.payments),
+  counted('refunds', f.refunds),
+  counted('reconciliation_records', f.reconciliation),
+  counted('financial_discrepancies', f.discrepancies),
 ]
 
-export type FinancialEvidence = { receipts: number; deposits: number; payments: number; invoices: number }
+const NO_EVIDENCE: FinancialEvidence = {
+  receipts: 0,
+  deposits: 0,
+  payments: 0,
+  invoices: 0,
+  refunds: 0,
+  reconciliation: 0,
+  discrepancies: 0,
+}
+
+/** Any financial record found: protected evidence (HH-DATA-09). */
+export const financialRecordsFound = (f: FinancialEvidence): boolean =>
+  f.receipts + f.deposits + f.payments + f.invoices + f.refunds + f.reconciliation > 0
 
 /**
  * The approval receipts, deposit records (requirements, waivers, payment allocations) and recorded payments that
@@ -157,34 +198,54 @@ export async function financialEvidence(
   db: Reader,
   of: { versionIds: readonly string[] } | { projectId: string },
 ): Promise<FinancialEvidence> {
-  if ('versionIds' in of && of.versionIds.length === 0) return { receipts: 0, deposits: 0, payments: 0, invoices: 0 }
+  if ('versionIds' in of && of.versionIds.length === 0) return NO_EVIDENCE
   const approvals =
     'versionIds' in of
       ? sql`SELECT a.id FROM estimating.approvals a WHERE a.version_id = ANY(${sql.val([...of.versionIds])}::uuid[])`
       : sql`SELECT a.id FROM estimating.approvals a WHERE a.project_id = ${of.projectId}`
-  const { rows } = await sql<{ receipts: string; deposits: string; payments: string; invoices: string }>`
+  const project = (column: string) => ('projectId' in of ? sql`OR ${sql.ref(column)} = ${of.projectId}` : sql``)
+  const { rows } = await sql<Record<keyof FinancialEvidence, string>>`
     WITH a AS (${approvals}),
          d AS (SELECT d.id FROM finance.deposit_requirements d WHERE d.approval_id IN (SELECT id FROM a)),
-         j AS (SELECT j.id FROM work.jobs j WHERE j.approval_id IN (SELECT id FROM a))
+         j AS (SELECT j.id FROM work.jobs j WHERE j.approval_id IN (SELECT id FROM a)),
+         p AS (SELECT p.id, p.state FROM finance.payments p
+                WHERE p.job_id IN (SELECT id FROM j)
+                   OR p.id IN (SELECT pa.payment_id FROM finance.payment_allocations pa
+                                WHERE pa.deposit_requirement_id IN (SELECT id FROM d))
+                   ${project('p.project_id')}),
+         -- TSK-0152 (OWN-DEC-201 I4): refunds, credits and write-offs, and the reconciliation items.
+         f AS (SELECT f.id, f.type, f.state FROM finance.refunds f
+                WHERE f.job_id IN (SELECT id FROM j) OR f.payment_id IN (SELECT id FROM p) ${project('f.project_id')}),
+         r AS (SELECT r.id, r.state FROM finance.reconciliation_items r
+                WHERE r.job_id IN (SELECT id FROM j) OR r.payment_id IN (SELECT id FROM p)
+                   OR r.resolved_payment_id IN (SELECT id FROM p) ${project('r.project_id')})
     SELECT
       (SELECT count(*) FROM estimating.approval_receipts r WHERE r.approval_id IN (SELECT id FROM a))::text AS receipts,
       ((SELECT count(*) FROM d)
         + (SELECT count(*) FROM finance.deposit_waivers w WHERE w.deposit_requirement_id IN (SELECT id FROM d))
         + (SELECT count(*) FROM finance.payment_allocations pa WHERE pa.deposit_requirement_id IN (SELECT id FROM d))
       )::text AS deposits,
-      (SELECT count(*) FROM finance.payments p
-        WHERE p.job_id IN (SELECT id FROM j)
-           OR p.id IN (SELECT pa.payment_id FROM finance.payment_allocations pa
-                        WHERE pa.deposit_requirement_id IN (SELECT id FROM d))
-           ${'projectId' in of ? sql`OR p.project_id = ${of.projectId}` : sql``})::text AS payments,
+      (SELECT count(*) FROM p)::text AS payments,
       -- TSK-0085: issued invoices (a draft is working data, not evidence).
       (SELECT count(*) FROM finance.invoices i WHERE i.state <> 'draft' AND (i.job_id IN (SELECT id FROM j)
-           ${'projectId' in of ? sql`OR i.project_id = ${of.projectId}` : sql``}))::text AS invoices`.execute(db)
+           ${project('i.project_id')}))::text AS invoices,
+      (SELECT count(*) FROM f)::text AS refunds,
+      (SELECT count(*) FROM r)::text AS reconciliation,
+      -- The reconciliation queue's unresolved entries (TSK-0090): what an authorized person resolves first.
+      ((SELECT count(*) FROM r WHERE r.state = 'open')
+        + (SELECT count(*) FROM p WHERE p.state IN ('received', 'deposited'))
+        + (SELECT count(*) FROM p WHERE finance.payment_dispute_open(p.id))
+        + (SELECT count(*) FROM f WHERE f.type = 'refund' AND f.state IN ('processing', 'needs_review'))
+      )::text AS discrepancies`.execute(db)
+  const row = rows[0]
   return {
-    receipts: n(rows[0]?.receipts),
-    deposits: n(rows[0]?.deposits),
-    payments: n(rows[0]?.payments),
-    invoices: n(rows[0]?.invoices),
+    receipts: n(row?.receipts),
+    deposits: n(row?.deposits),
+    payments: n(row?.payments),
+    invoices: n(row?.invoices),
+    refunds: n(row?.refunds),
+    reconciliation: n(row?.reconciliation),
+    discrepancies: n(row?.discrepancies),
   }
 }
 
@@ -308,17 +369,9 @@ export async function estimateTarget(
   )
   const blockers: Blocker[] = []
   if ((holds ?? 0) > 0) blockers.push('hold_found')
-  if (
-    accepted > 0 ||
-    approvals > 0 ||
-    snapshots > 0 ||
-    jobs > 0 ||
-    evidence.receipts > 0 ||
-    evidence.deposits > 0 ||
-    evidence.payments > 0 ||
-    evidence.invoices > 0
-  )
+  if (accepted > 0 || approvals > 0 || snapshots > 0 || jobs > 0 || financialRecordsFound(evidence))
     blockers.push('protected_evidence')
+  if (evidence.discrepancies > 0) blockers.push('financial_discrepancy')
   if (active > 0) blockers.push('record_active')
   return finish({
     record: { type: 'estimate', id: e.id, reference: e.number, projectId: e.project_id },
@@ -346,7 +399,7 @@ export async function estimateTarget(
       counted('approval_receipts', evidence.receipts),
       counted('jobs', jobs),
       counted('deposit_records', evidence.deposits),
-      ...invoiceAndPaymentChecks(evidence.invoices, evidence.payments),
+      ...accountingChecks(evidence),
     ],
     blockers,
   })
