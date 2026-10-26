@@ -72,12 +72,8 @@ import {
 } from './changes.js'
 import { unmetGates, WORK_VISIT_GATES, type WorkVisitGate } from './gates.js'
 import { noticesOf, recordReserved, staffOffers, windowOfferPolicy } from './offers.js'
-import {
-  confirmationPreconditions,
-  countyVerificationProblems,
-  currentCountyVerification,
-  WORK_VISIT_PROJECT_STATES,
-} from './preconditions.js'
+import { confirmationPreconditions, currentCountyVerification, WORK_VISIT_PROJECT_STATES } from './preconditions.js'
+import { siteCheckProblems, siteChecksView } from './site-checks.js'
 
 export { WORK_VISIT_PROJECT_STATES } from './preconditions.js'
 
@@ -561,8 +557,9 @@ export async function confirmVisit(
   // the deposit gate of TSK-0059 for a work visit (run here whatever gates the module was given; an estimate visit
   // never waits for a deposit), the other registered gates and no blocking hold on the project.
   problems.push(...(await confirmationPreconditions(tx, v, deps.gates)))
-  // TSK-0127 (final owner amendments 2026-10-22): the property's address and county verified by staff.
-  problems.push(...(await countyVerificationProblems(tx, v.project_id)))
+  // TSK-0127, TSK-0126 (OWN-DEC-167): the three site checks: the address and county verified by staff, the authorized
+  // site contact and the accepted coverage (or the Owner's exception).
+  problems.push(...(await siteCheckProblems(tx, v.project_id)))
   // Without the expected work there is no range to check or offer alternatives for.
   if (v.expected_duration_minutes === null || v.required_workers === null)
     throw new ApiError('CONFLICT', { fieldErrors: problems })
@@ -699,7 +696,7 @@ export async function confirmationBlockers(
   if (v.expected_duration_minutes === null) out.push(field('visit.expectedDurationMinutes', 'DURATION_NOT_ENTERED'))
   if (v.required_workers === null) out.push(field('visit.requiredWorkers', 'WORKERS_NOT_ENTERED'))
   out.push(...(await withTx(db, (tx) => confirmationPreconditions(tx, v, gates))))
-  out.push(...(await countyVerificationProblems(db, v.project_id)))
+  out.push(...(await siteCheckProblems(db, v.project_id)))
   return out
 }
 
@@ -748,7 +745,10 @@ export function visitActions(
       c.hours &&
       c.offerPolicy &&
       facts &&
-      !blockers.some((b) => b.field === 'approval' || b.field === 'coverage' || b.field.startsWith('holds.')) &&
+      !blockers.some(
+        (b) =>
+          b.field === 'approval' || b.field === 'coverage' || b.field === 'siteContact' || b.field.startsWith('holds.'),
+      ) &&
       !openOffer,
   }
 }
@@ -904,14 +904,16 @@ export async function projectVisits(
     projectId: project.id,
     projectState: project.state,
     timeZone: project.time_zone,
-    // TSK-0127 (OWN-DEC-179, OWN-DEC-167): the property's coverage, shown beside visit confirmation; staff, not the
-    // checker, accept it (the recorded site checks are TSK-0126).
+    // TSK-0127 (OWN-DEC-179, OWN-DEC-167): the property's ZIP-only coverage (preliminary screening), shown beside visit
+    // confirmation; staff, not the checker, accept it.
     coverage: {
       result: project.coverage_result,
       code: COVERAGE_CODE[project.coverage_result as CoverageOutcome],
       reason: project.coverage_reason,
       countyVerification: await countyVerificationView(db, project.id),
     },
+    // TSK-0126 (OWN-DEC-167): the three site checks with what each rests on, and what the caller may record.
+    siteChecks: await siteChecksView(db, actor, project.id, (ids) => staffNames(db, ids)),
     businessTimeZone: business ? { zone: business.value.zone, proposed: business.proposed } : null,
     visitHours: hours,
     windowOffers: offerPolicy
@@ -934,6 +936,8 @@ export async function projectVisits(
     },
     // TSK-0070 (HH-WORK-06): the Owner opens each started visit's Arrived and Finished times.
     visitTimes: holdsAction(actor, 'visit.correct_timestamps'),
+    // TSK-0128 (OWN-DEC-171): the Owner opens each live visit's worker access to extend it.
+    workerAccess: holdsAction(actor, 'visit.extend_worker_access'),
     // TSK-0151 (OWN-DEC-200 H7): the Owner keeps an appointment as it is despite a discretionary flag, with a reason.
     dismissFlags: holdsAction(actor, 'visit.dismiss_flag'),
     visits: visits.map((v) => ({

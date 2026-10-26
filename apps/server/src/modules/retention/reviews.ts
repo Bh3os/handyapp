@@ -4,7 +4,8 @@
 // decides an entry: the Delete, Archive and early-deletion decisions are the Owner Delete action (HH-PRIV-05, TSK-0100:
 // modules/privacy), and until the Owner decides, the record stays exactly as it is. TSK-0100: each entry carries its
 // status from the Owner's latest decision (pending, archived, kept longer until a time, deleted), and the list can be
-// narrowed to one status.
+// narrowed to one status. TSK-0138: a period is whole years or (technical logs, expired sessions and links) calendar
+// days, and an entry may stand for a batch of rows (the expired sessions and links of one kind and month).
 import type { Db } from '@handyhub/db'
 import { sql } from 'kysely'
 import { ApiError } from '../../api/errors.js'
@@ -30,6 +31,8 @@ export type CategoryView = {
   /** The configuration's state; null for a category the schedule gives no period. */
   state: 'CONFIGURED' | 'NOT_CONFIGURED' | null
   years: number | null
+  /** TSK-0138: a period in calendar days (technical logs, expired sessions and links). */
+  days: number | null
   after: string | null
   version: number | null
   sourceIds: string[]
@@ -75,6 +78,7 @@ export async function retentionOverview(db: Db): Promise<RetentionOverview> {
         scan: def.scan,
         state: null,
         years: null,
+        days: null,
         after: null,
         version: null,
         sourceIds: [...def.sources],
@@ -82,15 +86,19 @@ export async function retentionOverview(db: Db): Promise<RetentionOverview> {
       }
     const entry = config.get(def.configKey)
     if (entry.sourceIds.includes('OQ-RETENTION-REVIEW')) awaiting = true
-    const value = entry.state === 'CONFIGURED' ? (entry.value as { years?: number; after?: string }) : null
+    const value =
+      entry.state === 'CONFIGURED' ? (entry.value as { years?: number; days?: number; after?: string }) : null
+    const period = value !== null && (value.years !== undefined || value.days !== undefined)
     return {
       id,
       configKey: def.configKey,
       scan: def.scan,
       state: entry.state,
       years: value?.years ?? null,
-      // The audit-log value has no `after`: its period starts when the entry is recorded (OWN-DEC-142).
-      after: value ? (value.after ?? 'recorded') : null,
+      days: value?.days ?? null,
+      // The audit-log value has no `after`: its period starts when the entry is recorded (OWN-DEC-142). Settings
+      // history has no period at all (TSK-0138).
+      after: period ? (value.after ?? 'recorded') : null,
       version: entry.version,
       sourceIds: [...entry.sourceIds],
       entries: byCategory.get(id) ?? 0,
@@ -124,7 +132,11 @@ export type ReviewEntry = {
   record: { type: string; id: string; reference: string; projectId: string | null }
   retentionStartedAt: string
   periodEndsAt: string
-  years: number
+  years: number | null
+  /** TSK-0138: the period in calendar days instead of years. */
+  days: number | null
+  /** TSK-0138: the rows a batch entry (or a consent history) stands for; null for one record. */
+  count: number | null
   policy: { key: string; version: number }
   holdChecks: HoldCheckOutcome[]
   holdsFound: boolean
@@ -188,6 +200,8 @@ export async function listReviewEntries(
       'retention_started_at',
       'period_ends_at',
       'period_years',
+      'period_days',
+      'record_count',
       'policy_key',
       'policy_version',
       'hold_checks',
@@ -198,8 +212,9 @@ export async function listReviewEntries(
   if (filters.category !== undefined) q = q.where('category', '=', filters.category)
   if (filters.status !== undefined) q = q.where(sql<boolean>`${state} = ${filters.status}`)
   if (after !== undefined) q = q.where(sql<boolean>`seq > ${after}::bigint`)
+  // The table's bigint seq, not the text `seq` of the select list (text order would put 35 before 4).
   const rows = await q
-    .orderBy('seq')
+    .orderBy(sql`privacy.retention_reviews.seq`)
     .limit(page.limit + 1)
     .execute()
   const out = toPage(rows, page, (r) => [r.seq])
@@ -212,6 +227,8 @@ export async function listReviewEntries(
       retentionStartedAt: new Date(r.retention_started_at).toISOString(),
       periodEndsAt: new Date(r.period_ends_at).toISOString(),
       years: r.period_years,
+      days: r.period_days,
+      count: r.record_count,
       policy: { key: r.policy_key, version: r.policy_version },
       holdChecks: r.hold_checks as unknown as HoldCheckOutcome[],
       holdsFound: r.holds_found,

@@ -4,9 +4,11 @@
 // - The caller's own active reservations only: confirmed assignments and tentative holds (a hold is no assignment and
 //   shows no address, HH-OFF-09). Listed: today's visits in each visit's own zone, and any visit still on the way or
 //   arrived, in arrival-window order. A visit the caller was reassigned away from is simply not there.
-// - Each visit: the arrival window, the address and a plain directions link (confirmed and live only, and only on the
-//   visit's own local service day, OWN-DEC-171: a visit still under way after its day ended and a completed visit show
-//   none), the access notes (never a code: codes are revealed separately, online, in the packet's audited flow), the
+// - Each visit: the arrival window, the address and a plain directions link (confirmed and live only, and only during
+//   the worker's visit-day access, TSK-0128 and OWN-DEC-171: the visit's own local service day or an Owner extension;
+//   a visit still under way after its day ended without one, and a completed visit, show none; before the day the
+//   general service area, city and state, shows instead), the customer's first name only while the address shows,
+//   the access notes (never a code: codes are revealed separately, online, in the packet's audited flow), the
 //   preparation (the customer-preparation detail and the instructions given to the customer), the readiness blockers
 //   the records show and the one next action (the same rule the taps are decided with, @handyhub/domain myDayActions).
 // - Readiness here lists what the records show (a blocking hold, a deposit not yet covered, a work package without an
@@ -17,10 +19,10 @@
 //   anywhere (HH-PORT-07).
 import type { Db, Tx } from '@handyhub/db'
 import {
-  localDateOf,
   myDayActions,
   onMyWayOpensAt,
   packetChanges,
+  serviceArea,
   SITE_ACCESS_DETAILS,
   type AcknowledgmentState,
   type PacketContent,
@@ -31,6 +33,7 @@ import { sql } from 'kysely'
 import { loadConfig } from '../../platform/config/index.js'
 import { jobLoadoutReadiness } from '../loadouts/store.js'
 import { acknowledgmentStatus, assignedNow } from '../packets/acknowledgments.js'
+import { customerFirstName, workerVisitAccess } from '../packets/access-window.js'
 import { packetVersion, refreshJobPacket } from '../packets/content.js'
 import { directionsUrl, lastViewed } from '../packets/view.js'
 import { outcomesOfVisit } from './outcomes.js'
@@ -222,13 +225,25 @@ export async function myDayItems(db: Reader, actor: StaffActor, opts: { visitId?
         .execute()
     : []
 
+  // TSK-0128: the caller's visit-day access on each live assigned visit (the visit's own day or an Owner extension).
+  const access = new Map(
+    (
+      await workerVisitAccess(
+        db,
+        actor.userId,
+        { visitIds: visits.filter((v) => v.reservation_kind === 'confirmed').map((v) => v.id) },
+        now,
+      )
+    ).map((a) => [a.visitId, a.access]),
+  )
+
   const out = []
   for (const v of visits) {
     const confirmed = v.reservation_kind === 'confirmed' && v.state !== 'tentative'
     const live = confirmed && (LIVE as readonly string[]).includes(v.state)
-    // OWN-DEC-171: the address, directions, access notes and preparation only on the visit's own local service day
-    // (the rest of the visit-day access window, extensions and the packet's own projection are TSK-0128).
-    const onSite = live && v.local_date === localDateOf(now, v.time_zone)
+    // OWN-DEC-171: the address, directions, access notes, preparation and first name only during the visit-day access.
+    const day = live ? access.get(v.id) : undefined
+    const onSite = day?.open === true
     const mine = taps.get(v.id) ?? { departedAt: null, arrivedAt: null, finishedAt: null }
     const opensAt = minutes === null ? null : onMyWayOpensAt(new Date(v.starts_at), minutes)
     const actions = myDayActions({
@@ -269,6 +284,14 @@ export async function myDayItems(db: Reader, actor: StaffActor, opts: { visitId?
         : [],
       address,
       directionsUrl: address ? directionsUrl(address) : null,
+      serviceArea: confirmed ? serviceArea({ city: v.city, state: v.address_state }) : null,
+      visitDay: {
+        open: onSite,
+        basis: day?.open ? day.basis : null,
+        endsAt: day?.open ? day.endsAt.toISOString() : null,
+        opensAt: day && !day.open && day.opensAt ? day.opensAt.toISOString() : null,
+      },
+      customer: { firstName: onSite ? await customerFirstName(db, v.project_id) : null },
       // Access notes (never a code), only while the address is shown.
       accessNotes: onSite
         ? (SITE_ACCESS_DETAILS as readonly string[]).flatMap((name) => {

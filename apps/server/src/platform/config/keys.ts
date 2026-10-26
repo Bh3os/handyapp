@@ -128,10 +128,21 @@ export const CONFIG_KEYS = {
   'discount.rule': shape({
     percentBps: int(1, 10_000),
     categories: listOf(oneOf(['military', 'senior', 'returning_customer'])),
-    perJob: exactly('one_largest'),
+    // TSK-0125 (OWN-DEC-165): one discount per job, chosen by the customer (version 2); "one_largest" was version 1.
+    perJob: oneOf(['one_largest', 'one_customer_choice']),
     appliedTo: exactly('subtotal'),
   }),
-  'discount.eligibility_verification': shape({ method: text }),
+  // TSK-0125 (OWN-DEC-165): who qualifies and how staff verify it; no document is kept and the Owner reviews the rest.
+  'discount.eligibility_verification': shape({
+    military: shape({
+      eligible: listOf(oneOf(['service_member', 'veteran', 'military_spouse'])),
+      check: exactly('staff_visual'),
+    }),
+    senior: shape({ fromAge: int(1, 120), check: exactly('staff_visual') }),
+    returningCustomer: shape({ withinMonths: int(1, 120), check: exactly('matched_completed_jobs') }),
+    documentsKept: exactly(false),
+    ownerReview: exactly(true),
+  }),
   'tax.mode': shape({ mode: oneOf(['no_tax_line']) }),
   'estimate.validity': shape({ days: int(1, 365), from: exactly('published') }),
   // TSK-0082 (FACT-CHANGE-ORDER-VALIDITY, OWN-DEC-168): a published change order is valid this many calendar days.
@@ -318,6 +329,35 @@ export const CONFIG_KEYS = {
   'retention.financial_records': retentionPeriod('tax_return_filed_or_tax_paid', 7),
   'retention.job_records': retentionPeriod('job_closeout', 7),
   'retention.safety_records': retentionPeriod('closure', 10),
+  // TSK-0138 (OWN-DEC-177, FACT-RETENTION-SCHEDULE): the provisional defaults, seeded active by migration 0108. Staff
+  // accounts and consent records are review thresholds in years, extended but not shortened like the rows above.
+  'retention.staff_accounts': retentionPeriod('staff_departure', 7),
+  'retention.consent_records': retentionPeriod('last_relevant_use', 5),
+  // Settings and content history: kept while retained records depend on it, immutable while referenced; unreferenced
+  // history goes to the owner's deletion review. There is no period.
+  'retention.settings_history': shape({
+    keep: exactly('while_retained_records_depend_on_it'),
+    immutableWhileReferenced: exactly(true),
+    unreferencedAfter: exactly('owner_deletion_review'),
+    automaticDeletion: exactly(false),
+    holdsKeepRecords: exactly(true),
+  }),
+  // Ordinary application and diagnostic logs: 90 days by default, security-incident evidence longer when justified.
+  // PROPOSED: like the other periods it may be extended (to at most a year) but not shortened without a new decision.
+  'retention.technical_logs': shape({
+    days: int(90, 366),
+    after: exactly('logged'),
+    securityEvidenceKeptLonger: exactly(true),
+  }),
+  // Expired sessions and access links: minimal, non-reusable metadata "up to 30 days" after they ended (PROPOSED: the
+  // decided 30 is the most this value accepts), then the owner's deletion review.
+  'retention.sessions_and_links': shape({
+    days: int(1, 30),
+    after: exactly('expired_or_ended'),
+    afterPeriod: exactly('owner_deletion_review'),
+    automaticDeletion: exactly(false),
+    holdsKeepRecords: exactly(true),
+  }),
   // TSK-0063 (OWN-DEC-144; OWN-DEC-99, OWN-DEC-105): offered appointment windows hold their workers and equipment for
   // holdHours from the offer; staff offer minWindows to maxWindows windows at a time. Decided values, seeded active by
   // migration 0053.

@@ -51,6 +51,11 @@ export const ACTIONS = [
   'estimate.expire',
   'estimate.record_decline',
   'estimate.view_internal_cost',
+  // TSK-0125 (OWN-DEC-165): recording a requested discount's verification (a staff check of military or senior
+  // eligibility, the job-history check of a returning customer, sending it to the Owner's review), and the Owner's
+  // decision on a review or override.
+  'discount.verify',
+  'discount.decide',
   'estimate.approve',
   'estimate.decline',
   'estimate.request_changes',
@@ -66,6 +71,9 @@ export const ACTIONS = [
   'visit.reschedule',
   'visit.reassign',
   'visit.cancel',
+  // TSK-0126 (OWN-DEC-167): the Owner's explicit approval of a coverage exception for a location outside the standard
+  // service area, with a reason. Staff confirm SERVED coverage and the other site checks under visit.confirm.
+  'visit.approve_coverage_exception',
   'visit.select_window',
   'visit.request_reschedule',
   'visit.request_cancellation',
@@ -81,6 +89,7 @@ export const ACTIONS = [
   'visit.tap_on_my_way',
   'visit.tap_arrived',
   'visit.tap_finished',
+  'visit.extend_worker_access',
   // Field work and safety
   'job.view_packet',
   'work.start',
@@ -139,6 +148,10 @@ export const ACTIONS = [
   'export.accounting',
   'dashboard.view',
   'dashboard.export_csv',
+  // PROPOSED (TSK-0095): the job's estimated-versus-actual costs: reading them and recording entries, voids and the
+  // Owner's category confirmations (HH-FIN-17).
+  'job_cost.view',
+  'job_cost.record',
   // Messages, content and configuration
   'message.reply',
   'message.release_draft',
@@ -228,7 +241,7 @@ export type Condition =
   | 'not_self_collected'
   /** A worker records only their own on-site collection. */
   | 'own_collection'
-  /** Access codes: revealed only on the visit date (T28). */
+  /** Access codes: revealed only on the visit date (T28), in the visit's own zone, or during an Owner extension. */
   | 'visit_date'
   /** Online only: never from offline use (T28, T46). */
   | 'online'
@@ -411,6 +424,12 @@ export const MATRIX: readonly MatrixRow[] = [
     owner: Y(),
     estimator: every('Own estimates (P)', 'own_staff', P),
   }),
+  row(ESTIMATES, 'Record a discount verification or send it to owner review', ['discount.verify'], {
+    owner: Y(),
+    office: Y('Y (P)', P),
+    estimator: Y('Y (P)', P),
+  }),
+  row(ESTIMATES, 'Decide a discount owner review or override a verification', ['discount.decide'], { owner: Y() }),
   row(
     ESTIMATES,
     'Approve, decline or request changes',
@@ -446,6 +465,9 @@ export const MATRIX: readonly MatrixRow[] = [
       }),
     },
   ),
+  row(SCHEDULING, 'Approve a service-area coverage exception, with a reason', ['visit.approve_coverage_exception'], {
+    owner: Y(),
+  }),
   row(SCHEDULING, 'Select an offered window', ['visit.select_window'], { customer: V() }),
   row(SCHEDULING, 'Request reschedule or cancellation', ['visit.request_reschedule', 'visit.request_cancellation'], {
     customer: V(),
@@ -467,6 +489,10 @@ export const MATRIX: readonly MatrixRow[] = [
     ['visit.tap_on_my_way', 'visit.tap_arrived', 'visit.tap_finished'],
     { owner: A(), worker: A() },
   ),
+  // TSK-0128 (OWN-DEC-171): owner-authorized temporary extensions of a worker's visit-day access, with a reason.
+  row(SCHEDULING, "Extend a worker's visit-day access", ['visit.extend_worker_access'], {
+    owner: Y('Y (reason)', { reason: true, audit: true }),
+  }),
 
   // Field work and safety
   row(FIELD, 'View job packet', ['job.view_packet'], {
@@ -629,6 +655,9 @@ export const MATRIX: readonly MatrixRow[] = [
   }),
   row(FINANCE, 'Accounting exports', ['export.accounting'], { owner: Y('F', F) }),
   row(FINANCE, 'Owner Dashboard and its CSV', ['dashboard.view', 'dashboard.export_csv'], { owner: Y() }),
+  row(FINANCE, 'View and record job costs, estimated versus actual', ['job_cost.view', 'job_cost.record'], {
+    owner: Y('Y (P)', P),
+  }),
 
   // Messages, content and configuration
   row(MESSAGES, 'Reply from a project, release drafts', ['message.reply', 'message.release_draft'], {

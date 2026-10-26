@@ -24,9 +24,15 @@
 //   job or delivery that still names a version finds it gone and stops as stale. Job packets, their views and exports
 //   (TSK-0069) name a job, and an estimate with a job is protected evidence, so none goes with an estimate; the
 //   appointment reminders of the project's visits (TSK-0067) name the visit, not a version, and stay as they are.
+// - TSK-0138 (OWN-DEC-177): a disabled staff account, a withdrawn consent's history and a month of expired sessions or
+//   links are shown with their checks, and their erasure is not performed: "Have the CPA and attorney confirm applicable
+//   record-retention periods before enabling irreversible production deletion" (OQ-RETENTION-REVIEW). The Owner
+//   archives them or keeps them longer. An account enabled again, or a consent granted again or whose destination is
+//   back on file, is a record in use.
 import type { Db, Tx } from '@handyhub/db'
 import { sql } from 'kysely'
 import { activeCaseCounts } from '../cases/active.js'
+import { destinationOnFile, EXPIRED_KINDS, reportedCases } from '../retention/defaults.js'
 import {
   caseHoldFound,
   HOLD_CHECKS,
@@ -37,7 +43,16 @@ import {
 
 type Reader = Db | Tx
 
-export const TARGET_TYPES = ['estimate', 'request', 'audit_event', 'customer_account'] as const
+export const TARGET_TYPES = [
+  'estimate',
+  'request',
+  'audit_event',
+  'customer_account',
+  // TSK-0138.
+  'staff_account',
+  'consent_history',
+  ...EXPIRED_KINDS,
+] as const
 export type TargetType = (typeof TARGET_TYPES)[number]
 
 /** The checks a deletion runs or lists: the review's hold checks, then the protected evidence. */
@@ -425,6 +440,73 @@ export async function auditEntryTarget(db: Reader, eventId: string, projectId: s
   })
 }
 
+/** TSK-0138: a disabled staff account; in use again once re-enabled. Its erasure is not performed (OWN-DEC-177). */
+async function staffAccountTarget(db: Reader, staffUserId: string): Promise<TargetPreview> {
+  const u = await db
+    .selectFrom('identity.staff_users')
+    .select(['id', 'status'])
+    .where('id', '=', staffUserId)
+    .executeTakeFirst()
+  const cases = u ? (await reportedCases(db, [u.id])).get(u.id) : undefined
+  const checks = holdChecks(null, cases ?? { complaints: 0, disputes: 0, incidents: 0 })
+  const blockers: Blocker[] = u ? ['erasure_not_available'] : ['record_missing']
+  if (u && u.status !== 'disabled') blockers.push('record_active')
+  return finish({
+    record: {
+      type: 'staff_account',
+      id: staffUserId,
+      reference: u ? u.id.slice(0, 8) : '',
+      projectId: null,
+    },
+    exists: Boolean(u),
+    permanent: false,
+    removes: [],
+    keeps: [],
+    checks,
+    blockers,
+  })
+}
+
+/** TSK-0138: a withdrawn permission's history; in use while granted again or while its destination is on file. */
+async function consentHistoryTarget(db: Reader, consentId: string): Promise<TargetPreview> {
+  const { rows } = await sql<{ seq: string; purpose: string; channel: string; latest: boolean; on_file: boolean }>`
+    SELECT c.seq::text AS seq, c.purpose, c.channel,
+           (SELECT l.granted FROM platform.consent_records l WHERE l.destination = c.destination
+             AND l.purpose = c.purpose AND l.channel = c.channel ORDER BY l.seq DESC LIMIT 1) AS latest,
+           ${destinationOnFile(sql.ref('c.destination'))} AS on_file
+      FROM platform.consent_records c WHERE c.id = ${consentId}`.execute(db)
+  const c = rows[0]
+  const blockers: Blocker[] = c ? ['erasure_not_available'] : ['record_missing']
+  if (c && (c.latest || c.on_file)) blockers.push('record_active')
+  return finish({
+    record: {
+      type: 'consent_history',
+      id: consentId,
+      reference: c ? `Consent #${c.seq} ${c.purpose} by ${c.channel}, withdrawn` : '',
+      projectId: null,
+    },
+    exists: Boolean(c),
+    permanent: false,
+    removes: [],
+    keeps: [],
+    checks: holdChecks(null),
+    blockers,
+  })
+}
+
+/** TSK-0138: one month of expired sessions or links of one kind (the entry's reference names the month and count). */
+function expiredBatchTarget(type: (typeof EXPIRED_KINDS)[number], id: string): TargetPreview {
+  return finish({
+    record: { type, id, reference: '', projectId: null },
+    exists: true,
+    permanent: false,
+    removes: [],
+    keeps: [],
+    checks: holdChecks(null),
+    blockers: ['erasure_not_available'],
+  })
+}
+
 /** The preview of a record of the deletion-review queue. */
 export async function targetOf(
   db: Reader,
@@ -438,7 +520,13 @@ export async function targetOf(
       return requestTarget(db, record.id)
     case 'audit_event':
       return auditEntryTarget(db, record.id, record.projectId)
+    case 'staff_account':
+      return staffAccountTarget(db, record.id)
+    case 'consent_history':
+      return consentHistoryTarget(db, record.id)
     default:
+      if ((EXPIRED_KINDS as readonly string[]).includes(record.type))
+        return expiredBatchTarget(record.type as (typeof EXPIRED_KINDS)[number], record.id)
       return finish({
         record: { type: 'request', id: record.id, reference: '', projectId: record.projectId },
         exists: false,

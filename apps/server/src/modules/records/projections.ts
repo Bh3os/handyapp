@@ -1051,7 +1051,7 @@ type EstimateDetailRecord = {
   dependencies: string[]
   scheduleAssumptions: string[]
   subtotalCents: number
-  reduction: { label: string; amountCents: number } | null
+  reduction: { label: string; amountCents: number; pendingVerification: boolean } | null
   totalCents: number
   deposit: { state: string; amountCents: number | null }
   paymentTerm: string
@@ -1094,8 +1094,14 @@ export const CUSTOMER_ESTIMATE = customerView(
     dependencies: STRINGS,
     scheduleAssumptions: STRINGS,
     subtotalCents: CENTS,
-    // The discount totals row (OWN-DEC-145), labelled by the server in the customer PDF's own words.
-    reduction: { oneOf: [{ type: 'null' }, object({ label: STRING, amountCents: CENTS })] },
+    // The discount totals row (OWN-DEC-145), labelled by the server in the customer PDF's own words; TSK-0125: whether
+    // the requested discount is still pending verification (never how it is verified).
+    reduction: {
+      oneOf: [
+        { type: 'null' },
+        object({ label: STRING, amountCents: CENTS, pendingVerification: { type: 'boolean' } }),
+      ],
+    },
     totalCents: CENTS,
     deposit: object({ state: enumOf(['required', 'not_required']), amountCents: NULLABLE_CENTS }),
     paymentTerm: STRING,
@@ -1107,7 +1113,16 @@ export const CUSTOMER_ESTIMATE = customerView(
       available: { type: 'boolean' },
       reasons: {
         type: 'array',
-        items: enumOf(['terms_not_configured', 'terms_not_in_effect', 'superseded', 'expired', 'not_published']),
+        items: enumOf([
+          'terms_not_configured',
+          'terms_not_in_effect',
+          'superseded',
+          'expired',
+          'not_published',
+          // TSK-0125 (OWN-DEC-165): approval waits for the requested discount's verification, or an updated estimate.
+          'reduction_pending_verification',
+          'reduction_not_verified',
+        ]),
       },
       current: { oneOf: [{ type: 'null' }, object({ number: STRING, version: { type: 'integer', minimum: 1 } })] },
       contentDigest: STRING,
@@ -1153,7 +1168,13 @@ export const CUSTOMER_ESTIMATE = customerView(
     dependencies: [...v.dependencies],
     scheduleAssumptions: [...v.scheduleAssumptions],
     subtotalCents: v.subtotalCents,
-    reduction: v.reduction ? { label: v.reduction.label, amountCents: v.reduction.amountCents } : null,
+    reduction: v.reduction
+      ? {
+          label: v.reduction.label,
+          amountCents: v.reduction.amountCents,
+          pendingVerification: v.reduction.pendingVerification,
+        }
+      : null,
     totalCents: v.totalCents,
     deposit: { state: v.deposit.state, amountCents: v.deposit.amountCents },
     paymentTerm: v.paymentTerm,

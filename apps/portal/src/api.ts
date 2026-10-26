@@ -742,6 +742,9 @@ export const APPROVAL_REASONS = [
   'superseded',
   'expired',
   'not_published',
+  // TSK-0125 (OWN-DEC-165): approval waits for the requested reduction's verification, or an updated estimate follows.
+  'reduction_pending_verification',
+  'reduction_not_verified',
 ] as const
 export type ApprovalReason = (typeof APPROVAL_REASONS)[number]
 export const RESPONSE_KINDS = ['changes_requested', 'declined', 'update_requested'] as const
@@ -785,8 +788,11 @@ export type EstimateDetail = {
   dependencies: string[]
   scheduleAssumptions: string[]
   subtotalCents: number
-  /** The totals row before the total, worded by the server (the same words as the customer PDF). */
-  reduction: { label: string; amountCents: number } | null
+  /**
+   * The totals row before the total, worded by the server (the same words as the customer PDF); TSK-0125: pending
+   * verification until it is verified.
+   */
+  reduction: { label: string; amountCents: number; pendingVerification: boolean } | null
   totalCents: number
   deposit: { state: 'required' | 'not_required'; amountCents: number | null }
   paymentTerm: string
@@ -852,7 +858,15 @@ export function parseEstimate(v: unknown): EstimateDetail | null {
   const lines = Array.isArray(v['lines']) ? v['lines'].map(line) : null
   if (!lines || lines.some((l) => l === null)) return null
   const reduction = v['reduction']
-  if (reduction !== null && !(isObj(reduction) && isStr(reduction['label']) && isCents(reduction['amountCents'])))
+  if (
+    reduction !== null &&
+    !(
+      isObj(reduction) &&
+      isStr(reduction['label']) &&
+      isCents(reduction['amountCents']) &&
+      typeof reduction['pendingVerification'] === 'boolean'
+    )
+  )
     return null
   const deposit = v['deposit']
   if (!isObj(deposit) || !oneOf(['required', 'not_required'] as const)(deposit['state'])) return null

@@ -26,6 +26,7 @@ import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 import { call, idempotencyKey, upload, type ApiErrorBody, type Fetch } from './api'
 import { ConflictBanner, conflictOf, type Conflict } from './ConflictBanner'
+import { DISCOUNT_STATE_TONE } from './Discount'
 import { EstimateLifecycle, type Lifecycle } from './EstimateLifecycle'
 import { EstimateReminders } from './EstimateReminders'
 import { EstimateOwnerApproval, type OwnerApprovalState } from './OwnerApproval'
@@ -119,6 +120,8 @@ export type BuilderView = {
   }[]
   texts: Record<TextList, string[]>
   discountCategory: string | null
+  /** TSK-0125: the discount the customer requested on the request form and its verification state. */
+  discountRequest?: { category: string; state: string } | null
   totals: {
     subtotalCents: number
     discount: { category: string; percentBps: number; amountCents: number } | null
@@ -1097,6 +1100,21 @@ export function EstimateBuilder({ t, fetchImpl, id, go, href }: { t: TD; fetchIm
               {selectError('discountCategory')}
             </div>
           )}
+          {/* TSK-0125 (HH-EST-15): only the discount the customer requested; provisional until it is verified. */}
+          <p data-testid="estimate-discount-request">
+            {view.discountRequest ? (
+              <>
+                {t('estimate.discountRequested', {
+                  category: codeLabel(t, 'discountCategory', view.discountRequest.category),
+                })}{' '}
+                <StatusBadge tone={DISCOUNT_STATE_TONE[view.discountRequest.state] ?? 'neutral'}>
+                  {codeLabel(t, 'discountState', view.discountRequest.state)}
+                </StatusBadge>
+              </>
+            ) : (
+              t('estimate.discountNotRequested')
+            )}
+          </p>
           <p className="staff-request__hint">{t('estimate.discountHint')}</p>
         </Panel>
 

@@ -26,7 +26,10 @@
 // have verified the property's complete address and its county for its current address version, and that county is
 // in the service area (coverage: COUNTY_NOT_VERIFIED, COUNTY_OUTSIDE_AREA; an outside county needs the Owner's
 // exception, TSK-0126). Migration 0067 refuses the same confirmation in the database and records the verification.
-// Moving or reassigning an already confirmed visit does not ask again.
+// TSK-0126 (OWN-DEC-167): that check is the first of the three site checks of site-checks.ts (siteCheckProblems,
+// with the authorized site contact and the accepted coverage), run beside these by every confirmation path; migration
+// 0106 refuses the confirmation in the database without them. Moving or reassigning an already confirmed visit does
+// not ask again.
 import type { Db, Tx } from '@handyhub/db'
 import { BLOCKING_HOLD_STATES, CONFIRMATION_BLOCKING_HOLD_KINDS, isWorkVisitPurpose } from '@handyhub/domain'
 import type { FieldError } from '../../api/errors.js'
@@ -110,13 +113,6 @@ export async function currentCountyVerification(db: Reader, projectId: string) {
       .limit(1)
       .executeTakeFirst()) ?? null
   )
-}
-
-/** The county check of a first confirmation: verified for the current address, and in the service area. */
-export async function countyVerificationProblems(db: Reader, projectId: string): Promise<FieldError[]> {
-  const v = await currentCountyVerification(db, projectId)
-  if (!v) return [field('coverage', 'COUNTY_NOT_VERIFIED')]
-  return v.in_area ? [] : [field('coverage', 'COUNTY_OUTSIDE_AREA')]
 }
 
 /**

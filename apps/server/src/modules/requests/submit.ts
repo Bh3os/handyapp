@@ -12,6 +12,8 @@
 //   idempotency record expires (IDEMPOTENCY_RETENTION_HOURS) long before a browser draft does (FACT-SESSION-TIMINGS),
 //   so a key that already created a request is a conflict that names the request's reference, never a second request
 //   and never an internal error.
+// - TSK-0125 (HH-EST-15, OWN-DEC-165): a discount the customer asks for is saved with the request, pending
+//   verification (estimates/discounts.ts); only one the active discount rule offers is accepted.
 import { randomBytes } from 'node:crypto'
 import { registryServices, type Tx } from '@handyhub/db'
 import { PROJECT_MACHINE, REQUEST_MACHINE } from '@handyhub/domain'
@@ -25,6 +27,7 @@ import { isLegalVersion } from '../legal/index.js'
 import { recordConsent } from '../notifications/index.js'
 import { bindDraftPhotos, createCapability, PhotoError, type PhotoSummary } from '../photos/photos.js'
 import { startResponseClock } from './response-clock.js'
+import { discountOffer, recordDiscountRequest } from '../estimates/discounts.js'
 import { createReceiptCapability } from '../verification/receipt-capability.js'
 import { issueGrant } from '../access/grants.js'
 import type { CodeKeySettings } from '../identity/index.js'
@@ -213,6 +216,10 @@ export async function submitRequest(
     !(await isLegalVersion(tx, 'legal.sms_disclosure', body.smsDisclosureVersion))
   )
     problems.push({ field: 'body.smsDisclosureVersion', code: 'unknown_version', message: '' })
+  // TSK-0125: only a discount the form offers (discount.rule and its eligibility facts configured, the category listed).
+  const discount = body.requestedDiscount
+  if (discount !== undefined && !discountOffer(config)?.categories.some((c) => c === discount))
+    problems.push({ field: 'body.requestedDiscount', code: 'enum', message: '' })
   if (problems.length) throw new ApiError('VALIDATION_FAILED', { fieldErrors: problems })
 
   const signals = spamSignals(body, now.getTime())
@@ -386,6 +393,14 @@ export async function submitRequest(
       requestId: request.id,
       reason: 'submission',
       now,
+    })
+
+  if (body.requestedDiscount !== undefined)
+    await recordDiscountRequest(tx, config, {
+      requestId: request.id,
+      projectId: project.id,
+      category: body.requestedDiscount,
+      at: now,
     })
 
   await recordFormConsents(tx, body, {

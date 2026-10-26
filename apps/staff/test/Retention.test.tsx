@@ -169,6 +169,59 @@ describe('retention reviews screen (TSK-0099, HH-PRIV-01)', () => {
     expect(reviewsQuery('audit_log', 'abc')).toBe('/staff/retention-reviews?category=audit_log&cursor=abc')
   })
 
+  it('[HH-PRIV-01] TSK-0138: the provisional defaults in years or days, settings history, logs and a batch entry', async () => {
+    const categories = [
+      category('staff_accounts', { years: 7, after: 'staff_departure', sourceIds: ['OWN-DEC-177'] }),
+      category('sessions_and_links', { years: null, days: 30, after: 'expired_or_ended', entries: 1 }),
+      category('settings_history', { scan: 'while_referenced', years: null, days: null, after: null, entries: 0 }),
+      category('technical_logs', { scan: 'not_stored', years: null, days: 90, after: 'logged', entries: 0 }),
+    ]
+    const batch = entry({
+      category: 'sessions_and_links',
+      record: {
+        type: 'expired_staff_links',
+        id: '88888888-8888-4888-8888-888888888888',
+        reference: '2025-01 (2)',
+        projectId: null,
+      },
+      years: null,
+      days: 30,
+      count: 2,
+      policy: { key: 'retention.sessions_and_links', version: 1 },
+      holdsFound: false,
+      holdChecks: [{ check: 'open_holds', result: 'not_applicable' }, ...NOT_RECORDED],
+    })
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.endsWith('/staff/retention')) return json(200, overview({ categories }))
+      if (url.includes('/staff/deletions')) return json(200, { items: [], nextCursor: null })
+      return json(200, { items: [batch], nextCursor: null })
+    })
+    render(<RetentionScreen t={t} locale="en" fetchImpl={fetchImpl as unknown as typeof fetch} />)
+    const schedule = await screen.findByRole('list', { name: 'Retention schedule' })
+    const staff = within(schedule).getByRole('listitem', { name: 'Staff accounts' })
+    expect(
+      within(staff).getByText(
+        "7 years after the staff member's departure (access ends at once), then your deletion review.",
+      ),
+    ).toBeTruthy()
+    const links = within(schedule).getByRole('listitem', { name: 'Login sessions and access links' })
+    expect(
+      within(links).getByText('30 days after the session or link expired or ended, then your deletion review.'),
+    ).toBeTruthy()
+    const history = within(schedule).getByRole('listitem', { name: 'Settings and content history' })
+    expect(within(history).getByText(/^Kept while retained records depend on it;/)).toBeTruthy()
+    expect(within(history).queryByText(/entr(y|ies) waiting/)).toBeNull()
+    const logs = within(schedule).getByRole('listitem', { name: 'Technical logs' })
+    expect(within(logs).getByText(/^Ordinary application logs: 90 days\. The hosting service keeps them/)).toBeTruthy()
+    expect(within(logs).getByText("Not stored in the app's database")).toBeTruthy()
+
+    const list = await screen.findByRole('list', { name: 'Review entries' })
+    const item = within(list).getByRole('listitem', { name: 'Expired invite and reset links: 2025-01 (2)' })
+    expect(within(item).getByText('30 days under retention.sessions_and_links, version 1')).toBeTruthy()
+    expect(within(item).getByText('2 records in this entry')).toBeTruthy()
+  })
+
   it('[HH-LANG-02] the screen is fully translated into Spanish', async () => {
     const es = staffTranslator('es').t
     render(<RetentionScreen t={es} locale="es" fetchImpl={api() as unknown as typeof fetch} />)

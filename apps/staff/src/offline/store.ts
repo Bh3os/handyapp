@@ -16,6 +16,12 @@ export type StoredPacket = {
   savedAt: string
   /** The end of the last visit's local service day: after it the copy is purged (OWN-DEC-171). */
   expiresAt: string
+  /**
+   * TSK-0128: when the worker's visit-day access the copy was taken during ends (the visit's local day or an Owner
+   * extension): from then the copy keeps no address, directions, site-access details, site contact or first name.
+   * Null or absent: the copy holds none of them.
+   */
+  visitDayUntil?: string | null
   /** The packet view as the server answered it, minus what an offline copy must never hold (packet.ts). */
   view: unknown
   /** Each pinned work package's SOP checklist, by work package (HH-OFF-01: the packet with its SOP checklist). */

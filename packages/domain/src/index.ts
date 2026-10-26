@@ -361,6 +361,25 @@ export type {
   PublicationInvalidationReason,
   PublicationSubject,
 } from './publication-approval.js'
+// TSK-0125 (HH-EST-15, OWN-DEC-165): discount requests and their staff verification.
+export {
+  DISCOUNT_CATEGORIES,
+  DISCOUNT_RESULT_PROBLEMS,
+  DISCOUNT_RESULTS,
+  DISCOUNT_STATES,
+  discountFailed,
+  discountResultProblem,
+  discountState,
+  isDiscountCategory,
+  returningWindowStart,
+} from './discount.js'
+export type {
+  DiscountCategory,
+  DiscountResult,
+  DiscountResultInput,
+  DiscountResultProblem,
+  DiscountState,
+} from './discount.js'
 // TSK-0093 (HH-QA-06, HH-INC-01, HH-INC-02, HH-INC-04, ENT-Case): cases, their lifecycles and customer updates.
 export {
   CASE_EVENTS,
@@ -428,3 +447,10 @@ export * from './overrides.js'
 export * from './escalation.js'
 // TSK-0094 (HH-QA-07, HH-QA-08, HH-INC-03, FACT-WARRANTY): return work, the warranty window and resuming.
 export * from './return-work.js'
+// TSK-0126 (OWN-DEC-167): the three first-visit site checks, site-contact authority and address pre-validation.
+export * from './site-checks.js'
+// TSK-0128 (HH-PKT-08, OWN-DEC-171): the visit-day data access of the assigned workers and Owner extensions.
+export * from './visit-access.js'
+// TSK-0095 (HH-FIN-17, HH-DATA-10): estimated versus actual job costs; report definitions with their source states.
+export * from './job-costs.js'
+export * from './report-sources.js'

@@ -59,6 +59,16 @@ export const MY_DAY_ITEM = obj({
   team: arr(obj({ name: STR_OR_NULL, role: STR })),
   address: ADDRESS,
   directionsUrl: STR_OR_NULL,
+  // TSK-0128 (HH-PKT-08, OWN-DEC-171): the general service area (city and state) of a confirmed visit, the visit-day
+  // access (the visit's own local day or an Owner extension) and, while it is open, the customer's first name only.
+  serviceArea: obj({ city: STR, state: STR }, true),
+  visitDay: obj({
+    open: BOOL,
+    basis: { type: ['string', 'null'], enum: ['visit_day', 'extension', null] },
+    endsAt: TIME_OR_NULL,
+    opensAt: TIME_OR_NULL,
+  }),
+  customer: obj({ firstName: STR_OR_NULL }),
   accessNotes: arr(DETAIL),
   preparation: obj({ customerPreparation: STR_OR_NULL, instructions: STR_OR_NULL }),
   readiness: obj(

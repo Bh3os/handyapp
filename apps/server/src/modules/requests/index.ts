@@ -16,6 +16,7 @@ import { staffRequestRoutes } from './staff-routes.js'
 import { staffRequestSummary } from './staff-summary.js'
 import { responseFacts } from './receipt-email.js'
 import { submitRequest } from './submit.js'
+import { discountOffer } from '../estimates/discounts.js'
 import type { CodeKeySettings } from '../identity/index.js'
 import { publicEffect, type LaunchEnvironment } from '@handyhub/domain'
 import { ApiError } from '../../api/errors.js'
@@ -132,7 +133,10 @@ const formSettings = (environment: LaunchEnvironment): RouteDef => ({
     'response time). ' +
     'TSK-0142: submissions says whether the form takes requests here and now: testers_only (outside production: the ' +
     'access gate or a test system) and open (production, phase 3) take them; closed (phase 1) and invitation_only ' +
-    '(phase 2) do not, and the form says so instead of asking for details it cannot send.',
+    '(phase 2) do not, and the form says so instead of asking for details it cannot send. ' +
+    'TSK-0125: the discounts the form offers (discount.rule and discount.eligibility_verification, OWN-DEC-165): the ' +
+    'share in basis points, the categories, the senior minimum age and the returning-customer window in months; ' +
+    'null while either is NOT CONFIGURED (the form then offers none).',
   actors: ['guest', 'customer'],
   permission: 'request.submit',
   kind: 'read',
@@ -157,6 +161,7 @@ const formSettings = (environment: LaunchEnvironment): RouteDef => ({
           'freeEstimates',
           'responseMinutes',
           'submissions',
+          'requestableDiscounts',
         ],
         properties: {
           draftDays: { type: ['integer', 'null'] },
@@ -191,6 +196,17 @@ const formSettings = (environment: LaunchEnvironment): RouteDef => ({
           freeEstimates: { type: 'boolean' },
           responseMinutes: { type: ['integer', 'null'] },
           submissions: { type: 'string', enum: ['open', 'testers_only', 'invitation_only', 'closed'] },
+          requestableDiscounts: {
+            type: ['object', 'null'],
+            additionalProperties: false,
+            required: ['percentBps', 'categories', 'seniorFromAge', 'returningWithinMonths'],
+            properties: {
+              percentBps: { type: 'integer' },
+              categories: { type: 'array', items: { type: 'string' } },
+              seniorFromAge: { type: 'integer' },
+              returningWithinMonths: { type: 'integer' },
+            },
+          },
         },
       },
     },
@@ -214,6 +230,7 @@ const formSettings = (environment: LaunchEnvironment): RouteDef => ({
         freeEstimates: fee.state === 'CONFIGURED' && fee.value.policy === 'free',
         responseMinutes: responseFacts(config).responseMinutes,
         submissions: await submissionState(ctx.db, environment),
+        requestableDiscounts: discountOffer(config),
       },
       headers: { 'cache-control': 'no-cache' },
     }

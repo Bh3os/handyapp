@@ -21,6 +21,12 @@
 //                                              (visit.reschedule or the cancel rule; If-Match; TSK-0066)
 //   GET  /staff/visits/:visitId/reminders      the visit's automatic appointment reminders (schedule.view_board;
 //                                              TSK-0067, TSK-0121, reminder-routes.ts)
+//   POST /staff/projects/:projectId/site-contact, /coverage-acceptance, /coverage-exception  the first-visit site
+//                                              checks (visit.confirm; the exception: the Owner; TSK-0126,
+//                                              site-check-routes.ts)
+//   GET  /staff/visits/:visitId/worker-access  the assigned workers' visit-day access and the Owner's extensions, with
+//        POST .../worker-access/extensions and POST /staff/visit-access-extensions/:extensionId/end
+//                                              (TSK-0128, worker-access.ts)
 // Every write takes an idempotency key and records its audit event with the local window, zone, offsets and instants.
 // The customer's side of an offer (select a window, ask for other times) is the portal module's (portal/appointments.ts).
 import type { Tx } from '@handyhub/db'
@@ -38,6 +44,8 @@ import {
 import { WORK_VISIT_GATES, type WorkVisitGate } from './gates.js'
 import { offerWindows, windowOfferExpiryAutomation, withdrawOffer, type OfferInput } from './offers.js'
 import { appointmentReminderRoutes } from './reminder-routes.js'
+import { siteCheckRoutes } from './site-check-routes.js'
+import { workerAccessRoutes } from './worker-access.js'
 import {
   BOARD_QUERY,
   CANCEL_BODY,
@@ -128,7 +136,11 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
       'business zone with its PROPOSED mark, and what the caller may plan now. Each tentative visit lists its ' +
       'confirmationBlockers (TSK-0064): every unmet confirmation precondition and missing visit fact, as field and ' +
       "code; Confirm is offered only when the list is empty (the team's capacity is checked on confirming). A timing " +
-      'preference on the request is never listed here.',
+      'preference on the request is never listed here. siteChecks (TSK-0126, OWN-DEC-167): the three site checks a ' +
+      'confirmation needs, each with what it rests on: the current address with its pre-validation problems and its ' +
+      'address-and-county check; the site contact with its authority and the customer’s contact to prefill it; the ' +
+      'coverage outcome of the verified county (SERVED or OUTSIDE) with its acceptance or the Owner’s exception; and ' +
+      'which of them the caller may record.',
     actors: ['staff'],
     permission: 'schedule.view_board',
     kind: 'read',
@@ -619,6 +631,10 @@ export function visitsModule(deps: VisitsDeps = {}): ApiModule {
       decline,
       // TSK-0067: appointment reminders.
       ...appointmentReminderRoutes(),
+      // TSK-0126: the first-visit site checks.
+      ...siteCheckRoutes(),
+      // TSK-0128: the assigned workers' visit-day access and the Owner's extensions.
+      ...workerAccessRoutes(),
     ],
   }
 }

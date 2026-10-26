@@ -18,4 +18,4 @@ source: "guide 12.1 HH-CRM-03; OWN-DEC-117, OWN-DEC-121, OWN-DEC-70"
 - Codes are never copied into ordinary notes, emails, texts, public work orders, analytics, logs or exports to roles that may not see them.
 - Codes are removed when no longer needed for authorized access ([[FACT-RETENTION-SCHEDULE]]).
 
-**Changed by [[OWN-DEC-171]] (2026-10-21):** codes show only on the visit day after an explicit audited action; access ends with the property's local service day; Owner extensions expire automatically ([[HH-PKT-08]]).
+**Changed by [[OWN-DEC-171]] (2026-10-21):** codes show only on the visit day after an explicit audited action; access ends with the property's local service day; Owner extensions expire automatically ([[HH-PKT-08]]). Built by [[TSK-0128]]: the visit date is read in the property's zone, and a worker sees no code entry before the day ([[OQ-WORKER-ACCESS-DETAILS]]).
