@@ -6,8 +6,9 @@
 //   not an acknowledgment, it releases nothing).
 // - Access codes: kind, label and last confirmation only, with a Reveal button for the roles the server allows (the
 //   audited online reveal, shown briefly and never printed). No code is ever in the packet, the print view or the PDF.
-// - Print: the server records and audits the print first; the print view carries the version and "Printed <time>;
-//   check the app for changes", and leaves out photos, code labels and any revealed code. Download PDF: the server's
+// - Print: the server records and audits the print first; the print view carries "Printed <time>. Printed copies may
+//   be out of date; check the app before starting", the job reference, the packet revision and its generation time
+//   (TSK-0147, OWN-DEC-196 D2), and leaves out photos, code labels and any revealed code. Download PDF: the server's
 //   PDF, recorded and audited as an export.
 // - What no record holds is said, never filled in: a service without a loadout list (TSK-0071) says NOT CONFIGURED and
 //   no approved care notes exist. The emergency section says emergency action never waits for the app.
@@ -158,6 +159,8 @@ export type JobPacketView = {
   }
   communication: {
     siteContact: Detail | null
+    /** TSK-0147: what the authorized site contact may authorize; absent from an offline copy saved before. */
+    siteContactAuthority?: { version: number; designation: string; authority: string[] } | null
     /** TSK-0129: absent from an offline copy saved before the escalation contact existed. */
     escalationContact?: OwnerContact
     emergency?: { call911: string }
@@ -264,6 +267,9 @@ const CHANGE_KEYS: Record<string, StaffKey> = {
   equipment_changed: 'packet.change.equipment_changed',
   loadout_changed: 'packet.change.loadout_changed',
   deposit_state: 'packet.change.deposit_state',
+  site_contact_listed: 'packet.change.site_contact_listed',
+  site_contact_authority: 'packet.change.site_contact_authority',
+  site_contact_updated: 'packet.change.site_contact_updated',
 }
 
 /** The words of one change: what it is about, labelled by its family where the reference is a code. */
@@ -648,9 +654,14 @@ export function JobPacketPage({
   return (
     <article className="staff-screen staff-packet" aria-labelledby={`${ids}-title`} data-testid="job-packet">
       <p className="staff-packet__print-only" data-testid="packet-print-mark">
-        {t('packet.print.mark', {
-          time: printedAt ? when(printedAt) : when(v.freshness.checkedAt),
+        {t('packet.print.mark', { time: printedAt ? when(printedAt) : when(v.freshness.checkedAt) })}
+      </p>
+      {/* TSK-0147 (OWN-DEC-196 D2): the job reference, the packet revision and when it was generated. */}
+      <p className="staff-packet__print-only" data-testid="packet-print-meta">
+        {t('packet.print.meta', {
+          reference: v.job.projectReference,
           version: v.packet.version,
+          generated: when(v.packet.generatedAt),
         })}
       </p>
       <h1 id={`${ids}-title`} className="hh-h3">
@@ -1085,6 +1096,18 @@ export function JobPacketPage({
                 t(v.access?.mode === 'closed' ? 'packet.visitDayOnly' : 'packet.nothingRecorded')}
             </dd>
           </div>
+          {v.communication.siteContactAuthority ? (
+            <div>
+              <dt>{t('packet.field.siteContactAuthority')}</dt>
+              <dd data-testid="packet-site-contact-authority">
+                {v.communication.siteContactAuthority.authority.length
+                  ? v.communication.siteContactAuthority.authority
+                      .map((a) => codeLabel(t, 'siteContactAuthority', a))
+                      .join(', ')
+                  : t('siteChecks.contact.noAuthority')}
+              </dd>
+            </div>
+          ) : null}
           <div>
             <dt>{t('packet.field.escalation')}</dt>
             <dd data-testid="packet-escalation">

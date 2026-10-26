@@ -9,9 +9,10 @@
 // - The same bounds in SQL (DAY_STARTS, DAY_ENDS, EXTENDED) let the data scopes (platform/data-scope.ts) and the
 //   assignment facts (assignments.ts) decide with the very same rule as the projections here.
 // - What the access opens (the packet's projection): the customer's first name, the verified address and directions,
-//   the site-access details (the site contact and its phone, access windows, notes, parking) and the access-code
-//   entries with the audited reveal. Without it the packet keeps the job type, date, window, team, tools, materials,
-//   SOPs, hazards, occupants and safety details and shows the general service area (city and state) only.
+//   the site-access details (the site contact and its phone, access windows, notes, parking), what the authorized
+//   site contact may authorize (TSK-0147) and the access-code entries with the audited reveal. Without it the packet
+//   keeps the job type, date, window, team, tools, materials, SOPs, hazards, occupants and safety details and shows
+//   the general service area (city and state) only.
 import type { Db, Tx } from '@handyhub/db'
 import {
   firstName,
@@ -161,7 +162,7 @@ type ProjectedView = {
     accessCodes: readonly unknown[]
     serviceArea: { city: string; state: string } | null
   }
-  communication: { siteContact: Detail | null }
+  communication: { siteContact: Detail | null; siteContactAuthority?: unknown }
 }
 
 /**
@@ -186,6 +187,10 @@ export function projectPacket<V extends ProjectedView>(view: V, access: PacketAc
     communication: {
       ...view.communication,
       siteContact: open ? view.communication.siteContact : null,
+      // TSK-0147: what the site contact may authorize is site-contact information too.
+      ...('siteContactAuthority' in view.communication
+        ? { siteContactAuthority: open ? view.communication.siteContactAuthority : null }
+        : {}),
     } as V['communication'],
     customer: { firstName: open ? first : null },
     access: {

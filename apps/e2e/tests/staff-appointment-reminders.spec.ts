@@ -314,7 +314,13 @@ test.describe('The automatic appointment reminder (TSK-0067, TSK-0121)', () => {
       const before = await visitRow(v.id)
       const moved = await write(
         `/api/v1/staff/visits/${v.id}/window`,
-        { localDate: date, windowStart: '13:00', windowEnd: '14:00', reason: 'Synthetic: the customer asked' },
+        {
+          localDate: date,
+          windowStart: '13:00',
+          windowEnd: '14:00',
+          reason: 'Synthetic: the customer asked',
+          initiator: 'customer',
+        },
         before.version,
       )
       expect(moved.status()).toBe(200)

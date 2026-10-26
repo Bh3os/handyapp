@@ -32,7 +32,10 @@ import { readCodeKey, type CodeKeySettings } from '../../src/modules/identity/in
 import { hashPassword } from '../../src/modules/identity/passwords.js'
 import { customerPlan, reapplyDeletions } from '../../src/modules/privacy/index.js'
 import {
+  PACKET_PDF_RATE,
   packetPdfModel,
+  packetsModule,
+  projectPacket,
   propertyVisitFacts,
   refreshJobPacket,
   renderPacketPdf,
@@ -679,7 +682,13 @@ describe('[HH-PKT-01][HH-PKT-02][HH-PKT-07] the versioned job packet', () => {
       'office',
       'POST',
       `/api/v1/staff/visits/${v1.id}/window`,
-      { localDate: day(6), windowStart: '09:00', windowEnd: '10:00', reason: 'Synthetic: the customer asked' },
+      {
+        localDate: day(6),
+        windowStart: '09:00',
+        windowEnd: '10:00',
+        reason: 'Synthetic: the customer asked',
+        initiator: 'customer',
+      },
       v1.version,
     )
     expect(moved.statusCode, moved.body).toBe(200)
@@ -801,7 +810,8 @@ describe('[HH-PKT-01][HH-PKT-02][HH-PKT-07] the versioned job packet', () => {
       now: new Date(),
     })
     const model = packetPdfModel({ view, locale: 'en', printedAt: new Date(), timeZone: ZONE })
-    expect(model.mark).toMatch(/^Printed .+; check the app for changes\. Packet version 6\.$/)
+    expect(model.mark).toMatch(/^Printed .+\. Printed copies may be out of date; check the app before starting\.$/)
+    expect(model.footer).toContain('packet revision 6 · generated ')
     const text = JSON.stringify(model)
     expect(text).not.toContain(CODE)
     expect(text).not.toContain('Side gate box')
@@ -809,7 +819,7 @@ describe('[HH-PKT-01][HH-PKT-02][HH-PKT-07] the versioned job packet', () => {
     const raw = pdfText(
       await renderPacketPdf({ view, locale: 'es', printedAt: new Date(), timeZone: ZONE }, { compress: false }),
     )
-    expect(raw.some((l) => l.startsWith('Impreso ') && l.includes('revise la aplicación'))).toBe(true)
+    expect(raw.some((l) => l.startsWith('Impreso ') && l.includes('revise la aplicación antes de empezar'))).toBe(true)
     expect(raw.some((l) => l.includes('Paquete de trabajo'))).toBe(true)
     expect(raw.some((l) => l.includes(CODE) || l.includes('Side gate box'))).toBe(false)
   })
@@ -894,6 +904,236 @@ describe('[HH-PKT-01][HH-PKT-02][HH-PKT-07] the versioned job packet', () => {
       expect(
         packetChanges(rows[i - 1]?.content as unknown as PacketContent, rows[i]?.content as unknown as PacketContent),
       ).toEqual(rows[i]?.changes)
+  })
+})
+
+// TSK-0147 (OWN-DEC-196 D1, D2, D3): the wider re-review triggers and the print metadata.
+describe('[HH-PKT-02][HH-PKT-07][HH-DATA-08] re-review triggers and print metadata (TSK-0147, OWN-DEC-196)', () => {
+  let p: Project
+  let jobId: string
+  type Extra = {
+    acknowledgments: { mine: { state: string } }
+    packet: { contentSha256: string }
+    communication: { siteContactAuthority: unknown }
+  }
+  const extra = (b: PacketBody) => b as unknown as Extra
+  const acknowledge = async (who: Person) => {
+    const body = await packet(who, jobId)
+    const res = await staffWrite(who, 'POST', `/api/v1/staff/jobs/${jobId}/packet/acknowledgments`, {
+      version: body.packet.version,
+      contentSha256: extra(body).packet.contentSha256,
+    })
+    expect(res.statusCode, res.body).toBe(201)
+    return body.packet.version
+  }
+  const mine = async (who: Person) => extra(await packet(who, jobId)).acknowledgments.mine.state
+  const putDetail = async (name: string, value: string) => {
+    const prop = await t.db
+      .selectFrom('crm.properties')
+      .select('version')
+      .where('id', '=', p.propertyId)
+      .executeTakeFirstOrThrow()
+    const res = await staffWrite(
+      'office',
+      'PUT',
+      `/api/v1/staff/properties/${p.propertyId}/details/${name}`,
+      { value, source: 'customer_call', reason: 'Synthetic: the customer called' },
+      prop.version,
+    )
+    expect(res.statusCode, res.body).toBe(200)
+  }
+  const siteContact = async (authority: string[]) => {
+    const current = await t.db
+      .selectFrom('crm.project_site_contacts')
+      .select('version')
+      .where('project_id', '=', p.projectId)
+      .orderBy('version', 'desc')
+      .executeTakeFirst()
+    const res = await staffWrite('office', 'POST', `/api/v1/staff/projects/${p.projectId}/site-contact`, {
+      currentVersion: current?.version ?? 0,
+      designation: 'customer',
+      authority,
+      source: 'customer_call',
+    })
+    expect(res.statusCode, res.body).toBe(200)
+  }
+  const at = (d: Date) =>
+    new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone: ZONE,
+      timeZoneName: 'short',
+    }).format(d)
+
+  it("[HH-DATA-08][T44][OWN-DEC-196] each new trigger is a critical version that ends the worker's acknowledgment", async () => {
+    p = await project()
+    jobId = await approve(p)
+    await todaysVisit(p, jobId, 'ben')
+    const triggers: [string, () => Promise<void>, [string, string]][] = [
+      [
+        'a known site hazard',
+        () => putDetail('site_flags', 'Synthetic: loose porch railing'),
+        ['occupants', 'detail_recorded'],
+      ],
+      [
+        'a restricted area',
+        () => putDetail('restricted_areas', 'Synthetic: no entry to the basement'),
+        ['occupants', 'detail_recorded'],
+      ],
+      [
+        'power and water access',
+        () => putDetail('utilities', 'Synthetic: the breaker panel is in the garage'),
+        ['occupants', 'detail_recorded'],
+      ],
+      [
+        'occupants and pets',
+        () => putDetail('occupants_pets', 'Synthetic: a large dog in the yard'),
+        ['occupants', 'detail_recorded'],
+      ],
+      [
+        'what the site contact may authorize',
+        () => siteContact(['visit_coordination']),
+        ['site_access', 'site_contact_authority'],
+      ],
+    ]
+    for (const [what, trigger, [section, code]] of triggers) {
+      const acknowledged = await acknowledge('ben')
+      expect(await mine('ben'), what).toBe('acknowledged')
+      await trigger()
+      const after = await packet('ben', jobId)
+      expect(after.packet.version, what).toBe(acknowledged + 1)
+      expect(after.packet.critical, what).toBe(true)
+      expect(codesOf(after.packet.changes), what).toEqual([[section, code, true]])
+      expect(await mine('ben'), what).toBe('invalidated')
+      // The end is recorded once by the database, for that critical version.
+      const ended = await t.db
+        .selectFrom('work.job_packet_acknowledgment_invalidations as i')
+        .innerJoin('work.job_packet_acknowledgments as a', 'a.id', 'i.acknowledgment_id')
+        .select(['i.reason', 'i.version'])
+        .where('a.job_id', '=', jobId)
+        .where('a.staff_user_id', '=', ids.ben)
+        .where('a.version', '=', acknowledged)
+        .execute()
+      expect(ended, what).toEqual([{ reason: 'critical_change', version: acknowledged + 1 }])
+    }
+    // Ben is on her visit day: the packet shows what the site contact may authorize, never the person's details.
+    const now = await packet('ben', jobId)
+    expect(extra(now).communication.siteContactAuthority).toEqual({
+      version: 2,
+      designation: 'customer',
+      authority: ['visit_coordination'],
+    })
+    expect(now.occupants).toEqual(expect.arrayContaining([expect.objectContaining({ detail: 'restricted_areas' })]))
+  })
+
+  it('[HH-PKT-02][OWN-DEC-196] customer preparation and the same site-contact authority again are new versions that keep the acknowledgment', async () => {
+    const acknowledged = await acknowledge('ben')
+    await putDetail('customer_preparation', 'Synthetic: clear the hallway')
+    await siteContact(['visit_coordination'])
+    const after = await packet('ben', jobId)
+    expect(after.packet.version).toBe(acknowledged + 1)
+    expect(after.packet.critical).toBe(false)
+    expect(codesOf(after.packet.changes)).toEqual([
+      ['site_access', 'site_contact_updated', false],
+      ['occupants', 'detail_recorded', false],
+    ])
+    expect(await mine('ben')).toBe('acknowledged')
+  })
+
+  it('[HH-PKT-07][T28][OWN-DEC-196] prints and PDFs carry the revision, generation time, job reference and the outdated notice', async () => {
+    const row = await refreshJobPacket(t.db, jobId)
+    if (!row) throw new Error('packet')
+    const first = new Date('2026-10-01T12:00:00Z')
+    const view = await packetView(t.db, {
+      row,
+      latestVersion: row.version,
+      firstGeneratedAt: first,
+      viewed: null,
+      storage: null,
+      now: new Date(),
+    })
+    const printedAt = new Date('2026-10-30T15:30:00Z')
+    const model = packetPdfModel({ view, locale: 'en', printedAt, timeZone: ZONE })
+    expect(model.mark).toBe(
+      `Printed ${at(printedAt)}. Printed copies may be out of date; check the app before starting.`,
+    )
+    expect(model.footer).toBe(
+      `Job ${p.reference} · packet revision ${row.version} · generated ${at(row.generatedAt)} · no access codes ·`,
+    )
+    expect(model.blocks[0]).toEqual({
+      kind: 'text',
+      text: 'Printed copies may be out of date; check the app before starting.',
+    })
+    expect(model.blocks[1]).toEqual({
+      kind: 'facts',
+      rows: [
+        { label: 'Job reference', value: p.reference },
+        { label: 'Packet revision', value: String(row.version) },
+        { label: 'This revision generated', value: at(row.generatedAt) },
+        { label: 'Printed', value: at(printedAt) },
+        { label: 'First generated', value: at(first) },
+        { label: 'Job state', value: expect.any(String) },
+        { label: 'Services', value: expect.any(String) },
+      ],
+    })
+    expect(JSON.stringify(model.blocks)).toContain(
+      '{"label":"Site contact authority","value":"May coordinate the visit"}',
+    )
+    // The laid-out PDF in Spanish: the mark (set smaller to fit its line), the footer and the facts.
+    const raw = pdfText(await renderPacketPdf({ view, locale: 'es', printedAt, timeZone: ZONE }, { compress: false }))
+    expect(raw.some((l) => l.startsWith('Impreso ') && l.endsWith('revise la aplicación antes de empezar.'))).toBe(true)
+    expect(
+      raw.some((l) => l.startsWith(`Trabajo ${p.reference} · revisión del paquete ${row.version} · generado `)),
+    ).toBe(true)
+    expect(raw).toContain('Referencia del trabajo')
+    // A worker before their visit day prints without the visit-day data (TSK-0128, OWN-DEC-171).
+    const { street } = await t.db
+      .selectFrom('crm.properties')
+      .select('street')
+      .where('id', '=', p.propertyId)
+      .executeTakeFirstOrThrow()
+    expect(JSON.stringify(model)).toContain(street)
+    const closed = packetPdfModel({
+      view: projectPacket(view, { mode: 'closed', opensAt: null }, null),
+      visitDayClosed: true,
+      locale: 'en',
+      printedAt,
+      timeZone: ZONE,
+    })
+    const closedText = JSON.stringify(closed)
+    expect(closedText).not.toContain(street)
+    expect(closedText).not.toContain('Site contact authority')
+    expect(closedText).toContain('Printed copies may be out of date; check the app before starting.')
+    expect(closed.footer).toContain(`Job ${p.reference} · packet revision ${row.version} · generated `)
+  })
+
+  it('[HH-PKT-07][RULE-SERVER-AUTHZ][OWN-DEC-196] printing keeps the "View job packet" permission and the PDF its rate limit', async () => {
+    const routes = packetsModule().routes
+    expect(routes.find((r) => r.operationId === 'getJobPacketPdf')).toMatchObject({
+      permission: 'job.view_packet',
+      rateLimit: { bucket: 'job-packet-pdf', limit: 60, windowSeconds: 3600 },
+    })
+    expect(PACKET_PDF_RATE).toEqual({ bucket: 'job-packet-pdf', limit: 60, windowSeconds: 3600 })
+    expect(routes.find((r) => r.operationId === 'recordJobPacketPrint')).toMatchObject({
+      permission: 'job.view_packet',
+      rateLimit: 'none',
+      audit: 'job_packet.export',
+    })
+    // The assigned worker downloads it; a worker not on the job reaches nothing; a customer session is refused.
+    const res = await staffGet('ben', `/api/v1/staff/jobs/${jobId}/packet/pdf`)
+    expect(res.statusCode, res.body).toBe(200)
+    expect(res.headers['cache-control']).toBe('no-store')
+    expect(res.headers['content-disposition']).toContain(`job-packet-${p.reference}-v`)
+    expect([403, 404]).toContain((await staffGet('ann', `/api/v1/staff/jobs/${jobId}/packet/pdf`)).statusCode)
+    const customer = await app.inject({
+      method: 'GET',
+      url: `/api/v1/staff/jobs/${jobId}/packet/pdf`,
+      headers: { cookie: p.cookie },
+    })
+    expect([401, 403]).toContain(customer.statusCode)
   })
 })
 

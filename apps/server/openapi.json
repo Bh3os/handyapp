@@ -21214,6 +21214,1893 @@
         }
       }
     },
+    "/api/v1/staff/audit-retention": {
+      "get": {
+        "operationId": "getAuditRetention",
+        "summary": "The audit-retention workflow",
+        "description": "Owner only (ROLE-MATRIX retention.view). The audit-log period as configured (retention.audit_log years, at least 7 by OWN-DEC-164, counted in calendar years in the business time zone; NOT CONFIGURED while either is missing), how many audit entries are past it with their oldest calendar months (first and last seq, count, how many an archive covers), the hash chain’s seals, and how many archives and deletions the retention-operation trail holds. Nothing is deleted automatically; database backups keep copies until they expire under a backup policy that is NOT CONFIGURED.",
+        "tags": [
+          "retention"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "automaticDeletion",
+                    "policy",
+                    "eligible",
+                    "chain",
+                    "operations",
+                    "backups"
+                  ],
+                  "properties": {
+                    "automaticDeletion": {
+                      "type": "boolean",
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "policy": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state",
+                        "years",
+                        "version",
+                        "timeZone",
+                        "minimumYears"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "CONFIGURED",
+                            "NOT_CONFIGURED"
+                          ]
+                        },
+                        "years": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "version": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "timeZone": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "minimumYears": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "eligible": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "count",
+                        "months"
+                      ],
+                      "properties": {
+                        "count": {
+                          "type": "integer"
+                        },
+                        "months": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "month",
+                              "fromSeq",
+                              "toSeq",
+                              "count",
+                              "archived"
+                            ],
+                            "properties": {
+                              "month": {
+                                "type": "string"
+                              },
+                              "fromSeq": {
+                                "type": "string"
+                              },
+                              "toSeq": {
+                                "type": "string"
+                              },
+                              "count": {
+                                "type": "integer"
+                              },
+                              "archived": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "chain": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "seals",
+                        "sealedThrough",
+                        "lastSealedAt"
+                      ],
+                      "properties": {
+                        "seals": {
+                          "type": "integer"
+                        },
+                        "sealedThrough": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "lastSealedAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "operations": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "archives",
+                        "deletions",
+                        "deletedEvents"
+                      ],
+                      "properties": {
+                        "archives": {
+                          "type": "integer"
+                        },
+                        "deletions": {
+                          "type": "integer"
+                        },
+                        "deletedEvents": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "backups": {
+                      "type": "string",
+                      "enum": [
+                        "NOT_CONFIGURED"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "retention.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/audit-retention.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/audit-retention/archive": {
+      "post": {
+        "operationId": "archiveAuditRecords",
+        "summary": "Archive audit records past their period",
+        "description": "Owner only (ROLE-MATRIX audit.retention_archive: fresh sign-in and a written reason; OWN-DEC-164 point 5). Archives the audit entries of a seq range past their period when their retention is justified: the entries stay exactly as they are, the chain is sealed and verified, the operation with the range’s chain hashes is written to the retention-operation trail, and the range’s deletion-review entries leave the open queue (an archive decision each). Holds do not block an archive. Audited (retention.audit_archive), refusals as denied. Refusals: FRESH_AUTH_REQUIRED, CONFLICT (NOT_CONFIGURED, RANGE_MISSING, RANGE_TOO_LARGE, NOT_ELIGIBLE, ALREADY_ARCHIVED, CHAIN_BROKEN), VALIDATION_FAILED (reason, range).",
+        "tags": [
+          "retention"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "fromSeq",
+                  "toSeq",
+                  "reason"
+                ],
+                "properties": {
+                  "fromSeq": {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]{0,17}$"
+                  },
+                  "toSeq": {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]{0,17}$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "operation",
+                    "deleted"
+                  ],
+                  "properties": {
+                    "operation": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "seq",
+                        "kind",
+                        "fromSeq",
+                        "toSeq",
+                        "count",
+                        "firstOccurredAt",
+                        "lastOccurredAt",
+                        "hashBefore",
+                        "hashAfter",
+                        "sealSeq",
+                        "policy",
+                        "years",
+                        "timeZone",
+                        "holdChecks",
+                        "checksConfirmed",
+                        "reason",
+                        "authorizedBy",
+                        "authorizedRoles",
+                        "freshAuthAt",
+                        "authorizedAt",
+                        "reviewEntries"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "seq": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "archive",
+                            "delete"
+                          ]
+                        },
+                        "fromSeq": {
+                          "type": "string"
+                        },
+                        "toSeq": {
+                          "type": "string"
+                        },
+                        "count": {
+                          "type": "integer"
+                        },
+                        "firstOccurredAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "lastOccurredAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "hashBefore": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "hashAfter": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "sealSeq": {
+                          "type": "string"
+                        },
+                        "policy": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "key",
+                            "version"
+                          ],
+                          "properties": {
+                            "key": {
+                              "type": "string"
+                            },
+                            "version": {
+                              "type": "integer"
+                            }
+                          }
+                        },
+                        "years": {
+                          "type": "integer"
+                        },
+                        "timeZone": {
+                          "type": "string"
+                        },
+                        "holdChecks": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "check",
+                              "result"
+                            ],
+                            "properties": {
+                              "check": {
+                                "type": "string",
+                                "enum": [
+                                  "open_holds",
+                                  "complaints",
+                                  "warranties",
+                                  "disputes",
+                                  "claims",
+                                  "investigations",
+                                  "unfiled_tax_returns",
+                                  "legal_holds",
+                                  "insurance_holds",
+                                  "litigation",
+                                  "tax_requirements",
+                                  "accounting_requirements",
+                                  "contractual_requirements",
+                                  "security_incidents"
+                                ]
+                              },
+                              "result": {
+                                "type": "string",
+                                "enum": [
+                                  "found",
+                                  "none_found",
+                                  "not_applicable",
+                                  "not_recorded"
+                                ]
+                              },
+                              "count": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        },
+                        "checksConfirmed": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "reason": {
+                          "type": "string"
+                        },
+                        "authorizedBy": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        },
+                        "authorizedRoles": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "freshAuthAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "authorizedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "reviewEntries": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "deleted": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "audit.retention_archive",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": 5,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "retention.audit_archive",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/audit-retention.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/audit-retention/delete": {
+      "post": {
+        "operationId": "deleteAuditRecords",
+        "summary": "Delete audit records past their retention period",
+        "description": "Owner only (ROLE-MATRIX audit.retention_delete: fresh sign-in and a written reason; OWN-DEC-164). Deletes the audit entries of a seq range (both ends existing entries, at most AUDIT_RETENTION_MAX_EVENTS, PROPOSED) when every one is past its period (retention.audit_log years, at least 7, calendar years in the business time zone), no open hold or case is found on the projects their records belong to, the range overlaps no earlier deletion, and confirmedChecks lists every check the software does not record (legal holds, litigation, investigations, disputes, tax, accounting and contractual requirements, security incidents and the rest). The chain is sealed and verified first; the operation (Owner, roles, fresh sign-in time, reason, range, counts, times, hold checks, the chain hashes before and at the end of the range and the seal) is written to the protected retention-operation trail and the database deletes the range in the same transaction, its only delete path. Never automatic. Audited (retention.audit_delete), refusals as denied. Refusals: FRESH_AUTH_REQUIRED, CONFLICT (NOT_CONFIGURED, RANGE_MISSING, RANGE_TOO_LARGE, NOT_ELIGIBLE, HOLD_FOUND, OVERLAPS_DELETION, CHAIN_BROKEN), VALIDATION_FAILED (CHECK_NOT_CONFIRMED, reason, range).",
+        "tags": [
+          "retention"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "fromSeq",
+                  "toSeq",
+                  "reason",
+                  "confirmedChecks"
+                ],
+                "properties": {
+                  "fromSeq": {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]{0,17}$"
+                  },
+                  "toSeq": {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]{0,17}$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  },
+                  "confirmedChecks": {
+                    "type": "array",
+                    "maxItems": 30,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "maxLength": 40
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "operation",
+                    "deleted"
+                  ],
+                  "properties": {
+                    "operation": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "seq",
+                        "kind",
+                        "fromSeq",
+                        "toSeq",
+                        "count",
+                        "firstOccurredAt",
+                        "lastOccurredAt",
+                        "hashBefore",
+                        "hashAfter",
+                        "sealSeq",
+                        "policy",
+                        "years",
+                        "timeZone",
+                        "holdChecks",
+                        "checksConfirmed",
+                        "reason",
+                        "authorizedBy",
+                        "authorizedRoles",
+                        "freshAuthAt",
+                        "authorizedAt",
+                        "reviewEntries"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "seq": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "archive",
+                            "delete"
+                          ]
+                        },
+                        "fromSeq": {
+                          "type": "string"
+                        },
+                        "toSeq": {
+                          "type": "string"
+                        },
+                        "count": {
+                          "type": "integer"
+                        },
+                        "firstOccurredAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "lastOccurredAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "hashBefore": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "hashAfter": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "sealSeq": {
+                          "type": "string"
+                        },
+                        "policy": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "key",
+                            "version"
+                          ],
+                          "properties": {
+                            "key": {
+                              "type": "string"
+                            },
+                            "version": {
+                              "type": "integer"
+                            }
+                          }
+                        },
+                        "years": {
+                          "type": "integer"
+                        },
+                        "timeZone": {
+                          "type": "string"
+                        },
+                        "holdChecks": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "check",
+                              "result"
+                            ],
+                            "properties": {
+                              "check": {
+                                "type": "string",
+                                "enum": [
+                                  "open_holds",
+                                  "complaints",
+                                  "warranties",
+                                  "disputes",
+                                  "claims",
+                                  "investigations",
+                                  "unfiled_tax_returns",
+                                  "legal_holds",
+                                  "insurance_holds",
+                                  "litigation",
+                                  "tax_requirements",
+                                  "accounting_requirements",
+                                  "contractual_requirements",
+                                  "security_incidents"
+                                ]
+                              },
+                              "result": {
+                                "type": "string",
+                                "enum": [
+                                  "found",
+                                  "none_found",
+                                  "not_applicable",
+                                  "not_recorded"
+                                ]
+                              },
+                              "count": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        },
+                        "checksConfirmed": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "reason": {
+                          "type": "string"
+                        },
+                        "authorizedBy": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        },
+                        "authorizedRoles": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "freshAuthAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "authorizedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "reviewEntries": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "deleted": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "audit.retention_delete",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": 5,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "retention.audit_delete",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/audit-retention.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/audit-retention/operations": {
+      "get": {
+        "operationId": "listAuditRetentionOperations",
+        "summary": "The retention-operation trail",
+        "description": "Owner only (ROLE-MATRIX retention.view). Every archive and deletion of audit entries, newest first: who authorized it (and with which roles, after which fresh sign-in), the reason, the range, how many entries, their first and last times, the period and time zone applied, the hold checks and the confirmed checks, and the integrity evidence (the chain hashes before and at the end of the range, the seal). Append-only in the database; never the deleted entries’ content.",
+        "tags": [
+          "retention"
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "items",
+                    "nextCursor"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "seq",
+                          "kind",
+                          "fromSeq",
+                          "toSeq",
+                          "count",
+                          "firstOccurredAt",
+                          "lastOccurredAt",
+                          "hashBefore",
+                          "hashAfter",
+                          "sealSeq",
+                          "policy",
+                          "years",
+                          "timeZone",
+                          "holdChecks",
+                          "checksConfirmed",
+                          "reason",
+                          "authorizedBy",
+                          "authorizedRoles",
+                          "freshAuthAt",
+                          "authorizedAt",
+                          "reviewEntries"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "seq": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "archive",
+                              "delete"
+                            ]
+                          },
+                          "fromSeq": {
+                            "type": "string"
+                          },
+                          "toSeq": {
+                            "type": "string"
+                          },
+                          "count": {
+                            "type": "integer"
+                          },
+                          "firstOccurredAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "lastOccurredAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "hashBefore": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{64}$"
+                          },
+                          "hashAfter": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{64}$"
+                          },
+                          "sealSeq": {
+                            "type": "string"
+                          },
+                          "policy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "key",
+                              "version"
+                            ],
+                            "properties": {
+                              "key": {
+                                "type": "string"
+                              },
+                              "version": {
+                                "type": "integer"
+                              }
+                            }
+                          },
+                          "years": {
+                            "type": "integer"
+                          },
+                          "timeZone": {
+                            "type": "string"
+                          },
+                          "holdChecks": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "check",
+                                "result"
+                              ],
+                              "properties": {
+                                "check": {
+                                  "type": "string",
+                                  "enum": [
+                                    "open_holds",
+                                    "complaints",
+                                    "warranties",
+                                    "disputes",
+                                    "claims",
+                                    "investigations",
+                                    "unfiled_tax_returns",
+                                    "legal_holds",
+                                    "insurance_holds",
+                                    "litigation",
+                                    "tax_requirements",
+                                    "accounting_requirements",
+                                    "contractual_requirements",
+                                    "security_incidents"
+                                  ]
+                                },
+                                "result": {
+                                  "type": "string",
+                                  "enum": [
+                                    "found",
+                                    "none_found",
+                                    "not_applicable",
+                                    "not_recorded"
+                                  ]
+                                },
+                                "count": {
+                                  "type": "integer"
+                                }
+                              }
+                            }
+                          },
+                          "checksConfirmed": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "authorizedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "authorizedRoles": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "freshAuthAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "authorizedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "reviewEntries": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "retention.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": true,
+          "cache": "private, no-store",
+          "test": "test/integration/audit-retention.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/audit-retention/range": {
+      "get": {
+        "operationId": "getAuditRetentionRange",
+        "summary": "What archiving or deleting a range of audit entries would do",
+        "description": "Owner only (ROLE-MATRIX retention.view). For a seq range: how many entries exist, their first and last times, when the last one’s period ends, how many are not past it yet and how many an archive covers, every check (open holds and open cases on the projects their records belong to; the rest not recorded, the Owner’s confirmation), the checks a deletion needs confirmed, and what blocks an archive or a deletion. Read-only.",
+        "tags": [
+          "retention"
+        ],
+        "parameters": [
+          {
+            "name": "fromSeq",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,17}$"
+            }
+          },
+          {
+            "name": "toSeq",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,17}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "range",
+                    "notYetEligible",
+                    "archived",
+                    "policy",
+                    "checks",
+                    "confirm",
+                    "blockers",
+                    "permanent",
+                    "backups"
+                  ],
+                  "properties": {
+                    "range": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "fromSeq",
+                        "toSeq",
+                        "count",
+                        "firstOccurredAt",
+                        "lastOccurredAt",
+                        "periodEndsAt"
+                      ],
+                      "properties": {
+                        "fromSeq": {
+                          "type": "string"
+                        },
+                        "toSeq": {
+                          "type": "string"
+                        },
+                        "count": {
+                          "type": "integer"
+                        },
+                        "firstOccurredAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "lastOccurredAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "periodEndsAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "notYetEligible": {
+                      "type": "integer"
+                    },
+                    "archived": {
+                      "type": "integer"
+                    },
+                    "policy": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state",
+                        "years",
+                        "version",
+                        "timeZone",
+                        "minimumYears"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "CONFIGURED",
+                            "NOT_CONFIGURED"
+                          ]
+                        },
+                        "years": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "version": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "timeZone": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "minimumYears": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "checks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "check",
+                          "result"
+                        ],
+                        "properties": {
+                          "check": {
+                            "type": "string",
+                            "enum": [
+                              "open_holds",
+                              "complaints",
+                              "warranties",
+                              "disputes",
+                              "claims",
+                              "investigations",
+                              "unfiled_tax_returns",
+                              "legal_holds",
+                              "insurance_holds",
+                              "litigation",
+                              "tax_requirements",
+                              "accounting_requirements",
+                              "contractual_requirements",
+                              "security_incidents"
+                            ]
+                          },
+                          "result": {
+                            "type": "string",
+                            "enum": [
+                              "found",
+                              "none_found",
+                              "not_applicable",
+                              "not_recorded"
+                            ]
+                          },
+                          "count": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "confirm": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "open_holds",
+                          "complaints",
+                          "warranties",
+                          "disputes",
+                          "claims",
+                          "investigations",
+                          "unfiled_tax_returns",
+                          "legal_holds",
+                          "insurance_holds",
+                          "litigation",
+                          "tax_requirements",
+                          "accounting_requirements",
+                          "contractual_requirements",
+                          "security_incidents"
+                        ]
+                      }
+                    },
+                    "blockers": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "archive",
+                        "delete"
+                      ],
+                      "properties": {
+                        "archive": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "not_configured",
+                              "range_missing",
+                              "range_too_large",
+                              "not_eligible",
+                              "hold_found",
+                              "overlaps_deletion",
+                              "already_archived",
+                              "chain_broken"
+                            ]
+                          }
+                        },
+                        "delete": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "not_configured",
+                              "range_missing",
+                              "range_too_large",
+                              "not_eligible",
+                              "hold_found",
+                              "overlaps_deletion",
+                              "already_archived",
+                              "chain_broken"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "permanent": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "backups": {
+                      "type": "string",
+                      "enum": [
+                        "NOT_CONFIGURED"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "retention.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/audit-retention.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/audit-retention/verification": {
+      "get": {
+        "operationId": "verifyAuditChain",
+        "summary": "Verify the audit hash chain",
+        "description": "Owner only (ROLE-MATRIX retention.view). Recomputes the hash chain from the audit entries that exist, in seq order, and compares it with every seal and with the evidence of every archive and deletion (across a deletion it continues from the hash the operation recorded): ok, how many entries were checked, the sealed seq, the entries recorded after the last seal (sealed by the next daily run), and the first mismatch.",
+        "tags": [
+          "retention"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "ok",
+                    "checkedEvents",
+                    "seals",
+                    "sealedThrough",
+                    "archives",
+                    "deletions",
+                    "unsealedEvents",
+                    "mismatch",
+                    "verifiedAt"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "checkedEvents": {
+                      "type": "integer"
+                    },
+                    "seals": {
+                      "type": "integer"
+                    },
+                    "sealedThrough": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "archives": {
+                      "type": "integer"
+                    },
+                    "deletions": {
+                      "type": "integer"
+                    },
+                    "unsealedEvents": {
+                      "type": "integer"
+                    },
+                    "mismatch": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "at",
+                        "id",
+                        "seq"
+                      ],
+                      "properties": {
+                        "at": {
+                          "type": "string",
+                          "enum": [
+                            "seal",
+                            "archive_start",
+                            "archive_end",
+                            "deletion",
+                            "deleted_event_present"
+                          ]
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "seq": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "verifiedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "retention.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/audit-retention.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/auth/mfa": {
       "get": {
         "operationId": "staffMfaStatus",
@@ -44035,6 +45922,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -46219,6 +48107,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -48683,6 +50572,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -50720,6 +52610,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -52933,6 +54824,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -54970,6 +56862,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -57374,6 +59267,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -59600,6 +61494,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -61817,6 +63712,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -64034,6 +65930,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -66256,6 +68153,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -68771,6 +70669,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -70988,6 +72887,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -73410,6 +75310,7 @@
                                   "payment.instructions",
                                   "payment.square_link_hosts",
                                   "cancellation.rules",
+                                  "cancellation.repeat_review",
                                   "contact.hours",
                                   "business.timezone",
                                   "business.calendar",
@@ -118624,6 +120525,7 @@
                       "additionalProperties": false,
                       "required": [
                         "siteContact",
+                        "siteContactAuthority",
                         "escalationContact",
                         "emergency",
                         "stopWork"
@@ -118656,6 +120558,32 @@
                             },
                             "confirmedAt": {
                               "type": "string"
+                            }
+                          }
+                        },
+                        "siteContactAuthority": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "additionalProperties": false,
+                          "required": [
+                            "version",
+                            "designation",
+                            "authority"
+                          ],
+                          "properties": {
+                            "version": {
+                              "type": "integer"
+                            },
+                            "designation": {
+                              "type": "string"
+                            },
+                            "authority": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
                             }
                           }
                         },
@@ -119395,7 +121323,7 @@
       "post": {
         "operationId": "recordJobPacketPrint",
         "summary": "Record a print of a packet version",
-        "description": "Staff with job.view_packet inside their scope (as for the packet; PROPOSED: printing uses the view permission). Records and audits the print of the given version (who, when, which version, the latest version then); the staff app then prints its print view, which carries the version and \"Printed <time>; check the app for changes\" and never an access code. An older version is recorded as stale.",
+        "description": "Staff with job.view_packet inside their scope (as for the packet; PROPOSED: printing uses the view permission). Records and audits the print of the given version (who, when, which version, the latest version then); the staff app then prints its print view, which carries \"Printed <time>. Printed copies may be out of date; check the app before starting\", the job reference, the packet revision and its generation time (TSK-0147, OWN-DEC-196) and never an access code. An older version is recorded as stale.",
         "tags": [
           "packets"
         ],
@@ -119602,7 +121530,7 @@
       "get": {
         "operationId": "getJobPacketPdf",
         "summary": "The printable PDF of a packet version",
-        "description": "Staff with job.view_packet inside their scope (as for the packet). The PDF of the given version (default: the latest), in the caller's interface language: every page says \"Printed <time>; check the app for changes\" with the version, an older version says it is not the latest, and it never contains an access code, a code label, a price or a photo link. Each download is recorded and audited as an export (who, when, which version). Never cached. PROPOSED limit: 60 per staff member per hour.",
+        "description": "Staff with job.view_packet inside their scope (as for the packet). The PDF of the given version (default: the latest), in the caller's interface language: every page says \"Printed <time>. Printed copies may be out of date; check the app before starting\" with the job reference, the packet revision and its generation time (TSK-0147, OWN-DEC-196), an older version says it is not the latest, and it never contains an access code, a code label, a price or a photo link. Each download is recorded and audited as an export (who, when, which version). Never cached. PROPOSED limit: 60 per staff member per hour.",
         "tags": [
           "packets"
         ],
@@ -119736,7 +121664,7 @@
       "get": {
         "operationId": "listJobPacketVersions",
         "summary": "The versions of a job packet",
-        "description": "Staff with job.view_packet inside their scope (as for the packet). Every version, newest first, with when it was generated, what changed against the version before it and whether a change was critical (scope, holds, SOP version, assignment, site access). Versions are never changed or deleted.",
+        "description": "Staff with job.view_packet inside their scope (as for the packet). Every version, newest first, with when it was generated, what changed against the version before it and whether a change was critical (scope, holds, SOP version, assignment, site access, and since TSK-0147 the hazard and restriction details and what the authorized site contact may authorize). Versions are never changed or deleted.",
         "tags": [
           "packets"
         ],
@@ -150008,6 +151936,8 @@
                                             "enum": [
                                               "full_refund_no_charge",
                                               "late_cancellation",
+                                              "late_no_charge",
+                                              "estimate_visit_free",
                                               "work_started",
                                               "customer_chooses",
                                               "owner_review"
@@ -150073,8 +152003,13 @@
                                   "depositPaidCents",
                                   "depositPendingCents",
                                   "workStarted",
+                                  "markers",
+                                  "feeDisclosed",
+                                  "feeEnforcement",
                                   "customer",
                                   "handyhub",
+                                  "mayCommit",
+                                  "mayWaive",
                                   "rulesProposed"
                                 ],
                                 "properties": {
@@ -150086,6 +152021,48 @@
                                   },
                                   "workStarted": {
                                     "type": "boolean"
+                                  },
+                                  "markers": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "arrivedAt",
+                                      "preparationStartedAt",
+                                      "contractedWorkStartedAt",
+                                      "completedAt"
+                                    ],
+                                    "properties": {
+                                      "arrivedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "preparationStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "contractedWorkStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "completedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "feeDisclosed": {
+                                    "type": "boolean"
+                                  },
+                                  "feeEnforcement": {
+                                    "type": "string"
                                   },
                                   "customer": {
                                     "type": "object",
@@ -150103,6 +152080,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -150147,6 +152126,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -150174,6 +152155,25 @@
                                         ]
                                       }
                                     }
+                                  },
+                                  "mayCommit": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "customer",
+                                      "handyhub"
+                                    ],
+                                    "properties": {
+                                      "customer": {
+                                        "type": "boolean"
+                                      },
+                                      "handyhub": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  "mayWaive": {
+                                    "type": "boolean"
                                   },
                                   "rulesProposed": {
                                     "type": "boolean"
@@ -150329,7 +152329,9 @@
                                         "workStarted",
                                         "depositPaidCents",
                                         "depositPendingCents",
-                                        "rulesVersion"
+                                        "rulesVersion",
+                                        "circumstance",
+                                        "feeWaiver"
                                       ],
                                       "properties": {
                                         "outcome": {
@@ -150348,6 +152350,8 @@
                                               "enum": [
                                                 "full_refund_no_charge",
                                                 "late_cancellation",
+                                                "late_no_charge",
+                                                "estimate_visit_free",
                                                 "work_started",
                                                 "customer_chooses",
                                                 "owner_review"
@@ -150387,6 +152391,35 @@
                                         },
                                         "rulesVersion": {
                                           "type": "integer"
+                                        },
+                                        "circumstance": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "feeWaiver": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "fromCents",
+                                                "reason"
+                                              ],
+                                              "properties": {
+                                                "fromCents": {
+                                                  "type": "integer"
+                                                },
+                                                "reason": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
                                         }
                                       }
                                     },
@@ -152173,6 +154206,8 @@
                                             "enum": [
                                               "full_refund_no_charge",
                                               "late_cancellation",
+                                              "late_no_charge",
+                                              "estimate_visit_free",
                                               "work_started",
                                               "customer_chooses",
                                               "owner_review"
@@ -152238,8 +154273,13 @@
                                   "depositPaidCents",
                                   "depositPendingCents",
                                   "workStarted",
+                                  "markers",
+                                  "feeDisclosed",
+                                  "feeEnforcement",
                                   "customer",
                                   "handyhub",
+                                  "mayCommit",
+                                  "mayWaive",
                                   "rulesProposed"
                                 ],
                                 "properties": {
@@ -152251,6 +154291,48 @@
                                   },
                                   "workStarted": {
                                     "type": "boolean"
+                                  },
+                                  "markers": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "arrivedAt",
+                                      "preparationStartedAt",
+                                      "contractedWorkStartedAt",
+                                      "completedAt"
+                                    ],
+                                    "properties": {
+                                      "arrivedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "preparationStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "contractedWorkStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "completedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "feeDisclosed": {
+                                    "type": "boolean"
+                                  },
+                                  "feeEnforcement": {
+                                    "type": "string"
                                   },
                                   "customer": {
                                     "type": "object",
@@ -152268,6 +154350,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -152312,6 +154396,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -152339,6 +154425,25 @@
                                         ]
                                       }
                                     }
+                                  },
+                                  "mayCommit": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "customer",
+                                      "handyhub"
+                                    ],
+                                    "properties": {
+                                      "customer": {
+                                        "type": "boolean"
+                                      },
+                                      "handyhub": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  "mayWaive": {
+                                    "type": "boolean"
                                   },
                                   "rulesProposed": {
                                     "type": "boolean"
@@ -152494,7 +154599,9 @@
                                         "workStarted",
                                         "depositPaidCents",
                                         "depositPendingCents",
-                                        "rulesVersion"
+                                        "rulesVersion",
+                                        "circumstance",
+                                        "feeWaiver"
                                       ],
                                       "properties": {
                                         "outcome": {
@@ -152513,6 +154620,8 @@
                                               "enum": [
                                                 "full_refund_no_charge",
                                                 "late_cancellation",
+                                                "late_no_charge",
+                                                "estimate_visit_free",
                                                 "work_started",
                                                 "customer_chooses",
                                                 "owner_review"
@@ -152552,6 +154661,35 @@
                                         },
                                         "rulesVersion": {
                                           "type": "integer"
+                                        },
+                                        "circumstance": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "feeWaiver": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "fromCents",
+                                                "reason"
+                                              ],
+                                              "properties": {
+                                                "fromCents": {
+                                                  "type": "integer"
+                                                },
+                                                "reason": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
                                         }
                                       }
                                     },
@@ -158842,6 +160980,7 @@
                 "discount_owner_review",
                 "cancellation_review",
                 "visit_cancellation_review",
+                "cancellation_pattern_review",
                 "estimate_publication_approval",
                 "change_order_publication_approval",
                 "incident_notification"
@@ -158992,6 +161131,7 @@
                               "discount_owner_review",
                               "cancellation_review",
                               "visit_cancellation_review",
+                              "cancellation_pattern_review",
                               "estimate_publication_approval",
                               "change_order_publication_approval",
                               "incident_notification"
@@ -159302,6 +161442,7 @@
                           "discount_owner_review",
                           "cancellation_review",
                           "visit_cancellation_review",
+                          "cancellation_pattern_review",
                           "estimate_publication_approval",
                           "change_order_publication_approval",
                           "incident_notification"
@@ -159472,6 +161613,7 @@
                 "discount_owner_review",
                 "cancellation_review",
                 "visit_cancellation_review",
+                "cancellation_pattern_review",
                 "estimate_publication_approval",
                 "change_order_publication_approval",
                 "incident_notification"
@@ -159622,6 +161764,7 @@
                               "discount_owner_review",
                               "cancellation_review",
                               "visit_cancellation_review",
+                              "cancellation_pattern_review",
                               "estimate_publication_approval",
                               "change_order_publication_approval",
                               "incident_notification"
@@ -159932,6 +162075,7 @@
                           "discount_owner_review",
                           "cancellation_review",
                           "visit_cancellation_review",
+                          "cancellation_pattern_review",
                           "estimate_publication_approval",
                           "change_order_publication_approval",
                           "incident_notification"
@@ -177702,6 +179846,8 @@
                                             "enum": [
                                               "full_refund_no_charge",
                                               "late_cancellation",
+                                              "late_no_charge",
+                                              "estimate_visit_free",
                                               "work_started",
                                               "customer_chooses",
                                               "owner_review"
@@ -177767,8 +179913,13 @@
                                   "depositPaidCents",
                                   "depositPendingCents",
                                   "workStarted",
+                                  "markers",
+                                  "feeDisclosed",
+                                  "feeEnforcement",
                                   "customer",
                                   "handyhub",
+                                  "mayCommit",
+                                  "mayWaive",
                                   "rulesProposed"
                                 ],
                                 "properties": {
@@ -177780,6 +179931,48 @@
                                   },
                                   "workStarted": {
                                     "type": "boolean"
+                                  },
+                                  "markers": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "arrivedAt",
+                                      "preparationStartedAt",
+                                      "contractedWorkStartedAt",
+                                      "completedAt"
+                                    ],
+                                    "properties": {
+                                      "arrivedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "preparationStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "contractedWorkStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "completedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "feeDisclosed": {
+                                    "type": "boolean"
+                                  },
+                                  "feeEnforcement": {
+                                    "type": "string"
                                   },
                                   "customer": {
                                     "type": "object",
@@ -177797,6 +179990,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -177841,6 +180036,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -177868,6 +180065,25 @@
                                         ]
                                       }
                                     }
+                                  },
+                                  "mayCommit": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "customer",
+                                      "handyhub"
+                                    ],
+                                    "properties": {
+                                      "customer": {
+                                        "type": "boolean"
+                                      },
+                                      "handyhub": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  "mayWaive": {
+                                    "type": "boolean"
                                   },
                                   "rulesProposed": {
                                     "type": "boolean"
@@ -182818,6 +185034,7 @@
                               "payment.instructions",
                               "payment.square_link_hosts",
                               "cancellation.rules",
+                              "cancellation.repeat_review",
                               "contact.hours",
                               "business.timezone",
                               "business.calendar",
@@ -186218,6 +188435,8 @@
                                             "enum": [
                                               "full_refund_no_charge",
                                               "late_cancellation",
+                                              "late_no_charge",
+                                              "estimate_visit_free",
                                               "work_started",
                                               "customer_chooses",
                                               "owner_review"
@@ -186283,8 +188502,13 @@
                                   "depositPaidCents",
                                   "depositPendingCents",
                                   "workStarted",
+                                  "markers",
+                                  "feeDisclosed",
+                                  "feeEnforcement",
                                   "customer",
                                   "handyhub",
+                                  "mayCommit",
+                                  "mayWaive",
                                   "rulesProposed"
                                 ],
                                 "properties": {
@@ -186296,6 +188520,48 @@
                                   },
                                   "workStarted": {
                                     "type": "boolean"
+                                  },
+                                  "markers": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "arrivedAt",
+                                      "preparationStartedAt",
+                                      "contractedWorkStartedAt",
+                                      "completedAt"
+                                    ],
+                                    "properties": {
+                                      "arrivedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "preparationStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "contractedWorkStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "completedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "feeDisclosed": {
+                                    "type": "boolean"
+                                  },
+                                  "feeEnforcement": {
+                                    "type": "string"
                                   },
                                   "customer": {
                                     "type": "object",
@@ -186313,6 +188579,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -186357,6 +188625,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -186384,6 +188654,25 @@
                                         ]
                                       }
                                     }
+                                  },
+                                  "mayCommit": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "customer",
+                                      "handyhub"
+                                    ],
+                                    "properties": {
+                                      "customer": {
+                                        "type": "boolean"
+                                      },
+                                      "handyhub": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  "mayWaive": {
+                                    "type": "boolean"
                                   },
                                   "rulesProposed": {
                                     "type": "boolean"
@@ -186539,7 +188828,9 @@
                                         "workStarted",
                                         "depositPaidCents",
                                         "depositPendingCents",
-                                        "rulesVersion"
+                                        "rulesVersion",
+                                        "circumstance",
+                                        "feeWaiver"
                                       ],
                                       "properties": {
                                         "outcome": {
@@ -186558,6 +188849,8 @@
                                               "enum": [
                                                 "full_refund_no_charge",
                                                 "late_cancellation",
+                                                "late_no_charge",
+                                                "estimate_visit_free",
                                                 "work_started",
                                                 "customer_chooses",
                                                 "owner_review"
@@ -186597,6 +188890,35 @@
                                         },
                                         "rulesVersion": {
                                           "type": "integer"
+                                        },
+                                        "circumstance": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "feeWaiver": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "fromCents",
+                                                "reason"
+                                              ],
+                                              "properties": {
+                                                "fromCents": {
+                                                  "type": "integer"
+                                                },
+                                                "reason": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
                                         }
                                       }
                                     },
@@ -188230,7 +190552,7 @@
       "post": {
         "operationId": "cancelVisit",
         "summary": "Cancel a confirmed visit",
-        "description": "Staff with visit.cancel (Owner, Office), with If-Match: the visit version shown (TSK-0066, HH-SCH-07, HH-PORT-04, T25). A work visit is accepted, scheduled work: only the Owner cancels it (cancellation and financial review, work.cancel_with_financial_review; FORBIDDEN OWNER_CANCELS_WORK otherwise). Names who initiated it (initiator customer or handyhub, with handyhubCause weather, safety_stop, sick_worker or other) and a reason (required), or the customer's open cancellation request it confirms (changeRequestId). The server computes the outcome of FACT-CANCELLATION-RULES from the active cancellation.rules (NOT CONFIGURED while unset): the notice (from the customer's request, or now), whether work started (PROPOSED: the job past preparation, or a work visit arrived or completed) and the verified deposit (an uncleared check is shown apart, never counted): full_refund_no_charge (24 hours or more before work starts), late_cancellation ($50.00 kept from the deposit and the rest refunded, or invoiced with no deposit), work_started (work done plus materials, which the Owner determines), customer_chooses (HandyHub cancels: a free reschedule or a full refund) or owner_review (a case the rules do not decide). The visit is canceled, its reservations end and stay as history, the outcome is kept on the change record, and an outcome with money opens the Owner's cancellation_outcome item: nothing is refunded, kept or invoiced automatically (HH-FIN-14). The affected workers get the staff notice after commit; a cancellation is not on the customer's automatic list. Returns the project's visits.",
+        "description": "Staff with visit.cancel (Owner, Office), with If-Match: the visit version shown (TSK-0066, TSK-0140, HH-SCH-07, HH-PORT-04, T25). A work visit is accepted, scheduled work: the Owner cancels it (cancellation and financial review, work.cancel_with_financial_review); Office cancels one only for a routine customer-authorized cancellation within policy (work.cancel_routine, OWN-DEC-195 C6: the customer asked, no circumstance, and the outcome full_refund_no_charge, late_cancellation or late_no_charge; FORBIDDEN NOT_ROUTINE_CANCELLATION otherwise, OWNER_CANCELS_WORK for a role with neither). Names who initiated it (initiator customer or handyhub, with handyhubCause weather, safety_stop, sick_worker or other) and a reason (required), or the customer's open cancellation request it confirms (changeRequestId); optionally the circumstance that keeps a customer's cancellation from being charged automatically (unsafe_conditions, emergency, legally_protected, owner_review) and the Owner's waiver or reduction of the fee (feeWaiver: the fee after it, below the computed fee, and a documented reason; cancellation_fee.waive with a fresh sign-in, FORBIDDEN OWNER_WAIVES_FEE for anyone else, FRESH_AUTH_REQUIRED, CONFLICT NO_FEE_TO_WAIVE). The server computes the outcome of FACT-CANCELLATION-RULES from the active cancellation.rules (NOT CONFIGURED while unset): the notice (from the customer's request, or now), whether contracted work started (Start Work; a worker's arrival or preparation alone never is, OWN-DEC-195 C4), the verified deposit (an uncleared check is shown apart, never counted) and whether the accepted terms disclosed the fee: full_refund_no_charge (24 hours or more before work starts), late_cancellation (at most $50.00 kept from the deposit and the rest refunded, a smaller deposit kept and nothing more invoiced, or $50.00 invoiced with no deposit only where disclosed and accepted in advance), late_no_charge (late, no deposit, not disclosed), estimate_visit_free (an estimate visit is never charged), work_started (work done plus materials, which the Owner determines), customer_chooses (HandyHub cancels: a free reschedule or a full refund) or owner_review (a circumstance the Owner decides). The visit is canceled, its reservations end and stay as history, the outcome is kept on the change record, and an outcome with money opens the Owner's cancellation_outcome item: nothing is refunded, kept or invoiced automatically (HH-FIN-14). The affected workers get the staff notice after commit; a cancellation is not on the customer's automatic list. Returns the project's visits.",
         "tags": [
           "visits"
         ],
@@ -188297,6 +190619,34 @@
                   "changeRequestId": {
                     "type": "string",
                     "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                  },
+                  "circumstance": {
+                    "type": "string",
+                    "enum": [
+                      "unsafe_conditions",
+                      "emergency",
+                      "legally_protected",
+                      "owner_review"
+                    ]
+                  },
+                  "feeWaiver": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "feeCents",
+                      "reason"
+                    ],
+                    "properties": {
+                      "feeCents": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "reason": {
+                        "type": "string",
+                        "maxLength": 2000
+                      }
+                    }
                   }
                 }
               }
@@ -189807,6 +192157,8 @@
                                             "enum": [
                                               "full_refund_no_charge",
                                               "late_cancellation",
+                                              "late_no_charge",
+                                              "estimate_visit_free",
                                               "work_started",
                                               "customer_chooses",
                                               "owner_review"
@@ -189872,8 +192224,13 @@
                                   "depositPaidCents",
                                   "depositPendingCents",
                                   "workStarted",
+                                  "markers",
+                                  "feeDisclosed",
+                                  "feeEnforcement",
                                   "customer",
                                   "handyhub",
+                                  "mayCommit",
+                                  "mayWaive",
                                   "rulesProposed"
                                 ],
                                 "properties": {
@@ -189885,6 +192242,48 @@
                                   },
                                   "workStarted": {
                                     "type": "boolean"
+                                  },
+                                  "markers": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "arrivedAt",
+                                      "preparationStartedAt",
+                                      "contractedWorkStartedAt",
+                                      "completedAt"
+                                    ],
+                                    "properties": {
+                                      "arrivedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "preparationStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "contractedWorkStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "completedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "feeDisclosed": {
+                                    "type": "boolean"
+                                  },
+                                  "feeEnforcement": {
+                                    "type": "string"
                                   },
                                   "customer": {
                                     "type": "object",
@@ -189902,6 +192301,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -189946,6 +192347,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -189973,6 +192376,25 @@
                                         ]
                                       }
                                     }
+                                  },
+                                  "mayCommit": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "customer",
+                                      "handyhub"
+                                    ],
+                                    "properties": {
+                                      "customer": {
+                                        "type": "boolean"
+                                      },
+                                      "handyhub": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  "mayWaive": {
+                                    "type": "boolean"
                                   },
                                   "rulesProposed": {
                                     "type": "boolean"
@@ -190128,7 +192550,9 @@
                                         "workStarted",
                                         "depositPaidCents",
                                         "depositPendingCents",
-                                        "rulesVersion"
+                                        "rulesVersion",
+                                        "circumstance",
+                                        "feeWaiver"
                                       ],
                                       "properties": {
                                         "outcome": {
@@ -190147,6 +192571,8 @@
                                               "enum": [
                                                 "full_refund_no_charge",
                                                 "late_cancellation",
+                                                "late_no_charge",
+                                                "estimate_visit_free",
                                                 "work_started",
                                                 "customer_chooses",
                                                 "owner_review"
@@ -190186,6 +192612,35 @@
                                         },
                                         "rulesVersion": {
                                           "type": "integer"
+                                        },
+                                        "circumstance": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "feeWaiver": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "fromCents",
+                                                "reason"
+                                              ],
+                                              "properties": {
+                                                "fromCents": {
+                                                  "type": "integer"
+                                                },
+                                                "reason": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
                                         }
                                       }
                                     },
@@ -191941,6 +194396,8 @@
                                             "enum": [
                                               "full_refund_no_charge",
                                               "late_cancellation",
+                                              "late_no_charge",
+                                              "estimate_visit_free",
                                               "work_started",
                                               "customer_chooses",
                                               "owner_review"
@@ -192006,8 +194463,13 @@
                                   "depositPaidCents",
                                   "depositPendingCents",
                                   "workStarted",
+                                  "markers",
+                                  "feeDisclosed",
+                                  "feeEnforcement",
                                   "customer",
                                   "handyhub",
+                                  "mayCommit",
+                                  "mayWaive",
                                   "rulesProposed"
                                 ],
                                 "properties": {
@@ -192019,6 +194481,48 @@
                                   },
                                   "workStarted": {
                                     "type": "boolean"
+                                  },
+                                  "markers": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "arrivedAt",
+                                      "preparationStartedAt",
+                                      "contractedWorkStartedAt",
+                                      "completedAt"
+                                    ],
+                                    "properties": {
+                                      "arrivedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "preparationStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "contractedWorkStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "completedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "feeDisclosed": {
+                                    "type": "boolean"
+                                  },
+                                  "feeEnforcement": {
+                                    "type": "string"
                                   },
                                   "customer": {
                                     "type": "object",
@@ -192036,6 +194540,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -192080,6 +194586,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -192107,6 +194615,25 @@
                                         ]
                                       }
                                     }
+                                  },
+                                  "mayCommit": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "customer",
+                                      "handyhub"
+                                    ],
+                                    "properties": {
+                                      "customer": {
+                                        "type": "boolean"
+                                      },
+                                      "handyhub": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  "mayWaive": {
+                                    "type": "boolean"
                                   },
                                   "rulesProposed": {
                                     "type": "boolean"
@@ -192262,7 +194789,9 @@
                                         "workStarted",
                                         "depositPaidCents",
                                         "depositPendingCents",
-                                        "rulesVersion"
+                                        "rulesVersion",
+                                        "circumstance",
+                                        "feeWaiver"
                                       ],
                                       "properties": {
                                         "outcome": {
@@ -192281,6 +194810,8 @@
                                               "enum": [
                                                 "full_refund_no_charge",
                                                 "late_cancellation",
+                                                "late_no_charge",
+                                                "estimate_visit_free",
                                                 "work_started",
                                                 "customer_chooses",
                                                 "owner_review"
@@ -192320,6 +194851,35 @@
                                         },
                                         "rulesVersion": {
                                           "type": "integer"
+                                        },
+                                        "circumstance": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "feeWaiver": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "fromCents",
+                                                "reason"
+                                              ],
+                                              "properties": {
+                                                "fromCents": {
+                                                  "type": "integer"
+                                                },
+                                                "reason": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
                                         }
                                       }
                                     },
@@ -195069,6 +197629,8 @@
                                             "enum": [
                                               "full_refund_no_charge",
                                               "late_cancellation",
+                                              "late_no_charge",
+                                              "estimate_visit_free",
                                               "work_started",
                                               "customer_chooses",
                                               "owner_review"
@@ -195134,8 +197696,13 @@
                                   "depositPaidCents",
                                   "depositPendingCents",
                                   "workStarted",
+                                  "markers",
+                                  "feeDisclosed",
+                                  "feeEnforcement",
                                   "customer",
                                   "handyhub",
+                                  "mayCommit",
+                                  "mayWaive",
                                   "rulesProposed"
                                 ],
                                 "properties": {
@@ -195147,6 +197714,48 @@
                                   },
                                   "workStarted": {
                                     "type": "boolean"
+                                  },
+                                  "markers": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "arrivedAt",
+                                      "preparationStartedAt",
+                                      "contractedWorkStartedAt",
+                                      "completedAt"
+                                    ],
+                                    "properties": {
+                                      "arrivedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "preparationStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "contractedWorkStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "completedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "feeDisclosed": {
+                                    "type": "boolean"
+                                  },
+                                  "feeEnforcement": {
+                                    "type": "string"
                                   },
                                   "customer": {
                                     "type": "object",
@@ -195164,6 +197773,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -195208,6 +197819,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -195235,6 +197848,25 @@
                                         ]
                                       }
                                     }
+                                  },
+                                  "mayCommit": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "customer",
+                                      "handyhub"
+                                    ],
+                                    "properties": {
+                                      "customer": {
+                                        "type": "boolean"
+                                      },
+                                      "handyhub": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  "mayWaive": {
+                                    "type": "boolean"
                                   },
                                   "rulesProposed": {
                                     "type": "boolean"
@@ -195390,7 +198022,9 @@
                                         "workStarted",
                                         "depositPaidCents",
                                         "depositPendingCents",
-                                        "rulesVersion"
+                                        "rulesVersion",
+                                        "circumstance",
+                                        "feeWaiver"
                                       ],
                                       "properties": {
                                         "outcome": {
@@ -195409,6 +198043,8 @@
                                               "enum": [
                                                 "full_refund_no_charge",
                                                 "late_cancellation",
+                                                "late_no_charge",
+                                                "estimate_visit_free",
                                                 "work_started",
                                                 "customer_chooses",
                                                 "owner_review"
@@ -195448,6 +198084,35 @@
                                         },
                                         "rulesVersion": {
                                           "type": "integer"
+                                        },
+                                        "circumstance": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "feeWaiver": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "fromCents",
+                                                "reason"
+                                              ],
+                                              "properties": {
+                                                "fromCents": {
+                                                  "type": "integer"
+                                                },
+                                                "reason": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
                                         }
                                       }
                                     },
@@ -198545,6 +201210,8 @@
                                             "enum": [
                                               "full_refund_no_charge",
                                               "late_cancellation",
+                                              "late_no_charge",
+                                              "estimate_visit_free",
                                               "work_started",
                                               "customer_chooses",
                                               "owner_review"
@@ -198610,8 +201277,13 @@
                                   "depositPaidCents",
                                   "depositPendingCents",
                                   "workStarted",
+                                  "markers",
+                                  "feeDisclosed",
+                                  "feeEnforcement",
                                   "customer",
                                   "handyhub",
+                                  "mayCommit",
+                                  "mayWaive",
                                   "rulesProposed"
                                 ],
                                 "properties": {
@@ -198623,6 +201295,48 @@
                                   },
                                   "workStarted": {
                                     "type": "boolean"
+                                  },
+                                  "markers": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "arrivedAt",
+                                      "preparationStartedAt",
+                                      "contractedWorkStartedAt",
+                                      "completedAt"
+                                    ],
+                                    "properties": {
+                                      "arrivedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "preparationStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "contractedWorkStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "completedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "feeDisclosed": {
+                                    "type": "boolean"
+                                  },
+                                  "feeEnforcement": {
+                                    "type": "string"
                                   },
                                   "customer": {
                                     "type": "object",
@@ -198640,6 +201354,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -198684,6 +201400,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -198711,6 +201429,25 @@
                                         ]
                                       }
                                     }
+                                  },
+                                  "mayCommit": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "customer",
+                                      "handyhub"
+                                    ],
+                                    "properties": {
+                                      "customer": {
+                                        "type": "boolean"
+                                      },
+                                      "handyhub": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  "mayWaive": {
+                                    "type": "boolean"
                                   },
                                   "rulesProposed": {
                                     "type": "boolean"
@@ -198866,7 +201603,9 @@
                                         "workStarted",
                                         "depositPaidCents",
                                         "depositPendingCents",
-                                        "rulesVersion"
+                                        "rulesVersion",
+                                        "circumstance",
+                                        "feeWaiver"
                                       ],
                                       "properties": {
                                         "outcome": {
@@ -198885,6 +201624,8 @@
                                               "enum": [
                                                 "full_refund_no_charge",
                                                 "late_cancellation",
+                                                "late_no_charge",
+                                                "estimate_visit_free",
                                                 "work_started",
                                                 "customer_chooses",
                                                 "owner_review"
@@ -198924,6 +201665,35 @@
                                         },
                                         "rulesVersion": {
                                           "type": "integer"
+                                        },
+                                        "circumstance": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "feeWaiver": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "fromCents",
+                                                "reason"
+                                              ],
+                                              "properties": {
+                                                "fromCents": {
+                                                  "type": "integer"
+                                                },
+                                                "reason": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
                                         }
                                       }
                                     },
@@ -201991,7 +204761,7 @@
       "post": {
         "operationId": "changeVisitWindow",
         "summary": "Change a visit's window",
-        "description": "Staff with visit.offer_windows (an Estimator: estimate visits only, PROPOSED), with If-Match: the visit version shown. While the visit is tentative or confirmed, sets a new window as its next window version; the earlier windows stay in its history. The local times are kept as entered and the instants follow the zone on the chosen date, so a window moved across a daylight-saving change keeps its local times. The visit's zone does not change. Same window rules and refusals as planning; an unchanged window is refused (WINDOW_UNCHANGED). An optional reason is kept in the history. Moving a confirmed visit needs visit.reschedule (Owner, Office): its workers and items are checked and reserved for the new range in the same transaction (the old reservations are kept, ended \"rescheduled\"); a capacity conflict refuses with every problem and the alternatives, and the booking stays exactly as it was. A confirmed visit is moved only while every confirmation precondition still holds (TSK-0064: the approval, the deposit, the gates, no blocking hold), named with the capacity problems. TSK-0066 (HH-SCH-07): a reschedule of a confirmed visit needs a reason (REASON_REQUIRED) and may name who initiated it (initiator customer or handyhub, with handyhubCause weather, safety_stop, sick_worker or other; rescheduling is always free) and the customer reschedule request it confirms (changeRequestId; REQUEST_NOT_FOR_VISIT, REQUEST_<state>). It writes one change record and the committed appointment.change_committed event: after commit the customer gets the automatic \"Appointment changed\" notice (FACT-AUTOMATIC-MESSAGES #11) and the affected workers the staff notice, once per change (wording NOT CONFIGURED: each delivery is recorded as not configured, never as sent). Returns the project's visits.",
+        "description": "Staff with visit.offer_windows (an Estimator: estimate visits only, PROPOSED), with If-Match: the visit version shown. While the visit is tentative or confirmed, sets a new window as its next window version; the earlier windows stay in its history. The local times are kept as entered and the instants follow the zone on the chosen date, so a window moved across a daylight-saving change keeps its local times. The visit's zone does not change. Same window rules and refusals as planning; an unchanged window is refused (WINDOW_UNCHANGED). An optional reason is kept in the history. Moving a confirmed visit needs visit.reschedule (Owner, Office): its workers and items are checked and reserved for the new range in the same transaction (the old reservations are kept, ended \"rescheduled\"); a capacity conflict refuses with every problem and the alternatives, and the booking stays exactly as it was. A confirmed visit is moved only while every confirmation precondition still holds (TSK-0064: the approval, the deposit, the gates, no blocking hold), named with the capacity problems. TSK-0066 (HH-SCH-07): a reschedule of a confirmed visit needs a reason (REASON_REQUIRED) and who initiated it (TSK-0140, OWN-DEC-195 C2: required, INITIATOR_REQUIRED; initiator customer or handyhub, with handyhubCause weather, safety_stop, sick_worker or other; rescheduling is always free), or the customer reschedule request it confirms (changeRequestId, the customer's; REQUEST_NOT_FOR_VISIT, REQUEST_<state>). It writes one change record and the committed appointment.change_committed event: after commit the customer gets the automatic \"Appointment changed\" notice (FACT-AUTOMATIC-MESSAGES #11) and the affected workers the staff notice, once per change (wording NOT CONFIGURED: each delivery is recorded as not configured, never as sent). Returns the project's visits.",
         "tags": [
           "visits"
         ],
@@ -203604,6 +206374,8 @@
                                             "enum": [
                                               "full_refund_no_charge",
                                               "late_cancellation",
+                                              "late_no_charge",
+                                              "estimate_visit_free",
                                               "work_started",
                                               "customer_chooses",
                                               "owner_review"
@@ -203669,8 +206441,13 @@
                                   "depositPaidCents",
                                   "depositPendingCents",
                                   "workStarted",
+                                  "markers",
+                                  "feeDisclosed",
+                                  "feeEnforcement",
                                   "customer",
                                   "handyhub",
+                                  "mayCommit",
+                                  "mayWaive",
                                   "rulesProposed"
                                 ],
                                 "properties": {
@@ -203682,6 +206459,48 @@
                                   },
                                   "workStarted": {
                                     "type": "boolean"
+                                  },
+                                  "markers": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "arrivedAt",
+                                      "preparationStartedAt",
+                                      "contractedWorkStartedAt",
+                                      "completedAt"
+                                    ],
+                                    "properties": {
+                                      "arrivedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "preparationStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "contractedWorkStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "completedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "feeDisclosed": {
+                                    "type": "boolean"
+                                  },
+                                  "feeEnforcement": {
+                                    "type": "string"
                                   },
                                   "customer": {
                                     "type": "object",
@@ -203699,6 +206518,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -203743,6 +206564,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -203770,6 +206593,25 @@
                                         ]
                                       }
                                     }
+                                  },
+                                  "mayCommit": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "customer",
+                                      "handyhub"
+                                    ],
+                                    "properties": {
+                                      "customer": {
+                                        "type": "boolean"
+                                      },
+                                      "handyhub": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  "mayWaive": {
+                                    "type": "boolean"
                                   },
                                   "rulesProposed": {
                                     "type": "boolean"
@@ -203925,7 +206767,9 @@
                                         "workStarted",
                                         "depositPaidCents",
                                         "depositPendingCents",
-                                        "rulesVersion"
+                                        "rulesVersion",
+                                        "circumstance",
+                                        "feeWaiver"
                                       ],
                                       "properties": {
                                         "outcome": {
@@ -203944,6 +206788,8 @@
                                               "enum": [
                                                 "full_refund_no_charge",
                                                 "late_cancellation",
+                                                "late_no_charge",
+                                                "estimate_visit_free",
                                                 "work_started",
                                                 "customer_chooses",
                                                 "owner_review"
@@ -203983,6 +206829,35 @@
                                         },
                                         "rulesVersion": {
                                           "type": "integer"
+                                        },
+                                        "circumstance": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "feeWaiver": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "fromCents",
+                                                "reason"
+                                              ],
+                                              "properties": {
+                                                "fromCents": {
+                                                  "type": "integer"
+                                                },
+                                                "reason": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
                                         }
                                       }
                                     },
@@ -206556,6 +209431,8 @@
                                             "enum": [
                                               "full_refund_no_charge",
                                               "late_cancellation",
+                                              "late_no_charge",
+                                              "estimate_visit_free",
                                               "work_started",
                                               "customer_chooses",
                                               "owner_review"
@@ -206621,8 +209498,13 @@
                                   "depositPaidCents",
                                   "depositPendingCents",
                                   "workStarted",
+                                  "markers",
+                                  "feeDisclosed",
+                                  "feeEnforcement",
                                   "customer",
                                   "handyhub",
+                                  "mayCommit",
+                                  "mayWaive",
                                   "rulesProposed"
                                 ],
                                 "properties": {
@@ -206634,6 +209516,48 @@
                                   },
                                   "workStarted": {
                                     "type": "boolean"
+                                  },
+                                  "markers": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "arrivedAt",
+                                      "preparationStartedAt",
+                                      "contractedWorkStartedAt",
+                                      "completedAt"
+                                    ],
+                                    "properties": {
+                                      "arrivedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "preparationStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "contractedWorkStartedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "completedAt": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "feeDisclosed": {
+                                    "type": "boolean"
+                                  },
+                                  "feeEnforcement": {
+                                    "type": "string"
                                   },
                                   "customer": {
                                     "type": "object",
@@ -206651,6 +209575,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -206695,6 +209621,8 @@
                                         "enum": [
                                           "full_refund_no_charge",
                                           "late_cancellation",
+                                          "late_no_charge",
+                                          "estimate_visit_free",
                                           "work_started",
                                           "customer_chooses",
                                           "owner_review"
@@ -206722,6 +209650,25 @@
                                         ]
                                       }
                                     }
+                                  },
+                                  "mayCommit": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "customer",
+                                      "handyhub"
+                                    ],
+                                    "properties": {
+                                      "customer": {
+                                        "type": "boolean"
+                                      },
+                                      "handyhub": {
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  },
+                                  "mayWaive": {
+                                    "type": "boolean"
                                   },
                                   "rulesProposed": {
                                     "type": "boolean"
@@ -206877,7 +209824,9 @@
                                         "workStarted",
                                         "depositPaidCents",
                                         "depositPendingCents",
-                                        "rulesVersion"
+                                        "rulesVersion",
+                                        "circumstance",
+                                        "feeWaiver"
                                       ],
                                       "properties": {
                                         "outcome": {
@@ -206896,6 +209845,8 @@
                                               "enum": [
                                                 "full_refund_no_charge",
                                                 "late_cancellation",
+                                                "late_no_charge",
+                                                "estimate_visit_free",
                                                 "work_started",
                                                 "customer_chooses",
                                                 "owner_review"
@@ -206935,6 +209886,35 @@
                                         },
                                         "rulesVersion": {
                                           "type": "integer"
+                                        },
+                                        "circumstance": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "feeWaiver": {
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "fromCents",
+                                                "reason"
+                                              ],
+                                              "properties": {
+                                                "fromCents": {
+                                                  "type": "integer"
+                                                },
+                                                "reason": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
                                         }
                                       }
                                     },

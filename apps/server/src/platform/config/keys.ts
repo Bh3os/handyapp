@@ -169,7 +169,24 @@ export const CONFIG_KEYS = {
   'payment.square_link_hosts': shape({
     hosts: listOf(matching(/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/, 'a host name')),
   }),
-  'cancellation.rules': shape({ rescheduleFree: bool, noticeHours: hours, lateCancellationCents: int() }),
+  // TSK-0140 (OWN-DEC-161, OWN-DEC-163, OWN-DEC-195; migration 0115): version 2 states the rules the outcome follows:
+  // the late fee capped at lateCancellationCents (a smaller deposit kept, nothing more invoiced), the no-deposit invoice
+  // only where disclosed and accepted in advance, estimate visits never charged, who started a reschedule required,
+  // and fee enforcement waiting for the attorney (OQ-ATTORNEY-TERMS).
+  'cancellation.rules': shape({
+    rescheduleFree: bool,
+    noticeHours: hours,
+    lateCancellationCents: int(),
+    depositBelowFee: exactly('keep_deposit_only'),
+    noDepositInvoice: exactly('only_if_disclosed_and_accepted'),
+    estimateVisits: exactly('never_charged'),
+    rescheduleInitiator: exactly('required'),
+    feeEnforcement: oneOf(['attorney_approval_pending', 'attorney_approved']),
+  }),
+  // TSK-0140 (OWN-DEC-163 7): how many short-notice cancellations and no-shows of one customer, within how many
+  // calendar days, flag their next estimate booking for the Owner's review (never a charge or a block). No number is
+  // decided: NOT CONFIGURED (OQ-CANCELLATION-RULES-DETAILS), so nothing is flagged until the Owner sets it.
+  'cancellation.repeat_review': shape({ count: int(1, 100), withinDays: int(1, 3660) }),
   'contact.hours': shape({ days: exactly('every_day'), open: clock, close: clock }),
   'business.timezone': shape({ zone: text }),
   // TSK-0136 (OWN-DEC-205, FACT-BUSINESS-CALENDAR; migration 0103): the internal business-day calendar: the weekdays that

@@ -18,3 +18,5 @@ source: "guide 15.1 HH-PKT-02"
 - Schedule changes and reassignments refresh the packet for affected workers ([[HH-SCH-07]]).
 
 **Changed by [[OWN-DEC-196]] (2026-10-21):** any new or materially changed hazard, SOP, authorization restriction, site-access requirement or scope is critical; workers acknowledge before continuing.
+
+**Built by [[TSK-0147]] (2026-10-26):** beyond scope, holds, SOP version, assignment and site access, a new or changed hazard or restriction detail of the property (occupants and pets, restricted areas, power and water access, known site flags) and a change of what the authorized site contact may authorize are critical versions. PROPOSED details: [[OQ-PACKET-REREVIEW-DETAILS]].

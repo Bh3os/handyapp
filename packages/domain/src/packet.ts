@@ -12,10 +12,18 @@
 // - packetChanges() lists what differs between two versions, item by item, each marked critical or not. HH-PKT-02 and
 //   HH-DATA-08 name the critical changes: scope (an approved change order is a new scope version), hazards and holds,
 //   the SOP version and assignment, and site access. PROPOSED (OQ-PACKET-DETAILS): a changed site-access or scope
-//   value is critical, a reconfirmation of the same value is not; a changed schedule window, occupant detail, photo,
-//   equipment item, job state or deposit state is a new version that is not critical; a sign-off of the same pinned SOP
+//   value is critical, a reconfirmation of the same value is not; a changed schedule window, customer preparation,
+//   photo, equipment item, job state or deposit state is a new version that is not critical (an occupant detail that
+//   carries a hazard or a restriction is critical since TSK-0147, below); a sign-off of the same pinned SOP
 //   version is not critical (the steps did not change). A critical change only ever adds work for the worker (review
 //   again, TSK-0072); nothing here releases a hold or passes the Start Job gate.
+// - TSK-0147 (OWN-DEC-196 D1): any new or materially changed hazard, SOP, authorization restriction, site-access
+//   requirement or scope is critical. Beyond the rules above, PROPOSED (OQ-PACKET-REREVIEW-DETAILS): the occupant and
+//   environment details that carry a hazard or a restriction (occupants and pets, restricted areas, power and water
+//   access, known site flags) are critical when their value is recorded, changed or removed (customer preparation and
+//   any reconfirmation stay not critical); the project's authorized site contact (TSK-0126) is critical when what the
+//   contact may authorize, or who they are (the customer or a person the customer named), changes; a new contact
+//   version with the same authority, and its first listing in a version written before TSK-0147, are not critical.
 
 /** The packet's sections, in the order HH-PKT-01 lists them. */
 export const PACKET_SECTIONS = [
@@ -42,6 +50,13 @@ export const OCCUPANT_DETAILS = [
   'customer_preparation',
   'site_flags',
 ] as const
+
+/**
+ * TSK-0147 (OWN-DEC-196 D1), PROPOSED: the occupant and environment details whose recorded value is a hazard (pets
+ * and occupants, known site flags), an authorization restriction (restricted areas) or a site-access requirement
+ * (power and water access). A changed value is critical; customer preparation is not.
+ */
+export const CRITICAL_OCCUPANT_DETAILS = ['occupants_pets', 'restricted_areas', 'utilities', 'site_flags'] as const
 
 /** Visit states in which a visit is live for its team: confirmed and on the day, until it is completed (OWN-DEC-40). */
 export const PACKET_VISIT_STATES = ['confirmed', 'en_route', 'arrived'] as const
@@ -97,6 +112,17 @@ export type PacketHold = {
   readonly source: string
   readonly raisedAt: string
 }
+/**
+ * The project's authorized site contact as the packet holds it (TSK-0126, TSK-0147): its version, whether it is the
+ * customer or a person the customer named, and what staff confirmed the contact may authorize. Never the person's
+ * name, phone or email (those stay in the visit-day site contact of the view).
+ */
+export type PacketSiteContact = {
+  readonly version: number
+  readonly designation: string
+  readonly authority: readonly string[]
+}
+
 export type PacketAccessCode = {
   readonly id: string
   readonly kind: string
@@ -151,6 +177,8 @@ export type PacketContent = {
     readonly timeZone: string | null
     readonly details: readonly PacketDetail[]
     readonly accessCodes: readonly PacketAccessCode[]
+    /** TSK-0147: the authorized site contact (null: none recorded); absent from the versions written before. */
+    readonly siteContact?: PacketSiteContact | null
   }
   readonly occupants: { readonly details: readonly PacketDetail[] }
   readonly scope: {
@@ -223,7 +251,7 @@ function byKey<T>(items: readonly T[], key: (t: T) => string): Map<string, T> {
 
 function detailChanges(
   section: 'site_access' | 'occupants',
-  critical: boolean,
+  critical: (detail: string) => boolean,
   before: readonly PacketDetail[],
   after: readonly PacketDetail[],
 ): PacketChange[] {
@@ -232,13 +260,31 @@ function detailChanges(
   const now = byKey(after, (d) => d.detail)
   for (const d of after) {
     const o = old.get(d.detail)
-    if (!o) out.push(change(section, 'detail_recorded', critical, d.detail))
-    else if (o.value !== d.value) out.push(change(section, 'detail_changed', critical, d.detail))
+    if (!o) out.push(change(section, 'detail_recorded', critical(d.detail), d.detail))
+    else if (o.value !== d.value) out.push(change(section, 'detail_changed', critical(d.detail), d.detail))
     else if (o.source !== d.source || o.confirmedAt !== d.confirmedAt)
       out.push(change(section, 'detail_reconfirmed', false, d.detail))
   }
-  for (const d of before) if (!now.has(d.detail)) out.push(change(section, 'detail_removed', critical, d.detail))
+  for (const d of before)
+    if (!now.has(d.detail)) out.push(change(section, 'detail_removed', critical(d.detail), d.detail))
   return out
+}
+
+const authorityText = (c: PacketSiteContact | null) => (c ? [...c.authority].sort().join(',') : null)
+
+/** TSK-0147: the authorized site contact. Critical when its authority or designation changes (see the header). */
+function siteContactChanges(
+  before: PacketSiteContact | null | undefined,
+  after: PacketSiteContact | null | undefined,
+): PacketChange[] {
+  if (before === undefined)
+    return after ? [change('site_access', 'site_contact_listed', false, null, null, after.version)] : []
+  const b = before ?? null
+  const a = after ?? null
+  if (b?.version === a?.version && authorityText(b) === authorityText(a)) return []
+  if (authorityText(b) !== authorityText(a) || b?.designation !== a?.designation)
+    return [change('site_access', 'site_contact_authority', true, null, authorityText(b), authorityText(a))]
+  return [change('site_access', 'site_contact_updated', false, null, b?.version ?? null, a?.version ?? null)]
 }
 
 /**
@@ -296,7 +342,7 @@ export function packetChanges(before: PacketContent | null, after: PacketContent
     out.push(change('site_access', 'address_changed', true, null, a.addressVersion, b.addressVersion))
   if (a.propertyType !== b.propertyType)
     out.push(change('site_access', 'property_type', true, null, a.propertyType, b.propertyType))
-  out.push(...detailChanges('site_access', true, a.details, b.details))
+  out.push(...detailChanges('site_access', () => true, a.details, b.details))
   const oldCodes = byKey(a.accessCodes, (c) => c.id)
   const newCodes = byKey(b.accessCodes, (c) => c.id)
   for (const c of b.accessCodes) {
@@ -307,9 +353,11 @@ export function packetChanges(before: PacketContent | null, after: PacketContent
   }
   for (const c of a.accessCodes)
     if (!newCodes.has(c.id)) out.push(change('site_access', 'access_code_removed', true, c.kind))
+  out.push(...siteContactChanges(a.siteContact, b.siteContact))
 
-  // Occupants and environment.
-  out.push(...detailChanges('occupants', false, before.occupants.details, after.occupants.details))
+  // Occupants and environment: a hazard, a restriction or power and water access is critical (TSK-0147).
+  const criticalOccupant = (d: string) => (CRITICAL_OCCUPANT_DETAILS as readonly string[]).includes(d)
+  out.push(...detailChanges('occupants', criticalOccupant, before.occupants.details, after.occupants.details))
 
   // Scope (critical): a new accepted scope version (an approved change order), lines and texts.
   const s0 = before.scope

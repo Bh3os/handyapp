@@ -28,11 +28,11 @@ The registry the owner asked for in round 14 (2026-10-22): every final owner rul
 | B7 Reviewed service-specific preparation instructions by default; unsafe customer instructions prevented | [[OWN-DEC-194]] | final | [[TSK-0146]] (todo) | todo |
 | B8 A window that can no longer be kept is refused and nothing changes | [[OWN-DEC-192]] | final | [[TSK-0063]] (done), [[TSK-0153]] (todo) | built (as reviewed on staging); PROPOSED flags removed by TSK-0153: todo |
 | C1 A reason is required for every reschedule, reassignment, cancellation and declined customer request | [[OWN-DEC-192]] | final | [[TSK-0066]] (done), [[TSK-0153]] (todo) | built (as reviewed on staging); PROPOSED flags removed by TSK-0153: todo |
-| C2 Every reschedule records who initiated it (customer or HandyHub) and the reason | [[OWN-DEC-195]] | final | [[TSK-0140]] (todo) | todo |
+| C2 Every reschedule records who initiated it (customer or HandyHub) and the reason | [[OWN-DEC-195]] | final | [[TSK-0140]] (done) | built |
 | C3 24-hour cancellation notice measured from the customer's request to the start of the arrival window | [[OWN-DEC-192]] | final | [[TSK-0066]] (done), [[TSK-0153]] (todo) | built (as reviewed on staging); PROPOSED flags removed by TSK-0153: todo |
-| C4 Worker arrived, preparation started, contracted work started and work completed are separate; arrival is not the start of work | [[OWN-DEC-195]] | final | [[TSK-0140]] (todo) | todo |
+| C4 Worker arrived, preparation started, contracted work started and work completed are separate; arrival is not the start of work | [[OWN-DEC-195]] | final | [[TSK-0140]] (done) | built |
 | C5 Only a verified deposit counts toward the fee; an uncleared check is never counted | [[OWN-DEC-192]] | final | [[TSK-0066]] (done), [[TSK-0153]] (todo) | built (as reviewed on staging); PROPOSED flags removed by TSK-0153: todo |
-| C6 Office processes routine customer-authorized work-visit cancellations within policy; the Owner approves waivers, refunds, disputes and exceptions | [[OWN-DEC-195]] | final | [[TSK-0140]] (todo) | todo |
+| C6 Office processes routine customer-authorized work-visit cancellations within policy; the Owner approves waivers, refunds, disputes and exceptions | [[OWN-DEC-195]] | final | [[TSK-0140]] (done) | built |
 | C7 A reassignment keeps the window and reruns every confirmation check | [[OWN-DEC-192]] | final | [[TSK-0066]] (done), [[TSK-0153]] (todo) | built (as reviewed on staging); PROPOSED flags removed by TSK-0153: todo |
 | C8 One open customer request per visit at a time | [[OWN-DEC-192]] | final | [[TSK-0066]] (done), [[TSK-0153]] (todo) | built (as reviewed on staging); PROPOSED flags removed by TSK-0153: todo |
 | C9 A cancelled visit leaves the job's scheduling task open | [[OWN-DEC-192]] | final | [[TSK-0066]] (done), [[TSK-0153]] (todo) | built (as reviewed on staging); PROPOSED flags removed by TSK-0153: todo |
@@ -88,9 +88,9 @@ The registry the owner asked for in round 14 (2026-10-22): every final owner rul
 | Messages may show the customer's first name and reference numbers; never amounts, addresses, codes or tokens | [[OWN-DEC-158]], amended or confirmed by [[OWN-DEC-208]] | final | [[TSK-0119]] (todo) | todo |
 | Time zones: business time America/Kentucky/Louisville; appointments in the property's Eastern or Central zone | [[OWN-DEC-159]] | final | [[TSK-0123]] (todo) | todo |
 | Guest access links last 24 hours; registered customers get a permanent dashboard; verified guest-to-account claiming | [[OWN-DEC-160]], amended or confirmed by [[OWN-DEC-208]] | final | [[TSK-0124]] (todo) | todo |
-| Late cancellation of a work visit: a deposit under $50.00 is kept and nothing more is invoiced | [[OWN-DEC-161]] | final | [[TSK-0140]] (todo), [[TSK-0089]] (todo) | todo |
+| Late cancellation of a work visit: a deposit under $50.00 is kept and nothing more is invoiced | [[OWN-DEC-161]] | final | [[TSK-0140]] (done), [[TSK-0089]] (todo) | in progress |
 | Customer side English only; staff side in Spanish for Spanish-speaking employees | [[OWN-DEC-162]], amended or confirmed by [[OWN-DEC-208]] | final | [[TSK-0102]] (todo), [[TSK-0103]] (todo) | todo |
-| Estimate visits are never charged, even when cancelled late | [[OWN-DEC-163]], amended or confirmed by [[OWN-DEC-208]] | final | [[TSK-0140]] (todo) | todo |
+| Estimate visits are never charged, even when cancelled late | [[OWN-DEC-163]], amended or confirmed by [[OWN-DEC-208]] | final | [[TSK-0140]] (done) | built |
 | Audit log: append-only during retention; owner-authorized deletion after 7 years only through a dedicated retention workflow | [[OWN-DEC-164]] | final | [[TSK-0135]] (todo) | todo |
 | Discounts: 10% for service members, veterans and military spouses, seniors 60+ and returning customers; staff verify; one per job | [[OWN-DEC-165]] | final | [[TSK-0125]] (todo) | todo |
 | AI translation of Spanish staff drafts deferred to wave 2 | [[OWN-DEC-166]], amended or confirmed by [[OWN-DEC-211]] | final | [[TSK-0117]] (todo) | todo |

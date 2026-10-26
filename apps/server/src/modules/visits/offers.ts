@@ -72,6 +72,7 @@ import { openQueueItem, resolveQueueItem } from '../queue/items.js'
 import { findProject } from '../records/index.js'
 import { customerRequestsOf } from './changes.js'
 import { unmetGates, type WorkVisitGate } from './gates.js'
+import { flagCancellationPattern } from './patterns.js'
 import { approvalProblems, blockingHoldProblems, confirmationPreconditions, customerRefusal } from './preconditions.js'
 import { siteCheckProblems } from './site-checks.js'
 import { factsOf, mayPlanWorkVisits, resolveEntry, storedWindow, type WindowEntry } from './visits.js'
@@ -704,8 +705,13 @@ export async function selectWindow(
   }
 }
 
-/** The committed event of a reserved visit, which triggers its automatic confirmation notice (#6 or #10). */
+/**
+ * The committed event of a reserved visit, which triggers its automatic confirmation notice (#6 or #10). TSK-0140
+ * (OWN-DEC-163 7): an estimate booking of a customer with repeated short-notice cancellations or no-shows also opens
+ * the Owner's review item (never a charge or a block).
+ */
 export async function recordReserved(tx: Tx, v: { id: string; purpose: string; version: number }): Promise<void> {
+  await flagCancellationPattern(tx, v)
   const type = isWorkVisitPurpose(v.purpose) ? APPOINTMENT_RESERVED_EVENT : ESTIMATE_VISIT_RESERVED_EVENT
   await outbox.add(tx, {
     type,

@@ -78,6 +78,9 @@ export const ACTIONS = [
   'visit.request_reschedule',
   'visit.request_cancellation',
   'work.cancel_with_financial_review',
+  // TSK-0140 (OWN-DEC-195 C6): Office processes a routine customer-authorized cancellation of a work visit that falls
+  // within the approved policy; waivers, refunds, disputed charges and exceptions stay the Owner's.
+  'work.cancel_routine',
   'staff.set_availability',
   // PROPOSED (TSK-0062): registering and retiring the equipment items that visits reserve (HH-SCH-03) is capacity
   // the Owner sets, so it sits in the availability row with the same cells.
@@ -141,6 +144,8 @@ export const ACTIONS = [
   'finance_adjustment.request',
   'cancellation_outcome.apply',
   'cancellation_outcome.request',
+  // TSK-0140 (OWN-DEC-161 8, OWN-DEC-195 C6): the Owner waives or reduces a cancellation fee with a documented reason.
+  'cancellation_fee.waive',
   'payment_reminder.release',
   'invoice.decide_overdue',
   'business_details.edit',
@@ -223,6 +228,10 @@ export const ACTIONS = [
   'export.bulk',
   'audit.edit',
   'audit.delete',
+  // TSK-0135 (OWN-DEC-164): the dedicated audit-retention workflow, the Owner's alone with a fresh sign-in and a
+  // reason; "Edit or delete audit events" stays refused for every role (no ordinary screen or API deletes an entry).
+  'audit.retention_archive',
+  'audit.retention_delete',
 ] as const
 export type Action = (typeof ACTIONS)[number]
 
@@ -481,6 +490,12 @@ export const MATRIX: readonly MatrixRow[] = [
   }),
   row(
     SCHEDULING,
+    'Cancel a work visit for a routine customer-authorized cancellation within policy',
+    ['work.cancel_routine'],
+    { owner: Y(), office: Y() },
+  ),
+  row(
+    SCHEDULING,
     'Set working days, hours and time off',
     ['staff.set_availability', 'equipment.manage', 'visit.dismiss_flag'],
     {
@@ -648,6 +663,9 @@ export const MATRIX: readonly MatrixRow[] = [
       office: only('Request only (P)', { 'cancellation_outcome.request': { scope: 'any', ...P } }),
     },
   ),
+  row(FINANCE, 'Waive or reduce a cancellation fee, with a documented reason', ['cancellation_fee.waive'], {
+    owner: Y('F', F),
+  }),
   row(FINANCE, 'Release payment reminders', ['payment_reminder.release'], { owner: Y(), office: Y() }),
   row(FINANCE, 'Decide "Overdue—owner decision"', ['invoice.decide_overdue'], { owner: Y() }),
   row(FINANCE, 'Business details and payment instructions', ['business_details.edit'], { owner: Y() }),
@@ -764,6 +782,12 @@ export const MATRIX: readonly MatrixRow[] = [
   ),
   row(STAFF, 'Bulk export', ['export.bulk'], { owner: Y('F', F) }),
   row(STAFF, 'Edit or delete audit events', ['audit.edit', 'audit.delete'], {}, { denyReason: 'AUDIT_APPEND_ONLY' }),
+  row(
+    STAFF,
+    'Archive or delete audit records past 7 years in the audit-retention workflow',
+    ['audit.retention_archive', 'audit.retention_delete'],
+    { owner: Y('F', F) },
+  ),
 ]
 
 function startPauseResume(): Partial<Record<Action, Rule>> {

@@ -1,7 +1,14 @@
 // What changed between two job packet versions, and which changes are critical (TSK-0069; HH-PKT-02, HH-DATA-08,
 // ENT-JobPacket, RULE-SAFETY-GATES). Every name, address detail and note is synthetic.
 import { describe, expect, it } from 'vitest'
-import { changedSections, hasCriticalChange, PACKET_SECTIONS, packetChanges, type PacketContent } from '../src/index.js'
+import {
+  changedSections,
+  hasCriticalChange,
+  PACKET_SECTIONS,
+  packetChanges,
+  type PacketContent,
+  type PacketSiteContact,
+} from '../src/index.js'
 
 const BASE: PacketContent = {
   identity: {
@@ -228,9 +235,22 @@ describe('packetChanges (TSK-0069, HH-PKT-02, HH-DATA-08)', () => {
     ])
     const removed: PacketContent = { ...BASE, site_access: { ...BASE.site_access, accessCodes: [] } }
     expect(codes(BASE, removed)).toEqual([['site_access', 'access_code_removed', true]])
-    // Occupant details are listed, not critical (PROPOSED).
-    const pets: PacketContent = { ...BASE, occupants: { details: [] } }
-    expect(codes(BASE, pets)).toEqual([['occupants', 'detail_removed', false]])
+    // Customer preparation is listed, not critical (PROPOSED); pets became critical with TSK-0147 (below).
+    const prep: PacketContent = {
+      ...BASE,
+      occupants: {
+        details: [
+          ...BASE.occupants.details,
+          {
+            detail: 'customer_preparation',
+            value: 'Synthetic: clear the hallway',
+            source: 'customer_call',
+            confirmedAt: '2026-10-22T10:00:00.000Z',
+          },
+        ],
+      },
+    }
+    expect(codes(BASE, prep)).toEqual([['occupants', 'detail_recorded', false]])
   })
 
   it('[HH-PKT-02][HH-PKT-03] SOP: a new pinned version is critical; a sign-off of the same version is not', () => {
@@ -283,5 +303,95 @@ describe('packetChanges (TSK-0069, HH-PKT-02, HH-DATA-08)', () => {
     ])
     expect(changedSections(changes)).toEqual(['identity', 'evidence', 'resources', 'dependencies'])
     expect(changedSections(changes).every((s) => PACKET_SECTIONS.includes(s))).toBe(true)
+  })
+})
+
+// TSK-0147 (OWN-DEC-196 D1): any new or materially changed hazard, SOP, authorization restriction, site-access
+// requirement or scope is critical.
+describe('packetChanges: the wider re-review triggers (TSK-0147, OWN-DEC-196 D1)', () => {
+  const detail = (name: string, value: string) => ({
+    detail: name,
+    value,
+    source: 'customer_call',
+    confirmedAt: '2026-10-22T10:00:00.000Z',
+  })
+  const CONTACT = { version: 1, designation: 'customer', authority: ['property_access', 'visit_coordination'] }
+  const withContact = (siteContact: PacketSiteContact | null): PacketContent => ({
+    ...BASE,
+    site_access: { ...BASE.site_access, siteContact },
+  })
+
+  it.each([
+    ['site_flags', 'Synthetic: loose railing on the porch'],
+    ['restricted_areas', 'Synthetic: no entry to the basement'],
+    ['utilities', 'Synthetic: water shut-off in the garage'],
+  ])(
+    '[HH-PKT-02][HH-DATA-08][OWN-DEC-196] a hazard, restriction or site-access detail recorded is critical: %s',
+    (name, value) => {
+      const after: PacketContent = {
+        ...BASE,
+        occupants: { details: [...BASE.occupants.details, detail(name, value)] },
+      }
+      expect(packetChanges(BASE, after)).toEqual([
+        { section: 'occupants', code: 'detail_recorded', critical: true, ref: name, from: null, to: null },
+      ])
+    },
+  )
+
+  it('[HH-PKT-02][HH-DATA-08][OWN-DEC-196] occupants and pets changed or removed are critical; a reconfirmation is not', () => {
+    const pets = BASE.occupants.details[0] as PacketContent['occupants']['details'][number]
+    const changed: PacketContent = { ...BASE, occupants: { details: [{ ...pets, value: 'Synthetic: two dogs' }] } }
+    expect(codes(BASE, changed)).toEqual([['occupants', 'detail_changed', true]])
+    expect(codes(BASE, { ...BASE, occupants: { details: [] } })).toEqual([['occupants', 'detail_removed', true]])
+    const again: PacketContent = {
+      ...BASE,
+      occupants: { details: [{ ...pets, confirmedAt: '2026-10-23T10:00:00.000Z' }] },
+    }
+    expect(codes(BASE, again)).toEqual([['occupants', 'detail_reconfirmed', false]])
+  })
+
+  it('[HH-PKT-02][HH-DATA-08][OWN-DEC-196] the site contact: a changed authority or person is critical; the same authority again is not', () => {
+    const before = withContact(CONTACT)
+    // What the contact may authorize narrows: an authorization restriction.
+    expect(packetChanges(before, withContact({ ...CONTACT, version: 2, authority: ['visit_coordination'] }))).toEqual([
+      {
+        section: 'site_access',
+        code: 'site_contact_authority',
+        critical: true,
+        ref: null,
+        from: 'property_access,visit_coordination',
+        to: 'visit_coordination',
+      },
+    ])
+    // Another person the customer named, with the same authority.
+    expect(codes(before, withContact({ ...CONTACT, version: 2, designation: 'other' }))).toEqual([
+      ['site_access', 'site_contact_authority', true],
+    ])
+    // Recorded again with the same authority (a corrected phone, say): a new version, not critical.
+    expect(packetChanges(before, withContact({ ...CONTACT, version: 2 }))).toEqual([
+      { section: 'site_access', code: 'site_contact_updated', critical: false, ref: null, from: 1, to: 2 },
+    ])
+    // The authority order does not matter; the same contact lists nothing.
+    expect(packetChanges(before, withContact({ ...CONTACT, authority: [...CONTACT.authority].reverse() }))).toEqual([])
+    // First recorded on a packet that had none: critical.
+    expect(codes(withContact(null), before)).toEqual([['site_access', 'site_contact_authority', true]])
+  })
+
+  it('[HH-PKT-02] a version written before TSK-0147 lists the site contact once, not critical', () => {
+    expect(packetChanges(BASE, withContact(CONTACT))).toEqual([
+      { section: 'site_access', code: 'site_contact_listed', critical: false, ref: null, from: null, to: 1 },
+    ])
+    expect(packetChanges(BASE, withContact(null))).toEqual([])
+  })
+
+  it('[HH-PKT-02][RULE-SAFETY-GATES] the everyday changes of the work stay not critical', () => {
+    const pkg = BASE.identity.services[0] as PacketContent['identity']['services'][number]
+    const visit = BASE.schedule.visits[0] as PacketContent['schedule']['visits'][number]
+    const after: PacketContent = {
+      ...withContact(CONTACT),
+      identity: { ...BASE.identity, jobState: 'in_progress', services: [{ ...pkg, state: 'in_progress' }] },
+      schedule: { visits: [{ ...visit, state: 'arrived' }] },
+    }
+    expect(hasCriticalChange(packetChanges(withContact(CONTACT), after))).toBe(false)
   })
 })
