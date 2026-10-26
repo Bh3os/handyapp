@@ -10,7 +10,8 @@
 // - Archive: the record is kept as it is (its category and permissions unchanged, HH-DATA-09) and the entry leaves
 //   the open queue; offered whenever deletion is blocked. A later Delete is still possible once nothing blocks it.
 // - Keep longer: the record is kept and the entry comes back to the queue at the chosen time.
-// Nothing follows a deletion. Every decision is audited with its reason.
+// Nothing follows a deletion. Every decision is audited with its reason. TSK-0135: an audit entry deleted by the
+// audit-retention workflow reads as deleted.
 import type { Db, Tx } from '@handyhub/db'
 import { sql } from 'kysely'
 import { ApiError } from '../../api/errors.js'
@@ -64,6 +65,24 @@ export async function entryStatuses(db: Reader, reviewIds: readonly string[], no
     .execute()
   const byId = new Map(rows.map((r) => [r.review_id, r]))
   for (const id of reviewIds) out.set(id, statusOf(byId.get(id), now))
+  // TSK-0135: an audit entry that no longer exists was deleted by the audit-retention workflow (the database's only
+  // delete path); the deletion covering its number gives the time and the reason.
+  const { rows: gone } = await sql<{ id: string; at: Date | null; reason: string | null }>`
+    SELECT rv.id, o.authorized_at AS at, o.reason
+      FROM privacy.retention_reviews rv
+      LEFT JOIN platform.audit_retention_operations o
+        ON o.kind = 'delete'
+       AND substring(rv.record_ref FROM '^#([0-9]+) ')::bigint BETWEEN o.from_seq AND o.to_seq
+     WHERE rv.id = ANY(${sql.val([...reviewIds])}::uuid[])
+       AND rv.record_type = 'audit_event'
+       AND NOT EXISTS (SELECT 1 FROM platform.audit_events ae WHERE ae.id = rv.record_id)`.execute(db)
+  for (const g of gone)
+    out.set(g.id, {
+      state: 'deleted',
+      until: null,
+      decidedAt: g.at ? new Date(g.at).toISOString() : null,
+      reason: g.reason,
+    })
   return out
 }
 

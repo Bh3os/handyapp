@@ -1149,6 +1149,38 @@ export const LABEL_FAMILIES = {
     // TSK-0137.
     'linked_records',
   ],
+  /** TSK-0135: the checks of an audit-retention range (apps/server/src/modules/retention/audit-retention.ts). */
+  auditRetentionCheck: [
+    'open_holds',
+    'complaints',
+    'warranties',
+    'disputes',
+    'claims',
+    'investigations',
+    'unfiled_tax_returns',
+    'legal_holds',
+    'insurance_holds',
+    'litigation',
+    'tax_requirements',
+    'accounting_requirements',
+    'contractual_requirements',
+    'security_incidents',
+  ],
+  /** TSK-0135: why an archive or a deletion of audit entries is refused (AUDIT_RETENTION_BLOCKERS). */
+  auditRetentionBlocker: [
+    'not_configured',
+    'range_missing',
+    'range_too_large',
+    'not_eligible',
+    'hold_found',
+    'overlaps_deletion',
+    'already_archived',
+    'chain_broken',
+  ],
+  /** TSK-0135: the operations of the retention-operation trail. */
+  auditRetentionKind: ['archive', 'delete'],
+  /** TSK-0135: where the audit hash chain stopped matching (audit-chain.ts ChainMismatch). */
+  auditChainMismatch: ['seal', 'archive_start', 'archive_end', 'deletion', 'deleted_event_present'],
   /** TSK-0100: what goes with a deleted record or stays (the confirmation and the log's counts). */
   deletionKind: [
     'estimate_versions',

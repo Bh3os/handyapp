@@ -340,6 +340,9 @@ export const KEPT_TABLES = [
   'staging.environment_marks',
   'staging.reset_runs',
   'staging.test_data_seedings',
+  // TSK-0135 (0114): the audit hash chain's seals and the retention-operation trail, kept with the audit log.
+  'platform.audit_chain_seals',
+  'platform.audit_retention_operations',
 ] as const
 /** Kept categories that may grow during a reset (the reset itself is audited). */
 const MAY_GROW: ReadonlySet<PreservedCategory> = new Set(['audit_events', 'staff_sessions'])

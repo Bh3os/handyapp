@@ -701,10 +701,26 @@ export const TABLES = {
     classes: ['technical'],
     categories: [NS],
   },
+  // TSK-0135 (0114): the hash chain's seals and the retention-operation trail are the audit log's integrity evidence:
+  // kept (no period is decided for them, OQ-AUDIT-RETENTION-DETAILS); the trail holds no deleted entry's content.
+  'platform.audit_chain_seals': {
+    holds: 'Seals of the audit hash chain: a seq, its chain hash and when it was sealed',
+    classes: ['logs_audit'],
+    categories: [NS],
+    protectedEvidence: true,
+  },
   'platform.audit_events': {
     holds: 'The append-only audit log (redacted change summaries)',
     classes: ['logs_audit'],
     categories: [AU],
+    protectedEvidence: true,
+  },
+  'platform.audit_retention_operations': {
+    holds:
+      "The Owner's archives and deletions of audit entries: authorizer, reason, range, counts, times and chain " +
+      'hashes; never the deleted content',
+    classes: ['logs_audit'],
+    categories: [NS],
     protectedEvidence: true,
   },
   'platform.consent_records': {
@@ -1298,6 +1314,9 @@ export const TABLES = {
 /** How a table's rows end their life, from its annotation. */
 export function endOfLife(a: TableAnnotation): string {
   const evidence = 'Archive, Void or audited correction; never ordinary deletion'
+  // TSK-0135 (OWN-DEC-164): past its 7 years an audit entry is archived or deleted only in the Owner's workflow.
+  if (a.protectedEvidence === true && a.categories.includes(AU))
+    return "Never edited; after the period, Archive or the Owner's authorized deletion in the audit-retention workflow; never automatic"
   if (a.protectedEvidence === true) return evidence
   // TSK-0138 (OWN-DEC-177): settings and content history has no period of its own.
   if (a.categories.includes(SH))

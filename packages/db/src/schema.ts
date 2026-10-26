@@ -1471,6 +1471,20 @@ export interface OpsQueueItemsTable {
   version: Generated<number>
 }
 
+export interface PlatformAuditChainSealsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  previous_id: string | null
+  from_seq: Int8
+  through_seq: Int8
+  event_count: Int8
+  start_hash: Buffer
+  chain_hash: Buffer
+  sealed_by: string
+  sealed_at: ColumnType<Date, Date | string | undefined, Date | string>
+  request_id: string
+}
+
 export interface PlatformAuditEventsTable {
   id: Generated<string>
   seq: GeneratedAlways<string>
@@ -1488,6 +1502,33 @@ export interface PlatformAuditEventsTable {
   summary: ColumnType<JsonValue, string | undefined, string>
   step_up_used: Generated<boolean>
   request_id: string
+}
+
+export interface PlatformAuditRetentionOperationsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  kind: string
+  from_seq: Int8
+  to_seq: Int8
+  event_count: number
+  first_occurred_at: Timestamp
+  last_occurred_at: Timestamp
+  hash_before: Buffer
+  hash_after: Buffer
+  seal_id: string
+  policy_key: string
+  policy_version: number
+  period_years: number
+  time_zone: string
+  hold_checks: Json
+  checks_confirmed: Generated<string[]>
+  reason: string
+  authorized_by: string
+  authorized_roles: string[]
+  fresh_auth_at: Timestamp
+  authorized_at: ColumnType<Date, Date | string | undefined, Date | string>
+  request_id: string
+  txid: ColumnType<string, bigint | number | string | undefined, bigint | number | string>
 }
 
 export interface PlatformConsentRecordsTable {
@@ -3151,7 +3192,9 @@ export interface Database {
   'intake.response_events': IntakeResponseEventsTable
   'intake.upload_capabilities': IntakeUploadCapabilitiesTable
   'ops.queue_items': OpsQueueItemsTable
+  'platform.audit_chain_seals': PlatformAuditChainSealsTable
   'platform.audit_events': PlatformAuditEventsTable
+  'platform.audit_retention_operations': PlatformAuditRetentionOperationsTable
   'platform.consent_records': PlatformConsentRecordsTable
   'platform.coverage_rule_sets': PlatformCoverageRuleSetsTable
   'platform.coverage_rules': PlatformCoverageRulesTable

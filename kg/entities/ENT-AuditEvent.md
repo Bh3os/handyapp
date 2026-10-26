@@ -17,3 +17,5 @@ Append-only record of an important action: sign-ins and failures, role changes, 
 **Who may change:** written by the server only; read access per [[HH-SEC-06]].
 
 **Changed by [[OWN-DEC-164]] (2026-10-21):** append-only during retention; owner-authorized deletion after 7 years only through [[HH-SEC-08]], with its own protected trail.
+
+**Built by [[TSK-0135]] (2026-10-26, migration 0114):** every entry has a digest and a chain hash (sealed daily); the database refuses every update, and every delete outside an Owner's authorized retention deletion. PROPOSED details: [[OQ-AUDIT-RETENTION-DETAILS]].
