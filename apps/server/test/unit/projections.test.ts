@@ -133,6 +133,11 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
         'getCustomerChangeOrders',
         'approveChangeOrder',
         'rejectChangeOrder',
+        // TSK-0114: the project's repeat-service schedule, changed or stopped by the customer.
+        'getCustomerRepeatService',
+        'changeCustomerRepeatService',
+        'setCustomerRepeatReminders',
+        'stopCustomerRepeatService',
       ].sort(),
     )
     for (const r of customerRoutes) {

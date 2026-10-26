@@ -102,8 +102,13 @@ describe('the six tabs (TSK-0039, HH-PORT-09, T69)', () => {
     expect(within(panel()).getByRole('region', { name: 'Status' })).toBeTruthy()
     // Only the Overview (with its released case updates, TSK-0093) is read until another tab is opened. The case
     // updates are read once the Overview has loaded, so wait for that second request rather than racing it.
+    // TSK-0114: so does the repeat-service schedule (none here, so nothing is shown).
     await waitFor(() =>
-      expect(urls).toEqual([`/api/v1/customer/projects/${REF}/overview`, `/api/v1/customer/projects/${REF}/cases`]),
+      expect(urls).toEqual([
+        `/api/v1/customer/projects/${REF}/overview`,
+        `/api/v1/customer/projects/${REF}/cases`,
+        `/api/v1/customer/projects/${REF}/repeat-service`,
+      ]),
     )
   })
 

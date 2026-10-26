@@ -315,6 +315,9 @@ export function RequestRecord({
           >
             {t('inbox.openProjectConversation')}
           </a>
+          {/* TSK-0114: the project's customer-agreed repeat-service schedule (the Owner, Office). */}
+          {' · '}
+          <a href={href(`/repeat-service/${view.project.id}`)}>{t('repeat.open')}</a>
         </dd>
         {view.repeatOf ? (
           <>

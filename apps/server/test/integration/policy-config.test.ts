@@ -153,6 +153,8 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
       feeEnforcement: 'attorney_approval_pending',
     })
     expect(v('contact.hours')).toEqual({ days: 'every_day', open: '08:00', close: '22:00' })
+    // TSK-0114 (OWN-DEC-148): a recurring schedule change applies beyond 24 hours; inside it, the cancellation rules.
+    expect(v('repeat_service.change_notice')).toEqual({ hours: 24, withinNotice: 'cancellation_rules' })
     // TSK-0121 (OWN-DEC-153, FACT-REMINDER-CADENCES): one automatic 3-day estimate reminder, one automatic 3-day question
     // reminder ("Closed—no response" 24 hours after it was actually sent, OWN-DEC-208), the 24-hour appointment reminder.
     expect(v('reminders.cadences')).toEqual({

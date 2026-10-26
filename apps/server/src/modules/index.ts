@@ -28,6 +28,7 @@ import { capacityModule } from './capacity/index.js'
 import { casesModule } from './cases/index.js'
 import { qualityModule } from './quality/index.js'
 import { closeoutModule } from './closeout/index.js'
+import { repeatServiceModule } from './repeat-service/index.js'
 import { RETURN_WORK_MODULE } from './return-work/index.js'
 import { JOB_COSTS_MODULE } from './job-costs/index.js'
 import { JOB_MARGIN_MODULE } from './job-margin/index.js'
@@ -178,6 +179,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     qualityModule(),
     // TSK-0092: closing a job, the Owner's reopen, the satisfaction check and review requests.
     closeoutModule(),
+    // TSK-0114: customer-agreed repeat-service schedules and their staff-released reminders.
+    repeatServiceModule(),
     // TSK-0094: return work of a case: classification, the Owner's decision, return visits, items and costs.
     RETURN_WORK_MODULE,
     // TSK-0095: a job's estimated versus actual costs, and every report's basis and source states.

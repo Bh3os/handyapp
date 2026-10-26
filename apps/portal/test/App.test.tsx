@@ -142,8 +142,13 @@ describe('the Overview (TSK-0038, HH-PORT-02, HH-PORT-03, T23)', () => {
     expect(screen.getByText(`Updated ${AT}`)).toBeTruthy()
     // TSK-0093: the Overview also reads the released case updates (none here, so nothing is shown). That read can
     // start after the overview has rendered, so the test waits for it.
+    // TSK-0114: so does the repeat-service schedule (none here, so nothing is shown).
     await waitFor(() =>
-      expect(urls).toEqual([`/api/v1/customer/projects/${REF}/overview`, `/api/v1/customer/projects/${REF}/cases`]),
+      expect(urls).toEqual([
+        `/api/v1/customer/projects/${REF}/overview`,
+        `/api/v1/customer/projects/${REF}/cases`,
+        `/api/v1/customer/projects/${REF}/repeat-service`,
+      ]),
     )
     expect(screen.queryByTestId('portal-case-updates')).toBeNull()
   })
