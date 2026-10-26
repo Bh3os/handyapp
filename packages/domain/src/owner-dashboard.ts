@@ -122,6 +122,12 @@ export const DASHBOARD_FIGURES = [
   f('costs.incomplete', 'costs', 'count', 'period', 'job_costs'),
   f('costs.recorded', 'costs', 'cents', 'period', 'job_costs'),
   f('costs.return_work', 'costs', 'cents', 'period', 'return_work_costs'),
+  // Gross margin of the same jobs (TSK-0131, OWN-DEC-189): below the target only when final; an advisory flag.
+  f('costs.margin_target', 'costs', 'basis_points', 'now', 'job_margin'),
+  f('costs.margin_final', 'costs', 'count', 'period', 'job_margin'),
+  f('costs.margin_incomplete', 'costs', 'count', 'period', 'job_margin'),
+  f('costs.below_target', 'costs', 'count', 'period', 'job_margin'),
+  f('costs.below_target_unreviewed', 'costs', 'count', 'period', 'job_margin'),
   // Cases: counts and assignees only; sensitive details stay on the case.
   f('cases.open_complaints', 'cases', 'count', 'now'),
   f('cases.open_damage_injury', 'cases', 'count', 'now'),

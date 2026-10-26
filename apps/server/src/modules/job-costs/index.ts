@@ -9,7 +9,7 @@
 // - Reading and writing job costs is job_cost.view / job_cost.record (PROPOSED: the Owner only). Internal costs never
 //   reach a customer route.
 // - Missing cost is never zero: every figure carries its state (complete, incomplete with the known part, not
-//   recorded, not estimated, not configured); labor and burden cost are NOT CONFIGURED (no rate exists).
+//   recorded, not estimated, not configured); labor and burden cost come from the Owner-entered rates (TSK-0131).
 // - Every write is audited with identifiers, categories and amounts in cents only; notes stay on their records.
 import type { Tx } from '@handyhub/db'
 import { REPORT_DEFINITIONS, sourceStatement, type JobCostCategory } from '@handyhub/domain'
@@ -99,9 +99,13 @@ export function jobCostsModule(): ApiModule {
       "(the entries in integer cents; final only once the Owner confirmed the category). A figure's state says " +
       'whether it is complete, incomplete (with the part known), not recorded, not estimated or not configured: ' +
       "missing cost is never zero. Labor is the elapsed Arrived-to-Finished minutes per worker on the job's started " +
-      'visits; labor and burden cost need rates that are NOT CONFIGURED, so the actual total is incomplete. ' +
+      'visits; a time with no rate entered is NOT CONFIGURED, so the actual total is incomplete. ' +
       'Variances only between two complete figures. Return-work costs are shown apart. The report states its ' +
-      'sources (report, the job_costs definition). No margin is computed (TSK-0131).',
+      'sources (report, the job_costs definition). Labor and burden cost come from the rates the Owner entered per ' +
+      'worker (TSK-0131), final once the job is operationally complete and every time is known and rated. The ' +
+      "job's gross margin (margin): estimated (contract price against the estimated costs) and actual (final " +
+      'invoices less refunds and credits against the actual costs), each final only when every part is, with the ' +
+      'advisory flag against job_margin.target and the reasons the Owner recorded.',
     permission: 'job_cost.view',
     resource: jobFacts,
     schema: { params: JOB_PARAMS, querystring: NO_QUERY, response: VIEW },
@@ -173,7 +177,7 @@ export function jobCostsModule(): ApiModule {
       WHO +
       'The Owner states that the category holds every cost of the job, with an optional note; from then on its ' +
       'actual figure is complete (a category with no entry: an explicit $0.00). Labor and burden are not ' +
-      'categories: they need rates that are NOT CONFIGURED. Refused when already confirmed (CATEGORY_CONFIRMED); ' +
+      'categories: they come from the Owner-entered labor cost rates (TSK-0131). Refused when already confirmed (CATEGORY_CONFIRMED); ' +
       'the database accepts it only from a live Owner.',
     audit: 'job_cost.confirm_category',
     resource: jobFacts,

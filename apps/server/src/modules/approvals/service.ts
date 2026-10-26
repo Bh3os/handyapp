@@ -27,11 +27,13 @@ import type {
   PublicationInvalidationReason,
   PublicationSubject,
 } from '@handyhub/domain'
+import { marginBps, marginFlagOf } from '@handyhub/domain'
 import { decide, type StaffActor } from '@handyhub/policy'
 import { sql } from 'kysely'
 import { ApiError, type FieldError } from '../../api/errors.js'
 import { audit, type AuditActor } from '../../platform/audit.js'
-import type { Config } from '../../platform/config/index.js'
+import { loadConfig, type Config } from '../../platform/config/index.js'
+import { marginTarget } from '../job-margin/margin.js'
 import { openQueueItem, resolveQueueItem } from '../queue/index.js'
 
 type Reader = Db | Tx
@@ -548,7 +550,7 @@ type Row = Awaited<ReturnType<typeof rows>>[number]
 /** One approval as staff see it; the costs and margin only for a caller who may see internal costs. */
 export type ApprovalView = ReturnType<typeof viewOf>
 
-function viewOf(r: Row, names: Map<string, string | null>, showCosts: boolean) {
+function viewOf(r: Row, names: Map<string, string | null>, showCosts: boolean, targetBps: number | null) {
   const ref = (id: string | null) => (id === null ? null : { id, name: names.get(id) ?? null })
   const proposed = Number(r.proposed_total_cents)
   const labor = num(r.labor_cost_cents)
@@ -589,7 +591,8 @@ function viewOf(r: Row, names: Map<string, string | null>, showCosts: boolean) {
       state: d.state,
       valueCents: d.valueCents,
     })),
-    // Known costs only (FACT-MARGIN-TARGET): no gross profit or margin while incomplete; removed for other roles.
+    // Known costs only (FACT-MARGIN-TARGET): no gross profit or margin while incomplete; removed for other roles. The
+    // estimated margin against job_margin.target (TSK-0131): advisory only, it never changes the approval.
     costs:
       showCosts && hasCosts
         ? {
@@ -597,7 +600,20 @@ function viewOf(r: Row, names: Map<string, string | null>, showCosts: boolean) {
             materialCents: material,
             complete,
             grossProfitCents: complete ? proposed - cost : null,
-            marginBps: complete && proposed > 0 ? marginBpsOf(proposed - cost, proposed) : null,
+            marginBps: complete ? marginBps(proposed - cost, proposed) : null,
+            targetBps,
+            targetFlag: marginFlagOf(
+              complete
+                ? {
+                    state: 'complete',
+                    revenueCents: proposed,
+                    costCents: cost,
+                    grossProfitCents: proposed - cost,
+                    marginBps: marginBps(proposed - cost, proposed),
+                  }
+                : { state: 'incomplete', gaps: ['estimate_incomplete'] },
+              targetBps,
+            ),
           }
         : null,
     requestedBy: ref(r.requested_by) as { id: string; name: string | null },
@@ -610,13 +626,6 @@ function viewOf(r: Row, names: Map<string, string | null>, showCosts: boolean) {
     usedAt: r.used_at?.toISOString() ?? null,
     rowVersion: r.row_version,
   }
-}
-
-function marginBpsOf(profit: number, price: number): number {
-  const n = 2n * BigInt(profit) * 10_000n + BigInt(price)
-  const d = 2n * BigInt(price)
-  const q = n / d
-  return Number(n % d !== 0n && n < 0n ? q - 1n : q)
 }
 
 async function namesOf(db: Reader, list: Row[]) {
@@ -639,14 +648,16 @@ const seesCosts = (actor: StaffActor, r: Row) =>
 export async function approvalsOf(db: Reader, actor: StaffActor, subject: { type: PublicationSubject; id: string }) {
   const list = await rows(db, { subject })
   const names = await namesOf(db, list)
-  return list.map((r) => viewOf(r, names, seesCosts(actor, r)))
+  const target = marginTarget(await loadConfig(db)).targetBps
+  return list.map((r) => viewOf(r, names, seesCosts(actor, r), target))
 }
 
 /** The pending approvals, oldest first (the Owner's approval queue). The caller authorized the read. */
 export async function pendingApprovals(db: Reader, actor: StaffActor) {
   const list = (await rows(db, { pending: true })).reverse()
   const names = await namesOf(db, list)
-  return list.map((r) => viewOf(r, names, seesCosts(actor, r)))
+  const target = marginTarget(await loadConfig(db)).targetBps
+  return list.map((r) => viewOf(r, names, seesCosts(actor, r), target))
 }
 
 /** One approval record, or null. */
@@ -654,5 +665,5 @@ export async function approvalById(db: Reader, actor: StaffActor, approvalId: st
   if (!UUID.test(approvalId)) return null
   const [r] = await rows(db, { id: approvalId })
   if (!r) return null
-  return viewOf(r, await namesOf(db, [r]), seesCosts(actor, r))
+  return viewOf(r, await namesOf(db, [r]), seesCosts(actor, r), marginTarget(await loadConfig(db)).targetBps)
 }

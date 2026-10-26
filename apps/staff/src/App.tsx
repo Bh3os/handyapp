@@ -37,6 +37,7 @@ import { ReconciliationScreen } from './Reconciliation'
 import { InvoiceRemindersPage } from './InvoiceReminders'
 import { CloseoutPage } from './Closeout'
 import { JobCostsPage } from './JobCosts'
+import { LaborRatesSetting, MarginTargetSetting } from './JobMargin'
 import { MergeReview, RelinkRequest } from './RecordLinks'
 import { RequestRecord } from './Record'
 import { RequestsScreen } from './Requests'
@@ -430,6 +431,13 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
                 fetchImpl={doFetch}
                 onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
               />
+              {/* TSK-0131: the advisory target gross margin and the labor cost rates the Owner enters per worker. */}
+              <MarginTargetSetting
+                t={t}
+                fetchImpl={doFetch}
+                onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
+              />
+              <LaborRatesSetting t={t} fetchImpl={doFetch} />
               {/* TSK-0142: the launch phase and its switches (the Owner only; phase 1 until the Owner approves more). */}
               <LaunchPhaseSetting
                 t={t}

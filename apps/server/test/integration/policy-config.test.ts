@@ -165,6 +165,8 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
     expect(v('sms.unknown_zone_hours')).toEqual({ open: '09:00', close: '21:00', zone: 'America/Kentucky/Louisville' })
     expect(v('sms.live_delivery')).toEqual({ enabled: false })
     expect(v('request.reopen_period')).toEqual({ days: 30 })
+    // TSK-0131 (FACT-MARGIN-TARGET, OWN-DEC-189): the advisory target gross margin per job, 30%.
+    expect(v('job_margin.target')).toEqual({ targetBps: 3000 })
     expect(v('response.target')).toEqual({ minutes: 60, countedWithin: 'contact_hours' })
     expect(v('session.timings').oneTimeCodeMinutes).toBe(10)
     expect(v('uploads.limits')).toEqual({

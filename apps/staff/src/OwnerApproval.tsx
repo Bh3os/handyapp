@@ -50,6 +50,9 @@ export type ApprovalRecord = {
     complete: boolean
     grossProfitCents: number | null
     marginBps: number | null
+    /** TSK-0131: the target gross margin and where this estimated margin stands (advisory, never a block). */
+    targetBps: number | null
+    targetFlag: string
   } | null
   requestedBy: StaffRef
   requestedAt: string
@@ -119,7 +122,26 @@ function CostsView({ t, costs, price }: { t: T; costs: ApprovalRecord['costs']; 
       <dd>{costs.grossProfitCents === null ? t('ownerApproval.costsIncomplete') : usd(costs.grossProfitCents)}</dd>
       <dt>{t('ownerApproval.margin')}</dt>
       <dd>{costs.marginBps === null ? t('ownerApproval.costsIncomplete') : percent(costs.marginBps)}</dd>
+      <dt>{t('ownerApproval.marginTarget')}</dt>
+      <dd>
+        <MarginAgainstTarget t={t} costs={costs} />
+      </dd>
     </dl>
+  )
+}
+
+/** The estimated margin against the target (TSK-0131): advisory, it never changes the approval. */
+function MarginAgainstTarget({ t, costs }: { t: TQ; costs: NonNullable<ApprovalRecord['costs']> }) {
+  if (costs.targetBps === null) return <>{t('jobMargin.targetNotConfigured')}</>
+  return (
+    <StatusBadge tone={costs.targetFlag === 'below_target' ? 'warning' : 'neutral'}>
+      <span data-testid="approval-margin-flag" data-flag={costs.targetFlag}>
+        {t('ownerApproval.marginFlag', {
+          flag: codeLabel(t, 'marginFlag', costs.targetFlag),
+          target: percent(costs.targetBps),
+        })}
+      </span>
+    </StatusBadge>
   )
 }
 
@@ -415,11 +437,14 @@ export function PublicationApprovalQueue({
                         : usd(r.costs.grossProfitCents)}
                   </td>
                   <td>
-                    {!r.costs
-                      ? t('ownerApproval.costsNone')
-                      : r.costs.marginBps === null
-                        ? t('ownerApproval.costsIncomplete')
-                        : percent(r.costs.marginBps)}
+                    {!r.costs ? (
+                      t('ownerApproval.costsNone')
+                    ) : r.costs.marginBps === null ? (
+                      t('ownerApproval.costsIncomplete')
+                    ) : (
+                      <span>{percent(r.costs.marginBps)}</span>
+                    )}{' '}
+                    {r.costs ? <MarginAgainstTarget t={t} costs={r.costs} /> : null}
                   </td>
                   <td>{r.discount ? usd(r.discount.amountCents) : '—'}</td>
                   <td>{r.changeOrder ? usd(r.changeOrder.adjustmentCents) : '—'}</td>

@@ -1,6 +1,7 @@
 // JSON schemas of the Owner publication approvals (TSK-0130; HH-EST-16, HH-API-01, HH-ARC-04). Input objects refuse
 // unknown fields; response objects list every field, so nothing undeclared leaves the server.
 import {
+  MARGIN_FLAGS,
   PUBLICATION_APPROVAL_BASES,
   PUBLICATION_APPROVAL_FLAGS,
   PUBLICATION_APPROVAL_REASONS,
@@ -132,13 +133,24 @@ export const APPROVAL_VIEW = {
         {
           type: 'object',
           additionalProperties: false,
-          required: ['laborCents', 'materialCents', 'complete', 'grossProfitCents', 'marginBps'],
+          required: [
+            'laborCents',
+            'materialCents',
+            'complete',
+            'grossProfitCents',
+            'marginBps',
+            'targetBps',
+            'targetFlag',
+          ],
           properties: {
             laborCents: NULLABLE_INT,
             materialCents: NULLABLE_INT,
             complete: { type: 'boolean' },
             grossProfitCents: NULLABLE_INT,
             marginBps: NULLABLE_INT,
+            // TSK-0131: the target gross margin (job_margin.target) and where this estimated margin stands: advisory.
+            targetBps: NULLABLE_INT,
+            targetFlag: { type: 'string', enum: [...MARGIN_FLAGS] },
           },
         },
       ],

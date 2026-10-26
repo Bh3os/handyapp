@@ -263,6 +263,10 @@ function Tile({
       <p className="staff-dashboard__name">{name}</p>
       <p className="staff-dashboard__value">{valueText(t, f.unit, f.current)}</p>
       {tone ? <StatusBadge tone={tone}>{codeLabel(t, 'dashboardFigureState', f.current.state)}</StatusBadge> : null}
+      {/* TSK-0131 (OWN-DEC-189 item 8): the low-margin flag is advisory, never a block. */}
+      {f.id === 'costs.below_target' && (f.current.value ?? 0) > 0 ? (
+        <StatusBadge tone="warning">{t('dashboard.marginAdvisory')}</StatusBadge>
+      ) : null}
       <ul className="staff-queue__facts">
         {f.report ? <li>{t('dashboard.basis', { basis: codeLabel(t, 'reportBasis', f.report.basis) })}</li> : null}
         {f.previous ? (

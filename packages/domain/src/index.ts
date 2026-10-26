@@ -200,6 +200,7 @@ export {
   ACKNOWLEDGMENT_STATES,
   acknowledgmentState,
   changedSections,
+  CRITICAL_OCCUPANT_DETAILS,
   hasCriticalChange,
   OCCUPANT_DETAILS,
   PACKET_SECTIONS,
@@ -216,6 +217,7 @@ export {
   type PacketHold,
   type PacketLine,
   type PacketSection,
+  type PacketSiteContact,
   type PacketSopPin,
   type PacketVisit,
   type PacketWorker,
@@ -464,5 +466,6 @@ export * from './site-checks.js'
 export * from './visit-access.js'
 // TSK-0095 (HH-FIN-17, HH-DATA-10): estimated versus actual job costs; report definitions with their source states.
 export * from './job-costs.js'
+export * from './job-margin.js'
 export * from './report-sources.js'
 export * from './owner-dashboard.js'

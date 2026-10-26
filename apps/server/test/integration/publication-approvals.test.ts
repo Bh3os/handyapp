@@ -646,6 +646,9 @@ describe('[HH-EST-16][FACT-MARGIN-TARGET] flags and margin data from costs that 
       complete: true,
       grossProfitCents: -10_000,
       marginBps: -1000,
+      // TSK-0131: the estimated margin against the advisory target (job_margin.target).
+      targetBps: 3000,
+      targetFlag: 'below_target',
     })
   })
 
@@ -662,6 +665,8 @@ describe('[HH-EST-16][FACT-MARGIN-TARGET] flags and margin data from costs that 
       complete: false,
       grossProfitCents: null,
       marginBps: null,
+      targetBps: 3000,
+      targetFlag: 'incomplete',
     })
   })
 })
