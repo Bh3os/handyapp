@@ -78,6 +78,7 @@ export const ACTIONS = [
   'visit.tap_on_my_way',
   'visit.tap_arrived',
   'visit.tap_finished',
+  'visit.extend_worker_access',
   // Field work and safety
   'job.view_packet',
   'work.start',
@@ -225,7 +226,7 @@ export type Condition =
   | 'not_self_collected'
   /** A worker records only their own on-site collection. */
   | 'own_collection'
-  /** Access codes: revealed only on the visit date (T28). */
+  /** Access codes: revealed only on the visit date (T28), in the visit's own zone, or during an Owner extension. */
   | 'visit_date'
   /** Online only: never from offline use (T28, T46). */
   | 'online'
@@ -463,6 +464,10 @@ export const MATRIX: readonly MatrixRow[] = [
     ['visit.tap_on_my_way', 'visit.tap_arrived', 'visit.tap_finished'],
     { owner: A(), worker: A() },
   ),
+  // TSK-0128 (OWN-DEC-171): owner-authorized temporary extensions of a worker's visit-day access, with a reason.
+  row(SCHEDULING, "Extend a worker's visit-day access", ['visit.extend_worker_access'], {
+    owner: Y('Y (reason)', { reason: true, audit: true }),
+  }),
 
   // Field work and safety
   row(FIELD, 'View job packet', ['job.view_packet'], {

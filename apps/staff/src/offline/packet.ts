@@ -7,6 +7,11 @@
 // - "Ready for offline use" is said only once the copy was written and read back with the same version and content.
 // - It expires at the end of the last assigned visit's local service day (OWN-DEC-171: the address and site contact
 //   go with it) and is purged then, when the job is no longer assigned to the caller, and at sign-out.
+// - TSK-0128 (HH-PKT-08, HH-OFF-02): a copy taken during the worker's visit-day access keeps when that access ends;
+//   from then the address, directions, site-access details, site contact and the customer's first name are removed
+//   from the phone (the rest of the copy stays until its own expiry). An access the Owner ended early, or one ended by
+//   a removal, leaves the phone the next time the app reaches the server. Nothing can erase a screenshot or a copy
+//   made outside the app; the screen says so.
 import { addLocalDays, resolveLocalTime } from '@handyhub/domain'
 import type { OfflineStore, StoredPacket } from './store'
 
@@ -17,6 +22,31 @@ type PacketLike = {
   site: { accessCodes: unknown[] }
   evidence: { photos: { url: string | null }[] }
   dependencies: { deposit: unknown }
+  access?: { mode: string; endsAt: string | null }
+}
+
+/** The fields a copy drops when the visit-day access it was taken in ends (TSK-0128). */
+type VisitDayFields = {
+  site?: { address?: unknown; directionsUrl?: unknown; details?: unknown[]; accessCodes?: unknown[] }
+  communication?: { siteContact?: unknown }
+  customer?: { firstName?: unknown }
+  access?: { mode: string; basis?: unknown; endsAt: string | null; opensAt?: unknown }
+}
+
+/** A copy without the visit-day data: what a worker may keep once their visit-day access has ended (TSK-0128). */
+export function withoutVisitDay(view: unknown): unknown {
+  const copy = JSON.parse(JSON.stringify(view)) as VisitDayFields
+  if (copy.site) Object.assign(copy.site, { address: null, directionsUrl: null, details: [], accessCodes: [] })
+  if (copy.communication) copy.communication.siteContact = null
+  if (copy.customer) copy.customer.firstName = null
+  if (copy.access) copy.access = { mode: 'closed', basis: null, endsAt: null, opensAt: null }
+  return copy
+}
+
+/** The stored copy as it may be kept at `now`: past its visit-day access, without the visit-day data. */
+function trimmed(p: StoredPacket, now: Date): StoredPacket | null {
+  if (!p.visitDayUntil || new Date(p.visitDayUntil).getTime() > now.getTime()) return null
+  return { ...p, view: withoutVisitDay(p.view), visitDayUntil: null }
 }
 
 /** The copy an offline device keeps: access-code entries, photo links and the deposit (finance) left out. */
@@ -78,6 +108,7 @@ export async function storeOfflineCopy<V extends PacketLike>(
       contentSha256: view.packet.contentSha256,
       savedAt: now.toISOString(),
       expiresAt: expires.toISOString(),
+      visitDayUntil: view.access?.mode === 'visit_day' ? view.access.endsAt : null,
       view: offlineView(view),
       sops,
     }
@@ -102,7 +133,11 @@ export async function storeOfflineCopy<V extends PacketLike>(
 export async function purgeOfflineCopies(store: OfflineStore, assignedJobIds: readonly string[], now = new Date()) {
   let removed = 0
   for (const p of await store.listPackets()) {
-    if (assignedJobIds.includes(p.jobId) && new Date(p.expiresAt).getTime() > now.getTime()) continue
+    if (assignedJobIds.includes(p.jobId) && new Date(p.expiresAt).getTime() > now.getTime()) {
+      const kept = trimmed(p, now)
+      if (kept) await store.putPacket(kept)
+      continue
+    }
     await store.deletePacket(p.jobId)
     removed++
   }
@@ -118,7 +153,9 @@ export async function readOfflineCopy(store: OfflineStore, jobId: string, now = 
       await store.deletePacket(jobId)
       return null
     }
-    return p
+    const kept = trimmed(p, now)
+    if (kept) await store.putPacket(kept)
+    return kept ?? p
   } catch {
     return null
   }

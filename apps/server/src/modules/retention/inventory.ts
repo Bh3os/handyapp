@@ -902,6 +902,14 @@ export const TABLES = {
     classes: ['request_details'],
     categories: [J],
   },
+  // TSK-0128 (0107): the Owner's temporary extensions of one worker's visit-day access (access history).
+  'work.visit_access_extensions': {
+    holds:
+      "Owner extensions of a worker's visit-day access: the visit, the worker's reservation, the Owner's reason, " +
+      'when it started and expires, and an early end with its reason (never an address, phone or code)',
+    classes: ['scheduling', 'logs_audit'],
+    categories: [J],
+  },
   // TSK-0082 (0088): the identified customer's approval or rejection of one exact change-order version.
   'work.change_order_decisions': {
     holds:

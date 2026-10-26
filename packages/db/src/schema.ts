@@ -2566,6 +2566,21 @@ export interface WorkTimeStampsTable {
   device_recorded_at: Timestamp | null
 }
 
+export interface WorkVisitAccessExtensionsTable {
+  id: Generated<string>
+  visit_id: string
+  reservation_id: string
+  staff_user_id: string
+  reason: string
+  granted_by: string
+  starts_at: ColumnType<Date, Date | string | undefined, Date | string>
+  expires_at: Timestamp
+  ended_at: Timestamp | null
+  ended_by: string | null
+  end_reason: string | null
+  request_id: string
+}
+
 export interface WorkVisitChangeRequestsTable {
   id: Generated<string>
   visit_id: string
@@ -2974,6 +2989,7 @@ export interface Database {
   'work.time_off': WorkTimeOffTable
   'work.time_stamp_corrections': WorkTimeStampCorrectionsTable
   'work.time_stamps': WorkTimeStampsTable
+  'work.visit_access_extensions': WorkVisitAccessExtensionsTable
   'work.visit_change_requests': WorkVisitChangeRequestsTable
   'work.visit_changes': WorkVisitChangesTable
   'work.visit_departures': WorkVisitDeparturesTable

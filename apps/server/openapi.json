@@ -105224,7 +105224,7 @@
       "get": {
         "operationId": "getJobPacket",
         "summary": "The current job packet",
-        "description": "Staff with job.view_packet inside their scope: the Owner and Office; the Estimator (PROPOSED cell); a worker only while assigned to a live visit of the job (an active confirmed reservation, until the end of the service day; a removed worker is refused on the next request). The server first brings the packet up to date (a new version when its records changed). Answers the version, its first-generated, last-updated and checked times, whether it is the latest, \"What changed since you reviewed this?\" against the version the caller last viewed, and every section of HH-PKT-01 from stored records only (no price, never an access code: a code is revealed separately, online, on the visit date). What no record holds is marked, never filled in. Also where the caller's own acknowledgment stands (acknowledged, required, invalidated by a critical change, a removed assignment or a disabled account, or not assigned) with what changed since the acknowledged version, and each assigned worker's state. Nobody inherits another person's acknowledgment.",
+        "description": "Staff with job.view_packet inside their scope: the Owner and Office; the Estimator (PROPOSED cell); a worker only while assigned to a live visit of the job (an active confirmed reservation, until the end of the service day; a removed worker is refused on the next request). The server first brings the packet up to date (a new version when its records changed). Answers the version, its first-generated, last-updated and checked times, whether it is the latest, \"What changed since you reviewed this?\" against the version the caller last viewed, and every section of HH-PKT-01 from stored records only (no price, never an access code: a code is revealed separately, online, on the visit date). What no record holds is marked, never filled in. Also where the caller's own acknowledgment stands (acknowledged, required, invalidated by a critical change, a removed assignment or a disabled account, or not assigned) with what changed since the acknowledged version, and each assigned worker's state. Nobody inherits another person's acknowledgment. TSK-0128 (OWN-DEC-171): `access` says how the caller stands: `full` (Owner, Office, Estimator), a worker's `visit_day` access (the visit's own local service day, or an Owner extension, until `endsAt`) or `closed` (before the day, until `opensAt`, or after it). While closed the server leaves out the address, directions, site-access details, site contact and access-code entries and shows the general service area (city and state); `customer` holds the customer's first name only, during the access.",
         "tags": [
           "packets"
         ],
@@ -105264,6 +105264,8 @@
                     "materials",
                     "careNotes",
                     "communication",
+                    "customer",
+                    "access",
                     "acknowledgments",
                     "actions"
                   ],
@@ -105652,6 +105654,7 @@
                         "address",
                         "addressVersion",
                         "directionsUrl",
+                        "serviceArea",
                         "propertyType",
                         "timeZone",
                         "details",
@@ -105703,6 +105706,25 @@
                             "string",
                             "null"
                           ]
+                        },
+                        "serviceArea": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "additionalProperties": false,
+                          "required": [
+                            "city",
+                            "state"
+                          ],
+                          "properties": {
+                            "city": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            }
+                          }
                         },
                         "propertyType": {
                           "type": "string"
@@ -106542,6 +106564,66 @@
                               }
                             }
                           }
+                        }
+                      }
+                    },
+                    "customer": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "firstName"
+                      ],
+                      "properties": {
+                        "firstName": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "access": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "mode",
+                        "basis",
+                        "endsAt",
+                        "opensAt"
+                      ],
+                      "properties": {
+                        "mode": {
+                          "type": "string",
+                          "enum": [
+                            "full",
+                            "visit_day",
+                            "closed"
+                          ]
+                        },
+                        "basis": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "visit_day",
+                            "extension",
+                            null
+                          ]
+                        },
+                        "endsAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "opensAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
                         }
                       }
                     },
@@ -122620,6 +122702,9 @@
                           "team",
                           "address",
                           "directionsUrl",
+                          "serviceArea",
+                          "visitDay",
+                          "customer",
                           "accessNotes",
                           "preparation",
                           "readiness",
@@ -122759,6 +122844,80 @@
                               "string",
                               "null"
                             ]
+                          },
+                          "serviceArea": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "additionalProperties": false,
+                            "required": [
+                              "city",
+                              "state"
+                            ],
+                            "properties": {
+                              "city": {
+                                "type": "string"
+                              },
+                              "state": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "visitDay": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "open",
+                              "basis",
+                              "endsAt",
+                              "opensAt"
+                            ],
+                            "properties": {
+                              "open": {
+                                "type": "boolean"
+                              },
+                              "basis": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "enum": [
+                                  "visit_day",
+                                  "extension",
+                                  null
+                                ]
+                              },
+                              "endsAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              },
+                              "opensAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              }
+                            }
+                          },
+                          "customer": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "firstName"
+                            ],
+                            "properties": {
+                              "firstName": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
                           },
                           "accessNotes": {
                             "type": "array",
@@ -123086,7 +123245,7 @@
       "get": {
         "operationId": "listMyJobPackets",
         "summary": "The caller's assigned jobs and their packets",
-        "description": "Staff with schedule.view_my_day: only the caller's own assignments (active confirmed reservations on live work visits whose service day has not ended), grouped by job, with the packet's current version (brought up to date first), the version the caller last viewed and whether it changed since then, critically or not, and where the caller's own acknowledgment stands. Nothing about another person's assignments.",
+        "description": "Staff with schedule.view_my_day: only the caller's own assignments (active confirmed reservations on live work visits whose service day has not ended, or with an Owner extension in force), grouped by job, with the packet's current version (brought up to date first), the version the caller last viewed and whether it changed since then, critically or not, and where the caller's own acknowledgment stands. Nothing about another person's assignments.",
         "tags": [
           "packets"
         ],
@@ -133327,6 +133486,7 @@
                     "schedulingTask",
                     "actions",
                     "visitTimes",
+                    "workerAccess",
                     "dismissFlags",
                     "visits"
                   ],
@@ -133561,6 +133721,9 @@
                       }
                     },
                     "visitTimes": {
+                      "type": "boolean"
+                    },
+                    "workerAccess": {
                       "type": "boolean"
                     },
                     "dismissFlags": {
@@ -135070,6 +135233,7 @@
                     "schedulingTask",
                     "actions",
                     "visitTimes",
+                    "workerAccess",
                     "dismissFlags",
                     "visits"
                   ],
@@ -135304,6 +135468,9 @@
                       }
                     },
                     "visitTimes": {
+                      "type": "boolean"
+                    },
+                    "workerAccess": {
                       "type": "boolean"
                     },
                     "dismissFlags": {
@@ -138542,7 +138709,7 @@
       "post": {
         "operationId": "revealAccessCode",
         "summary": "Reveal an access code",
-        "description": "Staff with access_code.reveal: the Owner; Office (PROPOSED cell); a worker only when assigned to a visit at the property (an active confirmed reservation on a live visit there, TSK-0069), on the visit date (business time zone), online (T28); every other worker is refused. Returns the value once, with when the staff app hides it again; the reveal is recorded and audited (who, when, which code; never the value). The response is never cached, never kept for idempotency and never logged. A removed code is not found. NOT_CONFIGURED while ACCESS_CODE_ENCRYPTION_KEY is unset. PROPOSED limit: 30 reveals per staff member per hour.",
+        "description": "Staff with access_code.reveal: the Owner; Office (PROPOSED cell); a worker only when assigned to a visit at the property (an active confirmed reservation on a live visit there, TSK-0069), on that visit's own local service day in the property's zone or while an Owner extension is in force (TSK-0128, OWN-DEC-171), online (T28); every other worker is refused. Returns the value once, with when the staff app hides it again; the reveal is recorded and audited (who, when, which code; never the value). The response is never cached, never kept for idempotency and never logged. A removed code is not found. NOT_CONFIGURED while ACCESS_CODE_ENCRYPTION_KEY is unset. PROPOSED limit: 30 reveals per staff member per hour.",
         "tags": [
           "properties"
         ],
@@ -163071,6 +163238,448 @@
         }
       }
     },
+    "/api/v1/staff/visit-access-extensions/{extensionId}/end": {
+      "post": {
+        "operationId": "endWorkerVisitAccessExtension",
+        "summary": "End an extension of a worker visit-day access early",
+        "description": "Staff with visit.extend_worker_access (the Owner), with a required reason. Ends an extension that is still in force or not yet started, at once (EXTENSION_NOT_ACTIVE for one already expired or ended); it stays in the access history with who ended it, when and why. The worker's visit-day access falls back to the visit's own local service day on the next request. Audited. Returns the visit’s worker access.",
+        "tags": [
+          "visits"
+        ],
+        "parameters": [
+          {
+            "name": "extensionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "visitId",
+                    "number",
+                    "purpose",
+                    "state",
+                    "projectReference",
+                    "window",
+                    "serviceDay",
+                    "workers",
+                    "extensions",
+                    "maxHours",
+                    "actions"
+                  ],
+                  "properties": {
+                    "visitId": {
+                      "type": "string"
+                    },
+                    "number": {
+                      "type": "integer"
+                    },
+                    "purpose": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "projectReference": {
+                      "type": "string"
+                    },
+                    "window": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "localDate",
+                        "start",
+                        "end",
+                        "timeZone"
+                      ],
+                      "properties": {
+                        "localDate": {
+                          "type": "string"
+                        },
+                        "start": {
+                          "type": "string"
+                        },
+                        "end": {
+                          "type": "string"
+                        },
+                        "timeZone": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "serviceDay": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "startsAt",
+                        "endsAt"
+                      ],
+                      "properties": {
+                        "startsAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "endsAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "workers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "staffUserId",
+                          "name",
+                          "role",
+                          "open",
+                          "basis",
+                          "endsAt",
+                          "opensAt"
+                        ],
+                        "properties": {
+                          "staffUserId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "role": {
+                            "type": "string"
+                          },
+                          "open": {
+                            "type": "boolean"
+                          },
+                          "basis": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "visit_day",
+                              "extension",
+                              null
+                            ]
+                          },
+                          "endsAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "opensAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "extensions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "staffUserId",
+                          "name",
+                          "state",
+                          "reason",
+                          "grantedBy",
+                          "startsAt",
+                          "expiresAt",
+                          "endedAt",
+                          "endedBy",
+                          "endReason"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "staffUserId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "active",
+                              "scheduled",
+                              "expired",
+                              "ended",
+                              "lapsed"
+                            ]
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "grantedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "startsAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "expiresAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "endedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "endedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "endReason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "maxHours": {
+                      "type": "integer"
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "extend"
+                      ],
+                      "properties": {
+                        "extend": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "visit.extend_worker_access",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "visit.end_worker_access_extension",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/worker-access.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/visit-change-requests/{requestId}/decline": {
       "post": {
         "operationId": "declineVisitChangeRequest",
@@ -163148,6 +163757,7 @@
                     "schedulingTask",
                     "actions",
                     "visitTimes",
+                    "workerAccess",
                     "dismissFlags",
                     "visits"
                   ],
@@ -163382,6 +163992,9 @@
                       }
                     },
                     "visitTimes": {
+                      "type": "boolean"
+                    },
+                    "workerAccess": {
                       "type": "boolean"
                     },
                     "dismissFlags": {
@@ -165401,6 +166014,9 @@
                         "team",
                         "address",
                         "directionsUrl",
+                        "serviceArea",
+                        "visitDay",
+                        "customer",
                         "accessNotes",
                         "preparation",
                         "readiness",
@@ -165540,6 +166156,80 @@
                             "string",
                             "null"
                           ]
+                        },
+                        "serviceArea": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "additionalProperties": false,
+                          "required": [
+                            "city",
+                            "state"
+                          ],
+                          "properties": {
+                            "city": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "visitDay": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "open",
+                            "basis",
+                            "endsAt",
+                            "opensAt"
+                          ],
+                          "properties": {
+                            "open": {
+                              "type": "boolean"
+                            },
+                            "basis": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "visit_day",
+                                "extension",
+                                null
+                              ]
+                            },
+                            "endsAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            },
+                            "opensAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            }
+                          }
+                        },
+                        "customer": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "firstName"
+                          ],
+                          "properties": {
+                            "firstName": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
                         },
                         "accessNotes": {
                           "type": "array",
@@ -166238,6 +166928,7 @@
                     "schedulingTask",
                     "actions",
                     "visitTimes",
+                    "workerAccess",
                     "dismissFlags",
                     "visits"
                   ],
@@ -166472,6 +167163,9 @@
                       }
                     },
                     "visitTimes": {
+                      "type": "boolean"
+                    },
+                    "workerAccess": {
                       "type": "boolean"
                     },
                     "dismissFlags": {
@@ -167950,6 +168644,7 @@
                     "schedulingTask",
                     "actions",
                     "visitTimes",
+                    "workerAccess",
                     "dismissFlags",
                     "visits"
                   ],
@@ -168184,6 +168879,9 @@
                       }
                     },
                     "visitTimes": {
+                      "type": "boolean"
+                    },
+                    "workerAccess": {
                       "type": "boolean"
                     },
                     "dismissFlags": {
@@ -169943,6 +170641,9 @@
                         "team",
                         "address",
                         "directionsUrl",
+                        "serviceArea",
+                        "visitDay",
+                        "customer",
                         "accessNotes",
                         "preparation",
                         "readiness",
@@ -170082,6 +170783,80 @@
                             "string",
                             "null"
                           ]
+                        },
+                        "serviceArea": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "additionalProperties": false,
+                          "required": [
+                            "city",
+                            "state"
+                          ],
+                          "properties": {
+                            "city": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "visitDay": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "open",
+                            "basis",
+                            "endsAt",
+                            "opensAt"
+                          ],
+                          "properties": {
+                            "open": {
+                              "type": "boolean"
+                            },
+                            "basis": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "visit_day",
+                                "extension",
+                                null
+                              ]
+                            },
+                            "endsAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            },
+                            "opensAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            }
+                          }
+                        },
+                        "customer": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "firstName"
+                          ],
+                          "properties": {
+                            "firstName": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
                         },
                         "accessNotes": {
                           "type": "array",
@@ -170579,6 +171354,7 @@
                     "schedulingTask",
                     "actions",
                     "visitTimes",
+                    "workerAccess",
                     "dismissFlags",
                     "visits"
                   ],
@@ -170813,6 +171589,9 @@
                       }
                     },
                     "visitTimes": {
+                      "type": "boolean"
+                    },
+                    "workerAccess": {
                       "type": "boolean"
                     },
                     "dismissFlags": {
@@ -172275,6 +173054,9 @@
                         "team",
                         "address",
                         "directionsUrl",
+                        "serviceArea",
+                        "visitDay",
+                        "customer",
                         "accessNotes",
                         "preparation",
                         "readiness",
@@ -172414,6 +173196,80 @@
                             "string",
                             "null"
                           ]
+                        },
+                        "serviceArea": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "additionalProperties": false,
+                          "required": [
+                            "city",
+                            "state"
+                          ],
+                          "properties": {
+                            "city": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "visitDay": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "open",
+                            "basis",
+                            "endsAt",
+                            "opensAt"
+                          ],
+                          "properties": {
+                            "open": {
+                              "type": "boolean"
+                            },
+                            "basis": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "visit_day",
+                                "extension",
+                                null
+                              ]
+                            },
+                            "endsAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            },
+                            "opensAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            }
+                          }
+                        },
+                        "customer": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "firstName"
+                          ],
+                          "properties": {
+                            "firstName": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
                         },
                         "accessNotes": {
                           "type": "array",
@@ -172891,6 +173747,9 @@
                             "team",
                             "address",
                             "directionsUrl",
+                            "serviceArea",
+                            "visitDay",
+                            "customer",
                             "accessNotes",
                             "preparation",
                             "readiness",
@@ -173030,6 +173889,80 @@
                                 "string",
                                 "null"
                               ]
+                            },
+                            "serviceArea": {
+                              "type": [
+                                "object",
+                                "null"
+                              ],
+                              "additionalProperties": false,
+                              "required": [
+                                "city",
+                                "state"
+                              ],
+                              "properties": {
+                                "city": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "visitDay": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "open",
+                                "basis",
+                                "endsAt",
+                                "opensAt"
+                              ],
+                              "properties": {
+                                "open": {
+                                  "type": "boolean"
+                                },
+                                "basis": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "enum": [
+                                    "visit_day",
+                                    "extension",
+                                    null
+                                  ]
+                                },
+                                "endsAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                },
+                                "opensAt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "format": "date-time"
+                                }
+                              }
+                            },
+                            "customer": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "firstName"
+                              ],
+                              "properties": {
+                                "firstName": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
                             },
                             "accessNotes": {
                               "type": "array",
@@ -173479,6 +174412,7 @@
                     "schedulingTask",
                     "actions",
                     "visitTimes",
+                    "workerAccess",
                     "dismissFlags",
                     "visits"
                   ],
@@ -173713,6 +174647,9 @@
                       }
                     },
                     "visitTimes": {
+                      "type": "boolean"
+                    },
+                    "workerAccess": {
                       "type": "boolean"
                     },
                     "dismissFlags": {
@@ -177847,6 +178784,7 @@
                     "schedulingTask",
                     "actions",
                     "visitTimes",
+                    "workerAccess",
                     "dismissFlags",
                     "visits"
                   ],
@@ -178081,6 +179019,9 @@
                       }
                     },
                     "visitTimes": {
+                      "type": "boolean"
+                    },
+                    "workerAccess": {
                       "type": "boolean"
                     },
                     "dismissFlags": {
@@ -179465,6 +180406,840 @@
         }
       }
     },
+    "/api/v1/staff/visits/{visitId}/worker-access": {
+      "get": {
+        "operationId": "getVisitWorkerAccess",
+        "summary": "The assigned workers' visit-day access on a visit",
+        "description": "Staff with schedule.view_board (Owner, Office; Estimator PROPOSED). Each worker assigned to the visit (an active confirmed reservation) with whether their visit-day access is open now: the visit's own local service day in the visit's zone (OWN-DEC-171, OWN-DEC-159), or an Owner extension in force, until when, or when the visit day opens. Every extension recorded on the visit with its reason, who granted it, its start and expiry and its state (active, scheduled, expired, ended by the Owner with a reason, or lapsed with the assignment), kept as access history. Whether the caller may extend (the Owner, while the visit is live). Never an address, phone or code.",
+        "tags": [
+          "visits"
+        ],
+        "parameters": [
+          {
+            "name": "visitId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "visitId",
+                    "number",
+                    "purpose",
+                    "state",
+                    "projectReference",
+                    "window",
+                    "serviceDay",
+                    "workers",
+                    "extensions",
+                    "maxHours",
+                    "actions"
+                  ],
+                  "properties": {
+                    "visitId": {
+                      "type": "string"
+                    },
+                    "number": {
+                      "type": "integer"
+                    },
+                    "purpose": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "projectReference": {
+                      "type": "string"
+                    },
+                    "window": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "localDate",
+                        "start",
+                        "end",
+                        "timeZone"
+                      ],
+                      "properties": {
+                        "localDate": {
+                          "type": "string"
+                        },
+                        "start": {
+                          "type": "string"
+                        },
+                        "end": {
+                          "type": "string"
+                        },
+                        "timeZone": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "serviceDay": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "startsAt",
+                        "endsAt"
+                      ],
+                      "properties": {
+                        "startsAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "endsAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "workers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "staffUserId",
+                          "name",
+                          "role",
+                          "open",
+                          "basis",
+                          "endsAt",
+                          "opensAt"
+                        ],
+                        "properties": {
+                          "staffUserId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "role": {
+                            "type": "string"
+                          },
+                          "open": {
+                            "type": "boolean"
+                          },
+                          "basis": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "visit_day",
+                              "extension",
+                              null
+                            ]
+                          },
+                          "endsAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "opensAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "extensions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "staffUserId",
+                          "name",
+                          "state",
+                          "reason",
+                          "grantedBy",
+                          "startsAt",
+                          "expiresAt",
+                          "endedAt",
+                          "endedBy",
+                          "endReason"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "staffUserId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "active",
+                              "scheduled",
+                              "expired",
+                              "ended",
+                              "lapsed"
+                            ]
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "grantedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "startsAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "expiresAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "endedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "endedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "endReason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "maxHours": {
+                      "type": "integer"
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "extend"
+                      ],
+                      "properties": {
+                        "extend": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "schedule.view_board",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/worker-access.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/visits/{visitId}/worker-access/extensions": {
+      "post": {
+        "operationId": "extendWorkerVisitAccess",
+        "summary": "Extend one assigned worker's visit-day access",
+        "description": "Staff with visit.extend_worker_access (the Owner), with a required reason (OWN-DEC-171: owner-authorized temporary extensions for legitimate operational needs, with a recorded reason and automatic expiration). Opens the worker's visit-day access (the first name, the address, the site contact and the audited code reveal) from now until `expiresAt`, which must lie ahead (EXPIRY_IN_PAST) and PROPOSED at most 24 hours away (EXPIRY_TOO_FAR). Only for a worker assigned to the visit right now (NOT_ASSIGNED) while it is live: confirmed, on the way or arrived (VISIT_NOT_LIVE). It lapses at once if the assignment ends (a reassignment, reschedule, cancellation or disabled account) and never bypasses the Start Work gate, holds or any other control. Audited.",
+        "tags": [
+          "visits"
+        ],
+        "parameters": [
+          {
+            "name": "visitId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "staffUserId",
+                  "expiresAt",
+                  "reason"
+                ],
+                "properties": {
+                  "staffUserId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "expiresAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "visitId",
+                    "number",
+                    "purpose",
+                    "state",
+                    "projectReference",
+                    "window",
+                    "serviceDay",
+                    "workers",
+                    "extensions",
+                    "maxHours",
+                    "actions"
+                  ],
+                  "properties": {
+                    "visitId": {
+                      "type": "string"
+                    },
+                    "number": {
+                      "type": "integer"
+                    },
+                    "purpose": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string"
+                    },
+                    "projectReference": {
+                      "type": "string"
+                    },
+                    "window": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "localDate",
+                        "start",
+                        "end",
+                        "timeZone"
+                      ],
+                      "properties": {
+                        "localDate": {
+                          "type": "string"
+                        },
+                        "start": {
+                          "type": "string"
+                        },
+                        "end": {
+                          "type": "string"
+                        },
+                        "timeZone": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "serviceDay": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "startsAt",
+                        "endsAt"
+                      ],
+                      "properties": {
+                        "startsAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "endsAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "workers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "staffUserId",
+                          "name",
+                          "role",
+                          "open",
+                          "basis",
+                          "endsAt",
+                          "opensAt"
+                        ],
+                        "properties": {
+                          "staffUserId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "role": {
+                            "type": "string"
+                          },
+                          "open": {
+                            "type": "boolean"
+                          },
+                          "basis": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "enum": [
+                              "visit_day",
+                              "extension",
+                              null
+                            ]
+                          },
+                          "endsAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "opensAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "extensions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "staffUserId",
+                          "name",
+                          "state",
+                          "reason",
+                          "grantedBy",
+                          "startsAt",
+                          "expiresAt",
+                          "endedAt",
+                          "endedBy",
+                          "endReason"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "staffUserId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "active",
+                              "scheduled",
+                              "expired",
+                              "ended",
+                              "lapsed"
+                            ]
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "grantedBy": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "startsAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "expiresAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "endedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "endedBy": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "endReason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "maxHours": {
+                      "type": "integer"
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "extend"
+                      ],
+                      "properties": {
+                        "extend": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "visit.extend_worker_access",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "visit.extend_worker_access",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/worker-access.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/window-offers/{offerId}/withdraw": {
       "post": {
         "operationId": "withdrawWindowOffer",
@@ -179543,6 +181318,7 @@
                     "schedulingTask",
                     "actions",
                     "visitTimes",
+                    "workerAccess",
                     "dismissFlags",
                     "visits"
                   ],
@@ -179777,6 +181553,9 @@
                       }
                     },
                     "visitTimes": {
+                      "type": "boolean"
+                    },
+                    "workerAccess": {
                       "type": "boolean"
                     },
                     "dismissFlags": {

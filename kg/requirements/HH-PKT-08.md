@@ -19,3 +19,5 @@ source: "OWN-DEC-171 (new behaviour; no guide id)"
 - The access ends at the end of the property's local service day, at once on removal, offboarding or cancellation, and moves with a reschedule. The Owner may grant a temporary extension with a reason and an automatic expiry.
 - The server enforces every rule (hidden fields are never the control); codes never go into push notifications, texts, emails or logs; offline copies expire with the access as far as technically possible.
 - Calls and messages to the site contact go through an authorized action and stay with the project.
+
+Built by [[TSK-0128]] (2026-10-26); the PROPOSED details (service area, first name, extension limits, offline trimming) and the call action still to build are in [[OQ-WORKER-ACCESS-DETAILS]].

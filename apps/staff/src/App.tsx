@@ -50,6 +50,7 @@ import { StagingTools } from './StagingTools'
 import { LaunchPhaseSetting } from './LaunchPhase'
 import { ConfigurationScreen, HealthScreen } from './System'
 import { VisitTimesPage } from './VisitTimes'
+import { VisitAccessPage } from './VisitAccess'
 
 type Session = {
   staffUserId: string
@@ -317,6 +318,8 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
                 : 'schedule'
               : // TSK-0070: a visit's Arrived and Finished times sit below the schedule; the server decides who sees them.
                 route.screen === 'visit-times' ||
+                  // TSK-0128: a visit's worker access and the Owner's extensions, from the project's visits.
+                  route.screen === 'visit-access' ||
                   // TSK-0078: a recorded visit outcome's follow-up, from the staff queue.
                   route.screen === 'visit-outcomes' ||
                   // TSK-0080: a phone update kept for the Owner's review, from the staff queue.
@@ -529,6 +532,8 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             />
           ) : route.page === 'record' && route.screen === 'visit-times' ? (
             <VisitTimesPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} visitId={route.id} />
+          ) : route.page === 'record' && route.screen === 'visit-access' ? (
+            <VisitAccessPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} visitId={route.id} />
           ) : (route.page === 'screen' || route.page === 'home') && shown === 'my-day' && allowed ? (
             <MyDay t={t} locale={locale} fetchImpl={doFetch} href={href} />
           ) : route.page === 'screen' && shown === 'schedule' && allowed ? (
