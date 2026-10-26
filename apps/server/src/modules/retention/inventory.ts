@@ -846,6 +846,37 @@ export const TABLES = {
     classes: ['request_details'],
     categories: [J],
   },
+  // TSK-0094 (0102): return work of a case, its return visits, punch items and costs are job records; the costs are
+  // financial records too.
+  'quality.return_work': {
+    holds:
+      'Return work of a case: the classification, the warranty window (reviewed completion and report dates), the ' +
+      "Owner's coverage and price decision with its note, and a linked return job; never an amount or an exclusion",
+    classes: ['request_details'],
+    categories: [J],
+  },
+  'quality.return_work_visits': {
+    holds: "The return visits of the original job linked to a case's return work, with who linked them and when",
+    classes: ['scheduling'],
+    categories: [J],
+  },
+  'quality.return_work_items': {
+    holds:
+      'Return-visit punch items: work package or area, description, required correction evidence, assignee, due ' +
+      "date, the correction on a return visit and the Owner's re-check, with who and when",
+    classes: ['request_details'],
+    categories: [J],
+  },
+  'quality.return_work_costs': {
+    holds: 'Return-work costs in cents (materials, purchases, rentals, other) with a note, who and when; voided once',
+    classes: ['payment_reference'],
+    categories: [J, F],
+  },
+  'quality.return_work_events': {
+    holds: 'The history of each return work record: every change with who, when and the note given',
+    classes: ['logs_audit'],
+    categories: [J],
+  },
   // TSK-0075 (0083): the job checklist is part of the job record.
   'work.checklist_steps': {
     holds:
@@ -1166,6 +1197,14 @@ export const TABLES = {
     holds:
       'Actual contracted work started, per worker and visit: the passing evaluation, the packet, scope and SOP ' +
       'versions, the acknowledgment, any approved exception and the server time',
+    classes: ['scheduling'],
+    categories: [J, S],
+  },
+  // TSK-0094 (0102): resuming after an incident, per worker and pause, is a job and safety record like a start.
+  'work.work_resumptions': {
+    holds:
+      'Work resumed after an incident, per worker and pause: the passing evaluation, the visit, the packet version, ' +
+      'the acknowledgment, any approved exception, the pause it resumes from and the server time',
     classes: ['scheduling'],
     categories: [J, S],
   },

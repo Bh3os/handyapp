@@ -122,6 +122,8 @@ export const CLEARED_CATEGORIES = {
     'work.start_site_checks',
     'work.start_gate_evaluations',
     'work.work_starts',
+    // TSK-0094 (0102): resumptions after an incident.
+    'work.work_resumptions',
     'work.gate_exceptions',
     // TSK-0077 (0079): Stop Work, hazard and issue reports, their photos, stabilization records and reviews.
     'work.issue_reports',
@@ -186,6 +188,12 @@ export const CLEARED_CATEGORIES = {
     'quality.review_events',
     // TSK-0092 (0101): the customer's answers to the follow-up after completion.
     'quality.satisfaction_responses',
+    // TSK-0094 (0102): return work, its return visits, punch items, costs and history.
+    'quality.return_work',
+    'quality.return_work_visits',
+    'quality.return_work_items',
+    'quality.return_work_costs',
+    'quality.return_work_events',
     // TSK-0075 (0083): the job checklist, its history and handoff notes.
     'work.checklist_steps',
     'work.checklist_step_events',
