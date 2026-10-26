@@ -48,6 +48,11 @@ export const ACTIONS = [
   'estimate.expire',
   'estimate.record_decline',
   'estimate.view_internal_cost',
+  // TSK-0125 (OWN-DEC-165): recording a requested discount's verification (a staff check of military or senior
+  // eligibility, the job-history check of a returning customer, sending it to the Owner's review), and the Owner's
+  // decision on a review or override.
+  'discount.verify',
+  'discount.decide',
   'estimate.approve',
   'estimate.decline',
   'estimate.request_changes',
@@ -404,6 +409,12 @@ export const MATRIX: readonly MatrixRow[] = [
     owner: Y(),
     estimator: every('Own estimates (P)', 'own_staff', P),
   }),
+  row(ESTIMATES, 'Record a discount verification or send it to owner review', ['discount.verify'], {
+    owner: Y(),
+    office: Y('Y (P)', P),
+    estimator: Y('Y (P)', P),
+  }),
+  row(ESTIMATES, 'Decide a discount owner review or override a verification', ['discount.decide'], { owner: Y() }),
   row(
     ESTIMATES,
     'Approve, decline or request changes',

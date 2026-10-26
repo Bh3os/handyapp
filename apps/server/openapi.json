@@ -4800,7 +4800,8 @@
                           "additionalProperties": false,
                           "required": [
                             "label",
-                            "amountCents"
+                            "amountCents",
+                            "pendingVerification"
                           ],
                           "properties": {
                             "label": {
@@ -4808,6 +4809,9 @@
                             },
                             "amountCents": {
                               "type": "integer"
+                            },
+                            "pendingVerification": {
+                              "type": "boolean"
                             }
                           }
                         }
@@ -4916,7 +4920,9 @@
                               "terms_not_in_effect",
                               "superseded",
                               "expired",
-                              "not_published"
+                              "not_published",
+                              "reduction_pending_verification",
+                              "reduction_not_verified"
                             ]
                           }
                         },
@@ -15776,7 +15782,7 @@
       "get": {
         "operationId": "getRequestFormSettings",
         "summary": "Request form settings",
-        "description": "Public read of the configured request-draft period (session.timings.requestDraftDays, FACT-SESSION-TIMINGS), the business time zone, the service limit and the photo limits (uploads.limits). draftDays is null while the value is NOT CONFIGURED; the wizard then keeps no draft. TSK-0028: the visit hours (contact.hours, FACT-HOURS), the preferred windows offered with their configured hours (request.window_hours; no hours while NOT CONFIGURED) and whether estimates are free (estimate.visit_fee, FACT-VISIT-FEE). Preferences only: nothing here is availability, a slot or a price. TSK-0032: the response target in minutes (response.target, FACT-RESPONSE-TARGET), which the receipt’s \"What happens next?\" wording states with the visit hours; null while NOT CONFIGURED (the receipt then states no response time). TSK-0142: submissions says whether the form takes requests here and now: testers_only (outside production: the access gate or a test system) and open (production, phase 3) take them; closed (phase 1) and invitation_only (phase 2) do not, and the form says so instead of asking for details it cannot send.",
+        "description": "Public read of the configured request-draft period (session.timings.requestDraftDays, FACT-SESSION-TIMINGS), the business time zone, the service limit and the photo limits (uploads.limits). draftDays is null while the value is NOT CONFIGURED; the wizard then keeps no draft. TSK-0028: the visit hours (contact.hours, FACT-HOURS), the preferred windows offered with their configured hours (request.window_hours; no hours while NOT CONFIGURED) and whether estimates are free (estimate.visit_fee, FACT-VISIT-FEE). Preferences only: nothing here is availability, a slot or a price. TSK-0032: the response target in minutes (response.target, FACT-RESPONSE-TARGET), which the receipt’s \"What happens next?\" wording states with the visit hours; null while NOT CONFIGURED (the receipt then states no response time). TSK-0142: submissions says whether the form takes requests here and now: testers_only (outside production: the access gate or a test system) and open (production, phase 3) take them; closed (phase 1) and invitation_only (phase 2) do not, and the form says so instead of asking for details it cannot send. TSK-0125: the discounts the form offers (discount.rule and discount.eligibility_verification, OWN-DEC-165): the share in basis points, the categories, the senior minimum age and the returning-customer window in months; null while either is NOT CONFIGURED (the form then offers none).",
         "tags": [
           "requests"
         ],
@@ -15798,7 +15804,8 @@
                     "windows",
                     "freeEstimates",
                     "responseMinutes",
-                    "submissions"
+                    "submissions",
+                    "requestableDiscounts"
                   ],
                   "properties": {
                     "draftDays": {
@@ -15899,6 +15906,36 @@
                         "invitation_only",
                         "closed"
                       ]
+                    },
+                    "requestableDiscounts": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "percentBps",
+                        "categories",
+                        "seniorFromAge",
+                        "returningWithinMonths"
+                      ],
+                      "properties": {
+                        "percentBps": {
+                          "type": "integer"
+                        },
+                        "categories": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "seniorFromAge": {
+                          "type": "integer"
+                        },
+                        "returningWithinMonths": {
+                          "type": "integer"
+                        }
+                      }
                     }
                   }
                 }
@@ -17616,6 +17653,14 @@
                     "enum": [
                       true,
                       false
+                    ]
+                  },
+                  "requestedDiscount": {
+                    "type": "string",
+                    "enum": [
+                      "military",
+                      "senior",
+                      "returning_customer"
                     ]
                   },
                   "website": {
@@ -40278,6 +40323,7 @@
                     "lines",
                     "texts",
                     "discountCategory",
+                    "discountRequest",
                     "totals",
                     "paymentTerm",
                     "document",
@@ -40567,6 +40613,37 @@
                         "null"
                       ]
                     },
+                    "discountRequest": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "category",
+                        "state"
+                      ],
+                      "properties": {
+                        "category": {
+                          "type": "string",
+                          "enum": [
+                            "military",
+                            "senior",
+                            "returning_customer"
+                          ]
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "verified",
+                            "not_verified",
+                            "owner_review",
+                            "declined"
+                          ]
+                        }
+                      }
+                    },
                     "totals": {
                       "anyOf": [
                         {
@@ -40752,6 +40829,8 @@
                                   "UNSUPPORTED_CURRENCY",
                                   "DISCOUNT_NOT_CONFIGURED",
                                   "DISCOUNT_CATEGORY_UNKNOWN",
+                                  "DISCOUNT_NOT_REQUESTED",
+                                  "DISCOUNT_NOT_VERIFIED",
                                   "TOTALS_OUTDATED",
                                   "DOCUMENT_MISSING",
                                   "DOCUMENT_PROCESSING",
@@ -42401,6 +42480,7 @@
                     "lines",
                     "texts",
                     "discountCategory",
+                    "discountRequest",
                     "totals",
                     "paymentTerm",
                     "document",
@@ -42690,6 +42770,37 @@
                         "null"
                       ]
                     },
+                    "discountRequest": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "category",
+                        "state"
+                      ],
+                      "properties": {
+                        "category": {
+                          "type": "string",
+                          "enum": [
+                            "military",
+                            "senior",
+                            "returning_customer"
+                          ]
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "verified",
+                            "not_verified",
+                            "owner_review",
+                            "declined"
+                          ]
+                        }
+                      }
+                    },
                     "totals": {
                       "anyOf": [
                         {
@@ -42875,6 +42986,8 @@
                                   "UNSUPPORTED_CURRENCY",
                                   "DISCOUNT_NOT_CONFIGURED",
                                   "DISCOUNT_CATEGORY_UNKNOWN",
+                                  "DISCOUNT_NOT_REQUESTED",
+                                  "DISCOUNT_NOT_VERIFIED",
                                   "TOTALS_OUTDATED",
                                   "DOCUMENT_MISSING",
                                   "DOCUMENT_PROCESSING",
@@ -44804,6 +44917,7 @@
                     "lines",
                     "texts",
                     "discountCategory",
+                    "discountRequest",
                     "totals",
                     "paymentTerm",
                     "document",
@@ -45093,6 +45207,37 @@
                         "null"
                       ]
                     },
+                    "discountRequest": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "category",
+                        "state"
+                      ],
+                      "properties": {
+                        "category": {
+                          "type": "string",
+                          "enum": [
+                            "military",
+                            "senior",
+                            "returning_customer"
+                          ]
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "verified",
+                            "not_verified",
+                            "owner_review",
+                            "declined"
+                          ]
+                        }
+                      }
+                    },
                     "totals": {
                       "anyOf": [
                         {
@@ -45278,6 +45423,8 @@
                                   "UNSUPPORTED_CURRENCY",
                                   "DISCOUNT_NOT_CONFIGURED",
                                   "DISCOUNT_CATEGORY_UNKNOWN",
+                                  "DISCOUNT_NOT_REQUESTED",
+                                  "DISCOUNT_NOT_VERIFIED",
                                   "TOTALS_OUTDATED",
                                   "DOCUMENT_MISSING",
                                   "DOCUMENT_PROCESSING",
@@ -46780,6 +46927,7 @@
                     "lines",
                     "texts",
                     "discountCategory",
+                    "discountRequest",
                     "totals",
                     "paymentTerm",
                     "document",
@@ -47069,6 +47217,37 @@
                         "null"
                       ]
                     },
+                    "discountRequest": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "category",
+                        "state"
+                      ],
+                      "properties": {
+                        "category": {
+                          "type": "string",
+                          "enum": [
+                            "military",
+                            "senior",
+                            "returning_customer"
+                          ]
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "verified",
+                            "not_verified",
+                            "owner_review",
+                            "declined"
+                          ]
+                        }
+                      }
+                    },
                     "totals": {
                       "anyOf": [
                         {
@@ -47254,6 +47433,8 @@
                                   "UNSUPPORTED_CURRENCY",
                                   "DISCOUNT_NOT_CONFIGURED",
                                   "DISCOUNT_CATEGORY_UNKNOWN",
+                                  "DISCOUNT_NOT_REQUESTED",
+                                  "DISCOUNT_NOT_VERIFIED",
                                   "TOTALS_OUTDATED",
                                   "DOCUMENT_MISSING",
                                   "DOCUMENT_PROCESSING",
@@ -48932,6 +49113,7 @@
                     "lines",
                     "texts",
                     "discountCategory",
+                    "discountRequest",
                     "totals",
                     "paymentTerm",
                     "document",
@@ -49221,6 +49403,37 @@
                         "null"
                       ]
                     },
+                    "discountRequest": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "category",
+                        "state"
+                      ],
+                      "properties": {
+                        "category": {
+                          "type": "string",
+                          "enum": [
+                            "military",
+                            "senior",
+                            "returning_customer"
+                          ]
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "verified",
+                            "not_verified",
+                            "owner_review",
+                            "declined"
+                          ]
+                        }
+                      }
+                    },
                     "totals": {
                       "anyOf": [
                         {
@@ -49406,6 +49619,8 @@
                                   "UNSUPPORTED_CURRENCY",
                                   "DISCOUNT_NOT_CONFIGURED",
                                   "DISCOUNT_CATEGORY_UNKNOWN",
+                                  "DISCOUNT_NOT_REQUESTED",
+                                  "DISCOUNT_NOT_VERIFIED",
                                   "TOTALS_OUTDATED",
                                   "DOCUMENT_MISSING",
                                   "DOCUMENT_PROCESSING",
@@ -50908,6 +51123,7 @@
                     "lines",
                     "texts",
                     "discountCategory",
+                    "discountRequest",
                     "totals",
                     "paymentTerm",
                     "document",
@@ -51197,6 +51413,37 @@
                         "null"
                       ]
                     },
+                    "discountRequest": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "category",
+                        "state"
+                      ],
+                      "properties": {
+                        "category": {
+                          "type": "string",
+                          "enum": [
+                            "military",
+                            "senior",
+                            "returning_customer"
+                          ]
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "verified",
+                            "not_verified",
+                            "owner_review",
+                            "declined"
+                          ]
+                        }
+                      }
+                    },
                     "totals": {
                       "anyOf": [
                         {
@@ -51382,6 +51629,8 @@
                                   "UNSUPPORTED_CURRENCY",
                                   "DISCOUNT_NOT_CONFIGURED",
                                   "DISCOUNT_CATEGORY_UNKNOWN",
+                                  "DISCOUNT_NOT_REQUESTED",
+                                  "DISCOUNT_NOT_VERIFIED",
                                   "TOTALS_OUTDATED",
                                   "DOCUMENT_MISSING",
                                   "DOCUMENT_PROCESSING",
@@ -53251,6 +53500,7 @@
                     "lines",
                     "texts",
                     "discountCategory",
+                    "discountRequest",
                     "totals",
                     "paymentTerm",
                     "document",
@@ -53540,6 +53790,37 @@
                         "null"
                       ]
                     },
+                    "discountRequest": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "category",
+                        "state"
+                      ],
+                      "properties": {
+                        "category": {
+                          "type": "string",
+                          "enum": [
+                            "military",
+                            "senior",
+                            "returning_customer"
+                          ]
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "verified",
+                            "not_verified",
+                            "owner_review",
+                            "declined"
+                          ]
+                        }
+                      }
+                    },
                     "totals": {
                       "anyOf": [
                         {
@@ -53725,6 +54006,8 @@
                                   "UNSUPPORTED_CURRENCY",
                                   "DISCOUNT_NOT_CONFIGURED",
                                   "DISCOUNT_CATEGORY_UNKNOWN",
+                                  "DISCOUNT_NOT_REQUESTED",
+                                  "DISCOUNT_NOT_VERIFIED",
                                   "TOTALS_OUTDATED",
                                   "DOCUMENT_MISSING",
                                   "DOCUMENT_PROCESSING",
@@ -55416,6 +55699,7 @@
                     "lines",
                     "texts",
                     "discountCategory",
+                    "discountRequest",
                     "totals",
                     "paymentTerm",
                     "document",
@@ -55705,6 +55989,37 @@
                         "null"
                       ]
                     },
+                    "discountRequest": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "category",
+                        "state"
+                      ],
+                      "properties": {
+                        "category": {
+                          "type": "string",
+                          "enum": [
+                            "military",
+                            "senior",
+                            "returning_customer"
+                          ]
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "verified",
+                            "not_verified",
+                            "owner_review",
+                            "declined"
+                          ]
+                        }
+                      }
+                    },
                     "totals": {
                       "anyOf": [
                         {
@@ -55890,6 +56205,8 @@
                                   "UNSUPPORTED_CURRENCY",
                                   "DISCOUNT_NOT_CONFIGURED",
                                   "DISCOUNT_CATEGORY_UNKNOWN",
+                                  "DISCOUNT_NOT_REQUESTED",
+                                  "DISCOUNT_NOT_VERIFIED",
                                   "TOTALS_OUTDATED",
                                   "DOCUMENT_MISSING",
                                   "DOCUMENT_PROCESSING",
@@ -57572,6 +57889,7 @@
                     "lines",
                     "texts",
                     "discountCategory",
+                    "discountRequest",
                     "totals",
                     "paymentTerm",
                     "document",
@@ -57861,6 +58179,37 @@
                         "null"
                       ]
                     },
+                    "discountRequest": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "category",
+                        "state"
+                      ],
+                      "properties": {
+                        "category": {
+                          "type": "string",
+                          "enum": [
+                            "military",
+                            "senior",
+                            "returning_customer"
+                          ]
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "verified",
+                            "not_verified",
+                            "owner_review",
+                            "declined"
+                          ]
+                        }
+                      }
+                    },
                     "totals": {
                       "anyOf": [
                         {
@@ -58046,6 +58395,8 @@
                                   "UNSUPPORTED_CURRENCY",
                                   "DISCOUNT_NOT_CONFIGURED",
                                   "DISCOUNT_CATEGORY_UNKNOWN",
+                                  "DISCOUNT_NOT_REQUESTED",
+                                  "DISCOUNT_NOT_VERIFIED",
                                   "TOTALS_OUTDATED",
                                   "DOCUMENT_MISSING",
                                   "DOCUMENT_PROCESSING",
@@ -59728,6 +60079,7 @@
                     "lines",
                     "texts",
                     "discountCategory",
+                    "discountRequest",
                     "totals",
                     "paymentTerm",
                     "document",
@@ -60017,6 +60369,37 @@
                         "null"
                       ]
                     },
+                    "discountRequest": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "category",
+                        "state"
+                      ],
+                      "properties": {
+                        "category": {
+                          "type": "string",
+                          "enum": [
+                            "military",
+                            "senior",
+                            "returning_customer"
+                          ]
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "verified",
+                            "not_verified",
+                            "owner_review",
+                            "declined"
+                          ]
+                        }
+                      }
+                    },
                     "totals": {
                       "anyOf": [
                         {
@@ -60202,6 +60585,8 @@
                                   "UNSUPPORTED_CURRENCY",
                                   "DISCOUNT_NOT_CONFIGURED",
                                   "DISCOUNT_CATEGORY_UNKNOWN",
+                                  "DISCOUNT_NOT_REQUESTED",
+                                  "DISCOUNT_NOT_VERIFIED",
                                   "TOTALS_OUTDATED",
                                   "DOCUMENT_MISSING",
                                   "DOCUMENT_PROCESSING",
@@ -61889,6 +62274,7 @@
                     "lines",
                     "texts",
                     "discountCategory",
+                    "discountRequest",
                     "totals",
                     "paymentTerm",
                     "document",
@@ -62178,6 +62564,37 @@
                         "null"
                       ]
                     },
+                    "discountRequest": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "category",
+                        "state"
+                      ],
+                      "properties": {
+                        "category": {
+                          "type": "string",
+                          "enum": [
+                            "military",
+                            "senior",
+                            "returning_customer"
+                          ]
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "verified",
+                            "not_verified",
+                            "owner_review",
+                            "declined"
+                          ]
+                        }
+                      }
+                    },
                     "totals": {
                       "anyOf": [
                         {
@@ -62363,6 +62780,8 @@
                                   "UNSUPPORTED_CURRENCY",
                                   "DISCOUNT_NOT_CONFIGURED",
                                   "DISCOUNT_CATEGORY_UNKNOWN",
+                                  "DISCOUNT_NOT_REQUESTED",
+                                  "DISCOUNT_NOT_VERIFIED",
                                   "TOTALS_OUTDATED",
                                   "DOCUMENT_MISSING",
                                   "DOCUMENT_PROCESSING",
@@ -64343,6 +64762,7 @@
                     "lines",
                     "texts",
                     "discountCategory",
+                    "discountRequest",
                     "totals",
                     "paymentTerm",
                     "document",
@@ -64632,6 +65052,37 @@
                         "null"
                       ]
                     },
+                    "discountRequest": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "category",
+                        "state"
+                      ],
+                      "properties": {
+                        "category": {
+                          "type": "string",
+                          "enum": [
+                            "military",
+                            "senior",
+                            "returning_customer"
+                          ]
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "verified",
+                            "not_verified",
+                            "owner_review",
+                            "declined"
+                          ]
+                        }
+                      }
+                    },
                     "totals": {
                       "anyOf": [
                         {
@@ -64817,6 +65268,8 @@
                                   "UNSUPPORTED_CURRENCY",
                                   "DISCOUNT_NOT_CONFIGURED",
                                   "DISCOUNT_CATEGORY_UNKNOWN",
+                                  "DISCOUNT_NOT_REQUESTED",
+                                  "DISCOUNT_NOT_VERIFIED",
                                   "TOTALS_OUTDATED",
                                   "DOCUMENT_MISSING",
                                   "DOCUMENT_PROCESSING",
@@ -66499,6 +66952,7 @@
                     "lines",
                     "texts",
                     "discountCategory",
+                    "discountRequest",
                     "totals",
                     "paymentTerm",
                     "document",
@@ -66788,6 +67242,37 @@
                         "null"
                       ]
                     },
+                    "discountRequest": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "category",
+                        "state"
+                      ],
+                      "properties": {
+                        "category": {
+                          "type": "string",
+                          "enum": [
+                            "military",
+                            "senior",
+                            "returning_customer"
+                          ]
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "verified",
+                            "not_verified",
+                            "owner_review",
+                            "declined"
+                          ]
+                        }
+                      }
+                    },
                     "totals": {
                       "anyOf": [
                         {
@@ -66973,6 +67458,8 @@
                                   "UNSUPPORTED_CURRENCY",
                                   "DISCOUNT_NOT_CONFIGURED",
                                   "DISCOUNT_CATEGORY_UNKNOWN",
+                                  "DISCOUNT_NOT_REQUESTED",
+                                  "DISCOUNT_NOT_VERIFIED",
                                   "TOTALS_OUTDATED",
                                   "DOCUMENT_MISSING",
                                   "DOCUMENT_PROCESSING",
@@ -68860,6 +69347,7 @@
                     "lines",
                     "texts",
                     "discountCategory",
+                    "discountRequest",
                     "totals",
                     "paymentTerm",
                     "document",
@@ -69149,6 +69637,37 @@
                         "null"
                       ]
                     },
+                    "discountRequest": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "category",
+                        "state"
+                      ],
+                      "properties": {
+                        "category": {
+                          "type": "string",
+                          "enum": [
+                            "military",
+                            "senior",
+                            "returning_customer"
+                          ]
+                        },
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "verified",
+                            "not_verified",
+                            "owner_review",
+                            "declined"
+                          ]
+                        }
+                      }
+                    },
                     "totals": {
                       "anyOf": [
                         {
@@ -69334,6 +69853,8 @@
                                   "UNSUPPORTED_CURRENCY",
                                   "DISCOUNT_NOT_CONFIGURED",
                                   "DISCOUNT_CATEGORY_UNKNOWN",
+                                  "DISCOUNT_NOT_REQUESTED",
+                                  "DISCOUNT_NOT_VERIFIED",
                                   "TOTALS_OUTDATED",
                                   "DOCUMENT_MISSING",
                                   "DOCUMENT_PROCESSING",
@@ -138921,6 +139442,7 @@
                 "check_to_clear",
                 "reconciliation_item",
                 "invoice_reminder_review",
+                "discount_revision",
                 "access_help_request",
                 "visit_flagged",
                 "visit_outcome",
@@ -138939,6 +139461,7 @@
                 "cancellation_outcome",
                 "deletion_request",
                 "invoice_overdue_decision",
+                "discount_owner_review",
                 "cancellation_review",
                 "visit_cancellation_review",
                 "estimate_publication_approval",
@@ -139066,6 +139589,7 @@
                               "check_to_clear",
                               "reconciliation_item",
                               "invoice_reminder_review",
+                              "discount_revision",
                               "access_help_request",
                               "visit_flagged",
                               "visit_outcome",
@@ -139084,6 +139608,7 @@
                               "cancellation_outcome",
                               "deletion_request",
                               "invoice_overdue_decision",
+                              "discount_owner_review",
                               "cancellation_review",
                               "visit_cancellation_review",
                               "estimate_publication_approval",
@@ -139370,6 +139895,7 @@
                           "check_to_clear",
                           "reconciliation_item",
                           "invoice_reminder_review",
+                          "discount_revision",
                           "access_help_request",
                           "visit_flagged",
                           "visit_outcome",
@@ -139388,6 +139914,7 @@
                           "cancellation_outcome",
                           "deletion_request",
                           "invoice_overdue_decision",
+                          "discount_owner_review",
                           "cancellation_review",
                           "visit_cancellation_review",
                           "estimate_publication_approval",
@@ -139535,6 +140062,7 @@
                 "check_to_clear",
                 "reconciliation_item",
                 "invoice_reminder_review",
+                "discount_revision",
                 "access_help_request",
                 "visit_flagged",
                 "visit_outcome",
@@ -139553,6 +140081,7 @@
                 "cancellation_outcome",
                 "deletion_request",
                 "invoice_overdue_decision",
+                "discount_owner_review",
                 "cancellation_review",
                 "visit_cancellation_review",
                 "estimate_publication_approval",
@@ -139680,6 +140209,7 @@
                               "check_to_clear",
                               "reconciliation_item",
                               "invoice_reminder_review",
+                              "discount_revision",
                               "access_help_request",
                               "visit_flagged",
                               "visit_outcome",
@@ -139698,6 +140228,7 @@
                               "cancellation_outcome",
                               "deletion_request",
                               "invoice_overdue_decision",
+                              "discount_owner_review",
                               "cancellation_review",
                               "visit_cancellation_review",
                               "estimate_publication_approval",
@@ -139984,6 +140515,7 @@
                           "check_to_clear",
                           "reconciliation_item",
                           "invoice_reminder_review",
+                          "discount_revision",
                           "access_help_request",
                           "visit_flagged",
                           "visit_outcome",
@@ -140002,6 +140534,7 @@
                           "cancellation_outcome",
                           "deletion_request",
                           "invoice_overdue_decision",
+                          "discount_owner_review",
                           "cancellation_review",
                           "visit_cancellation_review",
                           "estimate_publication_approval",
@@ -147741,6 +148274,1381 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/response-holds.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/requests/{requestId}/discount": {
+      "get": {
+        "operationId": "getRequestDiscount",
+        "summary": "A request's discount and its verification",
+        "description": "The Owner, Office and Estimator (discount.verify). The one discount the customer requested on the request form (military, senior or returning customer; null when none), its state (pending verification, verified, not verified, owner review, declined), each recorded result with its verifier and time (category, result, verifier and time only, OWN-DEC-165), whether an estimate version of the project is approved (nothing more is recorded then), whether a published version needs revising because verification failed, and what this caller may record now.",
+        "tags": [
+          "estimates"
+        ],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "requestId",
+                    "projectId",
+                    "reference",
+                    "eligibility",
+                    "discount"
+                  ],
+                  "properties": {
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "projectId": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "eligibility": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "percentBps",
+                            "seniorFromAge",
+                            "returningWithinMonths"
+                          ],
+                          "properties": {
+                            "percentBps": {
+                              "type": "integer"
+                            },
+                            "seniorFromAge": {
+                              "type": "integer"
+                            },
+                            "returningWithinMonths": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "discount": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "category",
+                            "requestedAt",
+                            "state",
+                            "verifications",
+                            "approved",
+                            "revisionNeeded",
+                            "actions"
+                          ],
+                          "properties": {
+                            "category": {
+                              "type": "string",
+                              "enum": [
+                                "military",
+                                "senior",
+                                "returning_customer"
+                              ]
+                            },
+                            "requestedAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "pending",
+                                "verified",
+                                "not_verified",
+                                "owner_review",
+                                "declined"
+                              ]
+                            },
+                            "verifications": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "position",
+                                  "category",
+                                  "result",
+                                  "verifiedBy",
+                                  "verifiedAt"
+                                ],
+                                "properties": {
+                                  "position": {
+                                    "type": "integer"
+                                  },
+                                  "category": {
+                                    "type": "string",
+                                    "enum": [
+                                      "military",
+                                      "senior",
+                                      "returning_customer"
+                                    ]
+                                  },
+                                  "result": {
+                                    "type": "string",
+                                    "enum": [
+                                      "verified",
+                                      "not_verified",
+                                      "owner_review",
+                                      "owner_approved",
+                                      "owner_declined"
+                                    ]
+                                  },
+                                  "verifiedBy": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "id",
+                                      "name"
+                                    ],
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "verifiedAt": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  }
+                                }
+                              }
+                            },
+                            "approved": {
+                              "type": "boolean"
+                            },
+                            "revisionNeeded": {
+                              "type": "boolean"
+                            },
+                            "actions": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "verify",
+                                "checkJobHistory",
+                                "ownerReview",
+                                "decide"
+                              ],
+                              "properties": {
+                                "verify": {
+                                  "type": "boolean"
+                                },
+                                "checkJobHistory": {
+                                  "type": "boolean"
+                                },
+                                "ownerReview": {
+                                  "type": "boolean"
+                                },
+                                "decide": {
+                                  "type": "boolean"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "discount.verify",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/discount-requests.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/requests/{requestId}/discount/job-history": {
+      "post": {
+        "operationId": "checkDiscountJobHistory",
+        "summary": "Check the job history for a returning-customer discount",
+        "description": "The Owner, Office or Estimator (discount.verify). The server looks for a completed job (operationally complete or closed, its quality review passed) of another project of the same customer as staff see it now (merged records and linked requests; never an automatic match), completed within the configured months (discount.eligibility_verification, 12) before today in the business time zone, and records verified or not_verified; the caller is the verifier. Checked again while no match was found. CONFLICT (NO_DISCOUNT_REQUEST, ESTIMATE_APPROVED, STAFF_CHECK_ONLY, ALREADY_RECORDED); NOT_CONFIGURED without the window or the time zone. Audited. Returns the view.",
+        "tags": [
+          "estimates"
+        ],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "requestId",
+                    "projectId",
+                    "reference",
+                    "eligibility",
+                    "discount"
+                  ],
+                  "properties": {
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "projectId": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "eligibility": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "percentBps",
+                            "seniorFromAge",
+                            "returningWithinMonths"
+                          ],
+                          "properties": {
+                            "percentBps": {
+                              "type": "integer"
+                            },
+                            "seniorFromAge": {
+                              "type": "integer"
+                            },
+                            "returningWithinMonths": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "discount": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "category",
+                            "requestedAt",
+                            "state",
+                            "verifications",
+                            "approved",
+                            "revisionNeeded",
+                            "actions"
+                          ],
+                          "properties": {
+                            "category": {
+                              "type": "string",
+                              "enum": [
+                                "military",
+                                "senior",
+                                "returning_customer"
+                              ]
+                            },
+                            "requestedAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "pending",
+                                "verified",
+                                "not_verified",
+                                "owner_review",
+                                "declined"
+                              ]
+                            },
+                            "verifications": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "position",
+                                  "category",
+                                  "result",
+                                  "verifiedBy",
+                                  "verifiedAt"
+                                ],
+                                "properties": {
+                                  "position": {
+                                    "type": "integer"
+                                  },
+                                  "category": {
+                                    "type": "string",
+                                    "enum": [
+                                      "military",
+                                      "senior",
+                                      "returning_customer"
+                                    ]
+                                  },
+                                  "result": {
+                                    "type": "string",
+                                    "enum": [
+                                      "verified",
+                                      "not_verified",
+                                      "owner_review",
+                                      "owner_approved",
+                                      "owner_declined"
+                                    ]
+                                  },
+                                  "verifiedBy": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "id",
+                                      "name"
+                                    ],
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "verifiedAt": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  }
+                                }
+                              }
+                            },
+                            "approved": {
+                              "type": "boolean"
+                            },
+                            "revisionNeeded": {
+                              "type": "boolean"
+                            },
+                            "actions": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "verify",
+                                "checkJobHistory",
+                                "ownerReview",
+                                "decide"
+                              ],
+                              "properties": {
+                                "verify": {
+                                  "type": "boolean"
+                                },
+                                "checkJobHistory": {
+                                  "type": "boolean"
+                                },
+                                "ownerReview": {
+                                  "type": "boolean"
+                                },
+                                "decide": {
+                                  "type": "boolean"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "discount.verify",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "discount.check_job_history",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/discount-requests.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/requests/{requestId}/discount/owner-decision": {
+      "post": {
+        "operationId": "decideDiscountReview",
+        "summary": "The Owner’s decision on a discount",
+        "description": "The Owner (discount.decide): owner_approved or owner_declined, on an owner review or as an override of a recorded result (audited as the Owner’s). Resolves the Owner Decisions item. CONFLICT (NO_DISCOUNT_REQUEST, ESTIMATE_APPROVED, NO_CHANGE). Audited. Returns the view.",
+        "tags": [
+          "estimates"
+        ],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "result"
+                ],
+                "properties": {
+                  "result": {
+                    "type": "string",
+                    "enum": [
+                      "owner_approved",
+                      "owner_declined"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "requestId",
+                    "projectId",
+                    "reference",
+                    "eligibility",
+                    "discount"
+                  ],
+                  "properties": {
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "projectId": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "eligibility": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "percentBps",
+                            "seniorFromAge",
+                            "returningWithinMonths"
+                          ],
+                          "properties": {
+                            "percentBps": {
+                              "type": "integer"
+                            },
+                            "seniorFromAge": {
+                              "type": "integer"
+                            },
+                            "returningWithinMonths": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "discount": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "category",
+                            "requestedAt",
+                            "state",
+                            "verifications",
+                            "approved",
+                            "revisionNeeded",
+                            "actions"
+                          ],
+                          "properties": {
+                            "category": {
+                              "type": "string",
+                              "enum": [
+                                "military",
+                                "senior",
+                                "returning_customer"
+                              ]
+                            },
+                            "requestedAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "pending",
+                                "verified",
+                                "not_verified",
+                                "owner_review",
+                                "declined"
+                              ]
+                            },
+                            "verifications": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "position",
+                                  "category",
+                                  "result",
+                                  "verifiedBy",
+                                  "verifiedAt"
+                                ],
+                                "properties": {
+                                  "position": {
+                                    "type": "integer"
+                                  },
+                                  "category": {
+                                    "type": "string",
+                                    "enum": [
+                                      "military",
+                                      "senior",
+                                      "returning_customer"
+                                    ]
+                                  },
+                                  "result": {
+                                    "type": "string",
+                                    "enum": [
+                                      "verified",
+                                      "not_verified",
+                                      "owner_review",
+                                      "owner_approved",
+                                      "owner_declined"
+                                    ]
+                                  },
+                                  "verifiedBy": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "id",
+                                      "name"
+                                    ],
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "verifiedAt": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  }
+                                }
+                              }
+                            },
+                            "approved": {
+                              "type": "boolean"
+                            },
+                            "revisionNeeded": {
+                              "type": "boolean"
+                            },
+                            "actions": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "verify",
+                                "checkJobHistory",
+                                "ownerReview",
+                                "decide"
+                              ],
+                              "properties": {
+                                "verify": {
+                                  "type": "boolean"
+                                },
+                                "checkJobHistory": {
+                                  "type": "boolean"
+                                },
+                                "ownerReview": {
+                                  "type": "boolean"
+                                },
+                                "decide": {
+                                  "type": "boolean"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "discount.decide",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "discount.owner_decision",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/discount-requests.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/requests/{requestId}/discount/verifications": {
+      "post": {
+        "operationId": "recordDiscountVerification",
+        "summary": "Record a discount verification or send it to owner review",
+        "description": "The Owner, Office or Estimator (discount.verify). verified or not_verified after looking at the military, veteran or spouse documentation, or a photo ID or another reasonable age check for a senior; nothing about the document is sent or kept (no image, ID number, Social Security number or date of birth). A staff result is recorded once, while the discount is pending (PROPOSED). owner_review: the standard process cannot verify it (for example the customer has no proof available); the Owner decides in Owner Decisions. A returning-customer discount is checked from the job history only (the job-history route). CONFLICT (NO_DISCOUNT_REQUEST, ESTIMATE_APPROVED, JOB_HISTORY_ONLY, ALREADY_RECORDED, NOT_REVIEWABLE). Audited. Returns the view.",
+        "tags": [
+          "estimates"
+        ],
+        "parameters": [
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "result"
+                ],
+                "properties": {
+                  "result": {
+                    "type": "string",
+                    "enum": [
+                      "verified",
+                      "not_verified",
+                      "owner_review"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "requestId",
+                    "projectId",
+                    "reference",
+                    "eligibility",
+                    "discount"
+                  ],
+                  "properties": {
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "projectId": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "eligibility": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "percentBps",
+                            "seniorFromAge",
+                            "returningWithinMonths"
+                          ],
+                          "properties": {
+                            "percentBps": {
+                              "type": "integer"
+                            },
+                            "seniorFromAge": {
+                              "type": "integer"
+                            },
+                            "returningWithinMonths": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "discount": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "category",
+                            "requestedAt",
+                            "state",
+                            "verifications",
+                            "approved",
+                            "revisionNeeded",
+                            "actions"
+                          ],
+                          "properties": {
+                            "category": {
+                              "type": "string",
+                              "enum": [
+                                "military",
+                                "senior",
+                                "returning_customer"
+                              ]
+                            },
+                            "requestedAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "pending",
+                                "verified",
+                                "not_verified",
+                                "owner_review",
+                                "declined"
+                              ]
+                            },
+                            "verifications": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "position",
+                                  "category",
+                                  "result",
+                                  "verifiedBy",
+                                  "verifiedAt"
+                                ],
+                                "properties": {
+                                  "position": {
+                                    "type": "integer"
+                                  },
+                                  "category": {
+                                    "type": "string",
+                                    "enum": [
+                                      "military",
+                                      "senior",
+                                      "returning_customer"
+                                    ]
+                                  },
+                                  "result": {
+                                    "type": "string",
+                                    "enum": [
+                                      "verified",
+                                      "not_verified",
+                                      "owner_review",
+                                      "owner_approved",
+                                      "owner_declined"
+                                    ]
+                                  },
+                                  "verifiedBy": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "id",
+                                      "name"
+                                    ],
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "verifiedAt": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  }
+                                }
+                              }
+                            },
+                            "approved": {
+                              "type": "boolean"
+                            },
+                            "revisionNeeded": {
+                              "type": "boolean"
+                            },
+                            "actions": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "verify",
+                                "checkJobHistory",
+                                "ownerReview",
+                                "decide"
+                              ],
+                              "properties": {
+                                "verify": {
+                                  "type": "boolean"
+                                },
+                                "checkJobHistory": {
+                                  "type": "boolean"
+                                },
+                                "ownerReview": {
+                                  "type": "boolean"
+                                },
+                                "decide": {
+                                  "type": "boolean"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "discount.verify",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "discount.verify",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/discount-requests.test.ts"
         }
       }
     },

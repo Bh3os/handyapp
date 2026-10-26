@@ -41,7 +41,8 @@ describe('policy data matches ROLE-MATRIX exactly (TSK-0006, RULE-SERVER-AUTHZ)'
   })
 
   it('has every matrix row, in order, with its section and every cell text verbatim', () => {
-    expect(md.rows.length).toBe(73)
+    // TSK-0125: the two discount verification rows.
+    expect(md.rows.length).toBe(75)
     expect(
       MATRIX.map((r) => ({
         section: r.section,

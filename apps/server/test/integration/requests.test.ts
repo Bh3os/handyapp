@@ -576,6 +576,13 @@ describe('request form settings (TSK-0026, HH-INT-08)', () => {
       responseMinutes: 60,
       // TSK-0142 (HH-OPS-06): outside production the form takes testers' requests whatever the launch phase.
       submissions: 'testers_only',
+      // TSK-0125 (OWN-DEC-165, FACT-PRICING-DISCOUNTS): the discounts the form offers with their eligibility facts.
+      requestableDiscounts: {
+        percentBps: 1000,
+        categories: ['military', 'senior', 'returning_customer'],
+        seniorFromAge: 60,
+        returningWithinMonths: 12,
+      },
     })
   })
 

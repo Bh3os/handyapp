@@ -118,10 +118,21 @@ export const CONFIG_KEYS = {
   'discount.rule': shape({
     percentBps: int(1, 10_000),
     categories: listOf(oneOf(['military', 'senior', 'returning_customer'])),
-    perJob: exactly('one_largest'),
+    // TSK-0125 (OWN-DEC-165): one discount per job, chosen by the customer (version 2); "one_largest" was version 1.
+    perJob: oneOf(['one_largest', 'one_customer_choice']),
     appliedTo: exactly('subtotal'),
   }),
-  'discount.eligibility_verification': shape({ method: text }),
+  // TSK-0125 (OWN-DEC-165): who qualifies and how staff verify it; no document is kept and the Owner reviews the rest.
+  'discount.eligibility_verification': shape({
+    military: shape({
+      eligible: listOf(oneOf(['service_member', 'veteran', 'military_spouse'])),
+      check: exactly('staff_visual'),
+    }),
+    senior: shape({ fromAge: int(1, 120), check: exactly('staff_visual') }),
+    returningCustomer: shape({ withinMonths: int(1, 120), check: exactly('matched_completed_jobs') }),
+    documentsKept: exactly(false),
+    ownerReview: exactly(true),
+  }),
   'tax.mode': shape({ mode: oneOf(['no_tax_line']) }),
   'estimate.validity': shape({ days: int(1, 365), from: exactly('published') }),
   // TSK-0082 (FACT-CHANGE-ORDER-VALIDITY, OWN-DEC-168): a published change order is valid this many calendar days.

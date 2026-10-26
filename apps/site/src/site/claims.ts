@@ -112,6 +112,36 @@ export const CLAIMS: readonly Claim[] = [
       decision: 'OWN-DEC-145',
     },
   ])
+  // The discount a customer may request on the request form and its pending verification (TSK-0125; HH-EST-15,
+  // OWN-DEC-165, FACT-PRICING-DISCOUNTS): the owner's discounts and verification rules, the share and the eligibility
+  // values filled in from configuration. The sentences are PROPOSED wording (OQ-DISCOUNT-REQUEST-DETAILS).
+  .concat(
+    [
+      { key: 'request.requestedDiscount.title', text: 'Discount (optional)' },
+      {
+        key: 'request.requestedDiscount.intro',
+        text: 'HandyHub offers a {percent}% discount for military members, seniors and returning customers. Only one {percent}% discount applies per job, so if you qualify for more than one, choose one.',
+      },
+      { key: 'request.requestedDiscount.none', text: 'No discount' },
+      {
+        key: 'request.requestedDiscount.note',
+        text: "A discount you request is pending verification until we confirm it. For a military or senior discount, we look at your documentation or photo ID; we never photograph, copy or keep it, and we don't ask for ID numbers, Social Security numbers or your full date of birth. We check returning-customer eligibility from your HandyHub job history. If you don't have proof available, you can ask for an owner review.",
+      },
+      { key: 'request.review.requestedDiscount', text: 'Discount requested' },
+      {
+        key: 'portal.estimate.reduction.pendingNote',
+        text: "This discount is pending verification. We confirm eligibility before you approve this estimate. If you don't have proof available, contact us to ask for an owner review.",
+      },
+      {
+        key: 'portal.estimate.approval.reason.reduction_pending_verification',
+        text: 'The discount on this estimate is pending verification. You can approve the estimate once it is confirmed.',
+      },
+      {
+        key: 'portal.estimate.approval.reason.reduction_not_verified',
+        text: "We could not confirm the discount on this estimate. We'll send you an updated estimate to review.",
+      },
+    ].map((c) => ({ ...c, source: 'owner, 2026-10-21', decision: 'OWN-DEC-165' })),
+  )
 
 /** Claim words and phrases that stay off customer text unless the claim is registered above. */
 export const BLOCKED: readonly { readonly pattern: RegExp; readonly reason: string }[] = [

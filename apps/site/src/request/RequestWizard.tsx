@@ -14,6 +14,9 @@
 // A send whose outcome is not known is kept for the tab (send.ts): after a reload and Resume the same body goes again,
 // so the customer gets the request and reference already saved; a key that already created a request returns that
 // reference; and nothing is sent while a photo is still uploading (HH-INT-10, HH-INT-07, T11).
+// TSK-0125 (HH-EST-15, OWN-DEC-165): the contact step offers one reduction (military, senior or returning customer)
+// with what each needs, from configuration; the customer picks at most one, and it is pending verification until
+// staff confirm it. While the server's settings name none, none is offered.
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { Button, Dialog, Field, StateView } from '@handyhub/ui'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
@@ -117,6 +120,7 @@ const FIELD_LABEL: Record<string, CustomerKey> = {
   smsOptIn: 'request.sms.title',
   smsDisclosureVersion: 'request.sms.title',
   marketingOptIn: 'request.marketing.title',
+  requestedDiscount: 'request.requestedDiscount.title',
 }
 
 function fieldOf(path: string): string {
@@ -144,6 +148,13 @@ type Settings = {
    * form shows, and the server still decides when it is sent.
    */
   submissions: 'open' | 'testers_only' | 'invitation_only' | 'closed' | 'unknown'
+  /** TSK-0125: the reductions the form offers (share, categories, the senior age and returning window); null: none. */
+  requestableDiscounts: {
+    percentBps: number
+    categories: string[]
+    seniorFromAge: number
+    returningWithinMonths: number
+  } | null
 }
 /** Until the settings arrive, or if they cannot be read: the five windows without hours, and no free-estimate claim. */
 const NO_SETTINGS: Settings = {
@@ -155,6 +166,7 @@ const NO_SETTINGS: Settings = {
   freeEstimates: false,
   responseMinutes: null,
   submissions: 'unknown',
+  requestableDiscounts: null,
 }
 /** Day windows that, with Weekends, are explained as weekend times (HH-INT-02). */
 const DAY_WINDOW_CODES: readonly string[] = ['mornings', 'afternoons', 'evenings']
@@ -317,6 +329,14 @@ export default function RequestWizard() {
       v.windows.every((w) => offered.includes(w)) ? v : { ...v, windows: v.windows.filter((w) => offered.includes(w)) },
     )
   }, [phase, settings.windows])
+
+  // TSK-0125: a reduction no longer offered (or none offered at all) is dropped from a resumed draft, never sent.
+  useEffect(() => {
+    const offered: readonly string[] = settings.requestableDiscounts?.categories ?? []
+    setValues((v) =>
+      v.requestedDiscount === '' || offered.includes(v.requestedDiscount) ? v : { ...v, requestedDiscount: '' },
+    )
+  }, [phase, settings.requestableDiscounts])
 
   // Focus moves in the commit that shows its target (HH-INT-09). An effect that ran after every commit and cleared a ref
   // flag lost the summary's focus: the effects of an unrelated update committed just before a press (the ZIP coverage
@@ -691,6 +711,8 @@ export default function RequestWizard() {
   // While a photo uploads nothing is sent: it would be left out without a word (HH-INT-07).
   const waitForPhotos = uploadingPhotos ? { disabledReason: t('request.photos.uploadingReason') } : {}
   const sections = step === 'review' ? reviewSections(values, services, { windows: settings.windows }) : []
+  // TSK-0125: the reductions the form offers now.
+  const offer = settings.requestableDiscounts
   const body: Record<StepId, ReactNode> = {
     services: (
       <>
@@ -963,6 +985,32 @@ export default function RequestWizard() {
           t('request.estimate.note'),
         )}
         {settings.freeEstimates ? <p className="hh-muted">{t('request.estimate.free')}</p> : null}
+        {offer ? (
+          <fieldset className="hh-request__group" data-field="requestedDiscount" data-testid="request-reduction">
+            <legend className="hh-field__label">{t('request.requestedDiscount.title')}</legend>
+            <p className="hh-field__hint">
+              {t('request.requestedDiscount.intro', { percent: offer.percentBps / 100 })}
+            </p>
+            {radio('requestedDiscount', '', t('request.requestedDiscount.none'), values.requestedDiscount, (v) =>
+              set('requestedDiscount', v),
+            )}
+            {offer.categories.map((c) =>
+              radio(
+                'requestedDiscount',
+                c,
+                c === 'senior'
+                  ? t('request.requestedDiscount.senior', { age: offer.seniorFromAge })
+                  : c === 'returning_customer'
+                    ? t('request.requestedDiscount.returning_customer', { months: offer.returningWithinMonths })
+                    : t('request.requestedDiscount.military'),
+                values.requestedDiscount,
+                (v) => set('requestedDiscount', v),
+              ),
+            )}
+            <p className="hh-field__hint">{t('request.requestedDiscount.note')}</p>
+            {errorFor('requestedDiscount') ? <p className="hh-field__error">{errorFor('requestedDiscount')}</p> : null}
+          </fieldset>
+        ) : null}
       </>
     ),
     review: (

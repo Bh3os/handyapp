@@ -41,12 +41,16 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
     // Every key is at version 1 except these: TSK-0121 (migration 0075) recorded the automatic reminder cadences
     // (OWN-DEC-153) and messages.automatic version 3; TSK-0144 (migration 0073) recorded the owner's sign-off of
     // estimate terms v1.0 as its second version (OWN-DEC-187); TSK-0091 (migration 0097) recorded the unpaid-invoice
-    // reminders (OWN-DEC-210): reminders.cadences version 3 and messages.automatic version 4.
+    // reminders (OWN-DEC-210): reminders.cadences version 3 and messages.automatic version 4. TSK-0125 (migration 0105)
+    // recorded the customer's choice of one discount and how eligibility is verified (OWN-DEC-165): discount.rule and
+    // discount.eligibility_verification version 2.
     const expected: Record<string, number> = {
       'messages.automatic': 4,
       'business.timezone': 2,
       'reminders.cadences': 3,
       'legal.estimate_terms': 2,
+      'discount.rule': 2,
+      'discount.eligibility_verification': 2,
     }
     for (const e of entries) expect(e.version, e.key).toBe(expected[e.key] ?? 1)
   })
@@ -84,11 +88,7 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
 
   it('reading an open fact yields NOT_CONFIGURED (FACT-BUSINESS-ADDRESS, FACT-PUBLIC-CONTACT)', async () => {
     const config = await loadConfig(t.db)
-    for (const key of [
-      'business.mailing_address',
-      'business.public_contact',
-      'discount.eligibility_verification',
-    ] as const) {
+    for (const key of ['business.mailing_address', 'business.public_contact'] as const) {
       expect(config.get(key)).toMatchObject({ state: 'NOT_CONFIGURED', version: 1 })
       expect(() => requireConfigured(config.get(key))).toThrow(/NOT CONFIGURED/)
     }
@@ -103,6 +103,20 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
       percentBps: 2000,
       base: 'final_total_after_discount',
       rounding: 'half_up',
+    })
+    // TSK-0125 (OWN-DEC-165): one 10% discount per job, chosen by the customer; how eligibility is verified.
+    expect(v('discount.rule')).toEqual({
+      percentBps: 1000,
+      categories: ['military', 'senior', 'returning_customer'],
+      perJob: 'one_customer_choice',
+      appliedTo: 'subtotal',
+    })
+    expect(v('discount.eligibility_verification')).toEqual({
+      military: { eligible: ['service_member', 'veteran', 'military_spouse'], check: 'staff_visual' },
+      senior: { fromAge: 60, check: 'staff_visual' },
+      returningCustomer: { withinMonths: 12, check: 'matched_completed_jobs' },
+      documentsKept: false,
+      ownerReview: true,
     })
     expect(v('tax.mode')).toEqual({ mode: 'no_tax_line' })
     expect(v('estimate.validity')).toEqual({ days: 14, from: 'published' })

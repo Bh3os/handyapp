@@ -86,6 +86,9 @@ export const CLEARED_CATEGORIES = {
     'estimating.approvals',
     // TSK-0130 (0068): the Owner's publication approvals of estimate versions.
     'estimating.publication_approvals',
+    // TSK-0125 (0105): requested discounts and their verification results.
+    'estimating.discount_requests',
+    'estimating.discount_verifications',
   ],
   appointments: [
     'work.visits',

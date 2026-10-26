@@ -92,6 +92,8 @@ export const LABEL_FAMILIES = {
     'reconciliation_item',
     // TSK-0091: a payment suspended an invoice's reminders; staff confirm the next step.
     'invoice_reminder_review',
+    // TSK-0125: a published estimate whose requested discount failed verification needs revising.
+    'discount_revision',
     // TSK-0149: a request for help signing in or getting a new project link.
     'access_help_request',
     'visit_flagged',
@@ -119,6 +121,8 @@ export const LABEL_FAMILIES = {
     'cancellation_outcome',
     'deletion_request',
     'invoice_overdue_decision',
+    // TSK-0125: a requested discount the standard process cannot verify, for the Owner's review.
+    'discount_owner_review',
     'cancellation_review',
     'visit_cancellation_review',
     // TSK-0130: an estimate version waiting for the Owner's approval before publishing.
@@ -234,6 +238,9 @@ export const LABEL_FAMILIES = {
     // TSK-0088: a check still to deposit, or deposited and waiting to clear.
     'check_received',
     'check_deposited',
+    // TSK-0125: a requested discount failed verification on a published estimate; or it waits for the Owner's review.
+    'discount_not_verified',
+    'discount_owner_review',
   ],
   /** The one action button of a queue item (HH-OPS-02); it opens the record's screen. */
   queueAction: [
@@ -619,6 +626,9 @@ export const LABEL_FAMILIES = {
     'UNSUPPORTED_CURRENCY',
     'DISCOUNT_NOT_CONFIGURED',
     'DISCOUNT_CATEGORY_UNKNOWN',
+    // TSK-0125: only the discount the customer requested, never once its verification failed.
+    'DISCOUNT_NOT_REQUESTED',
+    'DISCOUNT_NOT_VERIFIED',
     'TOTALS_OUTDATED',
     // TSK-0054: an uploaded version's documents and agree-confirmation (readiness.ts DOCUMENT_PROBLEM_CODES).
     'DOCUMENT_MISSING',
@@ -626,6 +636,21 @@ export const LABEL_FAMILIES = {
     'DOCUMENT_REJECTED',
     'PDF_REQUIRED',
     'AGREEMENT_NOT_CONFIRMED',
+  ],
+  /** TSK-0125 (OWN-DEC-165): the state of a requested discount (@handyhub/domain DISCOUNT_STATES). */
+  discountState: ['pending', 'verified', 'not_verified', 'owner_review', 'declined'],
+  /** TSK-0125: what a discount verification record says (@handyhub/domain DISCOUNT_RESULTS). */
+  discountResult: ['verified', 'not_verified', 'owner_review', 'owner_approved', 'owner_declined'],
+  /** TSK-0125: why a discount result was refused (DISCOUNT_RESULT_PROBLEMS and the server's own codes). */
+  discountRefusal: [
+    'OWNER_ONLY',
+    'JOB_HISTORY_ONLY',
+    'STAFF_CHECK_ONLY',
+    'ALREADY_RECORDED',
+    'NOT_REVIEWABLE',
+    'NO_CHANGE',
+    'NO_DISCOUNT_REQUEST',
+    'ESTIMATE_APPROVED',
   ],
   /** Field errors of a refused estimate draft save (apps/server/src/modules/estimates/model.ts). */
   estimateFieldError: [
@@ -891,6 +916,8 @@ export const LABEL_FAMILIES = {
     'customer',
     'customer_account',
     'customer_session',
+    // TSK-0125: discount verification results and the Owner's decisions.
+    'discount',
     'deposit',
     'equipment',
     'estimate',

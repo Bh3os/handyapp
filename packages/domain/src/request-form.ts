@@ -1,8 +1,13 @@
 // The request form contract (TSK-0025, TSK-0026, TSK-0029; C02, HH-INT-09, HH-INT-18, HH-INT-22, OWN-DEC-90..93,
-// OWN-DEC-56, OWN-DEC-61, OWN-DEC-139, OWN-DEC-147).
+// OWN-DEC-56, OWN-DEC-61, OWN-DEC-139, OWN-DEC-147; TSK-0125: HH-EST-15, OWN-DEC-165).
 // One definition for both sides: the server validates submissions with this JSON schema and these checks, and the
 // request wizard validates the same way before sending, so the two never disagree (manipulated data is still
 // rejected by the server). Codes, never labels: the wizard shows the English wording from the i18n catalog.
+import { DISCOUNT_CATEGORIES, type DiscountCategory } from './discount.js'
+
+export { DISCOUNT_CATEGORIES, type DiscountCategory }
+/** The same categories under the customer-facing name the site uses for the discount row ("reduction"). */
+export const REDUCTION_CATEGORIES = DISCOUNT_CATEGORIES
 
 export const PROPERTY_TYPES = ['house', 'apartment_condo', 'townhouse', 'rental_short_term'] as const
 export const TIME_WINDOWS = ['mornings', 'afternoons', 'evenings', 'weekends', 'any_time'] as const
@@ -114,6 +119,9 @@ export const REQUEST_FORM_SCHEMA = {
     smsOptIn: { enum: [true, false] },
     smsDisclosureVersion: { type: 'string', pattern: '^[A-Za-z0-9._-]{1,40}$' },
     marketingOptIn: { enum: [true, false] },
+    // TSK-0125 (HH-EST-15, OWN-DEC-165): the one discount the customer asks for, if any; pending verification until
+    // staff verify it. The server refuses one the active discount rule does not offer.
+    requestedDiscount: { type: 'string', enum: DISCOUNT_CATEGORIES },
     // Quiet spam controls (HH-INT-11): a field people never see, and when the form was opened (ms since epoch).
     website: { type: 'string', maxLength: 500 },
     startedAt: { type: 'integer', minimum: 0 },
@@ -182,6 +190,7 @@ export type SubmitBody = {
   smsOptIn: boolean
   smsDisclosureVersion?: string
   marketingOptIn: boolean
+  requestedDiscount?: DiscountCategory
   website?: string
   startedAt?: number
   photoDraft?: string

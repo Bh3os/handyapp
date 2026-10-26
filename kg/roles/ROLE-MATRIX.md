@@ -42,6 +42,8 @@ These are server rules, enforced by one policy point on every read, write, searc
 | Approve or reject publishing over the Owner approval threshold | Y | — | — | — | — | — |
 | Revise (new version), withdraw, expire, record a decline | Y | Record decline only (P) | Y | — | — | — |
 | View internal cost, markup and margin | Y | — | Own estimates (P) | — | — | — |
+| Record a discount verification or send it to owner review | Y | Y (P) | Y (P) | — | — | — |
+| Decide a discount owner review or override a verification | Y | — | — | — | — | — |
 | Approve, decline or request changes | — | — | — | — | V (fresh verification) | — |
 | Draft a change order | Y | — | Y | A | — | — |
 | Review and publish a change order | Y | — | Y | — | — | — |
