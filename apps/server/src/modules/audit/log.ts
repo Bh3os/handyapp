@@ -6,8 +6,9 @@
 // - Every summary is redacted again on the way out with the writer's secret-field schema (platform/redact.ts), so a
 //   row written before a field joined the schema still never shows its value; the row itself is never changed.
 // - Retention reads the active retention.audit_log value (7 years, OWN-DEC-142) and counts, for the Owner, the
-//   entries past it. Nothing is deleted here or anywhere: the table is append-only (migration 0002), and the
-//   owner's deletion-review entries with their hold checks are the retention job of TSK-0099.
+//   entries past it. Nothing is deleted here: the table is append-only (migration 0002), the owner's deletion-review
+//   entries with their hold checks are the retention job of TSK-0099, and an entry past its period is archived or
+//   deleted only in the Owner's audit-retention workflow (TSK-0135, migration 0114).
 import type { Db } from '@handyhub/db'
 import { isLocalDate } from '@handyhub/domain'
 import type { DataScope } from '@handyhub/policy'
@@ -17,6 +18,7 @@ import type { PageRequest } from '../../api/pagination.js'
 import { toPage, type Page } from '../../api/pagination.js'
 import { loadConfig } from '../../platform/config/index.js'
 import { redact } from '../../platform/redact.js'
+import { auditEventEnd } from '../retention/audit-events.js'
 
 export type AuditField = { path: string; value: string | number | boolean | null }
 
@@ -242,14 +244,16 @@ export async function auditOverview(db: Db, scope: DataScope, now: Date): Promis
   const entry = config.get('retention.audit_log')
   const all = scope.kind === 'all'
   const years = entry.state === 'CONFIGURED' ? entry.value.years : null
+  const zoneId = zone.state === 'CONFIGURED' ? zone.value.zone : 'UTC'
   let pastPeriod: number | null = null
   let oldestAt: string | null = null
   if (all) {
     const row = await db
       .selectFrom('platform.audit_events')
       .select([
+        // TSK-0135: calendar years in the business time zone, like the retention job (UTC while it is NOT CONFIGURED).
         sql<string>`count(*) FILTER (WHERE ${years !== null}
-          AND occurred_at < ${now}::timestamptz - make_interval(years => ${years ?? 0}))::text`.as('past'),
+          AND ${auditEventEnd(sql.ref('occurred_at'), years ?? 0, zoneId)} <= ${now}::timestamptz)::text`.as('past'),
         sql<Date | null>`min(occurred_at)`.as('oldest'),
       ])
       .executeTakeFirstOrThrow()

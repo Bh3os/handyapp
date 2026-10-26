@@ -131,6 +131,11 @@ describe('project: closeout and cancellation cannot skip required states (TSK-00
     expect(run('closed', 'reopen', { ...SETTLED, requestState: 'closed_no_response' }, 'system')).toMatchObject({
       problems: [{ code: 'REQUEST_NOT_REOPENED' }],
     })
+    // TSK-0148 (OWN-DEC-197 E5): staff reopening the request reopen its project too.
+    expect(run('closed', 'reopen', { ...SETTLED, requestState: 'reviewing' }, 'staff')).toMatchObject({
+      ok: true,
+      to: 'open',
+    })
   })
 
   it('a project has at most one job', () => {

@@ -5,7 +5,9 @@
 //   GET /staff/audit-events   the entries, newest first, filtered (area, action, result, actor, record, dates) and
 //                             paged; Owner every entry, Office their own actions (ROLE-MATRIX audit.view)
 // There is no write: entries cannot be edited or deleted through the app or the API (ROLE-MATRIX audit.edit and
-// audit.delete are refused for every role; the table rejects UPDATE and DELETE, migration 0002).
+// audit.delete are refused for every role; the table rejects UPDATE and DELETE, migration 0002). TSK-0135: past its
+// 7 years an entry is archived or deleted only in the Owner's audit-retention workflow (modules/retention,
+// audit.retention_archive and audit.retention_delete), the database's only delete path (migration 0114).
 import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
 import { pageSchema } from '../../api/pagination.js'
 import { auditOverview, listAuditEntries, type AuditFilters } from './log.js'

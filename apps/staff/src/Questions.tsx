@@ -12,6 +12,10 @@
 //   "I'm not sure", its photos' states, and whether it reopened the request.
 // - "Closed—no response": offered to the roles that may close, with the server's unmet requirements written out
 //   while it is not possible yet, and the request's version (If-Match). The reopen period is shown once closed.
+// - TSK-0148 (OWN-DEC-197 E2, E4, E5): the composer marks whether the customer may answer "I'm not sure" / "I don't
+//   know" on any question (a measurement always may); a reminder that was not delivered says to follow up instead of
+//   closing; a "Closed—no response" request can be reopened by the roles allowed to, with a written reason, also after
+//   the reopen period.
 // The server decides everything again; this screen only offers what it says is open now.
 import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge, type StatusTone } from '@handyhub/ui'
@@ -38,6 +42,7 @@ export type QuestionsView = {
   questions: {
     id: string
     kind: 'general' | 'measurement'
+    notSureAllowed: boolean
     text: string
     author: { id: string; name: string | null }
     publishedAt: string
@@ -63,11 +68,18 @@ export type QuestionsView = {
   canMarkReviewed: boolean
   cadence: { afterDeliveryHours: number; closeAfterReminderHours: number } | null
   close: { allowed: boolean; available: boolean; reasons: string[]; availableAt: string | null }
-  reopen: { days: number | null; closedAt: string | null; until: string | null }
+  reopen: {
+    days: number | null
+    closedAt: string | null
+    until: string | null
+    periodEnded: boolean
+    allowed: boolean
+  }
   maxLength: number
 }
 
-type Draft = { text: string; kind: 'general' | 'measurement'; key: string | null }
+type Draft = { text: string; kind: 'general' | 'measurement'; notSure: boolean; key: string | null }
+const EMPTY_DRAFT: Draft = { text: '', kind: 'general', notSure: false, key: null }
 const draftStore = (requestId: string) => `hh.staff.question-draft.${requestId}`
 function loadDraft(requestId: string): Draft {
   try {
@@ -76,10 +88,11 @@ function loadDraft(requestId: string): Draft {
     return {
       text: typeof d?.text === 'string' ? d.text : '',
       kind: d?.kind === 'measurement' ? 'measurement' : 'general',
+      notSure: d?.notSure === true,
       key: typeof d?.key === 'string' ? d.key : null,
     }
   } catch {
-    return { text: '', kind: 'general', key: null }
+    return EMPTY_DRAFT
   }
 }
 function saveDraft(requestId: string, d: Draft) {
@@ -135,6 +148,8 @@ export function RequestQuestions({
   } | null>(null)
   const [closing, setClosing] = useState(false)
   const [closeNote, setCloseNote] = useState('')
+  const [reopening, setReopening] = useState(false)
+  const [reopenReason, setReopenReason] = useState('')
   const load = useCallback(async () => {
     const r = await call<QuestionsView>(fetchImpl, `/staff/requests/${encodeURIComponent(requestId)}/questions`)
     setView(r.ok && Array.isArray(r.data?.questions) ? r.data : null)
@@ -177,7 +192,12 @@ export function RequestQuestions({
     setPending('publish')
     const r = await post(
       `/staff/requests/${encodeURIComponent(requestId)}/questions`,
-      { text: draft.text, kind: draft.kind, noHazardInspection: true },
+      {
+        text: draft.text,
+        kind: draft.kind,
+        notSureAllowed: draft.kind === 'measurement' || draft.notSure,
+        noHazardInspection: true,
+      },
       { key, version: view.version },
     )
     setPending(null)
@@ -187,7 +207,7 @@ export function RequestQuestions({
         return setMessage({ kind: 'blocked', title: t('questions.cardNumber') })
       return refused(r.error)
     }
-    setDraft({ text: '', kind: 'general', key: null })
+    setDraft(EMPTY_DRAFT)
     setNoHazard(false)
     setMessage({ kind: 'success', title: t('questions.published') })
     await Promise.all([load(), onChanged()])
@@ -256,6 +276,7 @@ export function RequestQuestions({
                 {codeLabel(t, 'questionState', q.state)}
               </StatusBadge>{' '}
               {q.kind === 'measurement' ? <StatusBadge>{codeLabel(t, 'questionKind', q.kind)}</StatusBadge> : null}{' '}
+              {q.notSureAllowed ? <StatusBadge tone="info">{t('questions.notSureOffered')}</StatusBadge> : null}{' '}
               {t('questions.askedBy', { name: q.author.name ?? t('queue.unnamed'), time: when(q.publishedAt) })}
             </p>
             <div className="staff-questions__delivery">
@@ -301,6 +322,9 @@ export function RequestQuestions({
                     await load()
                 }}
               />
+              {q.reminder.state === 'failed' && q.state === 'published' ? (
+                <p className="staff-request__hint">{t('questions.reminderFailedHint')}</p>
+              ) : null}
             </div>
             {q.reply ? (
               <div className="staff-questions__reply">
@@ -361,6 +385,15 @@ export function RequestQuestions({
             />{' '}
             {t('questions.measurement')}
           </label>
+          <label className="staff-request__package">
+            <input
+              type="checkbox"
+              checked={draft.kind === 'measurement' || draft.notSure}
+              disabled={draft.kind === 'measurement'}
+              onChange={(e) => setDraft({ ...draft, notSure: e.target.checked })}
+            />{' '}
+            {t('questions.notSureAllowed')}
+          </label>
           <div className="staff-questions__guard" role="note">
             <p>
               <strong>{t('questions.hazardTitle')}</strong> {t('questions.hazardWarning')}
@@ -381,7 +414,52 @@ export function RequestQuestions({
       ) : null}
 
       {view.state === 'closed_no_response' && view.reopen.until ? (
-        <p className="staff-request__hint">{t('questions.reopenUntil', { time: when(view.reopen.until) })}</p>
+        <p className="staff-request__hint">
+          {t(view.reopen.periodEnded ? 'questions.reopenPeriodEnded' : 'questions.reopenUntil', {
+            time: when(view.reopen.until),
+          })}
+        </p>
+      ) : null}
+      {view.reopen.allowed ? (
+        <div className="staff-questions__close">
+          <Button variant="secondary" aria-expanded={reopening} onClick={() => setReopening(!reopening)}>
+            {t('questions.reopen')}
+          </Button>
+          {reopening ? (
+            <form
+              className="staff-request__form"
+              aria-label={t('questions.reopen')}
+              onSubmit={async (e) => {
+                e.preventDefault()
+                if (!reopenReason.trim()) return
+                if (await act('reopen', `${base}/actions/reopen`, { reason: reopenReason }, view.version)) {
+                  setReopening(false)
+                  setReopenReason('')
+                  setMessage({ kind: 'success', title: t('questions.reopenDone') })
+                  await Promise.all([load(), onChanged()])
+                }
+              }}
+            >
+              <p className="staff-request__hint">{t('questions.reopenHint')}</p>
+              <Field
+                multiline
+                label={t('questions.reopenReason')}
+                required
+                requiredText={t('request.required')}
+                maxLength={2000}
+                value={reopenReason}
+                onChange={(e) => setReopenReason(e.target.value)}
+              />
+              <Button
+                type="submit"
+                pending={pending === 'reopen'}
+                {...(reopenReason.trim() ? {} : { disabledReason: t('questions.reopenReasonRequired') })}
+              >
+                {t('request.confirm', { action: t('questions.reopen') })}
+              </Button>
+            </form>
+          ) : null}
+        </div>
       ) : null}
       {view.close.allowed && view.state === 'needs_information' ? (
         <div className="staff-questions__close">

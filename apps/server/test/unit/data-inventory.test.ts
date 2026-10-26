@@ -57,8 +57,12 @@ describe('data inventory (TSK-0099, HH-PRIV-01)', () => {
       'Logs and audit',
     ])
     // HH-DATA-09: issued and accepted evidence is archived, voided or corrected, never deleted.
-    for (const t of ['estimating.approvals', 'work.job_scope_snapshots', 'platform.audit_events'] as const)
+    for (const t of ['estimating.approvals', 'work.job_scope_snapshots'] as const)
       expect(endOfLife(TABLES[t])).toMatch(/^Archive, Void or audited correction/)
+    // TSK-0135 (OWN-DEC-164): audit entries are never edited; past the period, Archive or the Owner's deletion.
+    expect(endOfLife(TABLES['platform.audit_events'])).toMatch(
+      /^Never edited; .*audit-retention workflow; never automatic$/,
+    )
     // RULE-NO-INVENTED-FACTS: data the schedule does not name is NOT CONFIGURED, never given a period.
     expect(endOfLife(TABLES['platform.jobs'])).toMatch(/^NOT CONFIGURED/)
     expect(endOfLife(TABLES['crm.access_code_reveals'])).toMatch(/^NOT CONFIGURED/)

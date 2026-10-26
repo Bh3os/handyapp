@@ -10,10 +10,13 @@
 // TSK-0138 (OWN-DEC-177): the provisional defaults: periods in years or calendar days, settings history kept while
 // referenced, technical logs kept by the host, and entries that stand for a batch of rows (expired sessions and links
 // of one kind and month).
+// TSK-0135 (OWN-DEC-164, HH-SEC-08): the audit-retention workflow (./AuditRetention.tsx): audit entries past their
+// period are archived or deleted only there, by range, with the protected trail and the hash chain's verification.
 import { LABEL_FAMILIES, type StaffKey, type StaffLocale } from '@handyhub/i18n'
 import { Button, Dialog, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useState, type FormEvent } from 'react'
 import { call, type ApiErrorBody, type Fetch } from './api'
+import { AuditRetention } from './AuditRetention'
 import { ReauthForm, useOwnerWrite } from './OwnerWrite'
 import { codeLabel } from './Requests'
 
@@ -687,6 +690,7 @@ export function RetentionScreen({
         />
       ) : null}
       <DeletionLog t={t} locale={locale} fetchImpl={fetchImpl} reload={reload} />
+      <AuditRetention t={t} locale={locale} fetchImpl={fetchImpl} {...(onSession ? { onSession } : {})} />
     </section>
   )
 }

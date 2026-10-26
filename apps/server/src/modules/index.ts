@@ -29,6 +29,8 @@ import { casesModule } from './cases/index.js'
 import { qualityModule } from './quality/index.js'
 import { closeoutModule } from './closeout/index.js'
 import { RETURN_WORK_MODULE } from './return-work/index.js'
+import { JOB_COSTS_MODULE } from './job-costs/index.js'
+import { DASHBOARD_MODULE } from './dashboard/index.js'
 import { changeOrdersModule } from './change-orders/index.js'
 import { checklistModule } from './checklist/index.js'
 import { completionModule } from './completion/index.js'
@@ -176,6 +178,10 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     closeoutModule(),
     // TSK-0094: return work of a case: classification, the Owner's decision, return visits, items and costs.
     RETURN_WORK_MODULE,
+    // TSK-0095: a job's estimated versus actual costs, and every report's basis and source states.
+    JOB_COSTS_MODULE,
+    // TSK-0096: the Owner Dashboard, its drill-down lists and CSV, and the accountant's CSV files.
+    DASHBOARD_MODULE,
     // TSK-0075: the job checklist in six ordered stages, step evidence, pause, resume, skip, reopen and handoffs.
     checklistModule(),
     // TSK-0083: the walkthrough and Finished, which submits the job for the Owner's quality review.

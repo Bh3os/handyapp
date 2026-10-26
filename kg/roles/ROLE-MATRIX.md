@@ -99,6 +99,7 @@ These are server rules, enforced by one policy point on every read, write, searc
 | View balances and payments | Y | Y | — | A, balance on jobs with collect (P) | V | — |
 | Accounting exports | F | — | — | — | — | — |
 | Owner Dashboard and its CSV | Y | — | — | — | — | — |
+| View and record job costs, estimated versus actual | Y (P) | — | — | — | — | — |
 
 ### Messages, content and configuration
 | Action | Owner | Office | Estimator | Worker | Customer | Guest |
@@ -124,10 +125,13 @@ These are server rules, enforced by one policy point on every read, write, searc
 | Decide privacy requests; Delete action; delete a login account | Y | — | — | — | — | — |
 | Bulk export | F | — | — | — | — | — |
 | Edit or delete audit events | — | — | — | — | — | — |
+| Archive or delete audit records past 7 years in the audit-retention workflow | F | — | — | — | — | — |
 
 **Changed by [[OWN-DEC-164]], [[OWN-DEC-195]], [[OWN-DEC-200]] (2026-10-21):** audit editing stays refused for every role, and an owner-only audit-retention action is added by [[TSK-0135]]; routine customer-authorized work-visit cancellations within policy move to Office by [[TSK-0140]]; cash collection needs an explicit Owner grant to a trained Worker by [[TSK-0151]]. Each change updates this table and the policy data in the same pull request.
 
 **Built by [[TSK-0140]] (2026-10-26, migration 0115):** the row "Cancel a work visit for a routine customer-authorized cancellation within policy" (`work.cancel_routine`) lets Office cancel a work visit the customer asked to cancel when the outcome is one the rules decide (full refund, the capped late fee, a late cancellation with nothing to charge); any other work-visit cancellation (HandyHub's own, after contracted work started, an exception the Owner reviews) stays "Cancel accepted, scheduled or paid work (financial review)". The Owner's row "Waive or reduce a cancellation fee, with a documented reason" (`cancellation_fee.waive`, [[OWN-DEC-161]]) is recorded on the cancellation; applying a refund or the fee stays "Apply a cancellation outcome". PROPOSED details: [[OQ-CANCELLATION-RULES-DETAILS]].
+
+**Built by [[TSK-0135]] (2026-10-26, migration 0114):** the row "Archive or delete audit records past 7 years in the audit-retention workflow" is the Owner's with a fresh sign-in and a reason (`audit.retention_archive`, `audit.retention_delete`); reading the workflow, its trail and the chain's verification sits in the Owner's retention review (`retention.view`). "Edit or delete audit events" still refuses every role. PROPOSED details: [[OQ-AUDIT-RETENTION-DETAILS]].
 
 **Built by [[TSK-0151]] (2026-10-24, migration 0098):** the Worker's cell of "Record a verified payment" reads "with the Owner's collect grant recording their training": the `collect` grant records the date the training was completed and what it covered, and the database refuses a live collect grant without it (collect grants from before 0098 without a training record were ended). The Owner's dismissal of a working-hours or equipment flag (`visit.dismiss_flag`, with a reason) sits in "Set working days, hours and time off" (P); a mandatory restriction is never dismissed ([[OWN-DEC-200]] H7). Restoring an earlier grant in a reactivated account's permission review is "grant roles or capabilities" (F); declining one is protective, in the disable row. PROPOSED details: [[OQ-STAFF-AMENDMENT-DETAILS]].
 
@@ -136,3 +140,7 @@ These are server rules, enforced by one policy point on every read, write, searc
 **Changed by [[OWN-DEC-173]] (2026-10-21):** publishing an estimate or change order above [[FACT-OWNER-APPROVAL-THRESHOLD]] needs the Owner's approval first; the row "Approve or reject publishing over the Owner approval threshold" is the Owner's alone, and changing the threshold is "Change policy values" (F) ([[TSK-0130]]).
 
 **Built by [[TSK-0092]] (2026-10-25):** closing a job (`job.close`) sits in the Owner's cell of "Quality review, punch items, self-review" (P: ENT-Job "the Owner reviews quality, closes and reopens"); reopening is "Reopen a closed job" (F). Releasing the satisfaction check and review requests, preparing a review request and recording the customer's answer are "Reply from a project, release drafts" on the project's records (the Owner, Office). PROPOSED details: [[OQ-CLOSEOUT-DETAILS]].
+
+**Built by [[TSK-0095]] (2026-10-26):** reading a job's estimated-versus-actual costs and recording cost entries, voids and category confirmations (`job_cost.view`, `job_cost.record`) are the new Finance row "View and record job costs, estimated versus actual" (P: the Owner only). PROPOSED details: [[OQ-JOB-COST-DETAILS]].
+
+**Built by [[TSK-0096]] (2026-10-26):** "Owner Dashboard and its CSV" is `dashboard.view` (the dashboard and its drill-down lists) and `dashboard.export_csv` (its CSV, which also needs a sign-in within the last 5 minutes, as every bulk export does under [[T64]]); "Accounting exports" is `export.accounting` (F) for the accountant's files. PROPOSED details: [[OQ-DASHBOARD-DETAILS]].

@@ -1130,3 +1130,46 @@
   flex-wrap: wrap;
   gap: var(--hh-space-2);
 }
+
+/* TSK-0095: a job's cost table scrolls on its own on a phone, never the page. */
+.staff-job-costs__wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* TSK-0096: the Owner Dashboard's tiles wrap to the width; a drill-down table scrolls on its own on a phone. */
+.staff-dashboard__range {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--hh-space-3);
+}
+.staff-dashboard__tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  gap: var(--hh-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.staff-dashboard__tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hh-space-2);
+  padding: var(--hh-space-3);
+  border: 1px solid var(--hh-line);
+  border-radius: var(--hh-radius-sm);
+}
+.staff-dashboard__name {
+  margin: 0;
+  font-weight: 600;
+}
+.staff-dashboard__value {
+  margin: 0;
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+}
+.staff-dashboard__records {
+  max-width: 100%;
+  overflow-x: auto;
+}

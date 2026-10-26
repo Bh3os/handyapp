@@ -10,7 +10,7 @@
 //   and durations only: no pay, rate, overtime or deduction is computed anywhere (payroll is a human-review area,
 //   RULE-HUMAN-REVIEW). Cells are written so a spreadsheet never runs one as a formula.
 import type { Db, Tx } from '@handyhub/db'
-import { correctionProblem, workerTimes, type StampValue, type TimeStampKind } from '@handyhub/domain'
+import { correctionProblem, csvCell, workerTimes, type StampValue, type TimeStampKind } from '@handyhub/domain'
 import type { StaffActor } from '@handyhub/policy'
 import { sql } from 'kysely'
 import { ApiError } from '../../api/errors.js'
@@ -287,13 +287,8 @@ export async function correctTimestamp(
 /** PROPOSED: one export covers at most 366 days of visit dates. */
 export const EXPORT_MAX_DAYS = 366
 
-/** A CSV cell: quoted, with a leading formula character neutralized (CSV injection). */
-export function csvCell(value: string | number | null): string {
-  if (value === null) return ''
-  let s = String(value)
-  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`
-  return /[",\r\n]/.test(s) || s !== String(value) ? `"${s.replace(/"/g, '""')}"` : s
-}
+/** A CSV cell: quoted, with a leading formula character neutralized (CSV injection); shared with TSK-0096. */
+export { csvCell }
 
 const localText = (d: string | null, zone: string) => {
   if (!d) return null

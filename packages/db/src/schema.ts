@@ -807,6 +807,35 @@ export interface FinanceInvoicesTable {
   version: Generated<number>
 }
 
+export interface FinanceJobCostEventsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  job_id: string
+  project_id: string
+  event: string
+  category: string
+  cost_id: string | null
+  actor_id: string
+  note: string | null
+  at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface FinanceJobCostsTable {
+  id: Generated<string>
+  job_id: string
+  project_id: string
+  category: string
+  amount_cents: Int8
+  currency: Generated<string>
+  incurred_on: string
+  note: string
+  recorded_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+  void_reason: string | null
+  voided_by: string | null
+  voided_at: Timestamp | null
+}
+
 export interface FinancePaymentAdjustmentsTable {
   id: Generated<string>
   payment_id: string
@@ -1257,6 +1286,7 @@ export interface IntakeQuestionsTable {
   first_reminder_sent_at: Timestamp | null
   final_reminder_sent_at: Timestamp | null
   version: Generated<number>
+  not_sure_allowed: Generated<boolean>
 }
 
 export interface IntakeReceiptCapabilitiesTable {
@@ -1441,6 +1471,20 @@ export interface OpsQueueItemsTable {
   version: Generated<number>
 }
 
+export interface PlatformAuditChainSealsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  previous_id: string | null
+  from_seq: Int8
+  through_seq: Int8
+  event_count: Int8
+  start_hash: Buffer
+  chain_hash: Buffer
+  sealed_by: string
+  sealed_at: ColumnType<Date, Date | string | undefined, Date | string>
+  request_id: string
+}
+
 export interface PlatformAuditEventsTable {
   id: Generated<string>
   seq: GeneratedAlways<string>
@@ -1458,6 +1502,33 @@ export interface PlatformAuditEventsTable {
   summary: ColumnType<JsonValue, string | undefined, string>
   step_up_used: Generated<boolean>
   request_id: string
+}
+
+export interface PlatformAuditRetentionOperationsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  kind: string
+  from_seq: Int8
+  to_seq: Int8
+  event_count: number
+  first_occurred_at: Timestamp
+  last_occurred_at: Timestamp
+  hash_before: Buffer
+  hash_after: Buffer
+  seal_id: string
+  policy_key: string
+  policy_version: number
+  period_years: number
+  time_zone: string
+  hold_checks: Json
+  checks_confirmed: Generated<string[]>
+  reason: string
+  authorized_by: string
+  authorized_roles: string[]
+  fresh_auth_at: Timestamp
+  authorized_at: ColumnType<Date, Date | string | undefined, Date | string>
+  request_id: string
+  txid: ColumnType<string, bigint | number | string | undefined, bigint | number | string>
 }
 
 export interface PlatformConsentRecordsTable {
@@ -1700,6 +1771,28 @@ export interface PlatformWebhookReceiptsTable {
   processed_at: Timestamp | null
 }
 
+export interface PrivacyConsentEvidenceTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  consent_id: string
+  consent_seq: Int8
+  purpose: string
+  channel: string
+  destination: string
+  granted: boolean
+  disclosure_version: string | null
+  source: string
+  evidence: Json
+  recorded_by: string
+  recorded_at: Timestamp
+  last_used_at: Timestamp
+  review_on: string | null
+  policy_key: string | null
+  policy_version: number | null
+  deletion_id: string
+  moved_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface PrivacyDeletionsTable {
   id: Generated<string>
   seq: GeneratedAlways<string>
@@ -1771,6 +1864,16 @@ export interface PrivacyPrivacyRequestsTable {
   legal_deadline_note: string | null
   legal_deadline_recorded_at: Timestamp | null
   legal_deadline_recorded_by: string | null
+}
+
+export interface PrivacyRequestRemaindersTable {
+  request_id: string
+  reference: string
+  created_at: Timestamp
+  closed_at: Timestamp
+  final_state: string
+  deletion_id: string
+  erased_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
 export interface PrivacyRetentionDecisionsTable {
@@ -3045,6 +3148,8 @@ export interface Database {
   'finance.invoice_payment_links': FinanceInvoicePaymentLinksTable
   'finance.invoice_voids': FinanceInvoiceVoidsTable
   'finance.invoices': FinanceInvoicesTable
+  'finance.job_cost_events': FinanceJobCostEventsTable
+  'finance.job_costs': FinanceJobCostsTable
   'finance.payment_adjustments': FinancePaymentAdjustmentsTable
   'finance.payment_allocations': FinancePaymentAllocationsTable
   'finance.payment_receipts': FinancePaymentReceiptsTable
@@ -3091,7 +3196,9 @@ export interface Database {
   'intake.response_events': IntakeResponseEventsTable
   'intake.upload_capabilities': IntakeUploadCapabilitiesTable
   'ops.queue_items': OpsQueueItemsTable
+  'platform.audit_chain_seals': PlatformAuditChainSealsTable
   'platform.audit_events': PlatformAuditEventsTable
+  'platform.audit_retention_operations': PlatformAuditRetentionOperationsTable
   'platform.consent_records': PlatformConsentRecordsTable
   'platform.coverage_rule_sets': PlatformCoverageRuleSetsTable
   'platform.coverage_rules': PlatformCoverageRulesTable
@@ -3109,9 +3216,11 @@ export interface Database {
   'platform.rate_counters': PlatformRateCountersTable
   'platform.schema_migration': PlatformSchemaMigrationTable
   'platform.webhook_receipts': PlatformWebhookReceiptsTable
+  'privacy.consent_evidence': PrivacyConsentEvidenceTable
   'privacy.deletions': PrivacyDeletionsTable
   'privacy.privacy_request_extensions': PrivacyPrivacyRequestExtensionsTable
   'privacy.privacy_requests': PrivacyPrivacyRequestsTable
+  'privacy.request_remainders': PrivacyRequestRemaindersTable
   'privacy.retention_decisions': PrivacyRetentionDecisionsTable
   'privacy.retention_reviews': PrivacyRetentionReviewsTable
   'quality.case_attachments': QualityCaseAttachmentsTable

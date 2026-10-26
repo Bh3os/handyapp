@@ -3,6 +3,7 @@
 //   GET  /public/request-receipt/contact                the request's own contact: masked values and their states
 //   POST /public/request-receipt/contact/codes          send (or resend) a code; an email change sends it to the new value
 //   POST /public/request-receipt/contact/verify         enter a code
+//   POST /public/request-receipt/contact/sms-consent    TSK-0134: agree to a one-time verification code by text
 //   POST /public/request-receipt/account-offer/decline  "No thanks" to Create an Account: changes nothing else
 // Every route needs the Receipt-Capability header of the tab that sent the request; an unknown, expired or revoked
 // capability answers NOT_FOUND exactly like a missing record. A reference number is never an input. Nothing answered
@@ -19,7 +20,9 @@ import { contactChanged } from '../customers/matching.js'
 import {
   CONTACT_CHANNELS,
   contactStatus,
+  recordReceiptSmsConsent,
   sendContactCode,
+  SMS_CODE_CONSENT_STATES,
   VERIFICATION_STATES,
   verifyContactCode,
   type ContactChannel,
@@ -35,6 +38,8 @@ export * from './receipt-capability.js'
 export const CODE_SEND_RATE_LIMIT = { bucket: 'public-contact-code', limit: 30, windowSeconds: 3600 } as const
 export const CODE_VERIFY_RATE_LIMIT = { bucket: 'public-contact-verify', limit: 60, windowSeconds: 3600 } as const
 export const OFFER_RATE_LIMIT = { bucket: 'public-account-offer', limit: 30, windowSeconds: 3600 } as const
+/** TSK-0134, PROPOSED (OQ-PHONE-OPT-IN-DETAILS): per client network and hour, like the code sends. */
+export const SMS_CONSENT_RATE_LIMIT = { bucket: 'public-sms-code-consent', limit: 30, windowSeconds: 3600 } as const
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -64,8 +69,12 @@ const CHANNEL_SCHEMA = {
 const STATUS_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['email', 'phone'],
-  properties: { email: CHANNEL_SCHEMA, phone: CHANNEL_SCHEMA },
+  required: ['email', 'phone', 'smsCodeConsent'],
+  properties: {
+    email: CHANNEL_SCHEMA,
+    phone: CHANNEL_SCHEMA,
+    smsCodeConsent: { type: 'string', enum: [...SMS_CODE_CONSENT_STATES] },
+  },
 } as const
 const CHANNEL_FIELD = { type: 'string', enum: [...CONTACT_CHANNELS] } as const
 
@@ -123,7 +132,10 @@ export function verificationModule(deps: VerificationDeps): ApiModule {
     description:
       "Under the Receipt-Capability header: the request's own email and phone, masked, each with its own verification " +
       'state (unverified, pending, verified, expired, failed), whether a code can be sent on it (texts need this ' +
-      'request’s SMS opt-in), and an email change waiting for its code. Never another record, account or history.',
+      'request’s SMS opt-in or its receipt consent to codes by text), and an email change waiting for its code. ' +
+      'TSK-0134: smsCodeConsent says whether the receipt offers the consent to a verification code by text ' +
+      '(offered), recorded it (recorded) or does not need it (not_needed: the request’s SMS opt-in is current). ' +
+      'Never another record, account or history.',
     kind: 'read',
     rateLimit: 'none',
     audit: 'none',
@@ -139,7 +151,8 @@ export function verificationModule(deps: VerificationDeps): ApiModule {
     summary: 'Send or resend a verification code',
     description:
       'Sends a one-time code (the automatic message contact.verification_code, OWN-DEC-150) to the request’s email ' +
-      'or, with this request’s SMS opt-in, by text to its phone. With `destination` (email only, while unverified) ' +
+      'or, with this request’s SMS opt-in or its recorded receipt consent to codes by text (TSK-0134), by text to ' +
+      'its phone; without either, sms_not_permitted and no code. With `destination` (email only, while unverified) ' +
       'the code goes to the new address and the contact changes only when that code is entered (Change Contact). The ' +
       'code lifetime and the attempt, resend and per-address limits come from session.timings and verification.limits ' +
       '(TSK-0016): a resend inside the cooldown or over a limit is a neutral 429 with Retry-After; while the code key ' +
@@ -306,6 +319,72 @@ export function verificationModule(deps: VerificationDeps): ApiModule {
     },
   }
 
+  const smsConsent: RouteDef = {
+    ...common,
+    method: 'POST',
+    path: '/public/request-receipt/contact/sms-consent',
+    operationId: 'recordReceiptSmsCodeConsent',
+    summary: 'Agree to a one-time verification code by text',
+    description:
+      'TSK-0134 (OWN-DEC-178, OWN-DEC-190 opt-in point B): the guest checked the receipt’s separate, unchecked box ' +
+      '“I agree to receive a one-time SMS verification code from HandyHub at the phone number provided.” Records an ' +
+      'append-only consent of purpose sms_verification for the request’s current phone number with the disclosure ' +
+      'version shown (a published legal.sms_verification_disclosure), the time and as evidence this request, the ' +
+      'receipt capability and the HTTP request; agreeing again while it is current records nothing new. It permits ' +
+      'the verification code message only: never another text, never the SMS opt-in, never marketing; STOP ends it. ' +
+      'No code is sent here. Refusals: 400 with already_verified (body.agreed), not_needed (the request’s SMS opt-in ' +
+      'is current) or unknown_version (body.disclosureVersion).',
+    kind: 'write',
+    rateLimit: SMS_CONSENT_RATE_LIMIT,
+    audit: 'contact_verification.sms_code_consent',
+    schema: {
+      body: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['agreed', 'disclosureVersion'],
+        properties: {
+          agreed: { type: 'boolean', const: true },
+          disclosureVersion: { type: 'string', minLength: 1, maxLength: 100 },
+        },
+      },
+      response: {
+        200: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['recorded', 'contact'],
+          properties: { recorded: { type: 'boolean' }, contact: STATUS_SCHEMA },
+        },
+      },
+    },
+    handler: async (ctx) => {
+      if (!ctx.tx) throw new Error('recordReceiptSmsCodeConsent runs in its write transaction')
+      const cap = capOf(ctx)
+      const body = ctx.req.body as { agreed: true; disclosureVersion: string }
+      const out = await recordReceiptSmsConsent(ctx.tx, {
+        requestId: cap.requestId,
+        disclosureVersion: body.disclosureVersion,
+        capabilityId: cap.id,
+        httpRequestId: currentContext()?.requestId ?? ctx.req.id,
+      })
+      if (out.status === 'refused')
+        throw new ApiError('VALIDATION_FAILED', {
+          fieldErrors: [
+            {
+              field: out.problem === 'unknown_version' ? 'body.disclosureVersion' : 'body.agreed',
+              code: out.problem,
+              message: '',
+            },
+          ],
+        })
+      // The number never reaches the audit log; the disclosure version and whether a record was added do.
+      await ctx.audit({
+        target: { type: 'request', id: cap.requestId },
+        summary: { disclosureVersion: body.disclosureVersion, recorded: out.recorded },
+      })
+      return { body: { recorded: out.recorded, contact: await statusOf(ctx, cap.requestId) } }
+    },
+  }
+
   const decline: RouteDef = {
     ...common,
     method: 'POST',
@@ -329,5 +408,5 @@ export function verificationModule(deps: VerificationDeps): ApiModule {
     },
   }
 
-  return { name: 'verification', routes: [status, send, verify, decline] }
+  return { name: 'verification', routes: [status, send, verify, smsConsent, decline] }
 }

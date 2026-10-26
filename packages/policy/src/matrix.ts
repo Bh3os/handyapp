@@ -27,6 +27,9 @@ export const ACTIONS = [
   // PROPOSED (TSK-0051): closing an unbooked request "Closed—no response" (OWN-DEC-101) is part of handling it, in the
   // same row.
   'request.close_no_response',
+  // PROPOSED (TSK-0148, OWN-DEC-197 E5): the authorized reopening of a "Closed—no response" request, with a written
+  // reason, is part of handling it, in the same row (the roles that may close it).
+  'request.reopen',
   'request.reply',
   'customer.view',
   'customer.edit',
@@ -150,6 +153,10 @@ export const ACTIONS = [
   'export.accounting',
   'dashboard.view',
   'dashboard.export_csv',
+  // PROPOSED (TSK-0095): the job's estimated-versus-actual costs: reading them and recording entries, voids and the
+  // Owner's category confirmations (HH-FIN-17).
+  'job_cost.view',
+  'job_cost.record',
   // Messages, content and configuration
   'message.reply',
   'message.release_draft',
@@ -217,6 +224,10 @@ export const ACTIONS = [
   'export.bulk',
   'audit.edit',
   'audit.delete',
+  // TSK-0135 (OWN-DEC-164): the dedicated audit-retention workflow, the Owner's alone with a fresh sign-in and a
+  // reason; "Edit or delete audit events" stays refused for every role (no ordinary screen or API deletes an entry).
+  'audit.retention_archive',
+  'audit.retention_delete',
 ] as const
 export type Action = (typeof ACTIONS)[number]
 
@@ -357,6 +368,7 @@ export const MATRIX: readonly MatrixRow[] = [
       'request.add_note',
       'request.record_conversation',
       'request.close_no_response',
+      'request.reopen',
     ],
     { owner: Y(), office: Y(), estimator: Y('Y (P)', P) },
   ),
@@ -661,6 +673,9 @@ export const MATRIX: readonly MatrixRow[] = [
   }),
   row(FINANCE, 'Accounting exports', ['export.accounting'], { owner: Y('F', F) }),
   row(FINANCE, 'Owner Dashboard and its CSV', ['dashboard.view', 'dashboard.export_csv'], { owner: Y() }),
+  row(FINANCE, 'View and record job costs, estimated versus actual', ['job_cost.view', 'job_cost.record'], {
+    owner: Y('Y (P)', P),
+  }),
 
   // Messages, content and configuration
   row(MESSAGES, 'Reply from a project, release drafts', ['message.reply', 'message.release_draft'], {
@@ -757,6 +772,12 @@ export const MATRIX: readonly MatrixRow[] = [
   ),
   row(STAFF, 'Bulk export', ['export.bulk'], { owner: Y('F', F) }),
   row(STAFF, 'Edit or delete audit events', ['audit.edit', 'audit.delete'], {}, { denyReason: 'AUDIT_APPEND_ONLY' }),
+  row(
+    STAFF,
+    'Archive or delete audit records past 7 years in the audit-retention workflow',
+    ['audit.retention_archive', 'audit.retention_delete'],
+    { owner: Y('F', F) },
+  ),
 ]
 
 function startPauseResume(): Partial<Record<Action, Rule>> {

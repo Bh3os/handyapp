@@ -32,3 +32,5 @@ Records:
 - Retries never send a duplicate notice. A delivery failure appears in the staff queue without losing the question, and never counts as customer non-response ([[HH-LEAD-06]]).
 
 **Changed by [[OWN-DEC-197]] (2026-10-21):** "I'm not sure" or "I don't know" may be offered for any appropriate question.
+
+**Built by [[TSK-0148]] (2026-10-26):** staff mark, when publishing, whether the customer may answer "I'm not sure" (any question; a measurement always may, migration 0110 `intake.questions.not_sure_allowed`, fixed once published). The portal offers "I'm not sure" only on those questions and the server refuses it on the others. PROPOSED details (default off, the customer label stays "I'm not sure"): [[OQ-QUESTION-AMENDMENT-DETAILS]].

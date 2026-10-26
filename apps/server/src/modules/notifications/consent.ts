@@ -3,12 +3,16 @@
 // - Transactional texts need a current SMS opt-in: having a phone number is never consent to text.
 // - Marketing is a separate purpose on each channel; it never follows from the SMS opt-in or from service messages.
 // - STOP withdraws the SMS opt-in (and marketing texts) at once; START records a new SMS opt-in, never marketing.
+// - TSK-0134 (OWN-DEC-178, OWN-DEC-190): the consent to verification codes by text, given on the request receipt, is a
+//   purpose of its own (sms_verification). It permits the verification code message only: never another text, never
+//   the SMS opt-in, never marketing. STOP withdraws it too.
 import type { Db, Tx } from '@handyhub/db'
 import type { Channel } from './message-types.js'
 
-export const CONSENT_PURPOSES = ['service_communication', 'transactional_sms', 'marketing'] as const
+export const CONSENT_PURPOSES = ['service_communication', 'transactional_sms', 'marketing', 'sms_verification'] as const
 export type ConsentPurpose = (typeof CONSENT_PURPOSES)[number]
-export type ConsentSource = 'request_form' | 'portal' | 'sms_keyword' | 'provider_suppression' | 'staff_recorded'
+export type ConsentSource =
+  'request_form' | 'receipt' | 'portal' | 'sms_keyword' | 'provider_suppression' | 'staff_recorded'
 export type ConsentState = 'granted' | 'withdrawn' | 'none'
 
 export type ConsentInput = {
@@ -47,8 +51,10 @@ export function consentDestination(channel: Channel, destination: string): strin
 export async function recordConsent(tx: Tx, c: ConsentInput): Promise<void> {
   if (c.purpose === 'transactional_sms' && c.channel !== 'sms')
     throw new ConsentError('the SMS opt-in is an SMS consent')
-  if (c.granted && c.source === 'request_form' && !c.disclosureVersion)
-    throw new ConsentError('an opt-in from the request form records the disclosure version the customer saw')
+  if (c.purpose === 'sms_verification' && c.channel !== 'sms')
+    throw new ConsentError('the consent to verification codes by text is an SMS consent')
+  if (c.granted && (c.source === 'request_form' || c.source === 'receipt') && !c.disclosureVersion)
+    throw new ConsentError('an opt-in from the request form or the receipt records the disclosure version shown')
   await tx
     .insertInto('platform.consent_records')
     .values({
@@ -101,12 +107,18 @@ export const MARKETING_MESSAGES: ReadonlySet<string> = new Set(['review.request'
  */
 export const OPTIONAL_FOLLOW_UPS: ReadonlySet<string> = new Set(['reminder.satisfaction_check', 'review.request'])
 
+/** TSK-0134: the only message a consent to verification codes by text permits (identity CODE_MESSAGE_KEY). */
+export const VERIFICATION_CODE_MESSAGE = 'contact.verification_code'
+
 export type PermissionResult = { allowed: true } | { allowed: false; reason: string }
 
 /**
  * Send-time permission for one destination (HH-COM-05):
  * - every text needs no SMS withdrawal on file (a STOP is honoured for staff numbers too);
  * - a text to a customer needs a current SMS opt-in;
+ * - TSK-0134 (OWN-DEC-178): the verification code text to a customer may instead rest on a current consent to
+ *   verification codes by text (the receipt's checkbox). STOP withdraws that consent too, so a current one was given
+ *   after any STOP: PROPOSED (OQ-PHONE-OPT-IN-DETAILS), that explicit later agreement is honoured for the code alone;
  * - a marketing message needs the current marketing permission on its channel as well;
  * - an optional follow-up is never sent after the customer asked for none (TSK-0092).
  */
@@ -114,6 +126,13 @@ export async function sendPermission(
   db: Db | Tx,
   input: { channel: Channel; destination: string; audience: 'customer' | 'staff'; messageKey: string },
 ): Promise<PermissionResult> {
+  if (
+    input.channel === 'sms' &&
+    input.audience === 'customer' &&
+    input.messageKey === VERIFICATION_CODE_MESSAGE &&
+    (await currentConsent(db, 'sms', input.destination, 'sms_verification')) === 'granted'
+  )
+    return { allowed: true }
   if (input.channel === 'sms') {
     const sms = await currentConsent(db, 'sms', input.destination, 'transactional_sms')
     if (sms === 'withdrawn') return { allowed: false, reason: 'sms_opted_out' }

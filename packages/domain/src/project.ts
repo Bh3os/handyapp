@@ -8,7 +8,7 @@
 //   open                 created automatically when a request is saved (OWN-DEC-97)
 //   open -> approved     an estimate was accepted; at most one job per approved project
 //   open -> closed       the request closed (Not a fit, outside scope, not served, withdrawn, Closed—no response)
-//   closed -> open       a customer reply reopened a "Closed—no response" request (FACT-REOPEN-PERIOD)
+//   closed -> open       a customer reply, or staff (TSK-0148), reopened a "Closed—no response" request
 //   approved -> completed            the job is operationally complete (the Owner's quality review passed)
 //   completed -> closed              closeout: job closed, no open balance, pending check or open case (HH-QA-09)
 //   open / approved -> cancellation_review   accepted work, an appointment or money exists (OWN-DEC-100)
@@ -53,7 +53,7 @@ const noJobYet: G = (f) => isFalse(f.hasJob, 'JOB_EXISTS', 'A project has at mos
 const reopenedByReply: G = (f) =>
   f.requestState === 'reviewing'
     ? null
-    : { code: 'REQUEST_NOT_REOPENED', message: "The project's request must be reopened by the customer's reply." }
+    : { code: 'REQUEST_NOT_REOPENED', message: "The project's request must be reopened first." }
 const operationallyComplete: G = (f) =>
   isTrue(f.jobOperationallyComplete, 'JOB_NOT_COMPLETE', "The job must pass the Owner's quality review first.")
 const jobClosed: G = (f) => isTrue(f.jobClosed, 'JOB_NOT_CLOSED', 'The job must be closed.')
@@ -95,7 +95,7 @@ export const PROJECT_MACHINE = defineMachine({
       actors: ['staff', 'system'],
       guards: [requestClosed, (f) => noObligations(f)],
     },
-    { event: 'reopen', from: ['closed'], to: 'open', actors: ['system'], guards: [reopenedByReply] },
+    { event: 'reopen', from: ['closed'], to: 'open', actors: ['system', 'staff'], guards: [reopenedByReply] },
     { event: 'complete', from: ['approved'], to: 'completed', actors: ['system'], guards: [operationallyComplete] },
     {
       event: 'close_out',
