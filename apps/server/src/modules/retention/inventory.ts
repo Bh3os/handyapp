@@ -453,6 +453,20 @@ export const TABLES = {
     classes: ['payment_reference'],
     categories: [F],
   },
+  // TSK-0095 (0109): a job's actual direct costs and their history, apart from return-work costs.
+  'finance.job_costs': {
+    holds:
+      'Actual direct costs of a job in cents (materials, purchases, subcontractors, rentals, disposal, other) with ' +
+      'the date incurred, a note, who and when; voided once with a reason',
+    classes: ['payment_reference'],
+    categories: [J, F],
+  },
+  'finance.job_cost_events': {
+    holds:
+      "The history of a job's costs: entries recorded and voided, the Owner's category confirmations and reopenings",
+    classes: ['logs_audit'],
+    categories: [J, F],
+  },
   'finance.payment_allocations': {
     holds: "A payment's application to an invoice or its job's deposit requirement, in cents",
     classes: ['payment_reference'],

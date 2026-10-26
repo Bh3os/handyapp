@@ -759,6 +759,35 @@ export interface FinanceInvoicesTable {
   version: Generated<number>
 }
 
+export interface FinanceJobCostEventsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  job_id: string
+  project_id: string
+  event: string
+  category: string
+  cost_id: string | null
+  actor_id: string
+  note: string | null
+  at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface FinanceJobCostsTable {
+  id: Generated<string>
+  job_id: string
+  project_id: string
+  category: string
+  amount_cents: Int8
+  currency: Generated<string>
+  incurred_on: string
+  note: string
+  recorded_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+  void_reason: string | null
+  voided_by: string | null
+  voided_at: Timestamp | null
+}
+
 export interface FinancePaymentAdjustmentsTable {
   id: Generated<string>
   payment_id: string
@@ -2970,6 +2999,8 @@ export interface Database {
   'finance.invoice_payment_links': FinanceInvoicePaymentLinksTable
   'finance.invoice_voids': FinanceInvoiceVoidsTable
   'finance.invoices': FinanceInvoicesTable
+  'finance.job_cost_events': FinanceJobCostEventsTable
+  'finance.job_costs': FinanceJobCostsTable
   'finance.payment_adjustments': FinancePaymentAdjustmentsTable
   'finance.payment_allocations': FinancePaymentAllocationsTable
   'finance.payment_receipts': FinancePaymentReceiptsTable

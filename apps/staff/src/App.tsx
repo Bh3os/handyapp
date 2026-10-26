@@ -35,6 +35,7 @@ import { AccessHelpScreen } from './AccessHelp'
 import { ReconciliationScreen } from './Reconciliation'
 import { InvoiceRemindersPage } from './InvoiceReminders'
 import { CloseoutPage } from './Closeout'
+import { JobCostsPage } from './JobCosts'
 import { MergeReview, RelinkRequest } from './RecordLinks'
 import { RequestRecord } from './Record'
 import { RequestsScreen } from './Requests'
@@ -330,7 +331,10 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
                 ? 'schedule'
                 : // TSK-0090: one reconciliation item, from the staff queue, sits below Payments.
                   // TSK-0091: an invoice's reminders, from the staff queue and Owner Decisions, too.
-                  route.screen === 'reconciliation' || route.screen === 'invoice-reminders'
+                  // TSK-0095: a job's estimated-versus-actual costs, from its closeout (the server keeps them to the Owner).
+                  route.screen === 'reconciliation' ||
+                    route.screen === 'invoice-reminders' ||
+                    route.screen === 'job-costs'
                   ? 'payments'
                   : // TSK-0149: one access help request, from the staff queue, sits below the privacy requests.
                     route.screen === 'access-help'
@@ -527,6 +531,9 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
           ) : route.page === 'record' && route.screen === 'closeout' && allowed ? (
             // TSK-0092: a job's closeout, the Owner's reopen and its follow-ups.
             <CloseoutPage key={route.id} t={t} fetchImpl={doFetch} jobId={route.id} href={href} />
+          ) : route.page === 'record' && route.screen === 'job-costs' && allowed ? (
+            // TSK-0095: a job's estimated versus actual costs; missing cost is shown incomplete, never $0.00.
+            <JobCostsPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} href={href} />
           ) : route.page === 'record' && route.screen === 'safety-holds' ? (
             // TSK-0077: a safety queue item's link (a critical hold) opens its job's review page.
             <SafetyHoldPage

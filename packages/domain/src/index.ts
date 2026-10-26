@@ -428,3 +428,6 @@ export * from './overrides.js'
 export * from './escalation.js'
 // TSK-0094 (HH-QA-07, HH-QA-08, HH-INC-03, FACT-WARRANTY): return work, the warranty window and resuming.
 export * from './return-work.js'
+// TSK-0095 (HH-FIN-17, HH-DATA-10): estimated versus actual job costs; report definitions with their source states.
+export * from './job-costs.js'
+export * from './report-sources.js'

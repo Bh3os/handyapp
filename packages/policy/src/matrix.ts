@@ -136,6 +136,10 @@ export const ACTIONS = [
   'export.accounting',
   'dashboard.view',
   'dashboard.export_csv',
+  // PROPOSED (TSK-0095): the job's estimated-versus-actual costs: reading them and recording entries, voids and the
+  // Owner's category confirmations (HH-FIN-17).
+  'job_cost.view',
+  'job_cost.record',
   // Messages, content and configuration
   'message.reply',
   'message.release_draft',
@@ -625,6 +629,9 @@ export const MATRIX: readonly MatrixRow[] = [
   }),
   row(FINANCE, 'Accounting exports', ['export.accounting'], { owner: Y('F', F) }),
   row(FINANCE, 'Owner Dashboard and its CSV', ['dashboard.view', 'dashboard.export_csv'], { owner: Y() }),
+  row(FINANCE, 'View and record job costs, estimated versus actual', ['job_cost.view', 'job_cost.record'], {
+    owner: Y('Y (P)', P),
+  }),
 
   // Messages, content and configuration
   row(MESSAGES, 'Reply from a project, release drafts', ['message.reply', 'message.release_draft'], {

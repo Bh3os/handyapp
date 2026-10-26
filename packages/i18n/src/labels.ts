@@ -900,6 +900,8 @@ export const LABEL_FAMILIES = {
     'access_help',
     // TSK-0094: return work of a case.
     'return_work',
+    // TSK-0095: a job's cost entries and the Owner's category confirmations.
+    'job_cost',
     'access_code',
     'account_offer',
     'appointment_reminder',
@@ -2121,6 +2123,12 @@ export const LABEL_FAMILIES = {
     'INVALID_TRANSITION',
     'COST_VOIDED',
   ],
+  // TSK-0095 (HH-FIN-17, HH-DATA-10): a job's estimated versus actual costs (@handyhub/domain job-costs.ts).
+  jobCostFigure: ['complete', 'incomplete', 'not_recorded', 'not_estimated', 'not_configured'],
+  jobCostLine: ['labor', 'burden', 'materials', 'purchase', 'subcontractor', 'rental', 'disposal', 'other'],
+  jobCostEvent: ['cost_recorded', 'cost_voided', 'category_confirmed', 'category_reopened'],
+  /** The server's refusal codes of the job-cost routes (apps/server/src/modules/job-costs). */
+  jobCostCode: ['CATEGORY_CONFIRMED', 'CATEGORY_NOT_CONFIRMED', 'COST_VOIDED', 'IN_FUTURE', 'AMOUNT_INVALID'],
   qualityGate: ['quality_review_not_recorded', 'passed', 'owner_may_issue', 'blocked'],
   qualityEvent: [
     'start',
