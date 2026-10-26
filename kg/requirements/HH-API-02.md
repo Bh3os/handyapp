@@ -99,3 +99,5 @@ Sample approval contract:
 `expectedTotalMinor` is the total the customer saw, never an authorized input price. The server recalculates the published options, compares, checks access and freshness, and commits acceptance, job and outbox in one transaction. It rejects an altered total, an expired or superseded revision and IDs from another project. A retry returns the same logical acceptance and job reference.
 
 **Changed by [[OWN-DEC-202]] (2026-10-22):** staff MFA enrolment and challenge are mandatory before any other staff route ([[TSK-0154]]).
+
+**Built by [[TSK-0110]] (2026-10-26):** a contract review test (`apps/server/test/unit/semantic-contracts.test.ts`) maps every operation of the table above to its implementing routes and checks the rules a route contract can show; no payment session, checkout or Square callback route exists, and the provider callbacks are Bird and Resend only. Readings in [[OQ-TRACEABILITY-DETAILS]].

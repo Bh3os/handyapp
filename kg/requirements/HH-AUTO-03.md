@@ -17,3 +17,5 @@ When approved, AI may classify requests, draft responses, estimates and job pack
 - every consequential output goes to a human for review before it takes effect;
 - it never gains permissions because it generated text;
 - skills are instructions, not live integrations or background workers ([[OWN-DEC-15]]).
+
+**Limitation (owner decision; reviewer: Owner):** AI assistance stays off ([[RULE-AI-WAVE2]]): `ai.module` can only hold `{"enabled": false}`, so the wave-2 routes refuse every request (`AI_DISABLED`) and answer with the manual path until the owner decides to turn AI on.

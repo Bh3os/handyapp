@@ -38,3 +38,5 @@ Measured capability ([[TSK-0105]], lab, 2026-10-26, `docs/perf/README.md`; detai
   - the portal overview has p95 23 ms.
 - Page lab, behind compression as on Render: LCP ≤ 2.3 s on mobile for every measured page. CLS is over 0.1 on `/services` and mobile `/account`. INP is not measured in the lab.
 - Not done yet: the measurement on representative staging, field measurement, and Lighthouse itself.
+
+**Limitation (owner input; reviewer: Owner):** No performance budget is configured: every limit in `docs/perf/budgets.json` is NOT CONFIGURED ([[OQ-PERF-BUDGET-DETAILS]]), so bundle sizes and page weight are reported in CI, never enforced, and nothing is measured on production hardware or networks.

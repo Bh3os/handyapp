@@ -23,3 +23,5 @@ Migrating data into the rebuilt app (for example from the old staging database, 
 - backfill links and grants cautiously: matching contact values never justify account-wide access; unresolved ownership stays pending review;
 - use expand, backfill, validate, contract where compatibility needs it; backfills are restartable and report counts and errors;
 - compare before and after: customer, project, job, invoice and payment counts, relationship integrity, totals, accepted hashes and versions, and attachment availability.
+
+**Limitation (owner decision; reviewer: Owner):** No import of records from the previous system was decided or built ([[OWN-DEC-130]]): safe data migration is proven on this repository's own migrations and stored records, not on historical data.

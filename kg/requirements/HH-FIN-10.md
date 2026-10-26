@@ -17,3 +17,5 @@ source: "guide 20.3 HH-FIN-10; OWN-DEC-110, OWN-DEC-111, OWN-DEC-126"
 - Account handles come from [[FACT-PAYMENT-INSTRUCTIONS]]. Until the Owner enters real values, each placeholder is shown with a "Placeholder — not a payment destination" badge, without a copy button, and is never presented as a usable payment destination. No handle is invented.
 - There is never a nonfunctional Pay button or a claim that a processor is connected.
 - Sandbox and live credentials or links are kept separate; staging uses sandbox payments only.
+
+**Limitation (owner input; reviewer: Owner):** The Zelle, Cash App and Chime details and the check payee are labelled placeholders ([[OQ-PAYMENT-HANDLES]]); only the Square links staff paste are real payment destinations.

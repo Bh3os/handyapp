@@ -31,3 +31,5 @@ A feature is done only when (guide 30.4):
 10. documentation, traceability and configuration status match what is actually implemented, configured, verified and active.
 
 The platform is ready for a controlled operational release only after a synthetic customer completes the whole request-to-closeout journey and representative customer and staff roles pass the negative permission, finance, schedule, packet, language and recovery tests, and the AI security review of [[HH-SEC-01]] has every finding fixed and recorded ([[OWN-DEC-136]]). Remaining limitations are recorded; zero defects or absolute security are never promised.
+
+**Limitation (process requirement; reviewer: Owner):** The release condition is not met yet: the Owner has not walked Owner Acceptance Testing on staging (`docs/owner-acceptance-testing.md`, results empty), and no attorney, CPA, insurance or safety review has happened (`docs/review-packets/`). The end-to-end suite runs the synthetic journeys on an isolated CI server, which does not replace those walks.

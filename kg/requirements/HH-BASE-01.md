@@ -15,3 +15,5 @@ source: "guide Read this first, 1.4; OWN-DEC-54, OWN-DEC-55"
 - No unrelated visual redesign or theme rewrite. A rebuild reproduces the approved identity; it does not invent a new one.
 - Owner-approved site wording ([[OWN-DEC-86]]) is reproduced exactly.
 - Regression checks prove that existing pages, components and working routes keep their behaviour (T75).
+
+**Limitation (process requirement; reviewer: Owner):** Visual regression covers the design-system gallery only, against baselines rendered on Linux (macOS runs cannot compare them); whether every page keeps the premium design is judged by the Owner during Owner Acceptance Testing.

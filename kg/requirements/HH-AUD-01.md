@@ -16,3 +16,5 @@ Before changing code, an agent inspects what governs the change:
 - where useful, the frozen old repository `Bh3os/handyhub-app`, used only as source material ([[OWN-DEC-130]]); it is never changed.
 
 Secret values (environment variables, keys, tokens, passwords, access codes) never appear in outputs, logs, commits, chat or reports.
+
+**Limitation (process requirement; reviewer: Owner):** Inspecting the graph and the frozen sources before building is a working practice, shown by each task's links rather than by a test. Keeping secrets out is enforced by the CI `secrets` job and the scan of the built bundles in the `e2e` job (gitleaks), not by a tagged test title.

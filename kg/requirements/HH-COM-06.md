@@ -21,3 +21,5 @@ source: "OWN-DEC-65 as amended by OWN-DEC-95 and later decisions"
 - On staging, automatic messages go only to approved test destinations.
 
 **Changed by [[OWN-DEC-152]], [[OWN-DEC-153]] (2026-10-21):** routine transactional messages and routine reminders send automatically (the list in [[FACT-AUTOMATIC-MESSAGES]]); staff release personalized replies and the service-quality follow-up; the Owner releases work-paused and other sensitive notices.
+
+**Limitation (real gap; reviewer: Owner):** Two automatic messages of [[FACT-AUTOMATIC-MESSAGES]] are never sent: #9 estimate question answered and #19 job complete have no event in the software that triggers them, and their values are not wired ([[OQ-AUTOMATIC-MESSAGES-NOT-SENT]]).

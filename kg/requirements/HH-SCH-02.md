@@ -19,3 +19,5 @@ source: "guide 14.1 HH-SCH-02"
 - Customers always see the appointment's zone. Server time zone is never relied on; conversions are tested at both DST boundaries.
 
 **Changed by [[OWN-DEC-159]] (2026-10-21):** appointments use the property's zone (Eastern or Central); unknown zones are flagged, never assumed.
+
+**Limitation (owner input; reviewer: Owner):** The time zone of each county is NOT CONFIGURED (`geo.county_time_zones`, [[OQ-COUNTY-TIME-ZONES]]): a property's zone stays unknown until Office verifies it, and texts to an unknown zone wait for 9 AM–9 PM Eastern ([[OWN-DEC-207]]).

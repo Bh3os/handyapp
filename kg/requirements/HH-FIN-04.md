@@ -19,3 +19,5 @@ source: "guide 20.2 HH-FIN-04; OWN-DEC-110, OWN-DEC-126"
 - Customer invoices are English; card payment may name Square.
 - On staging every invoice and receipt carries "TEST — not a real invoice or estimate" and uses labeled test details and sandbox payments only.
 - Issuing makes the invoice available in the workspace Documents and Payments tabs and sends "Your HandyHub invoice is ready" automatically ([[FACT-AUTOMATIC-MESSAGES]]), with no amounts in the email or text; the balance shows in the verified workspace. One notice per invoice.
+
+**Limitation (owner input; reviewer: Owner):** The mailing address is NOT CONFIGURED (`business.mailing_address`) and is left out of estimates, invoices and receipts until the Owner enters it; the registered entity behind "Handyhub LLC" is unconfirmed ([[OQ-LEGAL-ENTITY-NAME]]); the public phone and email are placeholders ([[FACT-PUBLIC-CONTACT]]).

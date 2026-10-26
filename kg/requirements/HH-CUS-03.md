@@ -34,3 +34,5 @@ The checker uses the same configured coverage rules ([[FACT-SERVICE-AREA]]) as s
 **Changed by [[OWN-DEC-179]] (2026-10-21):** outcomes come from the owner's ZIP dataset and the verified address county: SERVED, EDGE, OUTSIDE, UNKNOWN (mapped to the four messages above).
 
 **Changed by [[OWN-DEC-206]] (2026-10-22):** a ZIP-only coverage result is preliminary and is stored and shown as such; eligibility and the first appointment are confirmed only after the full property address and county are verified; EDGE and UNKNOWN never reject a request; no wording presents a ZIP match as address verification.
+
+**Limitation (owner input; reviewer: Owner):** The independent verification source for the ZIP dataset is NOT CONFIGURED (`coverage.verification_source`): outcomes come from the owner's dataset of [[OWN-DEC-179]] alone. Working in Indiana depends on the entity's registration there ([[OQ-INDIANA-REGISTRATION]]).

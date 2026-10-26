@@ -185,12 +185,13 @@ full run.
 
 ### Generated files: regenerate them, never edit by hand
 
-| File                        | Command                                                                        |
-| --------------------------- | ------------------------------------------------------------------------------ |
-| `apps/server/openapi.json`  | `pnpm openapi`                                                                 |
-| `packages/db/src/schema.ts` | `pnpm db:types` (after adding a migration)                                     |
-| data inventory              | `pnpm data-inventory`                                                          |
-| `kg/_index.json`, maps      | `node tools/kg.mjs index && node tools/kg.mjs lint` (lint must say 0 problems) |
+| File                          | Command                                                                        |
+| ----------------------------- | ------------------------------------------------------------------------------ |
+| `apps/server/openapi.json`    | `pnpm openapi`                                                                 |
+| `packages/db/src/schema.ts`   | `pnpm db:types` (after adding a migration)                                     |
+| data inventory                | `pnpm data-inventory`                                                          |
+| `kg/_index.json`, maps        | `node tools/kg.mjs index && node tools/kg.mjs lint` (lint must say 0 problems) |
+| `docs/traceability-report.md` | `pnpm trace:doc` (CI runs `pnpm trace`, the strict check, in the `kg` job)     |
 
 ## 4. Rules that cost time when ignored
 

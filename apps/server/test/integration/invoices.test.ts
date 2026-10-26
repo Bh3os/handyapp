@@ -1359,6 +1359,50 @@ describe('[HH-FIN-08][HH-FIN-09][HH-PORT-12][T60] Square links, recorded payment
     expect(tab.invoices[0]).toMatchObject({ state: 'paid', balanceCents: 0, pendingCents: 0, payByCardUrl: null })
     expect(tab.balanceCents).toBe(0)
   })
+
+  // TSK-0110 (HH-BASE-05): there is no customer "I paid" action (OQ-PAYMENT-LINK-DETAILS), so a customer's claim
+  // reaches HandyHub as a project message. It is a message for staff to verify, never a payment.
+  it('[T60][HH-BASE-05][HH-FIN-09] a customer\'s "I paid" message opens a staff item and changes no payment or balance', async () => {
+    const job = await scopedJob()
+    await drain()
+    expect((await payDeposit('office', job.jobId, { method: 'cash', amountCents: 22_500 })).statusCode).toBe(201)
+    await reviewOutcome(t.db, job.jobId, 'passed')
+    const f = (await issue('office', await finalOf(job.jobId))).json<JobInvoices>().final as Invoice
+    await setLink('office', f.id, 'https://square.link/u/SYNTH110')
+    const before = await paymentsTab(job.reference, job.customerCookie)
+    const ledger = () =>
+      t.db
+        .selectFrom('finance.payments')
+        .select(['id', 'state', 'amount_cents'])
+        .where('job_id', '=', job.jobId)
+        .execute()
+    const paymentsBefore = await ledger()
+
+    const sent = await app.inject({
+      method: 'POST',
+      url: `/api/v1/customer/projects/${job.reference}/messages`,
+      headers: { cookie: job.customerCookie, 'idempotency-key': key('claim') },
+      payload: { text: 'I paid the invoice by card through the Square link. Synthetic claim.' },
+    })
+    expect(sent.statusCode, sent.body).toBe(201)
+    await drain()
+
+    // Nothing is marked paid: the ledger, the invoice and the Payments tab are as they were.
+    expect(await ledger()).toEqual(paymentsBefore)
+    // (Only the time of the read differs.)
+    const steady = (tab: PaymentsTab) => ({ ...tab, refreshedAt: null })
+    expect(steady(await paymentsTab(job.reference, job.customerCookie))).toEqual(steady(before))
+    expect((await finalOf(job.jobId)).state).toBe('issued')
+    // Staff get the claim to verify: the conversation's "customer replied" item is open for this project.
+    const items = await t.db
+      .selectFrom('ops.queue_items')
+      .select(['type', 'project_id'])
+      .where('type', '=', 'customer_replied')
+      .where('project_id', '=', job.projectId)
+      .where('resolved_at', 'is', null)
+      .execute()
+    expect(items).toEqual([{ type: 'customer_replied', project_id: job.projectId }])
+  })
 })
 
 describe('[HH-FIN-11][OWN-DEC-152][FACT-AUTOMATIC-MESSAGES] a receipt for each confirmed recorded payment (TSK-0087)', () => {

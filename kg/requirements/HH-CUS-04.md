@@ -20,3 +20,5 @@ source: "guide 5.1 HH-CUS-04; OWN-DEC-57, OWN-DEC-48, OWN-DEC-37"
 - A county URL without its own page answers 301 to its anchor on the Areas page, so earlier county URLs never break. The sitemap lists only pages that exist; the footer links to the page or the anchor.
 - The site and its structured data name the counties and the state only, never a street, a city of residence or a ZIP code for the business.
 - Publishing a page never expands operational coverage; coverage comes only from the coverage configuration.
+
+**Limitation (owner input; reviewer: Owner):** No county has approved local content ([[OWN-DEC-57]]), so no county page is published and every county links to its section of the Areas page; the rule that would publish one is tested in the domain package only.

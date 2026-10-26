@@ -22,3 +22,5 @@ source: "OWN-DEC-120, OWN-DEC-129"
 - Delivery-status webhooks update message states ([[HH-COM-02]]).
 - Inbound STOP, HELP and START keywords are handled as [[HH-COM-05]] defines.
 - Unsupported channels are flagged clearly.
+
+**Limitation (process requirement; reviewer: Owner):** Inbound email and texts are tested with signed synthetic webhook deliveries only: no live Bird number or inbound email domain receives real messages until A2P 10DLC and the domain are in place ([[OQ-BIRD-10DLC]], [[OQ-DOMAIN-OWNERSHIP]]).
