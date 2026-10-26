@@ -24,6 +24,7 @@ import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { cents, centsFromDecimal, formatUsd, MoneyError, toDecimalString } from '@handyhub/money'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
+import { AiAssistOff } from './AiAssist'
 import { call, idempotencyKey, upload, type ApiErrorBody, type Fetch } from './api'
 import { ConflictBanner, conflictOf, type Conflict } from './ConflictBanner'
 import { DISCOUNT_STATE_TONE } from './Discount'
@@ -776,6 +777,7 @@ export function EstimateBuilder({ t, fetchImpl, id, go, href }: { t: TD; fetchIm
       <h1 id="staff-screen-title" className="hh-h3">
         {t('estimate.heading', { number: view.estimateNumber })}
       </h1>
+      <AiAssistOff t={t} use="estimate.draft" />
       <dl className="staff-record">
         <dt>{t('estimate.version')}</dt>
         <dd>

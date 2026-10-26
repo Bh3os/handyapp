@@ -33,6 +33,7 @@ import {
   type MouseEvent,
   type RefObject,
 } from 'react'
+import { AiAssistOff } from './AiAssist'
 import { call, idempotencyKey, type Fetch } from './api'
 import { AlternativesView, ConfirmVisit, spanText, type Alternatives } from './Capacity'
 import { ConflictBanner, conflictOf, type Conflict } from './ConflictBanner'
@@ -350,6 +351,7 @@ export function ScheduleBoard({ t, locale, fetchImpl, go, href, focusVisitId }: 
     <section className="staff-screen staff-board" aria-labelledby={`${ids}-title`} data-testid="schedule-board">
       {heading}
       <p className="staff-request__hint">{t('board.hint')}</p>
+      <AiAssistOff t={t} use="schedule.suggest" />
       <p className="staff-request__hint" data-testid="board-zone">
         {data.timeZoneProposed ? t('board.zoneProposed', { zone }) : t('board.zone', { zone })}
       </p>

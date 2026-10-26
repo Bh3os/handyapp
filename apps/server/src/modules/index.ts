@@ -3,6 +3,7 @@
 import type { ApiModule } from '../api/route.js'
 import type { Secret } from '../providers/types.js'
 import { identityModule } from './identity/index.js'
+import { aiAssistModule } from './ai-assist/index.js'
 import type { ObjectStorage } from '../providers/index.js'
 import { COVERAGE_MODULE } from './coverage/index.js'
 import type { EnvironmentName, StagingCheck } from '../config.js'
@@ -200,6 +201,8 @@ export function apiModules(deps: ModuleDeps): ApiModule[] {
     }),
     // TSK-0142: the launch phase and its switches (the Owner moves it, with a recorded approval; phase 1 by default).
     launchModule({ environment: deps.environment ?? 'local', gate: deps.launchGate ?? null }),
+    // TSK-0117: AI suggestions for staff, refused by the AI gateway while AI is wave 2 (the manual path answers).
+    aiAssistModule(),
   ]
   // TSK-0141 (OWN-DEC-191): Staging Tools exist only in a positively identified staging or isolated test environment.
   const env = deps.environment

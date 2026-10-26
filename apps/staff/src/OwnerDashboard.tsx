@@ -13,6 +13,7 @@ import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { cents, formatUsd } from '@handyhub/money'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useState, type FormEvent, type MouseEvent } from 'react'
+import { AiAssistOff } from './AiAssist'
 import { call, type Fetch } from './api'
 import { ReauthForm, useOwnerWrite } from './OwnerWrite'
 import { codeLabel } from './Requests'
@@ -159,6 +160,7 @@ export function OwnerDashboard({ t, locale, fetchImpl, go, href, onSession, toda
       <h1 id="staff-screen-title" className="hh-h3">
         {t('dashboard.title')}
       </h1>
+      <AiAssistOff t={t} use="performance.summarize" />
       <form className="staff-dashboard__range" onSubmit={apply} noValidate>
         <Field label={t('dashboard.from')} type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
         <Field label={t('dashboard.to')} type="date" value={to} onChange={(e) => setTo(e.target.value)} />

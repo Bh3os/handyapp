@@ -16,6 +16,7 @@
 import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge, type StatusTone } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
+import { AiAssistOff } from './AiAssist'
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
 import { codeLabel } from './Requests'
 
@@ -639,6 +640,7 @@ export function ReplyComposer({
     <section className="staff-request__section" aria-labelledby={`${ids}-reply`}>
       {heading}
       <p className="staff-request__hint">{t(proposalId ? 'proposal.review.replyIntro' : 'inbox.reply.intro')}</p>
+      <AiAssistOff t={t} use={proposalId ? 'staff_note.translate' : 'reply.draft'} />
       {!options.contact ? (
         <StateView kind="blocked" title={t('inbox.reply.noContact')} />
       ) : available.length === 0 ? (

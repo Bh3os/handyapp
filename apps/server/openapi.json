@@ -28585,6 +28585,1430 @@
         }
       }
     },
+    "/api/v1/staff/ai/uses/estimate.draft/suggestions": {
+      "post": {
+        "operationId": "requestAiSuggestionEstimateDraft",
+        "summary": "Ask for an AI suggestion: Draft estimate line descriptions and assumptions; never prices.",
+        "description": "Staff with estimate.draft. AI is disabled in every environment (RULE-AI-WAVE2): the request is always refused, with AI_DISABLED first and every other unmet guardrail (bounds, privacy destination and fixed instructions are NOT CONFIGURED), and answered with the manual path: The Estimator or the Owner drafts the estimate in the estimate editor. Nothing is sent to any provider and no record is read. The refusal is audited (ai.assist, denied) with the use and the reasons only.",
+        "tags": [
+          "ai"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "outcome",
+                    "reasons",
+                    "manualPath"
+                  ],
+                  "properties": {
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "refused"
+                      ]
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "AI_DISABLED",
+                          "UNKNOWN_USE",
+                          "NOT_PERMITTED",
+                          "REVIEW_NOT_CONFIGURED",
+                          "BOUNDS_NOT_CONFIGURED",
+                          "DESTINATION_NOT_CONFIGURED",
+                          "INSTRUCTIONS_NOT_CONFIGURED"
+                        ]
+                      }
+                    },
+                    "policyReason": {
+                      "type": "string"
+                    },
+                    "manualPath": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "estimate.draft",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "ai.assist",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/ai-assistance.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/ai/uses/evidence.point_out/suggestions": {
+      "post": {
+        "operationId": "requestAiSuggestionEvidencePointOut",
+        "summary": "Ask for an AI suggestion: Point out checklist evidence that looks missing before the quality review.",
+        "description": "Staff with quality.review. AI is disabled in every environment (RULE-AI-WAVE2): the request is always refused, with AI_DISABLED first and every other unmet guardrail (bounds, privacy destination and fixed instructions are NOT CONFIGURED), and answered with the manual path: The Owner reviews the checklist and its evidence in the quality review. Nothing is sent to any provider and no record is read. The refusal is audited (ai.assist, denied) with the use and the reasons only.",
+        "tags": [
+          "ai"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "outcome",
+                    "reasons",
+                    "manualPath"
+                  ],
+                  "properties": {
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "refused"
+                      ]
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "AI_DISABLED",
+                          "UNKNOWN_USE",
+                          "NOT_PERMITTED",
+                          "REVIEW_NOT_CONFIGURED",
+                          "BOUNDS_NOT_CONFIGURED",
+                          "DESTINATION_NOT_CONFIGURED",
+                          "INSTRUCTIONS_NOT_CONFIGURED"
+                        ]
+                      }
+                    },
+                    "policyReason": {
+                      "type": "string"
+                    },
+                    "manualPath": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "quality.review",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "ai.assist",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/ai-assistance.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/ai/uses/packet.draft/suggestions": {
+      "post": {
+        "operationId": "requestAiSuggestionPacketDraft",
+        "summary": "Ask for an AI suggestion: Draft job packet instructions from the scope and the service SOP.",
+        "description": "Staff with job.view_packet. AI is disabled in every environment (RULE-AI-WAVE2): the request is always refused, with AI_DISABLED first and every other unmet guardrail (bounds, privacy destination and fixed instructions are NOT CONFIGURED; no review action exists for this use), and answered with the manual path: The packet is built from the job records and the active SOP, as today. Nothing is sent to any provider and no record is read. The refusal is audited (ai.assist, denied) with the use and the reasons only.",
+        "tags": [
+          "ai"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "outcome",
+                    "reasons",
+                    "manualPath"
+                  ],
+                  "properties": {
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "refused"
+                      ]
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "AI_DISABLED",
+                          "UNKNOWN_USE",
+                          "NOT_PERMITTED",
+                          "REVIEW_NOT_CONFIGURED",
+                          "BOUNDS_NOT_CONFIGURED",
+                          "DESTINATION_NOT_CONFIGURED",
+                          "INSTRUCTIONS_NOT_CONFIGURED"
+                        ]
+                      }
+                    },
+                    "policyReason": {
+                      "type": "string"
+                    },
+                    "manualPath": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job.view_packet",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "ai.assist",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/ai-assistance.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/ai/uses/performance.summarize/suggestions": {
+      "post": {
+        "operationId": "requestAiSuggestionPerformanceSummarize",
+        "summary": "Ask for an AI suggestion: Summarize performance from dashboard totals.",
+        "description": "Staff with dashboard.view. AI is disabled in every environment (RULE-AI-WAVE2): the request is always refused, with AI_DISABLED first and every other unmet guardrail (bounds, privacy destination and fixed instructions are NOT CONFIGURED), and answered with the manual path: The Owner reads the Owner Dashboard. Nothing is sent to any provider and no record is read. The refusal is audited (ai.assist, denied) with the use and the reasons only.",
+        "tags": [
+          "ai"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "outcome",
+                    "reasons",
+                    "manualPath"
+                  ],
+                  "properties": {
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "refused"
+                      ]
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "AI_DISABLED",
+                          "UNKNOWN_USE",
+                          "NOT_PERMITTED",
+                          "REVIEW_NOT_CONFIGURED",
+                          "BOUNDS_NOT_CONFIGURED",
+                          "DESTINATION_NOT_CONFIGURED",
+                          "INSTRUCTIONS_NOT_CONFIGURED"
+                        ]
+                      }
+                    },
+                    "policyReason": {
+                      "type": "string"
+                    },
+                    "manualPath": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "dashboard.view",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "ai.assist",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/ai-assistance.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/ai/uses/reply.draft/suggestions": {
+      "post": {
+        "operationId": "requestAiSuggestionReplyDraft",
+        "summary": "Ask for an AI suggestion: Draft a reply to a customer's message for staff to edit and send.",
+        "description": "Staff with message.reply. AI is disabled in every environment (RULE-AI-WAVE2): the request is always refused, with AI_DISABLED first and every other unmet guardrail (bounds, privacy destination and fixed instructions are NOT CONFIGURED), and answered with the manual path: Staff write the reply in the inbox from the approved templates. Nothing is sent to any provider and no record is read. The refusal is audited (ai.assist, denied) with the use and the reasons only.",
+        "tags": [
+          "ai"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "outcome",
+                    "reasons",
+                    "manualPath"
+                  ],
+                  "properties": {
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "refused"
+                      ]
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "AI_DISABLED",
+                          "UNKNOWN_USE",
+                          "NOT_PERMITTED",
+                          "REVIEW_NOT_CONFIGURED",
+                          "BOUNDS_NOT_CONFIGURED",
+                          "DESTINATION_NOT_CONFIGURED",
+                          "INSTRUCTIONS_NOT_CONFIGURED"
+                        ]
+                      }
+                    },
+                    "policyReason": {
+                      "type": "string"
+                    },
+                    "manualPath": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.reply",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "ai.assist",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/ai-assistance.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/ai/uses/request.classify/suggestions": {
+      "post": {
+        "operationId": "requestAiSuggestionRequestClassify",
+        "summary": "Ask for an AI suggestion: Suggest a service and next step for a new request.",
+        "description": "Staff with request.view. AI is disabled in every environment (RULE-AI-WAVE2): the request is always refused, with AI_DISABLED first and every other unmet guardrail (bounds, privacy destination and fixed instructions are NOT CONFIGURED), and answered with the manual path: Office or the Owner reads the request in the queue and qualifies it, asks a question or declines it. Nothing is sent to any provider and no record is read. The refusal is audited (ai.assist, denied) with the use and the reasons only.",
+        "tags": [
+          "ai"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "outcome",
+                    "reasons",
+                    "manualPath"
+                  ],
+                  "properties": {
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "refused"
+                      ]
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "AI_DISABLED",
+                          "UNKNOWN_USE",
+                          "NOT_PERMITTED",
+                          "REVIEW_NOT_CONFIGURED",
+                          "BOUNDS_NOT_CONFIGURED",
+                          "DESTINATION_NOT_CONFIGURED",
+                          "INSTRUCTIONS_NOT_CONFIGURED"
+                        ]
+                      }
+                    },
+                    "policyReason": {
+                      "type": "string"
+                    },
+                    "manualPath": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "request.view",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "ai.assist",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/ai-assistance.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/ai/uses/schedule.suggest/suggestions": {
+      "post": {
+        "operationId": "requestAiSuggestionScheduleSuggest",
+        "summary": "Ask for an AI suggestion: Suggest arrival windows to offer.",
+        "description": "Staff with schedule.view_board. AI is disabled in every environment (RULE-AI-WAVE2): the request is always refused, with AI_DISABLED first and every other unmet guardrail (bounds, privacy destination and fixed instructions are NOT CONFIGURED), and answered with the manual path: Office offers windows from the scheduling board. Nothing is sent to any provider and no record is read. The refusal is audited (ai.assist, denied) with the use and the reasons only.",
+        "tags": [
+          "ai"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "outcome",
+                    "reasons",
+                    "manualPath"
+                  ],
+                  "properties": {
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "refused"
+                      ]
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "AI_DISABLED",
+                          "UNKNOWN_USE",
+                          "NOT_PERMITTED",
+                          "REVIEW_NOT_CONFIGURED",
+                          "BOUNDS_NOT_CONFIGURED",
+                          "DESTINATION_NOT_CONFIGURED",
+                          "INSTRUCTIONS_NOT_CONFIGURED"
+                        ]
+                      }
+                    },
+                    "policyReason": {
+                      "type": "string"
+                    },
+                    "manualPath": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "schedule.view_board",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "ai.assist",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/ai-assistance.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/ai/uses/staff_note.translate/suggestions": {
+      "post": {
+        "operationId": "requestAiSuggestionStaffNoteTranslate",
+        "summary": "Ask for an AI suggestion: Draft an English version of a Spanish worker note or proposed reply, kept beside the original.",
+        "description": "Staff with message.review_proposal. AI is disabled in every environment (RULE-AI-WAVE2): the request is always refused, with AI_DISABLED first and every other unmet guardrail (bounds, privacy destination and fixed instructions are NOT CONFIGURED), and answered with the manual path: Owner or Office reads the Spanish original and writes the approved English message (TSK-0155). Nothing is sent to any provider and no record is read. The refusal is audited (ai.assist, denied) with the use and the reasons only.",
+        "tags": [
+          "ai"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "outcome",
+                    "reasons",
+                    "manualPath"
+                  ],
+                  "properties": {
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "refused"
+                      ]
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "AI_DISABLED",
+                          "UNKNOWN_USE",
+                          "NOT_PERMITTED",
+                          "REVIEW_NOT_CONFIGURED",
+                          "BOUNDS_NOT_CONFIGURED",
+                          "DESTINATION_NOT_CONFIGURED",
+                          "INSTRUCTIONS_NOT_CONFIGURED"
+                        ]
+                      }
+                    },
+                    "policyReason": {
+                      "type": "string"
+                    },
+                    "manualPath": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.review_proposal",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "ai.assist",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/ai-assistance.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/audit-events": {
       "get": {
         "operationId": "listAuditEvents",
