@@ -1,8 +1,14 @@
 // The request form contract (TSK-0025, TSK-0026, TSK-0029; C02, HH-INT-09, HH-INT-18, HH-INT-22, OWN-DEC-90..93,
-// OWN-DEC-56, OWN-DEC-61, OWN-DEC-139, OWN-DEC-147).
+// OWN-DEC-56, OWN-DEC-61, OWN-DEC-139, OWN-DEC-147; TSK-0125: HH-EST-15, OWN-DEC-165).
 // One definition for both sides: the server validates submissions with this JSON schema and these checks, and the
 // request wizard validates the same way before sending, so the two never disagree (manipulated data is still
 // rejected by the server). Codes, never labels: the wizard shows the English wording from the i18n catalog.
+import { resolveWindow } from './local-time.js'
+import { DISCOUNT_CATEGORIES, type DiscountCategory } from './discount.js'
+
+export { DISCOUNT_CATEGORIES, type DiscountCategory }
+/** The same categories under the customer-facing name the site uses for the discount row ("reduction"). */
+export const REDUCTION_CATEGORIES = DISCOUNT_CATEGORIES
 
 export const PROPERTY_TYPES = ['house', 'apartment_condo', 'townhouse', 'rental_short_term'] as const
 export const TIME_WINDOWS = ['mornings', 'afternoons', 'evenings', 'weekends', 'any_time'] as const
@@ -114,6 +120,9 @@ export const REQUEST_FORM_SCHEMA = {
     smsOptIn: { enum: [true, false] },
     smsDisclosureVersion: { type: 'string', pattern: '^[A-Za-z0-9._-]{1,40}$' },
     marketingOptIn: { enum: [true, false] },
+    // TSK-0125 (HH-EST-15, OWN-DEC-165): the one discount the customer asks for, if any; pending verification until
+    // staff verify it. The server refuses one the active discount rule does not offer.
+    requestedDiscount: { type: 'string', enum: DISCOUNT_CATEGORIES },
     // Quiet spam controls (HH-INT-11): a field people never see, and when the form was opened (ms since epoch).
     website: { type: 'string', maxLength: 500 },
     startedAt: { type: 'integer', minimum: 0 },
@@ -182,6 +191,7 @@ export type SubmitBody = {
   smsOptIn: boolean
   smsDisclosureVersion?: string
   marketingOptIn: boolean
+  requestedDiscount?: DiscountCategory
   website?: string
   startedAt?: number
   photoDraft?: string
@@ -231,7 +241,7 @@ export const DAY_WINDOWS = ['mornings', 'afternoons', 'evenings'] as const
 export type DayWindow = (typeof DAY_WINDOWS)[number]
 /** Hours as HH:MM, 24-hour clock, in the property's local time. */
 export type ClockRange = { readonly start: string; readonly end: string }
-/** The configured hours of each day window (request.window_hours; NOT CONFIGURED until the owner gives them). */
+/** The configured hours of each day window (request.window_hours, FACT-WINDOW-HOURS: 8–12, 12–5 and 5–10). */
 export type WindowHours = Readonly<Record<DayWindow, ClockRange>>
 /** The visit hours (contact.hours, FACT-HOURS). */
 export type VisitHours = { readonly open: string; readonly close: string }
@@ -251,6 +261,38 @@ export function offeredWindows(visit: VisitHours | null, hours: WindowHours | nu
     const fits = h.start < h.end && h.start >= visit.open && h.end <= visit.close
     return fits ? [{ code, start: h.start, end: h.end }] : []
   })
+}
+
+/** The hours a request keeps with the day windows its customer chose (intake.requests.time_window_hours). */
+export type ChosenWindowHours = Partial<Record<DayWindow, ClockRange>>
+
+/**
+ * The hours of the chosen day windows exactly as the form offered them (TSK-0139; OWN-DEC-170 item 5, HH-INT-02): the
+ * request keeps them, so a later change of request.window_hours never changes what "Mornings" meant to this customer.
+ * Weekends and Any time have no hours; a window offered without hours (NOT CONFIGURED) keeps none.
+ */
+export function chosenWindowHours(offered: readonly OfferedWindow[], chosen: readonly string[]): ChosenWindowHours {
+  const out: ChosenWindowHours = {}
+  for (const w of offered)
+    if (chosen.includes(w.code) && w.start && w.end && (DAY_WINDOWS as readonly string[]).includes(w.code))
+      out[w.code as DayWindow] = { start: w.start, end: w.end }
+  return out
+}
+
+/**
+ * A chosen window on the customer's preferred date, as instants (TSK-0139; OWN-DEC-159, OWN-DEC-170 item 4): the
+ * hours are wall-clock times of the property's own zone, resolved for that date by resolveWindow, so the offset is
+ * the one in force that day (EDT or EST, CDT or CST). Null when the zone is unknown or the hours do not resolve to one
+ * unambiguous window: it is never guessed. The decided hours (8 AM to 10 PM) never touch a 2 AM clock change.
+ */
+export function preferredWindowOn(
+  date: string,
+  hours: ClockRange,
+  zone: string | null,
+): { startsAt: Date; endsAt: Date } | null {
+  if (!zone) return null
+  const r = resolveWindow({ date, start: hours.start, end: hours.end, zone })
+  return r.ok ? { startsAt: r.window.startsAt, endsAt: r.window.endsAt } : null
 }
 
 /** "08:00" as "8 AM", "12:30" as "12:30 PM" (US English, the customer language). */

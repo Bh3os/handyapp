@@ -273,6 +273,18 @@ export const TABLES = {
     classes: ['service_address'],
     categories: [C, R],
   },
+  'crm.project_coverage_acceptances': {
+    holds:
+      'Staff acceptance of a project’s service-area coverage on a county check, or the Owner’s exception with its reason (TSK-0126)',
+    classes: ['service_address'],
+    categories: [C, R],
+  },
+  'crm.project_site_contacts': {
+    holds:
+      'The authorized site contact of a project: name, role, phone or email, the authority staff confirmed, source (TSK-0126)',
+    classes: ['contact', 'service_address'],
+    categories: [C, R],
+  },
   'crm.property_county_verifications': {
     holds: 'Staff verification of a property address version and its county, with an optional note (TSK-0127)',
     classes: ['service_address'],
@@ -320,6 +332,18 @@ export const TABLES = {
   },
   'estimating.customer_responses': {
     holds: 'Request Changes and Decline responses with their message',
+    classes: ['estimate_approval'],
+    categories: [E, A],
+  },
+  // TSK-0125 (OWN-DEC-165): the requested discount and its verification results (category, result, verifier, time;
+  // never a document, ID number or date of birth).
+  'estimating.discount_requests': {
+    holds: 'The one discount a customer requested on the request form (category and time)',
+    classes: ['request_details', 'estimate_approval'],
+    categories: [R, E, A],
+  },
+  'estimating.discount_verifications': {
+    holds: 'Discount verification results: category, result, verifier and time only (no document is kept)',
     classes: ['estimate_approval'],
     categories: [E, A],
   },
@@ -751,6 +775,13 @@ export const TABLES = {
     classes: ['logs_audit'],
     categories: [NS],
   },
+  // TSK-0136 (0103): the Owner's extensions of a request's internal target; the reason is what the customer is told.
+  'privacy.privacy_request_extensions': {
+    holds:
+      "The Owner's extensions of a privacy request's internal target: the dates and the reason the customer is told",
+    classes: ['logs_audit'],
+    categories: [NS],
+  },
   'privacy.privacy_requests': {
     holds:
       "Customers' export, correction and deletion requests: the requester, identity confirmation, the customer's " +
@@ -853,6 +884,37 @@ export const TABLES = {
       "The customer's answer to the service-quality follow-up as staff recorded it (positive, mixed or negative), " +
       'the optional note, the follow-up it answers, who recorded it and when',
     classes: ['request_details'],
+    categories: [J],
+  },
+  // TSK-0094 (0102): return work of a case, its return visits, punch items and costs are job records; the costs are
+  // financial records too.
+  'quality.return_work': {
+    holds:
+      'Return work of a case: the classification, the warranty window (reviewed completion and report dates), the ' +
+      "Owner's coverage and price decision with its note, and a linked return job; never an amount or an exclusion",
+    classes: ['request_details'],
+    categories: [J],
+  },
+  'quality.return_work_visits': {
+    holds: "The return visits of the original job linked to a case's return work, with who linked them and when",
+    classes: ['scheduling'],
+    categories: [J],
+  },
+  'quality.return_work_items': {
+    holds:
+      'Return-visit punch items: work package or area, description, required correction evidence, assignee, due ' +
+      "date, the correction on a return visit and the Owner's re-check, with who and when",
+    classes: ['request_details'],
+    categories: [J],
+  },
+  'quality.return_work_costs': {
+    holds: 'Return-work costs in cents (materials, purchases, rentals, other) with a note, who and when; voided once',
+    classes: ['payment_reference'],
+    categories: [J, F],
+  },
+  'quality.return_work_events': {
+    holds: 'The history of each return work record: every change with who, when and the note given',
+    classes: ['logs_audit'],
     categories: [J],
   },
   // TSK-0075 (0083): the job checklist is part of the job record.
@@ -1175,6 +1237,14 @@ export const TABLES = {
     holds:
       'Actual contracted work started, per worker and visit: the passing evaluation, the packet, scope and SOP ' +
       'versions, the acknowledgment, any approved exception and the server time',
+    classes: ['scheduling'],
+    categories: [J, S],
+  },
+  // TSK-0094 (0102): resuming after an incident, per worker and pause, is a job and safety record like a start.
+  'work.work_resumptions': {
+    holds:
+      'Work resumed after an incident, per worker and pause: the passing evaluation, the visit, the packet version, ' +
+      'the acknowledgment, any approved exception, the pause it resumes from and the server time',
     classes: ['scheduling'],
     categories: [J, S],
   },

@@ -55,6 +55,27 @@ describe('the original request view (TSK-0042, HH-LEAD-01)', () => {
     expect(screen.getByText('Qualify the request and choose an action')).toBeTruthy()
   })
 
+  it('[HH-INT-02][OWN-DEC-170][OWN-DEC-159] shows each window with its hours in the property zone, and names the zone', async () => {
+    renderRecord(api())
+    const original = await screen.findByTestId('original-request')
+    expect(within(original).getByText(/Mornings \(8:00\sAM CDT – 12:00\sPM CDT\)/)).toBeTruthy()
+    expect(within(original).getByTestId('request-window-zone').textContent).toMatch(
+      /Hours in the property's time zone: America\/Chicago \(Central/,
+    )
+    // On no preferred date and an unknown zone: the wall-clock hours, and the zone is Unknown, never assumed.
+    const flexible = requestDetail()
+    flexible.preferredWindows = {
+      timeZone: null,
+      family: null,
+      windows: [{ code: 'mornings', start: '08:00', end: '12:00', startsAt: null, endsAt: null }],
+    }
+    cleanup()
+    renderRecord(api(flexible))
+    const again = await screen.findByTestId('original-request')
+    expect(within(again).getByText(/Mornings \(8:00\sAM – 12:00\sPM\)/)).toBeTruthy()
+    expect(within(again).getByTestId('request-window-zone').textContent).toMatch(/Unknown/)
+  })
+
   it('[HH-LEAD-01][RULE-LANGUAGES] Spanish staff see Spanish labels; the original text stays as sent', async () => {
     renderRecord(api(), 'es')
     await screen.findByRole('heading', { level: 1, name: 'Solicitud HH-7K2M9Q4D' })

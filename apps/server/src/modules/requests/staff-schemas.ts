@@ -6,7 +6,9 @@ import {
   QUALIFICATION_CHECKS,
   QUALIFICATION_OUTCOMES,
   REQUEST_STATES,
+  ZONE_FAMILIES,
 } from '@handyhub/domain'
+import { TIME_WINDOWS } from '@handyhub/domain/request-form'
 import { CLOCK_SCHEMA } from './clock-view.js'
 import { HOLD_SCHEMA } from './holds.js'
 import { NEXT_STEPS } from './staff-record.js'
@@ -143,6 +145,7 @@ export const DETAIL = {
     'customer',
     'original',
     'contactVerification',
+    'preferredWindows',
     'coverage',
     'responsibleStaff',
     'assignments',
@@ -285,6 +288,32 @@ export const DETAIL = {
           additionalProperties: false,
           required: ['email', 'phone'],
           properties: { email: { type: 'string' }, phone: { type: 'string' } },
+        },
+      },
+    },
+    // TSK-0139 (OWN-DEC-170, OWN-DEC-159): the chosen windows with the hours the form offered, in the property's zone
+    // as it is now (null: unknown); on a preferred date also the instants of that date. Preferences, never a slot.
+    preferredWindows: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['timeZone', 'family', 'windows'],
+      properties: {
+        timeZone: NULLABLE_STRING,
+        family: { type: ['string', 'null'], enum: [...ZONE_FAMILIES, null] },
+        windows: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['code', 'start', 'end', 'startsAt', 'endsAt'],
+            properties: {
+              code: { type: 'string', enum: [...TIME_WINDOWS] },
+              start: NULLABLE_STRING,
+              end: NULLABLE_STRING,
+              startsAt: { type: ['string', 'null'], format: 'date-time' },
+              endsAt: { type: ['string', 'null'], format: 'date-time' },
+            },
+          },
         },
       },
     },

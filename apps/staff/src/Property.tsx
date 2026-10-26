@@ -167,6 +167,9 @@ function writeError(t: T, error: ApiErrorBody): string {
   if (codes.includes('ACCESS_CODE_UNREADABLE')) return t('property.codeUnreadable')
   if (codes.includes('DETAIL_NOT_RECORDED')) return t('property.detailNotRecorded')
   if (codes.includes('ADDRESS_VERSION_CHANGED')) return t('property.stale')
+  // TSK-0126: the address pre-validation names what to correct before the address can be verified.
+  const address = error.fieldErrors.find((f) => f.field === 'address')
+  if (address) return codeLabel(t, 'visitProblem', address.code)
   if (codes.includes('ZONE_NOT_SUPPORTED')) return t('zone.notSupported')
   if (codes.includes('ZONE_COUNTY_MISMATCH')) return t('zone.countyMismatch')
   if (error.code === 'VALIDATION_FAILED') return t('customer.invalid')

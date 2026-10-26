@@ -178,7 +178,11 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       'refund_request',
       'cancellation_outcome',
       'deletion_request',
+      // TSK-0136: an open privacy request with its deadlines (privacy.decide).
+      'privacy_request',
       'invoice_overdue_decision',
+      // TSK-0125: a requested discount waiting for the Owner's review (discount.decide).
+      'discount_owner_review',
       'cancellation_review',
       'visit_cancellation_review',
       // TSK-0130: estimates waiting for the Owner's approval before publishing (estimate.approve_publication).
@@ -219,6 +223,8 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       'question_reminder',
       // TSK-0092: follow-ups to release on their own threads (message.release_draft; the items are never assigned).
       'follow_up_release',
+      // TSK-0125: a published estimate whose requested discount was not verified needs revising (estimate.revise).
+      'discount_revision',
     ])
     expect(est.items.map((i) => i.type)).not.toContain('case_open')
     expect((await get('estimator', '/api/v1/staff/queue/owner-decisions')).statusCode).toBe(403)

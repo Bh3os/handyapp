@@ -11,11 +11,14 @@
 //   shown only as recorded ("No referral recorded" otherwise).
 // - Customer updates are neutral templates, drafted and then released by staff after review; the customer sees only
 //   released ones.
+// - TSK-0094: the case's return work (classification, the Owner's coverage and price decision, return visits, items
+//   and costs) is its own section (ReturnWork.tsx), for those who see the case detail.
 import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useState, type FormEvent, type ReactNode } from 'react'
 import { call, idempotencyKey, upload, type ApiErrorBody, type ApiResponse, type Fetch } from './api'
 import { codeLabel } from './Requests'
+import { ReturnWorkSection } from './ReturnWork'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
 type StaffRef = { id: string; name: string | null }
@@ -1547,6 +1550,15 @@ export function CasePage({
             {d.actions.recheck ? <Recheck t={t} fetchImpl={fetchImpl} view={view} onDone={load} /> : null}
           </Section>
           <FollowUps t={t} fetchImpl={fetchImpl} view={view} detail={d} staff={staff} onDone={load} />
+          <ReturnWorkSection
+            key={`return-${view.version}`}
+            t={t}
+            locale={locale}
+            fetchImpl={fetchImpl}
+            caseId={view.id}
+            href={href}
+            onChanged={() => void load()}
+          />
           <CustomerUpdates t={t} locale={locale} fetchImpl={fetchImpl} view={view} detail={d} onDone={load} />
           <Referrals t={t} fetchImpl={fetchImpl} view={view} detail={d} onDone={load} />
           {!view.restricted ? (

@@ -235,3 +235,55 @@ describe('[HH-WORK-02][HH-WORK-03] the Owner review page', () => {
     })
   })
 })
+
+describe('[HH-INC-03][T54] resuming after an incident on the briefing', () => {
+  const resumeGate = (ready: boolean) =>
+    gate(
+      {
+        mode: 'resume',
+        pausedAt: '2026-10-22T13:00:00.000Z',
+        started: { startId: 's1', startedAt: '2026-10-22T12:00:00.000Z' },
+        actions: { start: false, resume: ready, recordSiteCheck: true, uploadBeforePhotos: true, requestException: [] },
+      },
+      ready ? {} : { safety_holds: ['CRITICAL_HOLD_OPEN'] },
+    )
+
+  it('offers Resume work, not Start Work, and says a release certifies nothing; off until the server says ready', async () => {
+    const fetchImpl = vi.fn(async () => json(200, resumeGate(false)))
+    mount('en', fetchImpl as unknown as typeof fetch)
+    const box = await screen.findByTestId('start-resume')
+    expect(screen.queryByRole('button', { name: 'Start Work' })).toBeNull()
+    expect(within(box).getByRole('button', { name: 'Resume work' }).getAttribute('disabled')).not.toBeNull()
+    expect(within(box).getByText(/not a certification that the site is safe/)).toBeTruthy()
+  })
+
+  it('sends only the packet version shown to the resume route', async () => {
+    const calls: { url: string; body: unknown }[] = []
+    const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push({ url, body: init?.body ? JSON.parse(String(init.body)) : null })
+      if (url.endsWith('/resume')) return json(201, { resumed: true })
+      return json(200, resumeGate(true))
+    })
+    mount('en', fetchImpl as unknown as typeof fetch)
+    fireEvent.click(await screen.findByRole('button', { name: 'Resume work' }))
+    await waitFor(() => expect(calls.some((c) => c.url.endsWith('/resume'))).toBe(true))
+    expect(calls.find((c) => c.url.endsWith(`/staff/visits/${VISIT}/resume`))?.body).toEqual({ packetVersion: 7 })
+    expect(calls.some((c) => c.url.endsWith('/start'))).toBe(false)
+  })
+
+  it('in Spanish, with the refusal codes named in words', async () => {
+    const fetchImpl = vi.fn(async () =>
+      json(
+        200,
+        gate(
+          { mode: 'resume', pausedAt: '2026-10-22T13:00:00.000Z' },
+          { assignment: ['NOT_STARTED_BEFORE'], safety_holds: ['CRITICAL_HOLD_OPEN'] },
+        ),
+      ),
+    )
+    mount('es', fetchImpl as unknown as typeof fetch)
+    expect(await screen.findByRole('button', { name: 'Reanudar el trabajo' })).toBeTruthy()
+    expect(screen.getByText(/No inició el trabajo en este trabajo antes de la pausa/)).toBeTruthy()
+    expect(screen.getByText(/no certifica que el lugar sea seguro/)).toBeTruthy()
+  })
+})

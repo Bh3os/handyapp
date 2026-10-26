@@ -2,7 +2,9 @@
 // OWN-DEC-113). A guest opens the project with the secure link and a code (TSK-0034); an Estimator of this spec
 // publishes an estimate through the staff API; the customer downloads its PDF from the Documents tab and asks for a
 // copy of their data; the Owner reviews and completes the request in the staff app; the customer downloads the export
-// as a file. The file sorts after the staff sign-in spec, which must find no Owner yet. Estimate terms are recorded as "owner review pending" for this spec's run only and restored to NOT
+// as a file. TSK-0136 (HH-PRIV-07): the request carries its acknowledgment and dates in the portal and in the staff
+// app, and the Owner extends its internal target with a reason the customer then sees. The file sorts after the staff
+// sign-in spec, which must find no Owner yet. Estimate terms are recorded as "owner review pending" for this spec's run only and restored to NOT
 // CONFIGURED afterwards (as the portal estimate spec does). The Owner account is created by whichever spec runs first;
 // this one only sets its password with a link. Every visitor, address, account and amount is synthetic
 // (RULE-SYNTHETIC-DATA).
@@ -248,7 +250,7 @@ test.describe('privacy requests and customer downloads (TSK-0100)', () => {
     await recordVersion('legal.estimate_terms', null, ['HH-EST-13', 'OWN-DEC-127', 'OQ-ATTORNEY-TERMS'])
   })
 
-  test('[HH-PRIV-06][T68][HH-PRIV-03] the customer downloads their estimate, asks for their data, and gets it once the Owner completes it', async ({
+  test('[HH-PRIV-06][T68][HH-PRIV-03][HH-PRIV-07] the customer downloads their estimate, asks for their data, and gets it once the Owner completes it', async ({
     page,
     request,
     browser,
@@ -327,7 +329,11 @@ test.describe('privacy requests and customer downloads (TSK-0100)', () => {
     const mine = page.getByRole('list', { name: 'Your requests' })
     const item = mine.getByRole('listitem').filter({ hasText: 'Copy of my data' })
     await expect(item).toHaveCount(1)
-    await expect(item.getByText('Received')).toBeVisible()
+    await expect(item.getByText('Received', { exact: true })).toBeVisible()
+    // TSK-0136: the automatic acknowledgment, the follow-up date and the internal target (portal only).
+    await expect(item.getByText(/^We received this request on /)).toBeVisible()
+    await expect(item.getByText(/^We'll follow up on it by /)).toBeVisible()
+    await expect(item.getByText(/^We aim to complete it by /)).toBeVisible()
     const reference = (await item.getByText(/^Copy of my data \(PR-\d+\)$/).textContent())?.match(
       /PR-\d+/,
     )?.[0] as string
@@ -342,9 +348,39 @@ test.describe('privacy requests and customer downloads (TSK-0100)', () => {
       await expect(entry).toHaveCount(1)
       await entry.getByRole('button', { name: 'Open' }).click()
       const detail = owner.page.getByTestId('privacy-detail')
-      await expect(detail.getByText('Response deadline: not configured')).toBeVisible()
+      // TSK-0136: the dates as the server counted them; the legal deadline is a separate field, not recorded yet.
+      await expect(detail.getByText(/^Substantive acknowledgment due by the end of /)).toBeVisible()
+      await expect(detail.getByText(/^Internal target: .*not a legal deadline\.$/)).toBeVisible()
+      await expect(detail.getByText(/^Legal deadline: not recorded/)).toBeVisible()
       await expect(detail.getByText(/Estimates never accepted: 1/)).toBeVisible()
       await axe(owner.page)
+      // The Owner extends the internal target with a reason; the customer sees both.
+      const listed = (await (await owner.page.request.get('/api/v1/staff/privacy-requests?state=received')).json()) as {
+        items: { reference: string; deadlines: { targetOn: string } }[]
+      }
+      const targetOn = listed.items.find((i) => i.reference === reference)?.deadlines.targetOn as string
+      const later = new Date(`${targetOn}T12:00:00Z`)
+      later.setUTCDate(later.getUTCDate() + 10)
+      const laterOn = later.toISOString().slice(0, 10)
+      const extend = detail.getByTestId('privacy-extend')
+      await extend.getByLabel('New target date').fill(laterOn)
+      await extend
+        .getByLabel('Reason the customer is told (required)')
+        .fill('Synthetic e2e: records from an archived job.')
+      await extend.getByRole('button', { name: 'Extend the target' }).click()
+      await expect(extend.getByText('The internal target is extended.')).toBeVisible()
+      await expect(detail.getByText(/^Extended from .*: Synthetic e2e: records from an archived job\.$/)).toBeVisible()
+      await axe(owner.page)
+      await page.reload()
+      const notice = page
+        .getByRole('list', { name: 'Your requests' })
+        .getByRole('listitem')
+        .filter({ hasText: reference })
+      await expect(
+        notice.getByText(
+          /^We need more time: we now aim to complete it by .*\. Why: Synthetic e2e: records from an archived job\.$/,
+        ),
+      ).toBeVisible()
       await detail.getByRole('button', { name: 'Start the review' }).click()
       await expect(detail.getByText('Under review')).toBeVisible()
       await detail.getByLabel('Reason (required)').fill('Synthetic e2e: identity confirmed by code; export prepared.')

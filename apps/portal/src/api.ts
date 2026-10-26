@@ -742,6 +742,9 @@ export const APPROVAL_REASONS = [
   'superseded',
   'expired',
   'not_published',
+  // TSK-0125 (OWN-DEC-165): approval waits for the requested reduction's verification, or an updated estimate follows.
+  'reduction_pending_verification',
+  'reduction_not_verified',
 ] as const
 export type ApprovalReason = (typeof APPROVAL_REASONS)[number]
 export const RESPONSE_KINDS = ['changes_requested', 'declined', 'update_requested'] as const
@@ -785,8 +788,11 @@ export type EstimateDetail = {
   dependencies: string[]
   scheduleAssumptions: string[]
   subtotalCents: number
-  /** The totals row before the total, worded by the server (the same words as the customer PDF). */
-  reduction: { label: string; amountCents: number } | null
+  /**
+   * The totals row before the total, worded by the server (the same words as the customer PDF); TSK-0125: pending
+   * verification until it is verified.
+   */
+  reduction: { label: string; amountCents: number; pendingVerification: boolean } | null
   totalCents: number
   deposit: { state: 'required' | 'not_required'; amountCents: number | null }
   paymentTerm: string
@@ -852,7 +858,15 @@ export function parseEstimate(v: unknown): EstimateDetail | null {
   const lines = Array.isArray(v['lines']) ? v['lines'].map(line) : null
   if (!lines || lines.some((l) => l === null)) return null
   const reduction = v['reduction']
-  if (reduction !== null && !(isObj(reduction) && isStr(reduction['label']) && isCents(reduction['amountCents'])))
+  if (
+    reduction !== null &&
+    !(
+      isObj(reduction) &&
+      isStr(reduction['label']) &&
+      isCents(reduction['amountCents']) &&
+      typeof reduction['pendingVerification'] === 'boolean'
+    )
+  )
     return null
   const deposit = v['deposit']
   if (!isObj(deposit) || !oneOf(['required', 'not_required'] as const)(deposit['state'])) return null
@@ -1666,6 +1680,12 @@ export type PrivacyRequest = {
     exportReady: boolean
     accessClosed: boolean
   } | null
+  /** TSK-0136: the automatic acknowledgment, the substantive one and the internal target with its extensions. */
+  acknowledgedAt: string | null
+  acknowledgmentDueOn: string | null
+  reviewStartedAt: string | null
+  targetOn: string | null
+  extensions: { targetOn: string; reason: string; decidedAt: string }[]
 }
 export type PrivacyList = { reference: string; freshVerification: boolean; requests: PrivacyRequest[] }
 
@@ -1708,6 +1728,23 @@ export function parsePrivacyRequest(v: unknown): PrivacyRequest | null {
       accessClosed: o['accessClosed'],
     }
   }
+  // TSK-0136: the acknowledgment and the dates (calendar dates are YYYY-MM-DD).
+  const day = (x: unknown): x is string => isStr(x) && /^\d{4}-\d{2}-\d{2}$/.test(x)
+  const orNull = (x: unknown, ok: (y: unknown) => boolean) => x === null || ok(x)
+  if (
+    !orNull(v['acknowledgedAt'], isDate) ||
+    !orNull(v['acknowledgmentDueOn'], day) ||
+    !orNull(v['reviewStartedAt'], isDate) ||
+    !orNull(v['targetOn'], day) ||
+    !Array.isArray(v['extensions'])
+  )
+    return null
+  const extensions = v['extensions'].map((e) =>
+    isObj(e) && day(e['targetOn']) && isStr(e['reason']) && isDate(e['decidedAt'])
+      ? { targetOn: e['targetOn'], reason: e['reason'], decidedAt: e['decidedAt'] as string }
+      : null,
+  )
+  if (extensions.some((e) => e === null)) return null
   return {
     reference: v['reference'],
     kind: v['kind'],
@@ -1716,6 +1753,11 @@ export function parsePrivacyRequest(v: unknown): PrivacyRequest | null {
     submittedAt: v['submittedAt'],
     decidedAt: v['decidedAt'],
     outcome,
+    acknowledgedAt: v['acknowledgedAt'] as string | null,
+    acknowledgmentDueOn: v['acknowledgmentDueOn'] as string | null,
+    reviewStartedAt: v['reviewStartedAt'] as string | null,
+    targetOn: v['targetOn'] as string | null,
+    extensions: extensions as PrivacyRequest['extensions'],
   }
 }
 export function parsePrivacyList(v: unknown): PrivacyList | null {

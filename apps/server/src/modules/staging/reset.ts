@@ -56,6 +56,9 @@ export const CLEARED_CATEGORIES = {
     // TSK-0123 (0066): the zone history of each property; TSK-0127 (0067): staff's address-and-county checks.
     'crm.property_time_zones',
     'crm.property_county_verifications',
+    // TSK-0126 (0106): the site contacts and coverage acceptances of first-visit confirmation.
+    'crm.project_site_contacts',
+    'crm.project_coverage_acceptances',
   ],
   requests: [
     'crm.projects',
@@ -86,6 +89,9 @@ export const CLEARED_CATEGORIES = {
     'estimating.approvals',
     // TSK-0130 (0068): the Owner's publication approvals of estimate versions.
     'estimating.publication_approvals',
+    // TSK-0125 (0105): requested discounts and their verification results.
+    'estimating.discount_requests',
+    'estimating.discount_verifications',
   ],
   appointments: [
     'work.visits',
@@ -122,6 +128,8 @@ export const CLEARED_CATEGORIES = {
     'work.start_site_checks',
     'work.start_gate_evaluations',
     'work.work_starts',
+    // TSK-0094 (0102): resumptions after an incident.
+    'work.work_resumptions',
     'work.gate_exceptions',
     // TSK-0077 (0079): Stop Work, hazard and issue reports, their photos, stabilization records and reviews.
     'work.issue_reports',
@@ -186,6 +194,12 @@ export const CLEARED_CATEGORIES = {
     'quality.review_events',
     // TSK-0092 (0101): the customer's answers to the follow-up after completion.
     'quality.satisfaction_responses',
+    // TSK-0094 (0102): return work, its return visits, punch items, costs and history.
+    'quality.return_work',
+    'quality.return_work_visits',
+    'quality.return_work_items',
+    'quality.return_work_costs',
+    'quality.return_work_events',
     // TSK-0075 (0083): the job checklist, its history and handoff notes.
     'work.checklist_steps',
     'work.checklist_step_events',
@@ -228,6 +242,8 @@ export const CLEARED_CATEGORIES = {
   workflow: [
     'ops.queue_items',
     'privacy.privacy_requests',
+    // TSK-0136 (0103): the Owner's extensions of a privacy request's internal target.
+    'privacy.privacy_request_extensions',
     'privacy.retention_reviews',
     'privacy.retention_decisions',
     'privacy.deletions',

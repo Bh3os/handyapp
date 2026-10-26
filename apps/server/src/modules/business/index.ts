@@ -6,6 +6,7 @@
 //                                                          If-Match, a new audited configuration version
 //   GET /staff/settings/legal-documents                   every legal document's recorded version, its status, the
 //                                                          owner's sign-off and what still waits on review (the Owner)
+//   GET/PUT /staff/settings/business-calendar               TSK-0136: the internal business-day calendar (calendar.ts)
 // - The mailing address is personal data the owner gave (OWN-DEC-183): it is entered by the Owner here, on staging and
 //   production, and lives only in configuration (business.mailing_address). It is never in the repository, the graph,
 //   fixtures, logs or the audit summary (the summary records the line count and the versions, not the lines). Until it
@@ -31,6 +32,7 @@ import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
 import { loadConfig, recordPolicyVersion } from '../../platform/config/index.js'
 import { FRESH_AUTH_MINUTES } from '../identity/sessions.js'
 import { legalVersions } from '../legal/index.js'
+import { CALENDAR_ROUTES } from './calendar.js'
 
 const TEST = 'test/integration/business-settings.test.ts'
 /** At most this many address lines, each at most this long (PROPOSED limits: no decision sets them). */
@@ -320,4 +322,4 @@ const routes: RouteDef[] = [
   },
 ]
 
-export const BUSINESS_MODULE: ApiModule = { name: 'business', routes }
+export const BUSINESS_MODULE: ApiModule = { name: 'business', routes: [...routes, ...CALENDAR_ROUTES] }

@@ -11,9 +11,12 @@
 //   closes sign-in and project access (OWN-DEC-71: even while a hold keeps records; an unpaid balance never blocks
 //   it); every not-recorded check (complaints, disputes, claims, invoices, payments...) must be confirmed first. The
 //   outcome the customer is told names the deleted and retained categories, why, and until when where known.
-// - What the request does not do here: response deadlines are NOT CONFIGURED; a correction is made in the records'
-//   own screens and the decision records that it was handled; the outcome notice message is NOT CONFIGURED (no
-//   approved wording; the outcome is shown in the portal while access remains).
+// - What the request does not do here: a correction is made in the records' own screens and the decision records that
+//   it was handled; the outcome notice message is NOT CONFIGURED (no approved wording; the outcome is shown in the
+//   portal while access remains).
+// - TSK-0136: the acknowledgment, the substantive acknowledgment due date, the internal target, extensions and the
+//   legal deadline (deadlines.ts) are counted in the submission's transaction and kept in line with the request's
+//   Owner Decisions item at each step; nothing here closes a request when a date passes.
 import type { Db, Tx } from '@handyhub/db'
 import { sql } from 'kysely'
 import { ApiError } from '../../api/errors.js'
@@ -24,6 +27,7 @@ import { recordDeletion, scheduleObjectErasure } from './log.js'
 import { customerPlan, type Plan, type PlanItem, type PlanSubject } from './plan.js'
 import { eraseEstimate, estimateTarget, type CheckOutcome } from './targets.js'
 import { unconfirmed } from './decisions.js'
+import { recordRequestDates, requestDeadlines, syncPrivacyDeadlineItem, type RequestDeadlines } from './deadlines.js'
 
 type Reader = Db | Tx
 
@@ -124,9 +128,20 @@ export type CustomerPrivacyRequest = {
   submittedAt: Date
   decidedAt: Date | null
   outcome: Outcome | null
+  /** TSK-0136: the automatic acknowledgment, the substantive one and the target in force, with its extensions. */
+  acknowledgedAt: Date | null
+  acknowledgmentDueOn: string | null
+  reviewStartedAt: Date | null
+  targetOn: string | null
+  extensions: { targetOn: string; reason: string; decidedAt: Date }[]
 }
 
-const toCustomer = (r: Row): CustomerPrivacyRequest => ({
+const NO_DEADLINES: Pick<
+  CustomerPrivacyRequest,
+  'acknowledgedAt' | 'acknowledgmentDueOn' | 'reviewStartedAt' | 'targetOn' | 'extensions'
+> = { acknowledgedAt: null, acknowledgmentDueOn: null, reviewStartedAt: null, targetOn: null, extensions: [] }
+
+const toCustomer = (r: Row, d?: RequestDeadlines): CustomerPrivacyRequest => ({
   reference: r.reference,
   kind: r.kind as PrivacyRequestKind,
   state: r.state as PrivacyRequestState,
@@ -134,6 +149,16 @@ const toCustomer = (r: Row): CustomerPrivacyRequest => ({
   submittedAt: r.submitted_at,
   decidedAt: r.decided_at,
   outcome: (r.outcome as Outcome | null) ?? null,
+  ...(d
+    ? {
+        acknowledgedAt: d.acknowledgedAt,
+        acknowledgmentDueOn: d.acknowledgmentDueOn,
+        reviewStartedAt: d.substantiveAcknowledgedAt,
+        targetOn: d.targetOn,
+        // The legal deadline stays internal (PROPOSED); the customer is told each extension's date and reason.
+        extensions: d.extensions.map((e) => ({ targetOn: e.targetOn, reason: e.reason, decidedAt: e.decidedAt })),
+      }
+    : NO_DEADLINES),
 })
 
 /** The requester's own privacy requests about this customer, newest first. */
@@ -149,7 +174,11 @@ export async function customerPrivacyRequests(
     .orderBy('submitted_at', 'desc')
     .orderBy('reference', 'desc')
     .execute()
-  return rows.map((r) => toCustomer(r as Row))
+  const deadlines = await requestDeadlines(
+    db,
+    rows.map((r) => r.id),
+  )
+  return rows.map((r) => toCustomer(r as Row, deadlines.get(r.id)))
 }
 
 /** One of the requester's own requests by its reference; null for anything else. */
@@ -166,7 +195,7 @@ export async function customerPrivacyRequest(
     .where('customer_id', '=', who.customerId)
     .where('contact_id', '=', who.contactId)
     .executeTakeFirst()
-  return r ? { ...toCustomer(r as Row), id: r.id } : null
+  return r ? { ...toCustomer(r as Row, (await requestDeadlines(db, [r.id])).get(r.id)), id: r.id } : null
 }
 
 /** A new request from a verified, fresh session. */
@@ -219,7 +248,10 @@ export async function submitPrivacyRequest(
     })
     .returning(COLUMNS)
     .executeTakeFirstOrThrow()
-  return { ...toCustomer(row as Row), id: row.id }
+  // TSK-0136: the automatic acknowledgment and the dates, counted now, and the request's Owner Decisions item.
+  await recordRequestDates(tx, row.id)
+  await syncPrivacyDeadlineItem(tx, row.id, { now, requestId: input.requestId })
+  return { ...toCustomer(row as Row, (await requestDeadlines(tx, [row.id], now)).get(row.id)), id: row.id }
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -234,6 +266,8 @@ export type StaffPrivacyRequest = CustomerPrivacyRequest & {
   account: boolean
   reviewStartedAt: Date | null
   accessClosed: boolean | null
+  /** TSK-0136: the dates, the legal deadline and the overdue alerts as they are now. */
+  deadlines: RequestDeadlines
 }
 
 type StaffRow = Row & {
@@ -260,8 +294,9 @@ function staffQuery(db: Reader) {
     ])
 }
 
-const toStaff = (r: StaffRow): StaffPrivacyRequest => ({
-  ...toCustomer(r),
+const toStaff = (r: StaffRow, d: RequestDeadlines): StaffPrivacyRequest => ({
+  ...toCustomer(r, d),
+  deadlines: d,
   id: r.id,
   version: r.version,
   project: { reference: r.project_reference },
@@ -299,7 +334,14 @@ export async function listPrivacyRequests(
     .limit(page.limit + 1)
     .execute()
   const out = toPage(rows, page, (r) => [r.reference])
-  return { items: out.items.map((r) => toStaff(r as StaffRow)), nextCursor: out.nextCursor }
+  const deadlines = await requestDeadlines(
+    db,
+    out.items.map((r) => r.id),
+  )
+  return {
+    items: out.items.map((r) => toStaff(r as StaffRow, deadlines.get(r.id) as RequestDeadlines)),
+    nextCursor: out.nextCursor,
+  }
 }
 
 export type StaffPrivacyDetail = StaffPrivacyRequest & {
@@ -334,7 +376,7 @@ export async function privacyRequestDetail(
   const r = await staffRow(db, id)
   if (!r) return null
   return {
-    ...toStaff(r),
+    ...toStaff(r, (await requestDeadlines(db, [r.id], now)).get(r.id) as RequestDeadlines),
     plan: await customerPlan(db, subjectOf(r), now),
     findings: (r.findings as StaffPrivacyDetail['findings']) ?? null,
   }
@@ -346,7 +388,7 @@ const lockCustomer = (tx: Tx, customerId: string) =>
 /** Opens the Owner's review: received -> under_review, keeping what the search found. */
 export async function startReview(
   tx: Tx,
-  input: { id: string; staffUserId: string; expectedVersion: number },
+  input: { id: string; staffUserId: string; expectedVersion: number; requestId: string },
 ): Promise<StaffPrivacyDetail> {
   const r = await staffRow(tx, input.id)
   if (!r) throw new ApiError('NOT_FOUND')
@@ -368,6 +410,8 @@ export async function startReview(
     .where('version', '=', input.expectedVersion)
     .executeTakeFirst()
   if (Number(updated.numUpdatedRows) === 0) throw new ApiError('STALE_VERSION', { current: { version: r.version } })
+  // TSK-0136: the substantive acknowledgment is recorded (PROPOSED); the item now follows the target.
+  await syncPrivacyDeadlineItem(tx, r.id, { now, requestId: input.requestId })
   return (await privacyRequestDetail(tx, r.id, now)) as StaffPrivacyDetail
 }
 
@@ -553,5 +597,7 @@ export async function decidePrivacyRequest(tx: Tx, input: DecisionInput): Promis
     }))
     .where('id', '=', r.id)
     .execute()
+  // TSK-0136: a decided request leaves Owner Decisions; its dates stay as they were.
+  await syncPrivacyDeadlineItem(tx, r.id, { now, requestId: input.requestId })
   return { detail: (await privacyRequestDetail(tx, r.id, now)) as StaffPrivacyDetail, deletions }
 }
