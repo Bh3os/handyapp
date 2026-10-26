@@ -56,6 +56,7 @@ export {
   consentDestination,
   currentConsent,
   MARKETING_MESSAGES,
+  OPTIONAL_FOLLOW_UPS,
   recordConsent,
   sendPermission,
   type ConsentInput,

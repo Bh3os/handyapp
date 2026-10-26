@@ -38,6 +38,7 @@ import { outbox } from '../../platform/outbox.js'
 import type { ObjectStorage } from '../../providers/index.js'
 import { contentProblems } from '../photos/content.js'
 import { photoLimits } from '../photos/photos.js'
+import { syncProjectFollowUps } from '../closeout/follow-ups.js'
 import { openQueueItem, resolveQueueItem } from '../queue/items.js'
 
 type Reader = Db | Tx
@@ -217,6 +218,9 @@ export async function syncCaseItems(tx: Tx, caseId: string): Promise<void> {
       openedAt: c.reported_at,
     })
   else await resolveQueueItem(tx, { type: 'case_open', subjectId: c.id, resolution: 'closed' })
+  // TSK-0092 (HH-QA-10, OWN-DEC-113): the project's satisfaction check and review requests pause while a case is
+  // open and are offered again once every case is closed.
+  await syncProjectFollowUps(tx, c.project_id)
   if (notifiesOwner(c.kind) && c.state === 'reported')
     await openQueueItem(tx, {
       type: 'incident_notification',

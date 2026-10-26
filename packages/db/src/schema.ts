@@ -1914,6 +1914,17 @@ export interface QualityReviewsTable {
   version: Generated<number>
 }
 
+export interface QualitySatisfactionResponsesTable {
+  id: Generated<string>
+  job_id: string
+  project_id: string
+  delivery_id: string | null
+  answer: string
+  note: string | null
+  recorded_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface StagingEnvironmentMarksTable {
   id: Generated<string>
   seq: GeneratedAlways<string>
@@ -2275,6 +2286,19 @@ export interface WorkIssueReportsTable {
   reported_by: string
   reported_at: ColumnType<Date, Date | string | undefined, Date | string>
   device_recorded_at: Timestamp | null
+}
+
+export interface WorkJobCloseoutEventsTable {
+  id: Generated<string>
+  job_id: string
+  project_id: string
+  event: string
+  from_state: string
+  financial_basis: string | null
+  reason: string | null
+  recorded_by: string
+  staff_session_id: string | null
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
 export interface WorkJobCompletionsTable {
@@ -2908,6 +2932,7 @@ export interface Database {
   'quality.punch_items': QualityPunchItemsTable
   'quality.review_events': QualityReviewEventsTable
   'quality.reviews': QualityReviewsTable
+  'quality.satisfaction_responses': QualitySatisfactionResponsesTable
   'staging.environment_marks': StagingEnvironmentMarksTable
   'staging.reset_runs': StagingResetRunsTable
   'staging.reusable_test_accounts': StagingReusableTestAccountsTable
@@ -2928,6 +2953,7 @@ export interface Database {
   'work.issue_report_photos': WorkIssueReportPhotosTable
   'work.issue_report_reviews': WorkIssueReportReviewsTable
   'work.issue_reports': WorkIssueReportsTable
+  'work.job_closeout_events': WorkJobCloseoutEventsTable
   'work.job_completions': WorkJobCompletionsTable
   'work.job_packet_acknowledgment_invalidations': WorkJobPacketAcknowledgmentInvalidationsTable
   'work.job_packet_acknowledgments': WorkJobPacketAcknowledgmentsTable

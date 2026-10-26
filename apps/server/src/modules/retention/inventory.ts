@@ -838,6 +838,14 @@ export const TABLES = {
     classes: ['logs_audit'],
     categories: [J],
   },
+  // TSK-0092 (0101): the customer's answer to the follow-up after completion is part of the job record.
+  'quality.satisfaction_responses': {
+    holds:
+      "The customer's answer to the service-quality follow-up as staff recorded it (positive, mixed or negative), " +
+      'the optional note, the follow-up it answers, who recorded it and when',
+    classes: ['request_details'],
+    categories: [J],
+  },
   // TSK-0075 (0083): the job checklist is part of the job record.
   'work.checklist_steps': {
     holds:
@@ -1015,6 +1023,16 @@ export const TABLES = {
     categories: [J, S],
   },
   'work.jobs': { holds: 'Jobs of approved projects', classes: ['request_details'], categories: [J, A] },
+  // TSK-0092 (0101): the Owner's close and reopen of a job, with the financial basis or the reason.
+  'work.job_closeout_events': {
+    holds:
+      "The Owner's close and reopen of each job: the state it left, the financial basis of a close (paid, or the " +
+      'balance tracked by a payment plan, a collection hold or the overdue decision), the reason of a reopen, who ' +
+      'and when',
+    classes: ['logs_audit'],
+    categories: [J],
+    protectedEvidence: true,
+  },
   'work.loadout_checks': {
     holds:
       'What workers stated about each loadout item (loaded, missing, damaged) with their notes, and the approved ' +

@@ -33,6 +33,8 @@ import { sql } from 'kysely'
 import { ApiError, type FieldError } from '../../api/errors.js'
 import { loadConfig } from '../../platform/config/index.js'
 import { checklistSummaries } from '../checklist/store.js'
+import { scheduleFollowUpPreparation } from '../closeout/follow-ups.js'
+import { syncCloseoutItem } from '../closeout/store.js'
 import { openQueueItem, resolveQueueItem } from '../queue/items.js'
 
 type Reader = Db | Tx
@@ -249,6 +251,10 @@ async function moveReview(
       .set({ operational_state: 'operationally_complete', version: job.version + 1 })
       .where('id', '=', r.job_id)
       .execute()
+    // TSK-0092 (HH-QA-09, OWN-DEC-157): the Owner's closeout item opens, and the service-quality follow-up is prepared
+    // at its time after this authorized final completion.
+    await syncCloseoutItem(tx, r.job_id)
+    await scheduleFollowUpPreparation(tx, r.job_id)
   }
   await syncQueue(tx, row)
   return row
