@@ -85,6 +85,11 @@ export const START_GATE = obj({
   visitId: STR,
   visitNumber: INT,
   visitState: STR,
+  /** TSK-0094: a return visit (return_work) starts without moving the job; see `mode` for resuming. */
+  visitPurpose: STR,
+  /** What this answer evaluates: Start Work, or resuming after the job's latest pause (TSK-0094, HH-INC-03). */
+  mode: en(['start', 'resume']),
+  pausedAt: TIME_OR_NULL,
   jobId: STR_OR_NULL,
   projectReference: STR,
   checkedAt: TIME,
@@ -112,6 +117,7 @@ export const START_GATE = obj({
   emergency: obj({ call911: STR }),
   actions: obj({
     start: BOOL,
+    resume: BOOL,
     recordSiteCheck: BOOL,
     uploadBeforePhotos: BOOL,
     requestException: arr(en(GATE_EXCEPTION_KINDS)),
@@ -132,6 +138,21 @@ export const START_RESULT = obj({
   acknowledgmentId: STR,
   exceptionIds: arr(STR),
   workPackagesStarted: arr(STR),
+})
+
+export const RESUME_RESULT = obj({
+  resumed: BOOL,
+  resumptionId: STR,
+  resumedAt: TIME,
+  pausedAt: TIME,
+  startId: STR_OR_NULL,
+  evaluationId: STR,
+  jobState: STR,
+  jobStateBefore: STR,
+  packetVersion: INT,
+  acknowledgmentId: STR,
+  exceptionIds: arr(STR),
+  workPackagesResumed: arr(STR),
 })
 
 export const SITE_CHECK_BODY = input(

@@ -10,6 +10,11 @@
 // - The exceptions of the visit are read with where they stand now (effectiveExceptionState): an approved one covers
 //   only its own code while the visit lasts and no relevant change (scope, site, access, assignment) happened since the
 //   packet version it was requested against. settleExceptions() records an ending in the write transactions.
+// - TSK-0094: the same gate decides a resumption after an incident (mode `resume`, HH-INC-03): for a worker who started
+//   work on the job before its latest pause by a hazard report and has not started or resumed since. Everything is
+//   checked again, and the worker's site check must be newer than the pause (renewed checks); the hold itself is
+//   released only through its own path, and the packet version its release made needs the worker's own review. A
+//   return visit (purpose return_work, HH-QA-08) starts in the job states after Finished and never moves the job.
 import type { Tx } from '@handyhub/db'
 import {
   BLOCKING_HOLD_STATES,
@@ -17,6 +22,8 @@ import {
   evaluateStartGate,
   isWorkVisitPurpose,
   packetChanges,
+  resumeNeeded,
+  RETURN_VISIT_JOB_STATES,
   sopReadiness,
   START_BLOCKING_HOLD_KINDS,
   type CoveringException,
@@ -39,6 +46,9 @@ export type GateEnvironment = 'local' | 'ci' | 'staging' | 'production'
 
 /** The job states a new Start Work may begin from (PROPOSED: a later worker or visit of a job already in progress). */
 export const STARTABLE_JOB_STATES = ['pending_preparation', 'ready', 'in_progress'] as const
+
+/** Start Work, or resuming after a pause (TSK-0094). */
+export type GateMode = 'start' | 'resume'
 
 /** The Spanish release state of a safety text that a Spanish-reading worker may work from (OWN-DEC-79). */
 export const SPANISH_RELEASED = 'ai_reviewed'
@@ -102,6 +112,48 @@ export type GateFacts = {
   photos: Map<string, number>
   started: { id: string; startedAt: Date } | null
   locale: string
+  /** What this evaluation decides: a start, or a resumption after a pause (TSK-0094). */
+  mode: GateMode
+  /** The job's latest pause by a hazard report, and whether this worker must resume from it. */
+  pause: PauseFacts
+}
+
+export type PauseFacts = {
+  pausedAt: Date | null
+  /** The worker started work on the job before the latest pause (or ever, when never paused). */
+  startedBefore: boolean
+  resumeNeeded: boolean
+}
+
+/** The job's latest pause and the worker's starts and resumptions around it (TSK-0094). */
+export async function pauseFacts(tx: Tx, jobId: string, jobState: string, staffUserId: string): Promise<PauseFacts> {
+  const pause = await tx
+    .selectFrom('work.issue_reports')
+    .select(sql<Date | null>`max(reported_at)`.as('at'))
+    .where('job_id', '=', jobId)
+    .where('job_paused', '=', true)
+    .executeTakeFirst()
+  const pausedAt = pause?.at ? new Date(pause.at) : null
+  const starts = await tx
+    .selectFrom('work.work_starts')
+    .select('started_at as at')
+    .where('job_id', '=', jobId)
+    .where('staff_user_id', '=', staffUserId)
+    .execute()
+  const resumptions = await tx
+    .selectFrom('work.work_resumptions')
+    .select('resumed_at as at')
+    .where('job_id', '=', jobId)
+    .where('staff_user_id', '=', staffUserId)
+    .execute()
+  const times = [...starts, ...resumptions].map((r) => new Date(r.at).getTime())
+  const startedBefore = starts.some((r) => pausedAt === null || new Date(r.at).getTime() < pausedAt.getTime())
+  const last = times.length ? new Date(Math.max(...times)) : null
+  return {
+    pausedAt,
+    startedBefore,
+    resumeNeeded: resumeNeeded({ jobState, startedOnJob: startedBefore, pausedAt, lastActiveAt: last }),
+  }
 }
 
 export type SiteCheckRow = {
@@ -299,7 +351,7 @@ export async function gatherGate(
   tx: Tx,
   visit: GateVisit,
   staffUserId: string,
-  opts: { environment: GateEnvironment; now?: Date; seenPacketVersion?: number },
+  opts: { environment: GateEnvironment; now?: Date; seenPacketVersion?: number; mode?: GateMode },
 ): Promise<GateFacts> {
   if (!tx.isTransaction) throw new Error('gatherGate runs inside a transaction')
   const now = opts.now ?? new Date()
@@ -319,6 +371,8 @@ export async function gatherGate(
     .where('visit_id', '=', visit.id)
     .where('staff_user_id', '=', staffUserId)
     .executeTakeFirst()
+  let mode: GateMode = opts.mode ?? 'start'
+  let pause: PauseFacts = { pausedAt: null, startedBefore: false, resumeNeeded: false }
   const empty = (): GateFacts => ({
     visit,
     staffUserId,
@@ -332,6 +386,8 @@ export async function gatherGate(
     photos: new Map(),
     started: started ? { id: started.id, startedAt: started.started_at } : null,
     locale,
+    mode,
+    pause,
   })
 
   // 1. Assignment, the visit and arrival.
@@ -351,13 +407,23 @@ export async function gatherGate(
   if (!['confirmed', 'en_route', 'arrived'].includes(visit.state) || now.getTime() >= visit.dayEndsAt.getTime())
     add('VISIT_NOT_ACTIVE')
   else if (visit.state !== 'arrived' || !arrived) add('ARRIVED_FIRST')
-  if (started) add('ALREADY_STARTED')
   const job = await tx
     .selectFrom('work.jobs')
     .select('operational_state')
     .where('id', '=', jobId)
     .executeTakeFirstOrThrow()
-  if (!(STARTABLE_JOB_STATES as readonly string[]).includes(job.operational_state)) add('JOB_NOT_STARTABLE')
+  // TSK-0094: the read picks resuming when the worker must resume; the write routes say which they are.
+  pause = await pauseFacts(tx, jobId, job.operational_state, staffUserId)
+  mode = opts.mode ?? (pause.resumeNeeded ? 'resume' : 'start')
+  if (mode === 'start') {
+    if (started) add('ALREADY_STARTED')
+    // A return visit starts after Finished and never moves the job (HH-QA-08); every other work visit as before.
+    const startable: readonly string[] =
+      visit.purpose === 'return_work' ? RETURN_VISIT_JOB_STATES : STARTABLE_JOB_STATES
+    if (!startable.includes(job.operational_state)) add('JOB_NOT_STARTABLE')
+  } else if (!pause.startedBefore || pause.pausedAt === null) add('NOT_STARTED_BEFORE')
+  else if (!pause.resumeNeeded)
+    add(['paused', 'in_progress'].includes(job.operational_state) ? 'RESUME_NOT_NEEDED' : 'JOB_NOT_STARTABLE')
 
   // 3. The packet: brought up to date, viewed at its latest version (OWN-DEC-196) and personally acknowledged.
   const row = await refreshJobPacket(tx, jobId, now)
@@ -401,8 +467,12 @@ export async function gatherGate(
     .execute()
   for (const h of holds) add(HOLD_CODE[h.kind as keyof typeof HOLD_CODE], h.id)
 
-  // 2, 6 and 8. The worker's own site check on arrival.
-  const siteCheck = await latestSiteCheck(tx, visit.id, staffUserId)
+  // 2, 6 and 8. The worker's own site check on arrival; to resume, one recorded after the pause (renewed checks).
+  const latest = await latestSiteCheck(tx, visit.id, staffUserId)
+  const siteCheck =
+    mode === 'resume' && latest && pause.pausedAt && latest.recordedAt.getTime() <= pause.pausedAt.getTime()
+      ? null
+      : latest
   if (!siteCheck) {
     add('SITE_CHECK_MISSING')
     add('HAZARDS_NOT_REVIEWED')
@@ -451,6 +521,8 @@ export async function gatherGate(
     photos,
     started: started ? { id: started.id, startedAt: started.started_at } : null,
     locale,
+    mode,
+    pause,
   }
 }
 

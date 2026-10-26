@@ -29,3 +29,5 @@ source: "TSK-0073, TSK-0074 (2026-10-22): HH-WORK-01 to HH-WORK-04 and OWN-DEC-6
 - **Until answered:** the PROPOSED details above are used; each is a small change to the nodes or the code.
 
 **Updated by [[TSK-0077]] (2026-10-22):** the hazard report now exists: Stop Work / Report Hazard writes the critical safety hold (source hazard_report) in the same transaction as its report, under the job lock, so the first NOT CONFIGURED item above is built; its own PROPOSED details are in [[OQ-STOP-WORK-DETAILS]].
+
+**Updated by [[TSK-0094]] (2026-10-25):** a paused job resumes through the same gate in its resume mode (per worker and pause, with a site check after the pause), and a return visit (purpose `return_work`) starts once the job awaits quality review, is operationally complete or closed, without moving it. Details in [[OQ-RETURN-WORK-DETAILS]].

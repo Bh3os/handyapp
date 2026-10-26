@@ -15,7 +15,7 @@ import type { StaffActor } from '@handyhub/policy'
 import { sql } from 'kysely'
 import { ApiError } from '../../api/errors.js'
 import { reportIncident } from '../cases/store.js'
-import { checklistSummaries } from '../checklist/store.js'
+import { checklistSummaries, workerCurrent } from '../checklist/store.js'
 import { openQualityReview } from '../quality/store.js'
 
 type Reader = Db | Tx
@@ -53,6 +53,7 @@ async function facts(db: Reader, actor: StaffActor, jobId: string): Promise<Comp
     jobState: job.operational_state,
     holdsOpen: Number(holds.rows[0]?.n ?? 0),
     workStarted: started !== undefined,
+    resumed: started === undefined || (await workerCurrent(db, jobId, actor.userId)),
     alreadySubmitted: submitted !== undefined,
     packages: checklists.map((c) => ({
       code: c.code,

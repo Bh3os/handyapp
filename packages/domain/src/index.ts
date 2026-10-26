@@ -167,6 +167,8 @@ export {
   type VisitOutcomeProblem,
 } from './visit-outcome.js'
 export * from './local-time.js'
+// TSK-0136: the internal business-day calendar and the privacy-request dates counted on it.
+export * from './business-calendar.js'
 export * from './zones.js'
 export {
   CANCELLATION_INITIATORS,
@@ -426,3 +428,5 @@ export * from './overrides.js'
 export * from './escalation.js'
 // TSK-0128 (HH-PKT-08, OWN-DEC-171): the visit-day data access of the assigned workers and Owner extensions.
 export * from './visit-access.js'
+// TSK-0094 (HH-QA-07, HH-QA-08, HH-INC-03, FACT-WARRANTY): return work, the warranty window and resuming.
+export * from './return-work.js'

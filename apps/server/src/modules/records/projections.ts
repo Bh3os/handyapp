@@ -1531,7 +1531,16 @@ export type PrivacyRequestRecord = {
   submittedAt: Date
   decidedAt: Date | null
   outcome: OutcomeRecord | null
+  acknowledgedAt: Date | null
+  acknowledgmentDueOn: string | null
+  reviewStartedAt: Date | null
+  targetOn: string | null
+  extensions: readonly { targetOn: string; reason: string; decidedAt: Date }[]
 }
+// TSK-0136 (HH-PRIV-07, OWN-DEC-175): the automatic acknowledgment (the portal is where the customer sees it: its
+// message wording is not given), the date the substantive acknowledgment is due, the start of the Owner's review (the
+// substantive acknowledgment, PROPOSED), the internal target in force and each extension with the Owner's reason. The
+// legal deadline the Owner records stays internal (PROPOSED).
 export const PRIVACY_REQUEST = customerView(
   'privacy_request.customer',
   'PrivacyRequest',
@@ -1543,6 +1552,14 @@ export const PRIVACY_REQUEST = customerView(
     submittedAt: DATE,
     decidedAt: NULLABLE_DATE,
     outcome: { oneOf: [{ type: 'null' }, OUTCOME] },
+    acknowledgedAt: NULLABLE_DATE,
+    acknowledgmentDueOn: { type: ['string', 'null'], format: 'date' },
+    reviewStartedAt: NULLABLE_DATE,
+    targetOn: { type: ['string', 'null'], format: 'date' },
+    extensions: {
+      type: 'array',
+      items: object({ targetOn: { type: 'string', format: 'date' }, reason: STRING, decidedAt: DATE }),
+    },
   },
   (r: PrivacyRequestRecord) => ({
     reference: r.reference,
@@ -1560,6 +1577,15 @@ export const PRIVACY_REQUEST = customerView(
           accessClosed: r.outcome.accessClosed,
         }
       : null,
+    acknowledgedAt: r.acknowledgedAt ? r.acknowledgedAt.toISOString() : null,
+    acknowledgmentDueOn: r.acknowledgmentDueOn,
+    reviewStartedAt: r.reviewStartedAt ? r.reviewStartedAt.toISOString() : null,
+    targetOn: r.targetOn,
+    extensions: r.extensions.map((e) => ({
+      targetOn: e.targetOn,
+      reason: e.reason,
+      decidedAt: e.decidedAt.toISOString(),
+    })),
   }),
 )
 

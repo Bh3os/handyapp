@@ -45,6 +45,8 @@ export type CompletionFacts = {
   readonly jobState: string
   readonly holdsOpen: number
   readonly workStarted: boolean
+  /** TSK-0094: after a pause, the worker started or resumed through the gate since (absent: not paused). */
+  readonly resumed?: boolean
   readonly alreadySubmitted: boolean
   readonly packages: readonly {
     readonly code: string
@@ -63,6 +65,7 @@ export function completionProblems(f: CompletionFacts): CompletionProblem[] {
   else if (f.jobState !== 'in_progress') out.push({ code: 'JOB_NOT_IN_PROGRESS' })
   if (f.holdsOpen > 0) out.push({ code: 'HOLD_OPEN' })
   if (!f.workStarted) out.push({ code: 'WORK_NOT_STARTED' })
+  else if (f.resumed === false) out.push({ code: 'RESUME_REQUIRED' })
   for (const p of f.packages) {
     if (!p.checklistComplete) out.push({ code: 'CHECKLIST_INCOMPLETE', workPackage: p.code })
     if (p.beforePhotos === 0) out.push({ code: 'BEFORE_PHOTO_MISSING', workPackage: p.code })

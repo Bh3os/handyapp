@@ -122,6 +122,8 @@ export const LABEL_FAMILIES = {
     'refund_request',
     'cancellation_outcome',
     'deletion_request',
+    // TSK-0136: an open privacy request with its deadlines and overdue alerts.
+    'privacy_request',
     'invoice_overdue_decision',
     'cancellation_review',
     'visit_cancellation_review',
@@ -168,6 +170,13 @@ export const LABEL_FAMILIES = {
     'project_link',
     'cancellation_outcome_requested',
     'deletion_requested',
+    // TSK-0136: which date of a privacy request is due or overdue.
+    'privacy_acknowledgment_due',
+    'privacy_acknowledgment_overdue',
+    'privacy_completion_due',
+    'privacy_completion_overdue',
+    'privacy_legal_deadline_overdue',
+    'privacy_dates_not_configured',
     'overdue_owner_decision',
     // TSK-0091: why an invoice's reminders wait for staff.
     'payment_recorded',
@@ -350,6 +359,9 @@ export const LABEL_FAMILIES = {
     'cancellation.rules',
     'contact.hours',
     'business.timezone',
+    // TSK-0136: the internal business-day calendar and the privacy request targets.
+    'business.calendar',
+    'privacy.request_targets',
     'reminders.cadences',
     'request.reopen_period',
     'messages.delivery_hours',
@@ -886,6 +898,8 @@ export const LABEL_FAMILIES = {
     'follow_up',
     // TSK-0149: requests for help signing in or getting a new project link.
     'access_help',
+    // TSK-0094: return work of a case.
+    'return_work',
     'access_code',
     'account_offer',
     'appointment_reminder',
@@ -1108,6 +1122,12 @@ export const LABEL_FAMILIES = {
     'REVIEW_NOT_STARTED',
     'REVIEW_ALREADY_STARTED',
     'PRIVACY_REQUEST_OPEN',
+    // TSK-0136: the Owner's changes of a request's dates.
+    'NOT_AFTER_TARGET',
+    'DATE_NOT_AHEAD',
+    'DATE_TOO_FAR',
+    'BEFORE_RECEIPT',
+    'DATES_NOT_CONFIGURED',
     'required',
     'FRESH_AUTH_REQUIRED',
     'STALE_VERSION',
@@ -1119,6 +1139,8 @@ export const LABEL_FAMILIES = {
     'INTERNAL',
     'UNAVAILABLE',
   ],
+  /** TSK-0136: the overdue alerts of an open privacy request (@handyhub/domain PRIVACY_DEADLINE_ALERTS). */
+  privacyAlert: ['acknowledgment_overdue', 'completion_overdue', 'legal_deadline_overdue'],
   /** The result of an audited action (ENT-AuditEvent; platform.audit_events.result). */
   auditResult: ['succeeded', 'denied', 'failed'],
   /** Who performed an audited action, when it was not a staff member (ENT-AuditEvent; actor_kind). */
@@ -1736,6 +1758,8 @@ export const LABEL_FAMILIES = {
     'ARRIVED_FIRST',
     'ALREADY_STARTED',
     'JOB_NOT_STARTABLE',
+    'NOT_STARTED_BEFORE',
+    'RESUME_NOT_NEEDED',
     'SITE_CHECK_MISSING',
     'PROPERTY_NOT_CONFIRMED',
     'ACCESS_NOT_AVAILABLE',
@@ -1897,6 +1921,9 @@ export const LABEL_FAMILIES = {
     'unknown_job',
     'unknown_hold',
     'complaint_needs_assignee_and_due_date',
+    // TSK-0094: a case with return work closes after the Owner's decision and every item's re-check.
+    'RETURN_WORK_UNDECIDED',
+    'RETURN_ITEMS_OPEN',
   ],
   // TSK-0077: Stop Work / Report Hazard and issue reports (@handyhub/domain hazard.ts).
   hazardKind: [
@@ -1972,6 +1999,8 @@ export const LABEL_FAMILIES = {
     'NOT_A_WORKER',
     // TSK-0081 (HH-WORK-07): a step an open change order names.
     'WAITS_FOR_CHANGE_ORDER',
+    // TSK-0094 (HH-INC-03): after a pause, resume through the Start Work gate first.
+    'RESUME_REQUIRED',
   ],
   // TSK-0081 (HH-CHG-01, OWN-DEC-203): change orders.
   changeOrderState: ['draft', 'reviewed', 'issued', 'approved', 'rejected', 'expired', 'superseded', 'withdrawn'],
@@ -2031,6 +2060,7 @@ export const LABEL_FAMILIES = {
     'JOB_NOT_IN_PROGRESS',
     'HOLD_OPEN',
     'WORK_NOT_STARTED',
+    'RESUME_REQUIRED',
     'CHECKLIST_INCOMPLETE',
     'BEFORE_PHOTO_MISSING',
     'AFTER_PHOTO_MISSING',
@@ -2046,6 +2076,51 @@ export const LABEL_FAMILIES = {
   punchKind: ['finish', 'cleanup', 'defect', 'incomplete_scope', 'failed_check', 'safety_concern'],
   punchSeverity: ['minor', 'major'],
   punchState: ['open', 'corrected', 'rechecked'],
+  // TSK-0094 (HH-QA-07, HH-QA-08, HH-FIN-17): return work of a case (@handyhub/domain return-work.ts).
+  returnWorkClass: [
+    'open_punch',
+    'workmanship_callback',
+    'warranty_claim',
+    'new_scope',
+    'customer_change_or_damage',
+    'product_issue',
+    'unresolved',
+  ],
+  returnWorkCoverage: ['covered', 'not_covered'],
+  returnWorkPrice: ['no_charge', 'chargeable'],
+  returnWorkCostKind: ['materials', 'purchase', 'rental', 'other'],
+  returnWorkEvent: [
+    'classified',
+    'reclassified',
+    'decided',
+    'visit_linked',
+    'job_linked',
+    'job_unlinked',
+    'item_added',
+    'item_corrected',
+    'item_rechecked',
+    'item_reopened',
+    'cost_recorded',
+    'cost_voided',
+  ],
+  /** The server's refusal codes of the return-work routes (apps/server/src/modules/return-work). */
+  returnWorkCode: [
+    'REVIEW_NOT_PASSED',
+    'REVIEW_ALREADY_PASSED',
+    'NO_JOB',
+    'NOT_A_RETURN_JOB',
+    'NOT_A_RETURN_VISIT',
+    'VISIT_ALREADY_LINKED',
+    'unknown_visit',
+    'PLACE_REQUIRED',
+    'NOT_A_WORK_PACKAGE_OF_THE_JOB',
+    'NOT_AN_ACTIVE_WORKER',
+    'START_RETURN_VISIT_FIRST',
+    'RECHECKER_CORRECTED',
+    'REASON_REQUIRED',
+    'INVALID_TRANSITION',
+    'COST_VOIDED',
+  ],
   qualityGate: ['quality_review_not_recorded', 'passed', 'owner_may_issue', 'blocked'],
   qualityEvent: [
     'start',

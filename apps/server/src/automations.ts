@@ -74,6 +74,7 @@ import {
 import { notAFitNoticeAutomation } from './modules/requests/not-a-fit-notice.js'
 import { workPausedDraftAutomation, workPausedRecordCheck } from './modules/hazards/index.js'
 import { objectErasureAutomation } from './modules/privacy/log.js'
+import { privacyDeadlineAutomation } from './modules/privacy/deadlines.js'
 import type { CodeKeySettings } from './modules/identity/index.js'
 import type { RecordChecks, ReleaseFailureItem, ReleaseValues } from './modules/notifications/index.js'
 import type { Automation } from './platform/automation.js'
@@ -331,5 +332,7 @@ export function buildAutomations(deps: AutomationDeps): Automation[] {
     }),
     // TSK-0100: the stored files of a record the Owner deleted are removed after the deletion committed.
     objectErasureAutomation(deps.providers.storage),
+    // TSK-0136: at each deadline of an open privacy request, its Owner Decisions item says what is due or overdue.
+    privacyDeadlineAutomation(),
   ]
 }
