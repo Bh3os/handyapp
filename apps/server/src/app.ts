@@ -120,7 +120,15 @@ export async function buildApp({
   // The API under /api/v1 (behind the gate like every route).
   const ownDb = api?.db === undefined && config.databaseUrl !== undefined
   const db =
-    api?.db ?? (config.databaseUrl ? createDb(config.databaseUrl, { applicationName: 'handyapp-api' }) : undefined)
+    api?.db ??
+    (config.databaseUrl
+      ? createDb(config.databaseUrl, {
+          applicationName: 'handyapp-api',
+          // TSK-0107: a lost connection is replaced; only its code is logged.
+          onConnectionLost: (err) =>
+            app.log.warn({ code: err.code ?? null }, 'database connection lost; it is replaced'),
+        })
+      : undefined)
   if (ownDb && db) app.addHook('onClose', async () => db.destroy())
   if (db && config.env === 'production') launchGate = new LaunchGate(db)
   // The caller per surface (TSK-0017): the staff API reads only the staff session (TSK-0014); the public and customer
