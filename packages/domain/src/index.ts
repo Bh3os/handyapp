@@ -21,6 +21,7 @@ import { GATE_EXCEPTION_MACHINE } from './start-gate.js'
 import { COMPLAINT_CASE_MACHINE, INCIDENT_CASE_MACHINE } from './case.js'
 import { PUNCH_ITEM_MACHINE, QUALITY_REVIEW_MACHINE } from './quality-review.js'
 import { CHECKLIST_STEP_MACHINE } from './checklist.js'
+import { JOB_CLOSEOUT_MACHINE } from './closeout.js'
 
 export const PACKAGE_NAME = '@handyhub/domain'
 
@@ -166,6 +167,8 @@ export {
   type VisitOutcomeProblem,
 } from './visit-outcome.js'
 export * from './local-time.js'
+// TSK-0136: the internal business-day calendar and the privacy-request dates counted on it.
+export * from './business-calendar.js'
 export * from './zones.js'
 export {
   CANCELLATION_INITIATORS,
@@ -275,6 +278,9 @@ export type {
   SopStep,
 } from './sop.js'
 
+// TSK-0092: a job's closeout, the Owner's reopen and the follow-ups after completion.
+export * from './closeout.js'
+
 /** Every machine, keyed `<entity>.<dimension>`. One key per state dimension, so dimensions never share a state. */
 export const MACHINES = {
   'request.lifecycle': REQUEST_MACHINE,
@@ -295,6 +301,8 @@ export const MACHINES = {
   'checklist_step.lifecycle': CHECKLIST_STEP_MACHINE,
   // TSK-0081: a change-order version.
   'change_order.lifecycle': CHANGE_ORDER_MACHINE,
+  // TSK-0092: a job's closeout and the Owner's reopen.
+  'job.closeout': JOB_CLOSEOUT_MACHINE,
 } as const
 export type MachineKey = keyof typeof MACHINES
 type M<K extends MachineKey> = (typeof MACHINES)[K]
@@ -353,6 +361,25 @@ export type {
   PublicationInvalidationReason,
   PublicationSubject,
 } from './publication-approval.js'
+// TSK-0125 (HH-EST-15, OWN-DEC-165): discount requests and their staff verification.
+export {
+  DISCOUNT_CATEGORIES,
+  DISCOUNT_RESULT_PROBLEMS,
+  DISCOUNT_RESULTS,
+  DISCOUNT_STATES,
+  discountFailed,
+  discountResultProblem,
+  discountState,
+  isDiscountCategory,
+  returningWindowStart,
+} from './discount.js'
+export type {
+  DiscountCategory,
+  DiscountResult,
+  DiscountResultInput,
+  DiscountResultProblem,
+  DiscountState,
+} from './discount.js'
 // TSK-0093 (HH-QA-06, HH-INC-01, HH-INC-02, HH-INC-04, ENT-Case): cases, their lifecycles and customer updates.
 export {
   CASE_EVENTS,
@@ -418,5 +445,7 @@ export * from './launch.js'
 export * from './overrides.js'
 // TSK-0129 (HH-PKT-09, OWN-DEC-172): Call Owner and Call 911 in every job packet; the Owner's number format.
 export * from './escalation.js'
+// TSK-0094 (HH-QA-07, HH-QA-08, HH-INC-03, FACT-WARRANTY): return work, the warranty window and resuming.
+export * from './return-work.js'
 // TSK-0126 (OWN-DEC-167): the three first-visit site checks, site-contact authority and address pre-validation.
 export * from './site-checks.js'

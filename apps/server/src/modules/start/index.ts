@@ -8,6 +8,8 @@
 //   POST /staff/visits/:visitId/before-photos                    one before photo for a work package (job.add_photo)
 //   POST /staff/visits/:visitId/start-exceptions                 an exception request (work.request_exception)
 //   POST /staff/visits/:visitId/start                            Start Work: every gate again, in one transaction
+//   POST /staff/visits/:visitId/resume                           resume after an incident (work.resume, TSK-0094):
+//                                                                the same gate again, for this worker, once per pause
 //   GET  /staff/jobs/:jobId/start-review                         holds and exceptions of a job (job_hold.set)
 //   POST /staff/jobs/:jobId/job-holds                            set the job-level Hold with a note (job_hold.set)
 //   POST /staff/job-holds/:holdId/actions/set-ready              the Owner sets Ready with a note (job_hold.set_ready)
@@ -53,6 +55,7 @@ import {
   moveCriticalHold,
   recordSiteCheck,
   requestException,
+  resumeWork,
   setJobHoldReady,
   startWork,
   syncExceptionItem,
@@ -76,6 +79,7 @@ import {
   HOLD_RESULT,
   JOB_HOLD_BODY,
   JOB_PARAMS,
+  RESUME_RESULT,
   NO_QUERY,
   PHOTO_QUERY,
   PHOTO_RESULT,
@@ -175,10 +179,16 @@ async function gateView(tx: Tx, actor: StaffActor, facts: GateFacts) {
     facts.exceptions.filter((e) => ['requested', 'approved'].includes(e.effective)).map((e) => e.kind),
   )
   const onSite = facts.assigned && ['en_route', 'arrived'].includes(v.state)
+  const may = (action: 'work.start' | 'work.resume') => async () =>
+    allowed(actor, action, { projectId: v.projectId, assignments: await visitAssignments(tx, v.id) })
+  const ready = facts.result.outcome === 'ready'
   return {
     visitId: v.id,
     visitNumber: info.number,
     visitState: v.state,
+    visitPurpose: v.purpose,
+    mode: facts.mode,
+    pausedAt: iso(facts.pause.pausedAt),
     jobId: v.jobId,
     projectReference: info.reference,
     checkedAt: new Date().toISOString(),
@@ -219,14 +229,10 @@ async function gateView(tx: Tx, actor: StaffActor, facts: GateFacts) {
     started: facts.started ? { startId: facts.started.id, startedAt: facts.started.startedAt.toISOString() } : null,
     emergency: { call911: CALL_911 },
     actions: {
-      start:
-        facts.result.outcome === 'ready' &&
-        facts.started === null &&
-        allowed(actor, 'work.start', {
-          projectId: v.projectId,
-          assignments: await visitAssignments(tx, v.id),
-        }),
-      recordSiteCheck: facts.assigned && v.state === 'arrived' && facts.started === null,
+      start: facts.mode === 'start' && ready && facts.started === null && (await may('work.start')()),
+      resume: facts.mode === 'resume' && ready && (await may('work.resume')()),
+      // TSK-0094: resuming asks for a site check newer than the pause, so it is offered again then.
+      recordSiteCheck: facts.assigned && v.state === 'arrived' && (facts.started === null || facts.mode === 'resume'),
       uploadBeforePhotos: facts.assigned && v.state === 'arrived',
       requestException: onSite
         ? GATE_EXCEPTION_KINDS.filter(
@@ -254,7 +260,12 @@ export function startModule(deps: { storage: ObjectStorage | null; environment?:
       'condition, before photos and the deposit. Each missing item has its code, what it is about, its weight and ' +
       'its resolution owner, and the one administrative exception that may cover it, if any. Outcome: ready, ' +
       'needs_attention, requires_review or blocked. This answer authorizes nothing: Start Work checks everything ' +
-      'again. Always carries the emergency call (tel:911). No query: no flag changes what is checked.',
+      'again. Always carries the emergency call (tel:911). No query: no flag changes what is checked. TSK-0094: for a ' +
+      'worker who started work on the job before its latest pause by a hazard report and has not started or resumed ' +
+      'since, the answer evaluates resuming (mode resume, HH-INC-03): the same prerequisites, with a site check ' +
+      'recorded after the pause, and actions.resume instead of actions.start. A return visit (visitPurpose ' +
+      'return_work) starts once the job is awaiting quality review, operationally complete or closed, and its start ' +
+      'never moves the job.',
     actors: ['staff'],
     permission: 'work.start',
     kind: 'read',
@@ -291,8 +302,9 @@ export function startModule(deps: { storage: ObjectStorage | null; environment?:
       'every missing item (field gate.<prerequisite>, code), after recording the evaluation. A ready evaluation ' +
       'records the start (actual contracted work started, OWN-DEC-195) with the packet, scope and SOP versions, the ' +
       'acknowledgment, any approved exception and the server time, and moves the job and its planned or ready work ' +
-      'packages to in_progress. No role, flag or field skips any of it; the database refuses a start without its ' +
-      'passing evaluation, and while any review, job-level or critical safety hold is open.',
+      'packages to in_progress; a return visit (return_work, TSK-0094) moves neither: the original job keeps its ' +
+      'state, completion evidence and costs (HH-QA-08). No role, flag or field skips any of it; the database refuses ' +
+      'a start without its passing evaluation, and while any review, job-level or critical safety hold is open.',
     actors: ['staff'],
     permission: 'work.start',
     kind: 'write',
@@ -338,7 +350,7 @@ export function startModule(deps: { storage: ObjectStorage | null; environment?:
           startId: out.start.id,
           startedAt: out.start.startedAt.toISOString(),
           evaluationId: out.evaluationId,
-          jobState: 'in_progress',
+          jobState: out.start.jobState,
           jobStateBefore: out.start.jobStateBefore,
           packetVersion: row.version,
           scopeVersion: row.content.scope.version,
@@ -348,6 +360,84 @@ export function startModule(deps: { storage: ObjectStorage | null; environment?:
           workPackagesStarted: out.start.packagesStarted,
         },
         version: out.start.jobVersion,
+      }
+    },
+  }
+
+  const resume: RouteDef = {
+    method: 'POST',
+    path: '/staff/visits/:visitId/resume',
+    operationId: 'resumeWork',
+    summary: 'Resume work after an incident (the Start Work gate again)',
+    description:
+      'Staff with work.resume, assigned to this visit, online (TSK-0094; HH-INC-03, T54). For a worker who started ' +
+      'work on the job before its latest pause by a hazard report and has not started or resumed since. One ' +
+      "transaction under the visit's and the job's row locks: the packet is brought up to date and every Start Work " +
+      'prerequisite is evaluated again (the hold released through its own path by someone other than the person who ' +
+      'raised it, the current scope and SOP, the packet version the release made viewed and personally ' +
+      'acknowledged, a site check recorded after the pause, critical resources, before photos of this visit, the ' +
+      'deposit), and the evaluation is recorded whatever its outcome. Anything missing refuses with CONFLICT naming ' +
+      'every missing item (field gate.<prerequisite>, code: NOT_STARTED_BEFORE when the caller never started work ' +
+      'on the job before the pause, RESUME_NOT_NEEDED once they resumed). A ready evaluation records the ' +
+      "resumption (and the worker's start on this visit when it is a new one) and moves a paused job and its " +
+      'blocked work packages back to in_progress. Releasing a hold in the app is never a certification that the ' +
+      'site is safe or a legal conclusion. No role, flag or field skips any of it; the database refuses a ' +
+      'resumption without its passing evaluation.',
+    actors: ['staff'],
+    permission: 'work.resume',
+    kind: 'write',
+    idempotency: 'required',
+    expectedVersion: 'none',
+    rateLimit: 'none',
+    audit: 'work.resume',
+    pagination: false,
+    test: 'test/integration/return-work.test.ts',
+    resource: visitFacts,
+    schema: { params: VISIT_PARAMS, querystring: NO_QUERY, body: START_BODY, response: { 201: RESUME_RESULT } },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const actor = staff(ctx)
+      const { visitId } = ctx.req.params as { visitId: string }
+      const body = ctx.req.body as { packetVersion: number }
+      const out = await resumeWork(tx, actor, visitId, {
+        packetVersion: body.packetVersion,
+        requestId: requestIdOf(ctx),
+        environment,
+      })
+      const v = out.facts.visit
+      const summary = {
+        projectId: v.projectId,
+        jobId: v.jobId,
+        evaluationId: out.evaluationId,
+        outcome: out.facts.result.outcome,
+        missing: out.facts.result.items.flatMap((i) => i.missing.filter((m) => !m.exceptionId).map((m) => m.code)),
+        exceptions: [...out.facts.result.exceptionsUsed],
+        packetVersion: out.facts.packet?.version ?? null,
+      }
+      if (!out.resumed) {
+        await ctx.audit({ target: { type: 'visit', id: v.id }, summary, result: 'denied', reason: 'start_gate_failed' })
+        return { body: {}, refusal: gateRefusal(out.facts) }
+      }
+      await ctx.audit({ target: { type: 'work_resumption', id: out.resumption.id }, summary })
+      const row = out.facts.packet
+      if (!row || !out.facts.acknowledgmentId) throw new Error('a resumed gate has its packet and acknowledgment')
+      return {
+        status: 201,
+        body: {
+          resumed: true,
+          resumptionId: out.resumption.id,
+          resumedAt: out.resumption.resumedAt.toISOString(),
+          pausedAt: out.resumption.pausedAt.toISOString(),
+          startId: out.resumption.startId,
+          evaluationId: out.evaluationId,
+          jobState: 'in_progress',
+          jobStateBefore: out.resumption.jobStateBefore,
+          packetVersion: row.version,
+          acknowledgmentId: out.facts.acknowledgmentId,
+          exceptionIds: [...out.facts.result.exceptionsUsed],
+          workPackagesResumed: out.resumption.packagesResumed,
+        },
+        version: out.resumption.jobVersion,
       }
     },
   }
@@ -895,6 +985,7 @@ export function startModule(deps: { storage: ObjectStorage | null; environment?:
       photo,
       requestExc,
       start,
+      resume,
       decision({
         action: 'approve',
         body: APPROVE_BODY,

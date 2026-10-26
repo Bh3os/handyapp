@@ -1051,7 +1051,7 @@ type EstimateDetailRecord = {
   dependencies: string[]
   scheduleAssumptions: string[]
   subtotalCents: number
-  reduction: { label: string; amountCents: number } | null
+  reduction: { label: string; amountCents: number; pendingVerification: boolean } | null
   totalCents: number
   deposit: { state: string; amountCents: number | null }
   paymentTerm: string
@@ -1094,8 +1094,14 @@ export const CUSTOMER_ESTIMATE = customerView(
     dependencies: STRINGS,
     scheduleAssumptions: STRINGS,
     subtotalCents: CENTS,
-    // The discount totals row (OWN-DEC-145), labelled by the server in the customer PDF's own words.
-    reduction: { oneOf: [{ type: 'null' }, object({ label: STRING, amountCents: CENTS })] },
+    // The discount totals row (OWN-DEC-145), labelled by the server in the customer PDF's own words; TSK-0125: whether
+    // the requested discount is still pending verification (never how it is verified).
+    reduction: {
+      oneOf: [
+        { type: 'null' },
+        object({ label: STRING, amountCents: CENTS, pendingVerification: { type: 'boolean' } }),
+      ],
+    },
     totalCents: CENTS,
     deposit: object({ state: enumOf(['required', 'not_required']), amountCents: NULLABLE_CENTS }),
     paymentTerm: STRING,
@@ -1107,7 +1113,16 @@ export const CUSTOMER_ESTIMATE = customerView(
       available: { type: 'boolean' },
       reasons: {
         type: 'array',
-        items: enumOf(['terms_not_configured', 'terms_not_in_effect', 'superseded', 'expired', 'not_published']),
+        items: enumOf([
+          'terms_not_configured',
+          'terms_not_in_effect',
+          'superseded',
+          'expired',
+          'not_published',
+          // TSK-0125 (OWN-DEC-165): approval waits for the requested discount's verification, or an updated estimate.
+          'reduction_pending_verification',
+          'reduction_not_verified',
+        ]),
       },
       current: { oneOf: [{ type: 'null' }, object({ number: STRING, version: { type: 'integer', minimum: 1 } })] },
       contentDigest: STRING,
@@ -1153,7 +1168,13 @@ export const CUSTOMER_ESTIMATE = customerView(
     dependencies: [...v.dependencies],
     scheduleAssumptions: [...v.scheduleAssumptions],
     subtotalCents: v.subtotalCents,
-    reduction: v.reduction ? { label: v.reduction.label, amountCents: v.reduction.amountCents } : null,
+    reduction: v.reduction
+      ? {
+          label: v.reduction.label,
+          amountCents: v.reduction.amountCents,
+          pendingVerification: v.reduction.pendingVerification,
+        }
+      : null,
     totalCents: v.totalCents,
     deposit: { state: v.deposit.state, amountCents: v.deposit.amountCents },
     paymentTerm: v.paymentTerm,
@@ -1531,7 +1552,16 @@ export type PrivacyRequestRecord = {
   submittedAt: Date
   decidedAt: Date | null
   outcome: OutcomeRecord | null
+  acknowledgedAt: Date | null
+  acknowledgmentDueOn: string | null
+  reviewStartedAt: Date | null
+  targetOn: string | null
+  extensions: readonly { targetOn: string; reason: string; decidedAt: Date }[]
 }
+// TSK-0136 (HH-PRIV-07, OWN-DEC-175): the automatic acknowledgment (the portal is where the customer sees it: its
+// message wording is not given), the date the substantive acknowledgment is due, the start of the Owner's review (the
+// substantive acknowledgment, PROPOSED), the internal target in force and each extension with the Owner's reason. The
+// legal deadline the Owner records stays internal (PROPOSED).
 export const PRIVACY_REQUEST = customerView(
   'privacy_request.customer',
   'PrivacyRequest',
@@ -1543,6 +1573,14 @@ export const PRIVACY_REQUEST = customerView(
     submittedAt: DATE,
     decidedAt: NULLABLE_DATE,
     outcome: { oneOf: [{ type: 'null' }, OUTCOME] },
+    acknowledgedAt: NULLABLE_DATE,
+    acknowledgmentDueOn: { type: ['string', 'null'], format: 'date' },
+    reviewStartedAt: NULLABLE_DATE,
+    targetOn: { type: ['string', 'null'], format: 'date' },
+    extensions: {
+      type: 'array',
+      items: object({ targetOn: { type: 'string', format: 'date' }, reason: STRING, decidedAt: DATE }),
+    },
   },
   (r: PrivacyRequestRecord) => ({
     reference: r.reference,
@@ -1560,6 +1598,15 @@ export const PRIVACY_REQUEST = customerView(
           accessClosed: r.outcome.accessClosed,
         }
       : null,
+    acknowledgedAt: r.acknowledgedAt ? r.acknowledgedAt.toISOString() : null,
+    acknowledgmentDueOn: r.acknowledgmentDueOn,
+    reviewStartedAt: r.reviewStartedAt ? r.reviewStartedAt.toISOString() : null,
+    targetOn: r.targetOn,
+    extensions: r.extensions.map((e) => ({
+      targetOn: e.targetOn,
+      reason: e.reason,
+      decidedAt: e.decidedAt.toISOString(),
+    })),
   }),
 )
 

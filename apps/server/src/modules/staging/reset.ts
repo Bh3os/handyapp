@@ -89,6 +89,9 @@ export const CLEARED_CATEGORIES = {
     'estimating.approvals',
     // TSK-0130 (0068): the Owner's publication approvals of estimate versions.
     'estimating.publication_approvals',
+    // TSK-0125 (0105): requested discounts and their verification results.
+    'estimating.discount_requests',
+    'estimating.discount_verifications',
   ],
   appointments: [
     'work.visits',
@@ -125,6 +128,8 @@ export const CLEARED_CATEGORIES = {
     'work.start_site_checks',
     'work.start_gate_evaluations',
     'work.work_starts',
+    // TSK-0094 (0102): resumptions after an incident.
+    'work.work_resumptions',
     'work.gate_exceptions',
     // TSK-0077 (0079): Stop Work, hazard and issue reports, their photos, stabilization records and reviews.
     'work.issue_reports',
@@ -132,6 +137,8 @@ export const CLEARED_CATEGORIES = {
     'work.issue_report_reviews',
     // TSK-0129 (0099): the recorded Call Owner, Call 911 and Owner-unreachable taps.
     'work.escalation_calls',
+    // TSK-0092 (0101): the Owner's close and reopen of jobs.
+    'work.job_closeout_events',
   ],
   payments: [
     'finance.payments',
@@ -185,6 +192,14 @@ export const CLEARED_CATEGORIES = {
     'quality.reviews',
     'quality.punch_items',
     'quality.review_events',
+    // TSK-0092 (0101): the customer's answers to the follow-up after completion.
+    'quality.satisfaction_responses',
+    // TSK-0094 (0102): return work, its return visits, punch items, costs and history.
+    'quality.return_work',
+    'quality.return_work_visits',
+    'quality.return_work_items',
+    'quality.return_work_costs',
+    'quality.return_work_events',
     // TSK-0075 (0083): the job checklist, its history and handoff notes.
     'work.checklist_steps',
     'work.checklist_step_events',
@@ -227,6 +242,8 @@ export const CLEARED_CATEGORIES = {
   workflow: [
     'ops.queue_items',
     'privacy.privacy_requests',
+    // TSK-0136 (0103): the Owner's extensions of a privacy request's internal target.
+    'privacy.privacy_request_extensions',
     'privacy.retention_reviews',
     'privacy.retention_decisions',
     'privacy.deletions',

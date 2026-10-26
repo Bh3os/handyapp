@@ -159,7 +159,7 @@ test.describe('the receipt (TSK-0032)', () => {
       email,
       '(502) 555-0191',
       'Preferred method: Phone call',
-      'These are your preferences. Your appointment is confirmed only after we send a date and arrival window.',
+      'These are your preferred times only. Your appointment is not confirmed until HandyHub sends you a confirmed date and arrival window.',
     ])
       await expect(glance).toContainText(text)
     const next = page.getByRole('region', { name: 'What happens next?' })

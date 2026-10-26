@@ -9,8 +9,10 @@
 // the unanswered-estimate reminder, automatic from TSK-0121, its stop rules and its staff view (reminders.ts, reminder-routes.ts).
 // TSK-0057 (HH-EST-06, HH-EST-07, HH-EST-08) adds the approval transaction (approval.ts; its routes are the portal
 // module's too). TSK-0058 (HH-EST-12, HH-EST-10, HH-DATA-03) adds the approval receipt: its PDF, issued once per
-// approval, its automatic message and the next step after approval (receipt.ts).
+// approval, its automatic message and the next step after approval (receipt.ts). TSK-0125 (HH-EST-15) adds the
+// discount the customer requests on the request form and its staff verification (discounts.ts, discount-routes.ts).
 import type { ApiModule } from '../../api/route.js'
+import { discountRoutes } from './discount-routes.js'
 import { estimateDocumentRoutes, type EstimateDocumentDeps } from './document-routes.js'
 import { lifecycleRoutes } from './lifecycle-routes.js'
 import { reminderRoutes } from './reminder-routes.js'
@@ -19,10 +21,26 @@ import { ESTIMATE_ROUTES } from './routes.js'
 export function estimatesModule(deps: EstimateDocumentDeps): ApiModule {
   return {
     name: 'estimates',
-    routes: [...ESTIMATE_ROUTES, ...estimateDocumentRoutes(deps), ...lifecycleRoutes(deps), ...reminderRoutes()],
+    routes: [
+      ...ESTIMATE_ROUTES,
+      ...estimateDocumentRoutes(deps),
+      ...lifecycleRoutes(deps),
+      ...reminderRoutes(),
+      ...discountRoutes(),
+    ],
   }
 }
 export { builderView } from './routes.js'
+export {
+  discountOffer,
+  discountView,
+  matchedCompletedJob,
+  projectDiscount,
+  recordDiscountRequest,
+  syncDiscountItems,
+  type DiscountOffer,
+  type ProjectDiscount,
+} from './discounts.js'
 export {
   acceptanceCheck,
   changeVersionState,

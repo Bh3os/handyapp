@@ -6,6 +6,7 @@
 // - every problem is a field path (`contact.phone`) owned by one step, so the wizard can show it next to its field.
 import {
   CONTACT_CHANNELS,
+  REDUCTION_CATEGORIES,
   ESTIMATE_PREFERENCES,
   firstPreferredDate,
   formatClock,
@@ -26,6 +27,7 @@ import validateRequestForm from './validator.generated.js'
 
 export {
   CONTACT_CHANNELS,
+  REDUCTION_CATEGORIES,
   ESTIMATE_PREFERENCES,
   firstPreferredDate,
   formatClock,
@@ -79,6 +81,8 @@ export type FormValues = {
   smsOptIn: boolean
   /** The separate marketing permission: unchecked by default (HH-INT-18). */
   marketingOptIn: boolean
+  /** TSK-0125 (HH-EST-15): the one reduction the customer asks for, or '' for none (the default). */
+  requestedDiscount: string
 }
 
 export const EMPTY_VALUES: FormValues = {
@@ -105,6 +109,7 @@ export const EMPTY_VALUES: FormValues = {
   preferredChannel: '',
   smsOptIn: false,
   marketingOptIn: false,
+  requestedDiscount: '',
 }
 
 /** Which step shows each field (body paths without the `body.` prefix, matched by their first segments). */
@@ -112,7 +117,7 @@ const FIELD_STEP: [RegExp, StepId][] = [
   [/^(services|notSure|otherServicesText)(\.|$)/, 'services'],
   [/^(description|answers)(\.|$)/, 'job'],
   [/^(property|timing)(\.|$)/, 'property'],
-  [/^(contact|estimatePreference|smsOptIn|smsDisclosureVersion|marketingOptIn)(\.|$)/, 'contact'],
+  [/^(contact|estimatePreference|smsOptIn|smsDisclosureVersion|marketingOptIn|requestedDiscount)(\.|$)/, 'contact'],
 ]
 
 export function stepOf(field: string): StepId {
@@ -189,6 +194,9 @@ export function toBody(v: FormValues, meta: FormMeta, services: readonly FormSer
   if (meta.smsDisclosureVersion !== undefined) body.smsDisclosureVersion = meta.smsDisclosureVersion
   if (optional(v.description)) body.description = v.description
   if (optional(v.otherServicesText)) body.otherServicesText = v.otherServicesText
+  // TSK-0125: pending verification until staff confirm it; only the categories the form offers can be chosen.
+  if ((REDUCTION_CATEGORIES as readonly string[]).includes(v.requestedDiscount))
+    body.requestedDiscount = v.requestedDiscount as NonNullable<SubmitBody['requestedDiscount']>
   if (meta.startedAt !== undefined) body.startedAt = meta.startedAt
   if (meta.website) body.website = meta.website
   return body

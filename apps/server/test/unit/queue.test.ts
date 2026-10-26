@@ -67,10 +67,13 @@ describe('queue item types (TSK-0041, HH-OPS-01)', () => {
         'estimate_reminder',
         'candidate_match',
         'question_replied',
+        // TSK-0125: a published estimate whose requested discount failed verification needs revising (estimate.revise).
+        'discount_revision',
       ],
       // TSK-0049: customer replies on the Estimator's own threads; never the private Needs Linking list.
       // TSK-0051: question reminders to release on the Estimator's own requests (message.release_draft, own threads).
-      own: ['delivery_failed', 'customer_replied', 'question_reminder'],
+      // TSK-0092: follow-ups to release (message.release_draft, own threads; the items are never assigned to them).
+      own: ['delivery_failed', 'customer_replied', 'question_reminder', 'follow_up_release'],
     })
     // Roles add up: a worker who is also office sees what office sees.
     expect(visibleTypes(staff('worker', 'office'), 'queue')).toEqual(visibleTypes(staff('office'), 'queue'))

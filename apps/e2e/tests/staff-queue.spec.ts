@@ -94,7 +94,10 @@ test.describe('the staff home: action queue and Owner Decisions (TSK-0041, HH-OP
     await signIn(page, OWNER, pw(1))
     await expect(page.getByRole('heading', { level: 1, name: 'Action queue' })).toBeVisible()
     await expect(page.getByRole('heading', { level: 2, name: 'Owner Decisions' })).toBeVisible()
-    await expect(page.getByText('No owner decisions are waiting.')).toBeVisible()
+    // Earlier specs share this database and may leave their own Owner Decisions (a job to close, a privacy request):
+    // a new request is never one of them.
+    const decisions = page.getByRole('region', { name: 'Owner Decisions' })
+    await expect(decisions.getByText(reference)).toHaveCount(0)
 
     // The server's worker opens the item from the committed event; filtering by reference finds it.
     const queue = page.locator('.staff-queue__list-wrap').first()
@@ -108,6 +111,7 @@ test.describe('the staff home: action queue and Owner Decisions (TSK-0041, HH-OP
     await expect(item.getByText('New request waiting for a first response')).toBeVisible()
     await expect(item.getByText('Status: Received')).toBeVisible()
     await expect(item.getByText('Unassigned')).toBeVisible()
+    await expect(decisions.getByText(reference)).toHaveCount(0)
     await expect(item.getByText(/^Opened .* ago$/)).toBeVisible()
     await axe(page)
 

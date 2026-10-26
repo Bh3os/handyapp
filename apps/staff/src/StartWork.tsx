@@ -12,6 +12,11 @@
 // - The review page (Owner, Office): job-level Hold / Ready notes (Office sets a Hold; the Owner sets Ready with a
 //   note), critical safety holds (the Owner reviews and releases with evidence and a qualified reviewer, never one
 //   they raised) and, for the Owner, the exceptions with their evidence, follow-up and decision.
+// - TSK-0094 (HH-INC-03): after a pause by Stop Work / Report Hazard, the same briefing evaluates resuming for a worker
+//   who started before it: the same prerequisites again (a site check after the pause, the packet version the hold's
+//   release made, reviewed personally), and Resume work instead of Start Work. The screen says that releasing a hold in
+//   the app is never a certification that the site is safe. A return visit's screen lists the worker's return-visit
+//   punch items (HH-QA-08).
 import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { centsFromDecimal } from '@handyhub/money'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
@@ -19,6 +24,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { call, idempotencyKey, setCsrfToken, upload, type ApiErrorBody, type Fetch } from './api'
 import { ReauthForm, useOwnerWrite } from './OwnerWrite'
 import { codeLabel } from './Requests'
+import { ReturnWorkItems } from './ReturnWork'
 import { EmergencyCall, holdNoteText, JobSafety } from './StopWork'
 import { useOnline } from './Shell'
 
@@ -39,6 +45,11 @@ export type StartGateView = {
   visitId: string
   visitNumber: number
   visitState: string
+  /** TSK-0094: a return visit (return_work) starts without moving the job. */
+  visitPurpose?: string
+  /** TSK-0094: Start Work, or resuming after the job's latest pause. */
+  mode?: 'start' | 'resume'
+  pausedAt?: string | null
   jobId: string | null
   projectReference: string
   checkedAt: string
@@ -50,7 +61,13 @@ export type StartGateView = {
   exceptions: { id: string; kind: string; state: string; ending: string | null; requestedAt: string }[]
   started: { startId: string; startedAt: string } | null
   emergency: { call911: string }
-  actions: { start: boolean; recordSiteCheck: boolean; uploadBeforePhotos: boolean; requestException: string[] }
+  actions: {
+    start: boolean
+    resume?: boolean
+    recordSiteCheck: boolean
+    uploadBeforePhotos: boolean
+    requestException: string[]
+  }
 }
 
 const OUTCOME_TONE = {
@@ -397,11 +414,12 @@ export function StartWorkPage({
     }
   }, [load])
 
+  const resuming = gate?.mode === 'resume'
   async function startWork() {
     if (!gate?.packet) return
     setPending(true)
     key.current ??= idempotencyKey()
-    const r = await call(fetchImpl, `/staff/visits/${encodeURIComponent(visitId)}/start`, {
+    const r = await call(fetchImpl, `/staff/visits/${encodeURIComponent(visitId)}/${resuming ? 'resume' : 'start'}`, {
       method: 'POST',
       body: { packetVersion: gate.packet.version },
       headers: { 'idempotency-key': key.current },
@@ -447,7 +465,7 @@ export function StartWorkPage({
             </StatusBadge>{' '}
             <span className="staff-request__hint">{t('start.checkedAt', { time: when(gate.checkedAt, locale) })}</span>
           </p>
-          {gate.started ? (
+          {gate.started && !resuming ? (
             <StateView kind="empty" title={t('start.started', { time: when(gate.started.startedAt, locale) })} />
           ) : null}
           <ol className="staff-start__items" data-testid="start-items">
@@ -519,7 +537,25 @@ export function StartWorkPage({
             </section>
           ) : null}
           <ExceptionRequest key={gate.checkedAt} t={t} fetchImpl={fetchImpl} gate={gate} onDone={() => void load()} />
-          {!gate.started ? (
+          {resuming ? (
+            // TSK-0094: resuming after a pause, through the same gate again (HH-INC-03).
+            <div className="staff-myday__actions" data-testid="start-resume">
+              <p>{t('start.resume.explain', { time: gate.pausedAt ? when(gate.pausedAt, locale) : '' })}</p>
+              <Button
+                className="staff-myday__action"
+                {...(!isOnline
+                  ? { disabledReason: t('start.offline') }
+                  : !gate.actions.resume
+                    ? { disabledReason: t('start.notReady') }
+                    : {})}
+                pending={pending}
+                onClick={() => void startWork()}
+              >
+                {t('start.resume.submit')}
+              </Button>
+              <p className="staff-request__hint">{t('start.resume.notCertification')}</p>
+            </div>
+          ) : !gate.started ? (
             <div className="staff-myday__actions">
               <Button
                 className="staff-myday__action"
@@ -535,6 +571,9 @@ export function StartWorkPage({
               </Button>
               <p className="staff-request__hint">{t('start.note')}</p>
             </div>
+          ) : null}
+          {gate.jobId && gate.visitPurpose === 'return_work' ? (
+            <ReturnWorkItems key={gate.checkedAt} t={t} fetchImpl={fetchImpl} jobId={gate.jobId} />
           ) : null}
           {refusal ? (
             <p role="alert" className="hh-field__error" data-testid="start-refusal">

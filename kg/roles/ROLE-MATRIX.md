@@ -42,6 +42,8 @@ These are server rules, enforced by one policy point on every read, write, searc
 | Approve or reject publishing over the Owner approval threshold | Y | — | — | — | — | — |
 | Revise (new version), withdraw, expire, record a decline | Y | Record decline only (P) | Y | — | — | — |
 | View internal cost, markup and margin | Y | — | Own estimates (P) | — | — | — |
+| Record a discount verification or send it to owner review | Y | Y (P) | Y (P) | — | — | — |
+| Decide a discount owner review or override a verification | Y | — | — | — | — | — |
 | Approve, decline or request changes | — | — | — | — | V (fresh verification) | — |
 | Draft a change order | Y | — | Y | A | — | — |
 | Review and publish a change order | Y | — | Y | — | — | — |
@@ -127,3 +129,5 @@ These are server rules, enforced by one policy point on every read, write, searc
 **Built by [[TSK-0126]] (2026-10-25):** the row "Approve a service-area coverage exception, with a reason" is the Owner's explicit approval of [[OWN-DEC-167]] for a verified county outside the service area (`visit.approve_coverage_exception`); recording the address check, the site contact and a SERVED acceptance sits in "Offer windows; confirm, reschedule, reassign, cancel visits" (`visit.confirm`). PROPOSED details: [[OQ-SITE-CHECK-DETAILS]].
 
 **Changed by [[OWN-DEC-173]] (2026-10-21):** publishing an estimate or change order above [[FACT-OWNER-APPROVAL-THRESHOLD]] needs the Owner's approval first; the row "Approve or reject publishing over the Owner approval threshold" is the Owner's alone, and changing the threshold is "Change policy values" (F) ([[TSK-0130]]).
+
+**Built by [[TSK-0092]] (2026-10-25):** closing a job (`job.close`) sits in the Owner's cell of "Quality review, punch items, self-review" (P: ENT-Job "the Owner reviews quality, closes and reopens"); reopening is "Reopen a closed job" (F). Releasing the satisfaction check and review requests, preparing a review request and recording the customer's answer are "Reply from a project, release drafts" on the project's records (the Owner, Office). PROPOSED details: [[OQ-CLOSEOUT-DETAILS]].

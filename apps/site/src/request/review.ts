@@ -7,6 +7,7 @@ import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import {
   answerKey,
   CONTACT_CHANNELS,
+  REDUCTION_CATEGORIES,
   ESTIMATE_PREFERENCES,
   formatClock,
   PROPERTY_TYPES,
@@ -43,6 +44,12 @@ export const ESTIMATE_LABEL: Record<(typeof ESTIMATE_PREFERENCES)[number], Custo
   online: 'request.estimate.online',
   site_visit: 'request.estimate.site_visit',
   let_handyhub_decide: 'request.estimate.let_handyhub_decide',
+}
+/** TSK-0125: the reduction categories by their short names (OWN-DEC-165). */
+export const REDUCTION_LABEL: Record<(typeof REDUCTION_CATEGORIES)[number], CustomerKey> = {
+  military: 'request.requestedDiscount.short.military',
+  senior: 'request.requestedDiscount.short.senior',
+  returning_customer: 'request.requestedDiscount.short.returning_customer',
 }
 /** The label of a coded choice; an unknown or empty code shows nothing (it is never guessed). */
 export const labelOf = <T extends string>(map: Record<T, CustomerKey>, code: string): string =>
@@ -173,6 +180,15 @@ export function reviewSections(
           { label: t('request.review.sms'), value: yesNo(v.smsOptIn) },
           { label: t('request.review.marketing'), value: yesNo(v.marketingOptIn) },
           { label: t('request.estimate.title'), value: labelOf(ESTIMATE_LABEL, v.estimatePreference) },
+          // TSK-0125: a requested reduction is shown as pending verification, never as granted.
+          v.requestedDiscount && labelOf(REDUCTION_LABEL, v.requestedDiscount)
+            ? {
+                label: t('request.review.requestedDiscount'),
+                value: t('request.review.requestedDiscountPending', {
+                  category: labelOf(REDUCTION_LABEL, v.requestedDiscount),
+                }),
+              }
+            : null,
         ),
       },
     ],

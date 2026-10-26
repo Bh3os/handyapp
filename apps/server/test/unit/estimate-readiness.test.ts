@@ -71,6 +71,7 @@ const SAVED: VersionSnapshot = {
   documents: null,
   discountCategory: null,
   discountRuleVersion: null,
+  discountRequest: null,
   subtotalCents: 8333,
   discountCents: 0,
   totalCents: 8333,
@@ -146,6 +147,37 @@ describe('[HH-EST-05][HH-EST-01] publish readiness', () => {
     expect(readinessOf({ ...SAVED, discountCategory: 'unknown_group' }, LINES, config).problems).toEqual([
       { code: 'DISCOUNT_CATEGORY_UNKNOWN' },
     ])
+  })
+
+  it('[HH-EST-15] only the discount the customer requested; provisional while pending, never once it failed', () => {
+    const config = fakeConfig(DECIDED)
+    // $83.33 less 10% (half-up, $8.33) = $75.00, with the rule version the totals pinned.
+    const discounted: VersionSnapshot = {
+      ...SAVED,
+      discountCategory: 'military',
+      discountRuleVersion: 1,
+      discountCents: 833,
+      totalCents: 7500,
+    }
+    const request = (category: 'military' | 'senior', state: string) =>
+      ({ category, state }) as VersionSnapshot['discountRequest']
+    expect(readinessOf({ ...discounted, discountRequest: null }, LINES, config).problems).toEqual([
+      { code: 'DISCOUNT_NOT_REQUESTED' },
+    ])
+    expect(
+      readinessOf({ ...discounted, discountRequest: request('senior', 'verified') }, LINES, config).problems,
+    ).toEqual([{ code: 'DISCOUNT_NOT_REQUESTED' }])
+    for (const state of ['pending', 'owner_review', 'verified'])
+      expect(readinessOf({ ...discounted, discountRequest: request('military', state) }, LINES, config)).toEqual({
+        ready: true,
+        problems: [],
+      })
+    for (const state of ['not_verified', 'declined'])
+      expect(
+        readinessOf({ ...discounted, discountRequest: request('military', state) }, LINES, config).problems,
+      ).toEqual([{ code: 'DISCOUNT_NOT_VERIFIED' }])
+    // A version without a discount is ready whatever the request says.
+    expect(readinessOf({ ...SAVED, discountRequest: request('military', 'declined') }, LINES, config).ready).toBe(true)
   })
 })
 

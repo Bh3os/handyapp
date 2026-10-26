@@ -97,6 +97,16 @@ export function when(iso: string, zone?: string): string {
   }).format(d)
 }
 
+/**
+ * TSK-0136: a calendar date (YYYY-MM-DD, already the business zone's date) in English, such as "November 24, 2026".
+ * Formatted at UTC noon in UTC, so the browser's own zone never moves it to another day.
+ */
+export function calendarDate(date: string): string {
+  const d = new Date(`${date}T12:00:00Z`)
+  if (Number.isNaN(d.getTime())) return ''
+  return new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', dateStyle: 'long' }).format(d)
+}
+
 /** A time of today in English, for the last-refreshed line. */
 export function clock(d: Date): string {
   return new Intl.DateTimeFormat('en-US', { timeStyle: 'short' }).format(d)

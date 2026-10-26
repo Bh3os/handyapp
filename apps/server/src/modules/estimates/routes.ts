@@ -133,6 +133,8 @@ export async function builderView(db: Reader, actor: StaffActor, versionId: stri
     lines: v.lines,
     texts: v.texts,
     discountCategory: v.discountCategory,
+    // TSK-0125 (HH-EST-15): the discount the customer requested and its verification state (on the request's record).
+    discountRequest: snapshot.version.discountRequest,
     totals: v.totals,
     paymentTerm: v.pinned.paymentTerm,
     document: documentDetails(config),

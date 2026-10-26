@@ -167,6 +167,11 @@ export function lifecycleRoutes(deps: LifecycleDeps): RouteDef[] {
           superseded: out.superseded ? { versionId: out.superseded.versionId, version: out.superseded.version } : null,
           requestsEstimated: out.requestsEstimated,
           ownerApproval: out.ownerApproval,
+          // TSK-0125 (HH-EST-15): the discount applied and its verification state when published (provisional while
+          // pending).
+          discount: view.discountCategory
+            ? { category: view.discountCategory, state: view.discountRequest?.state ?? null }
+            : null,
         },
       })
       if (out.superseded)
