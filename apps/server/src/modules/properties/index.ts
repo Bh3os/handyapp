@@ -106,10 +106,11 @@ const propertyExists: NonNullable<RouteDef['resource']> = async ({ req, db }) =>
 }
 
 /**
- * The visit facts a worker's reveal is decided on (T28, OWN-DEC-121, OWN-DEC-40): the worker's active confirmed
- * reservations on live visits at the property, each with its access window, and the visit date in the business time
- * zone (TSK-0069, packets/assignments.ts). A worker removed by a reassignment holds no assignment there any more and
- * the policy refuses the reveal (NOT_ASSIGNED); another day is NOT_VISIT_DATE. The Owner and Office need no facts.
+ * The visit facts a worker's reveal is decided on (T28, OWN-DEC-121, OWN-DEC-171): the worker's active confirmed
+ * reservations on live visits at the property, each with its visit-day window, and the visit date with today's date in
+ * the visit's own zone, or the Owner extension in force (TSK-0128, packets/assignments.ts). A worker removed by a
+ * reassignment holds no assignment there any more and the policy refuses the reveal (NOT_ASSIGNED), as it does on any
+ * other day. The Owner and Office need no facts.
  */
 export async function visitAccessFacts(db: Db | Tx, propertyId: string, actor: Actor): Promise<Resource> {
   return propertyVisitFacts(db, propertyId, actor)
@@ -956,8 +957,9 @@ const revealCode = (deps: PropertiesDeps) =>
     summary: 'Reveal an access code',
     description:
       'Staff with access_code.reveal: the Owner; Office (PROPOSED cell); a worker only when assigned to a visit at ' +
-      'the property (an active confirmed reservation on a live visit there, TSK-0069), on the visit date (business ' +
-      'time zone), online (T28); every other worker is refused. Returns the value once, with when the staff app ' +
+      "the property (an active confirmed reservation on a live visit there, TSK-0069), on that visit's own local " +
+      "service day in the property's zone or while an Owner extension is in force (TSK-0128, OWN-DEC-171), online " +
+      '(T28); every other worker is refused. Returns the value once, with when the staff app ' +
       'hides it again; the reveal is recorded and audited (who, when, which code; never the value). The response is never cached, never kept for ' +
       'idempotency and never logged. A removed code is not found. NOT_CONFIGURED while ' +
       'ACCESS_CODE_ENCRYPTION_KEY is unset. PROPOSED limit: 30 reveals per staff member per hour.',

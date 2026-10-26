@@ -168,9 +168,13 @@ function condition(
       return resource.collectedByStaffId !== undefined && resource.collectedByStaffId === userId
         ? null
         : 'NOT_OWN_COLLECTION'
-    case 'visit_date':
-      if (resource.visitDate === undefined || ctx.today === undefined) return 'MISSING_FACT'
-      return resource.visitDate === ctx.today ? null : 'NOT_VISIT_DATE'
+    case 'visit_date': {
+      // TSK-0128 (OWN-DEC-171): the property's local service day, or an Owner extension while it lasts.
+      if (resource.extendedUntil !== undefined && ctx.now.getTime() < resource.extendedUntil.getTime()) return null
+      const today = resource.visitToday ?? ctx.today
+      if (resource.visitDate === undefined || today === undefined) return 'MISSING_FACT'
+      return resource.visitDate === today ? null : 'NOT_VISIT_DATE'
+    }
     case 'online':
       return ctx.online === true ? null : 'OFFLINE'
     case 'customer_fresh_verification':

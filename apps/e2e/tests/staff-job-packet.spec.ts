@@ -5,7 +5,8 @@
 // not the business's hours). The worker signs in, finds the job on My Day, opens the packet (version 1, never viewed),
 // the Office user records a parking note and an access code, and the worker's packet shows version 2 with "What changed
 // since you reviewed this?" marked critical, never the code. Printing is recorded first, then printed; the PDF never
-// holds the code. No estimate terms version is recorded by the migrations: this spec records a synthetic "approved and
+// holds the code. TSK-0128: the visit is weeks ahead, so the worker sees the service area only, never the address or the
+// code's entry. No estimate terms version is recorded by the migrations: this spec records a synthetic "approved and
 // attorney-reviewed" v1.0 for its own run only and restores NOT CONFIGURED afterwards (a test fixture, never the
 // owner's sign-off). axe checks each state. Every visitor, address, account, name and code is synthetic
 // (RULE-SYNTHETIC-DATA).
@@ -406,7 +407,11 @@ test.describe('Versioned job packet, freshness and safe export (TSK-0069)', () =
         'Completion preview',
       ])
         await expect(packet.getByRole('region', { name })).toBeVisible()
-      await expect(packet.getByTestId('packet-address')).toContainText('169 Synthetic Packet Court')
+      // TSK-0128 (OWN-DEC-171): the visit is weeks ahead, so the address shows on the visit day only.
+      await expect(packet.getByTestId('packet-address')).toHaveText(
+        'Shown on the visit day only. Service area: Testville, KY',
+      )
+      expect(await w.content()).not.toContain('169 Synthetic Packet Court')
       await expect(packet.getByTestId('packet-team')).toContainText('E2E Packet worker (lead)')
       await expect(packet.getByText('Synthetic: patch the wall')).toBeVisible()
       await expect(packet.getByTestId('packet-escalation')).toContainText('NOT CONFIGURED')
@@ -446,7 +451,8 @@ test.describe('Versioned job packet, freshness and safe export (TSK-0069)', () =
       await expect(changes).toContainText('Changes from version 1 to version 2:')
       await expect(changes).toContainText('Parking and loading recorded')
       await expect(changes).toContainText('an access code was added (Lockbox code)')
-      await expect(packet.getByTestId('packet-access-code')).toContainText('Synthetic side box')
+      // Before the visit day not even the code's entry is shown (TSK-0128); the change itself is named.
+      await expect(packet.getByTestId('packet-access-code')).toHaveCount(0)
       await expect(packet.getByRole('button', { name: 'Reveal code' })).toHaveCount(0)
       expect(await w.content()).not.toContain(CODE)
       await axe(w)

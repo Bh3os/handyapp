@@ -122,6 +122,8 @@ export type ProjectVisits = {
   actions: { planEstimateVisit: boolean; planWorkVisit: boolean }
   /** TSK-0070: the caller may open each started visit's Arrived and Finished times (the Owner). */
   visitTimes?: boolean
+  /** TSK-0128: the caller may extend a worker's visit-day access (the Owner). */
+  workerAccess?: boolean
   /** TSK-0151: the caller may keep an appointment as it is despite a working-hours or equipment flag (the Owner). */
   dismissFlags?: boolean
   visits: Visit[]
@@ -130,6 +132,8 @@ export type ProjectVisits = {
 const WORK_PURPOSES = ['service', 'follow_up', 'return_work'] as const
 /** TSK-0070: the visits that went on the way have Arrived and Finished times. */
 const STARTED: readonly string[] = ['en_route', 'arrived', 'completed']
+/** TSK-0128: a visit is live for its team while confirmed, on the way or arrived. */
+const LIVE: readonly string[] = ['confirmed', 'en_route', 'arrived']
 const bcp47 = (locale: StaffLocale) => (locale === 'es' ? 'es-US' : 'en-US')
 const name = (t: T, s: StaffRef) => s.name ?? t('queue.unnamed')
 
@@ -842,6 +846,19 @@ export function ProjectVisitsSection({
               <span key={v.id}>
                 {i > 0 ? ', ' : null}
                 <a href={href(`/visit-times/${v.id}`)}>{t('visits.timesLink', { number: v.number ?? i + 1 })}</a>
+              </span>
+            ))}
+        </p>
+      ) : null}
+      {data.workerAccess && href && data.visits.some((v) => LIVE.includes(v.state)) ? (
+        <p data-testid="visit-access-links">
+          {t('visits.accessTitle')}{' '}
+          {data.visits
+            .filter((v) => LIVE.includes(v.state))
+            .map((v, i) => (
+              <span key={v.id}>
+                {i > 0 ? ', ' : null}
+                <a href={href(`/visit-access/${v.id}`)}>{t('visits.timesLink', { number: v.number ?? i + 1 })}</a>
               </span>
             ))}
         </p>

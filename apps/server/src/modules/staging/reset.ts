@@ -215,6 +215,8 @@ export const CLEARED_CATEGORIES = {
     'work.change_order_decisions',
     // TSK-0078 (0089): visit outcomes and their follow-up.
     'work.visit_outcomes',
+    // TSK-0128 (0107): the Owner's extensions of a worker's visit-day access.
+    'work.visit_access_extensions',
   ],
   attachments: [
     'intake.photos',
