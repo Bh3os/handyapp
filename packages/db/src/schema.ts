@@ -1798,7 +1798,7 @@ export interface PrivacyRetentionReviewsTable {
   project_id: string | null
   policy_key: string
   policy_version: number
-  period_years: number
+  period_years: number | null
   retention_started_at: Timestamp
   period_ends_at: Timestamp
   hold_checks: Json
@@ -1806,6 +1806,8 @@ export interface PrivacyRetentionReviewsTable {
   opened_by: string
   opened_at: ColumnType<Date, Date | string | undefined, Date | string>
   request_id: string
+  period_days: number | null
+  record_count: number | null
 }
 
 export interface QualityCaseAttachmentsTable {

@@ -40,3 +40,5 @@ Retention:
 - Durations that are not in the schedule are never invented.
 
 **Changed by [[OWN-DEC-177]], [[OWN-DEC-201]] (2026-10-21):** provisional periods for staff accounts, consent, history, logs and expired links; the table-to-retention mapping is reviewed before any production deletion.
+
+**Built by [[TSK-0138]] (2026-10-26):** the five provisional values are active configuration; the daily review opens entries for disabled staff accounts, withdrawn consent histories and the expired sessions and links of each month; settings history is kept while referenced and technical logs are kept by the host, outside the database. Their Delete is not performed until the CPA and the attorney confirm the periods. PROPOSED details: [[OQ-RETENTION-DEFAULTS-DETAILS]].

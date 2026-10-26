@@ -4,6 +4,8 @@
 // compares with the seeded values. Each category says what starts its period and whether the retention job can find
 // its records yet: a category whose start is not recorded by the software (job closeout, the last completed service,
 // a filed tax return, a closed incident) produces no review entry until it is, never a guessed date.
+// TSK-0138 (OWN-DEC-177): the provisional defaults for staff accounts, consent records, expired sessions and access
+// links (review entries), settings and content history and technical logs (configured, never listed), migration 0108.
 import type { ConfigKey } from '../../platform/config/index.js'
 
 /** The schedule categories with a period, in the order of FACT-RETENTION-SCHEDULE (audit records last). */
@@ -15,14 +17,22 @@ export const PERIOD_CATEGORIES = [
   'financial_records',
   'job_records',
   'safety_records',
+  'staff_accounts',
+  'consent_records',
+  'sessions_and_links',
   'audit_log',
 ] as const
 export type PeriodCategory = (typeof PERIOD_CATEGORIES)[number]
 
-/** The categories of the schedule that have no period, and the PROPOSED category of data the schedule does not name. */
+/**
+ * The categories whose records never get a review entry: the configured rules without a period of their own (settings
+ * history, technical logs, TSK-0138), the schedule's rows without a period, and the PROPOSED category of data the
+ * schedule does not name.
+ */
 export const OTHER_CATEGORIES = [
+  'settings_history',
+  'technical_logs',
   'access_codes',
-  'sessions_and_links',
   'regulated_employee_records',
   'not_scheduled',
 ] as const
@@ -34,10 +44,14 @@ export const RETENTION_CATEGORIES: readonly RetentionCategory[] = [...PERIOD_CAT
  * Whether the retention job finds the category's records:
  * - `scanned`: the records and the event that starts their period are recorded; expired ones become review entries;
  * - `start_not_recorded`: the software does not record the event that starts the period yet, so nothing is due;
- * - `no_period`: the schedule gives no period (removal when no longer needed, security settings, excluded or
- *   NOT CONFIGURED), so the job never opens an entry for it.
+ * - `no_period`: the schedule gives no period (removal when no longer needed, excluded or NOT CONFIGURED), so the job
+ *   never opens an entry for it;
+ * - `while_referenced` (TSK-0138): kept while retained records depend on it; the check that finds unreferenced history
+ *   is not built, so nothing is listed (PROPOSED, OQ-RETENTION-DEFAULTS-DETAILS);
+ * - `not_stored` (TSK-0138): the software keeps no such records in its database (the technical logs are the server's
+ *   output lines, kept by the host), so there is nothing to list.
  */
-export type ScanState = 'scanned' | 'start_not_recorded' | 'no_period'
+export type ScanState = 'scanned' | 'start_not_recorded' | 'no_period' | 'while_referenced' | 'not_stored'
 
 export type CategoryDefinition = {
   id: RetentionCategory
@@ -46,14 +60,22 @@ export type CategoryDefinition = {
   scan: ScanState
   /** The schedule's wording of the rule (FACT-RETENTION-SCHEDULE; OWN-DEC-142 for audit records). */
   decided: string
-  /** The years the owner decided, for the inventory and the seed check; null without a period. */
+  /** The years the owner decided, for the inventory and the seed check; null without a period in years. */
   decidedYears: number | null
+  /** TSK-0138: the calendar days the owner decided (technical logs, expired sessions and links); null otherwise. */
+  decidedDays?: number
   /** What the job reads, or why it reads nothing. */
   scanNote: string
   sources: readonly string[]
 }
 
 const SCHEDULE = ['OWN-DEC-70', 'FACT-RETENTION-SCHEDULE', 'OQ-RETENTION-REVIEW'] as const
+const DEFAULTS = [
+  'OWN-DEC-177',
+  'FACT-RETENTION-SCHEDULE',
+  'OQ-RETENTION-REVIEW',
+  'OQ-RETENTION-DEFAULTS-DETAILS',
+] as const
 
 export const CATEGORY_DEFINITIONS: Record<RetentionCategory, CategoryDefinition> = {
   requests_not_converted: {
@@ -133,6 +155,48 @@ export const CATEGORY_DEFINITIONS: Record<RetentionCategory, CategoryDefinition>
     scanNote: 'Incident records and their closure are not recorded yet; review holds stay with their request or job.',
     sources: SCHEDULE,
   },
+  staff_accounts: {
+    id: 'staff_accounts',
+    configKey: 'retention.staff_accounts',
+    scan: 'scanned',
+    decided:
+      'Staff accounts: 7 years after departure (review threshold); access disabled at once, sessions, credentials ' +
+      'and permissions revoked.',
+    decidedYears: 7,
+    scanNote:
+      'A disabled staff account; the period starts at its departure (when it was disabled). A re-enabled account is ' +
+      'not due. Its job history and evidence follow their own categories.',
+    sources: DEFAULTS,
+  },
+  consent_records: {
+    id: 'consent_records',
+    configKey: 'retention.consent_records',
+    scan: 'scanned',
+    decided:
+      'Consent records: 5 years after the last relevant use (review threshold); never while the permission is ' +
+      'active or a claim remains.',
+    decidedYears: 5,
+    scanNote:
+      'The history of one permission (purpose, channel and destination) whose latest record is a withdrawal; the ' +
+      'period starts at that withdrawal (PROPOSED). Not due while the destination is on file for a contact, an ' +
+      'account or a staff member, since the withdrawal still stops messages to it (PROPOSED).',
+    sources: DEFAULTS,
+  },
+  sessions_and_links: {
+    id: 'sessions_and_links',
+    configKey: 'retention.sessions_and_links',
+    scan: 'scanned',
+    decided:
+      'Login sessions and access links: expire per their security settings; minimal non-reusable metadata up to ' +
+      '30 days.',
+    decidedYears: null,
+    decidedDays: 30,
+    scanNote:
+      'Ended sessions, links and codes (staff and customer sessions, guest links, invite and reset links, receipt and ' +
+      'upload links, one-time codes), one entry per kind and calendar month of their end in the business time zone ' +
+      '(PROPOSED); the period starts when each expired, was used or was revoked. They store token hashes only.',
+    sources: [...DEFAULTS, 'OWN-DEC-70'],
+  },
   audit_log: {
     id: 'audit_log',
     configKey: 'retention.audit_log',
@@ -144,6 +208,33 @@ export const CATEGORY_DEFINITIONS: Record<RetentionCategory, CategoryDefinition>
     scanNote: 'Every audit entry; the period starts when the entry was recorded.',
     sources: ['OWN-DEC-142', 'FACT-RETENTION-SCHEDULE', 'OWN-DEC-70', 'OQ-RETENTION-REVIEW'],
   },
+  settings_history: {
+    id: 'settings_history',
+    configKey: 'retention.settings_history',
+    scan: 'while_referenced',
+    decided:
+      'Settings and content history: while retained records depend on them; immutable when part of an agreement or ' +
+      'auditable decision; unreferenced history deleted only after review.',
+    decidedYears: null,
+    scanNote:
+      'Configuration, service, SOP, loadout and template versions; records keep the exact version they used. The check ' +
+      'for unreferenced versions is not built, so none is listed and every version is kept (PROPOSED).',
+    sources: DEFAULTS,
+  },
+  technical_logs: {
+    id: 'technical_logs',
+    configKey: 'retention.technical_logs',
+    scan: 'not_stored',
+    decided:
+      'Technical logs: 90 days; no credentials, tokens, unnecessary personal data or secrets; security-incident ' +
+      'evidence longer when justified.',
+    decidedYears: null,
+    decidedDays: 90,
+    scanNote:
+      'The application and diagnostic logs are the server output lines (redacted), kept by the host, not in this ' +
+      "database; the host's log retention is NOT CONFIGURED (OQ-RETENTION-DEFAULTS-DETAILS).",
+    sources: DEFAULTS,
+  },
   access_codes: {
     id: 'access_codes',
     configKey: null,
@@ -154,17 +245,6 @@ export const CATEGORY_DEFINITIONS: Record<RetentionCategory, CategoryDefinition>
       'Codes are kept sealed in the protected access-code store (crm.access_instruction_secrets); staff remove one ' +
       'when it is no longer needed, which erases the sealed value. The job opens no entry.',
     sources: ['OWN-DEC-70', 'FACT-RETENTION-SCHEDULE'],
-  },
-  sessions_and_links: {
-    id: 'sessions_and_links',
-    configKey: null,
-    scan: 'no_period',
-    decided: 'Login sessions and access links: expire per their security settings.',
-    decidedYears: null,
-    scanNote:
-      'They expire by session.timings, access.grants, access.recovery and verification.limits; how long an expired ' +
-      'row is kept is NOT CONFIGURED (OQ-RETENTION-UNSCHEDULED).',
-    sources: ['OWN-DEC-70', 'FACT-RETENTION-SCHEDULE', 'OQ-RETENTION-UNSCHEDULED'],
   },
   regulated_employee_records: {
     id: 'regulated_employee_records',
@@ -183,8 +263,11 @@ export const CATEGORY_DEFINITIONS: Record<RetentionCategory, CategoryDefinition>
     scan: 'no_period',
     decided: 'The schedule has no row for this data: NOT CONFIGURED. Nothing is deleted and no period is assumed.',
     decidedYears: null,
-    scanNote: 'Staff accounts and their history, consent records, configuration and technical records.',
-    sources: ['OQ-RETENTION-UNSCHEDULED'],
+    scanNote:
+      'The kinds OWN-DEC-177 leaves without a period: the access-code reveal log, action-queue items, unlinked inbound ' +
+      'messages and their linking corrections, technical records other than logs (background jobs, outbox events, ' +
+      'idempotency keys, webhook receipts), the deletion-review entries themselves and the copies vendors keep.',
+    sources: ['OWN-DEC-177', 'OQ-RETENTION-UNSCHEDULED'],
   },
 }
 
