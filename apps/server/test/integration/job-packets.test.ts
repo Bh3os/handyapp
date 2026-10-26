@@ -51,6 +51,14 @@ const pw = ['synthetic', 'packets', 'passphrase', '69'].join(' ')
 const CODE = ['4', '7', '1', '9', '3'].join('')
 const SIGNED_IN = ['owner', 'office', 'estimator', 'ann', 'ben'] as const
 type Person = (typeof SIGNED_IN)[number]
+/**
+ * A packet as text for "no price" checks, without its random ids and timestamps: a uuid such as 8fd1250d-... or an
+ * instant such as ...:12.503Z would otherwise match a price pattern by chance.
+ */
+const priceText = (value: unknown) =>
+  JSON.stringify(value)
+    .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '')
+    .replace(/\d{4}-\d{2}-\d{2}T[\d:.]+(Z|[+-]\d{2}:\d{2})?/g, '')
 
 let t: TestDatabase
 let wide: Db
@@ -517,7 +525,7 @@ describe('[HH-PKT-01][HH-PKT-02][HH-PKT-07] the versioned job packet', () => {
         unit: 'patch',
       },
     ])
-    expect(JSON.stringify(first)).not.toMatch(/cents|1250|12\.50/i)
+    expect(priceText(first)).not.toMatch(/cents|1250|12\.50/i)
     expect(first.sop.packages).toMatchObject([{ serviceCode: 'DW-01', state: 'pinned', sopId: 'SOP-DW-01' }])
     expect(first.communication.stopWork[0]?.items.length).toBeGreaterThan(0)
     expect(first.holds).toEqual([])
@@ -608,7 +616,7 @@ describe('[HH-PKT-01][HH-PKT-02][HH-PKT-07] the versioned job packet', () => {
       ['scope', 'line_added', true],
     ])
     expect(after.review.changes[1]?.ref).toBe('Synthetic: prime the patch')
-    expect(JSON.stringify(after)).not.toMatch(/cents|1750/i)
+    expect(priceText(after)).not.toMatch(/cents|1750/i)
 
     const versions = await staffGet('ann', `/api/v1/staff/jobs/${jobId}/packet/versions`)
     expect(versions.statusCode, versions.body).toBe(200)
