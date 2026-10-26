@@ -38,7 +38,6 @@
 //   so a customer is never offered times that cannot be confirmed.
 import type { Db, Tx } from '@handyhub/db'
 import {
-  holdExpiresAt,
   isWorkVisitPurpose,
   offerProblems,
   onSiteRange,
@@ -136,7 +135,7 @@ export const OFFER_QUEUE_TYPE = 'window_offer_response'
 async function openOfferItem(
   tx: Tx,
   projectId: string,
-  reason: 'window_other_times_requested' | 'window_offer_expired',
+  reason: 'window_other_times_requested' | 'window_offer_expired' | 'window_offer_withdrawn',
 ) {
   const r = await requestOf(tx, projectId)
   if (!r) return
@@ -146,7 +145,12 @@ async function openOfferItem(
     reason,
     projectId,
     reference: r.reference,
-    status: reason === 'window_offer_expired' ? 'expired' : 'other_times_requested',
+    status:
+      reason === 'window_offer_expired'
+        ? 'expired'
+        : reason === 'window_offer_withdrawn'
+          ? 'withdrawn'
+          : 'other_times_requested',
     assignedStaffId: r.responsible_staff_id,
   })
 }
@@ -164,20 +168,30 @@ export type OfferInput = {
   readonly equipmentIds?: readonly string[]
   /** Customer-facing preparation instructions, shown with the confirmed visit. */
   readonly preparationInstructions?: string
+  /** TSK-0145 (B1): save the offer as a draft only; nothing is held and no clock runs until it is published. */
+  readonly draft?: boolean
+  /** TSK-0145 (B4): publishing over the visit's open offer replaces it, with this reason. */
+  readonly replaceReason?: string
 }
 
 export type OfferResult = {
   readonly offerId: string
-  readonly number: number
+  /** The project's offer number; null for a draft (numbered when published). */
+  readonly number: number | null
+  readonly state: 'draft' | 'open'
+  readonly version: number
   readonly projectId: string
   readonly visitId: string
   readonly purpose: string
-  readonly expiresAt: Date
+  readonly publishedAt: Date | null
+  readonly expiresAt: Date | null
   readonly holdHours: number
   readonly policyVersion: number
   readonly windows: readonly LocalWindow[]
   readonly workerIds: readonly string[]
   readonly equipmentIds: readonly string[]
+  /** The open offer this publication replaced (B4), with its number. */
+  readonly replaced: { readonly offerId: string; readonly number: number; readonly version: number } | null
 }
 
 const RACE = new Set(['23P01', '40P01'])
@@ -187,43 +201,28 @@ function prefixed(prefix: string, errors: readonly FieldError[]): FieldError[] {
   return errors.map((e) => ({ ...e, field: `${prefix}.${e.field.replace(/^body\./, '')}` }))
 }
 
-/**
- * Offers windows of a tentative visit with the visit version the caller saw, holding the visit's team for every
- * window until the offer expires. Refusals: NOT_FOUND, FORBIDDEN (an Estimator on a work visit), STALE_VERSION,
- * NOT_CONFIGURED (business.timezone, contact.hours, scheduling.window_offers), VALIDATION_FAILED (the windows: their
- * number, overlap, local-time problems, a window in the past), CONFLICT naming every unmet requirement (VISIT_NOT_TENTATIVE,
- * OFFER_OPEN, DURATION_NOT_ENTERED, WORKERS_NOT_ENTERED, WORKER_COUNT_MISMATCH, WORKER_REPEATED, EQUIPMENT_NOT_ASSIGNED,
- * EQUIPMENT_REPEATED, a gate's codes, and per window `windows[i].<capacity code>`) with alternatives for the first
- * window that cannot be held. Nothing partial is written.
- */
-export async function offerWindows(
-  tx: Tx,
-  actor: StaffActor,
-  scope: DataScope,
-  visitId: string,
-  input: OfferInput,
-  deps: { gates: readonly WorkVisitGate[]; now: Date; expectedVersion: number; expiry: Automation },
-): Promise<OfferResult> {
-  const v = await tx.selectFrom('work.visits').selectAll().where('id', '=', visitId).forUpdate().executeTakeFirst()
-  if (!v || !scopeIncludesProject(scope, v.project_id)) throw new ApiError('NOT_FOUND')
-  const work = isWorkVisitPurpose(v.purpose)
-  if (work && !mayPlanWorkVisits(actor)) throw new ApiError('FORBIDDEN')
-  if (v.version !== deps.expectedVersion)
-    throw new ApiError('STALE_VERSION', { current: { version: v.version, values: { state: v.state } } })
-  if (v.state !== 'tentative') throw new ApiError('CONFLICT', { fieldErrors: [field('state', 'VISIT_NOT_TENTATIVE')] })
-  const config = await loadConfig(tx)
-  const settings = capacitySettings(config)
-  const { policy, version: policyVersion } = windowOfferPolicy(config)
-  const open = await tx
-    .selectFrom('work.window_offers')
-    .select('id')
-    .where('visit_id', '=', v.id)
-    .where('state', '=', 'open')
-    .executeTakeFirst()
-  if (open) throw new ApiError('CONFLICT', { fieldErrors: [field('offer', 'OFFER_OPEN')] })
+type VisitRow = Awaited<ReturnType<typeof lockVisit>>
 
-  const workerIds = [...input.workerIds]
-  const equipmentIds = [...(input.equipmentIds ?? [])]
+async function lockVisit(tx: Tx, visitId: string) {
+  return tx.selectFrom('work.visits').selectAll().where('id', '=', visitId).forUpdate().executeTakeFirst()
+}
+
+/**
+ * The visit's open offer, locked. Taken before the visit's own lock, in the order the customer's selection takes them
+ * (the offer, then the visit), so a replacement and a selection never wait on each other in a cycle.
+ */
+async function lockOpenOffer(tx: Tx, visitId: string) {
+  return tx
+    .selectFrom('work.window_offers')
+    .select(['id', 'number', 'version'])
+    .where('visit_id', '=', visitId)
+    .where('state', '=', 'open')
+    .forUpdate()
+    .executeTakeFirst()
+}
+
+/** The team of an offer for its visit: every worker (lead first, no repeat) and an item per equipment entry. */
+function teamProblems(v: NonNullable<VisitRow>, workerIds: readonly string[], equipmentIds: readonly string[]) {
   const problems: FieldError[] = []
   if (v.expected_duration_minutes === null)
     problems.push(field('visit.expectedDurationMinutes', 'DURATION_NOT_ENTERED'))
@@ -234,17 +233,45 @@ export async function offerWindows(
   if (new Set(equipmentIds).size !== equipmentIds.length)
     problems.push(field('body.equipmentIds', 'EQUIPMENT_REPEATED'))
   else if (equipmentIds.length < v.equipment.length) problems.push(field('body.equipmentIds', 'EQUIPMENT_NOT_ASSIGNED'))
-  problems.push(...(await approvalProblems(tx, v)))
-  if (v.job_id !== null)
-    for (const code of await unmetGates(tx, { jobId: v.job_id, projectId: v.project_id }, deps.gates))
-      problems.push(field('job', code))
-  // TSK-0064 (PROPOSED): no times are offered while a hold blocks their confirmation.
-  problems.push(...(await blockingHoldProblems(tx, v.project_id)))
-  // TSK-0127, TSK-0126 (PROPOSED like the holds): no times are offered before the three site checks are recorded (the
-  // address and county, the authorized site contact, the accepted coverage), since the selection could not confirm them.
-  problems.push(...(await siteCheckProblems(tx, v.project_id)))
-  if (v.expected_duration_minutes === null || v.required_workers === null)
-    throw new ApiError('CONFLICT', { fieldErrors: problems })
+  return problems
+}
+
+/**
+ * Saves windows of a tentative visit as a draft offer (TSK-0145, OWN-DEC-194 B1) with the visit version the caller
+ * saw: the windows, the team and the instructions are kept as they will be published; nothing is held, no number is
+ * given and no clock runs. Refusals: NOT_FOUND, FORBIDDEN (an Estimator on a work visit), STALE_VERSION, NOT_CONFIGURED
+ * (scheduling.window_offers), VALIDATION_FAILED (the windows: their number, overlap, local-time problems, a window in
+ * the past), CONFLICT (VISIT_NOT_TENTATIVE, OFFER_DRAFT_EXISTS, DURATION_NOT_ENTERED, WORKERS_NOT_ENTERED,
+ * WORKER_COUNT_MISMATCH, WORKER_REPEATED, EQUIPMENT_NOT_ASSIGNED, EQUIPMENT_REPEATED).
+ */
+export async function saveOfferDraft(
+  tx: Tx,
+  actor: StaffActor,
+  scope: DataScope,
+  visitId: string,
+  input: OfferInput,
+  deps: { now: Date; expectedVersion: number },
+): Promise<{ offerId: string; version: number; visitId: string; projectId: string; purpose: string }> {
+  await lockOpenOffer(tx, visitId)
+  const v = await lockVisit(tx, visitId)
+  if (!v || !scopeIncludesProject(scope, v.project_id)) throw new ApiError('NOT_FOUND')
+  if (isWorkVisitPurpose(v.purpose) && !mayPlanWorkVisits(actor)) throw new ApiError('FORBIDDEN')
+  if (v.version !== deps.expectedVersion)
+    throw new ApiError('STALE_VERSION', { current: { version: v.version, values: { state: v.state } } })
+  if (v.state !== 'tentative') throw new ApiError('CONFLICT', { fieldErrors: [field('state', 'VISIT_NOT_TENTATIVE')] })
+  const config = await loadConfig(tx)
+  const { policy, version: policyVersion } = windowOfferPolicy(config)
+  const draft = await tx
+    .selectFrom('work.window_offers')
+    .select('id')
+    .where('visit_id', '=', v.id)
+    .where('state', '=', 'draft')
+    .executeTakeFirst()
+  if (draft) throw new ApiError('CONFLICT', { fieldErrors: [field('offer', 'OFFER_DRAFT_EXISTS')] })
+  const workerIds = [...input.workerIds]
+  const equipmentIds = [...(input.equipmentIds ?? [])]
+  const problems = teamProblems(v, workerIds, equipmentIds)
+  if (problems.length) throw new ApiError('CONFLICT', { fieldErrors: problems })
 
   // The windows, in the visit's zone (the property's zone at planning time).
   const windows: LocalWindow[] = []
@@ -260,12 +287,159 @@ export async function offerWindows(
   if (invalid.length) throw new ApiError('VALIDATION_FAILED', { fieldErrors: invalid })
   const facts = factsOf(v)
   const ranges = windows.map((w) => reservedRange(w, facts))
-  const shape = offerProblems(ranges, policy).map((p) =>
+  const shape = shapeProblems(ranges, policy)
+  if (shape.length) throw new ApiError('VALIDATION_FAILED', { fieldErrors: shape })
+
+  const offer = await tx
+    .insertInto('work.window_offers')
+    .values({
+      visit_id: v.id,
+      project_id: v.project_id,
+      state: 'draft',
+      hold_hours: policy.holdHours,
+      policy_version: policyVersion,
+      offered_by: actor.userId,
+      preparation_instructions: input.preparationInstructions?.trim() || null,
+      worker_ids: workerIds,
+      equipment_ids: equipmentIds,
+    })
+    .returning(['id', 'version'])
+    .executeTakeFirstOrThrow()
+  for (const [i, w] of windows.entries()) {
+    const r = ranges[i] as Interval
+    await tx
+      .insertInto('work.window_offer_options')
+      .values({
+        offer_id: offer.id,
+        position: i + 1,
+        local_date: w.date,
+        window_start: w.start,
+        window_end: w.end,
+        time_zone: w.zone,
+        start_offset_minutes: w.startOffsetMinutes,
+        end_offset_minutes: w.endOffsetMinutes,
+        starts_at: w.startsAt,
+        ends_at: w.endsAt,
+        reserved_starts_at: new Date(r.start),
+        reserved_ends_at: new Date(r.end),
+      })
+      .execute()
+  }
+  return { offerId: offer.id, version: offer.version, visitId: v.id, projectId: v.project_id, purpose: v.purpose }
+}
+
+/** The number and overlap problems of an offer's reserved ranges (B4: no overlapping windows in one offer). */
+function shapeProblems(ranges: readonly Interval[], policy: Parameters<typeof offerProblems>[1]): FieldError[] {
+  return offerProblems(ranges, policy).map((p) =>
     p.code === 'OFFER_WINDOW_COUNT'
       ? field('body.windows', p.code)
       : field(`body.windows[${p.positions[1] - 1}]`, p.code),
   )
+}
+
+/**
+ * Publishes a draft offer to the customer (TSK-0145, OWN-DEC-194 B1, B3, B4), with the offer version the caller saw.
+ * In one transaction: every condition of the visit's purpose is checked again (A2: a work visit's approval, the job's
+ * gates and its follow-up authorization; for every visit no blocking hold, A1, and the site checks), each window again
+ * like a confirmation (still in the future, the visit's reserved range, the team's capacity), the offer takes the
+ * project's next number, its publication instant and its exact expiry (the hold hours in force from now, by the
+ * database clock), and every window holds the whole team. When the visit already has an open offer, publishing needs
+ * a reason and replaces it: the open offer ends as replaced (its holds released) first. The options notice of the
+ * published offer is the customer's one notice. Refusals: NOT_FOUND, FORBIDDEN, STALE_VERSION, NOT_CONFIGURED,
+ * VALIDATION_FAILED (the window count, REASON_REQUIRED), CONFLICT naming every unmet requirement (OFFER_<state> for an
+ * offer that is not a draft, VISIT_NOT_TENTATIVE, OFFER_OPEN without a reason, OFFER_DRAFT_STALE when the visit's
+ * planning changed since the draft, windows[i] WINDOW_IN_PAST, the conditions' codes, per window
+ * `windows[i].<capacity code>`) with alternatives for the first window that cannot be held. Nothing partial is written.
+ */
+export async function publishOffer(
+  tx: Tx,
+  actor: StaffActor,
+  scope: DataScope,
+  offerId: string,
+  input: { replaceReason?: string | undefined },
+  deps: { gates: readonly WorkVisitGate[]; now: Date; expectedVersion: number; expiry: Automation },
+): Promise<OfferResult> {
+  const d = await tx
+    .selectFrom('work.window_offers')
+    .select(['visit_id', 'project_id'])
+    .where('id', '=', offerId)
+    .executeTakeFirst()
+  if (!d || !scopeIncludesProject(scope, d.project_id)) throw new ApiError('NOT_FOUND')
+  const current = await lockOpenOffer(tx, d.visit_id)
+  const v = await lockVisit(tx, d.visit_id)
+  if (!v) throw new ApiError('NOT_FOUND')
+  const o = await tx
+    .selectFrom('work.window_offers')
+    .selectAll()
+    .where('id', '=', offerId)
+    .forUpdate()
+    .executeTakeFirstOrThrow()
+  const work = isWorkVisitPurpose(v.purpose)
+  if (work && !mayPlanWorkVisits(actor)) throw new ApiError('FORBIDDEN')
+  if (o.version !== deps.expectedVersion)
+    throw new ApiError('STALE_VERSION', { current: { version: o.version, values: { state: o.state } } })
+  if (o.state !== 'draft')
+    throw new ApiError('CONFLICT', { fieldErrors: [field('offer', `OFFER_${o.state.toUpperCase()}`)] })
+  if (v.state !== 'tentative') throw new ApiError('CONFLICT', { fieldErrors: [field('state', 'VISIT_NOT_TENTATIVE')] })
+  const config = await loadConfig(tx)
+  const settings = capacitySettings(config)
+  const { policy, version: policyVersion } = windowOfferPolicy(config)
+  const replaceReason = input.replaceReason?.trim() || null
+  if (current && !replaceReason) throw new ApiError('CONFLICT', { fieldErrors: [field('offer', 'OFFER_OPEN')] })
+  if (!current && replaceReason)
+    throw new ApiError('CONFLICT', { fieldErrors: [field('body.replaceReason', 'NO_OPEN_OFFER')] })
+
+  const workerIds = [...(o.worker_ids ?? [])]
+  const equipmentIds = [...(o.equipment_ids ?? [])]
+  const problems = teamProblems(v, workerIds, equipmentIds)
+  problems.push(...(await approvalProblems(tx, v)))
+  if (v.job_id !== null)
+    for (const code of await unmetGates(tx, { jobId: v.job_id, projectId: v.project_id }, deps.gates))
+      problems.push(field('job', code))
+  // TSK-0064 (decided by OWN-DEC-193 A2): no times are offered while a hold blocks their confirmation; TSK-0145 (A1): an
+  // Owner-authorized hazard-evaluation inspection is not blocked by the intake review holds it evaluates.
+  problems.push(...(await blockingHoldProblems(tx, v.project_id, v.id)))
+  // TSK-0127, TSK-0126: no times are offered before the three site checks are recorded (the address and county, the
+  // authorized site contact, the accepted coverage), since the selection could not confirm them.
+  problems.push(...(await siteCheckProblems(tx, v.project_id)))
+  if (v.expected_duration_minutes === null || v.required_workers === null)
+    throw new ApiError('CONFLICT', { fieldErrors: problems })
+
+  // The draft's windows, checked again now: their count under the policy in force, still in the future, and still the
+  // visit's reserved range (the planning may have changed since the draft was saved).
+  const options = await tx
+    .selectFrom('work.window_offer_options')
+    .selectAll()
+    .where('offer_id', '=', o.id)
+    .orderBy('position')
+    .execute()
+  const windows = options.map((p) => storedWindow(p))
+  const facts = factsOf(v)
+  const ranges = windows.map((w) => reservedRange(w, facts))
+  const shape = shapeProblems(ranges, policy)
   if (shape.length) throw new ApiError('VALIDATION_FAILED', { fieldErrors: shape })
+  options.forEach((p, i) => {
+    const r = ranges[i] as Interval
+    if (new Date(p.reserved_starts_at).getTime() !== r.start || new Date(p.reserved_ends_at).getTime() !== r.end)
+      problems.push(field(`windows[${i}]`, 'OFFER_DRAFT_STALE'))
+    if ((windows[i] as LocalWindow).startsAt.getTime() <= deps.now.getTime())
+      problems.push(field(`windows[${i}]`, 'WINDOW_IN_PAST'))
+  })
+  if (problems.length) throw new ApiError('CONFLICT', { fieldErrors: problems })
+
+  // B4: the open offer ends as replaced first (its holds released), so its team can hold the new windows.
+  if (current)
+    await tx
+      .updateTable('work.window_offers')
+      .set({
+        state: 'replaced',
+        version: current.version + 1,
+        closed_by: actor.userId,
+        closed_reason: replaceReason,
+        replaced_by: o.id,
+      })
+      .where('id', '=', current.id)
+      .execute()
 
   const requests: ReservationRequest[] = windows.map((w, i) => ({
     visitId: v.id,
@@ -293,57 +467,35 @@ export async function offerWindows(
     return { problems: found, first }
   }
   const checked = await check()
-  problems.push(...checked.problems)
-  if (problems.length)
+  if (checked.problems.length)
     throw new ApiError('CONFLICT', {
-      fieldErrors: problems,
+      fieldErrors: checked.problems,
       ...(checked.first ? { alternatives: await alternatives(tx, checked.first) } : {}),
     })
 
-  // The next number of the project's offers, under the project's lock.
+  // The next number of the project's offers, under the project's lock; the database sets the publication instant and
+  // the expiry (B1: the hold hours from now).
   await tx.selectFrom('crm.projects').select('id').where('id', '=', v.project_id).forUpdate().execute()
   const last = await tx
     .selectFrom('work.window_offers')
     .select((eb) => eb.fn.max('number').as('n'))
     .where('project_id', '=', v.project_id)
     .executeTakeFirst()
-  const instructions = input.preparationInstructions?.trim() || null
-  const offer = await tx
-    .insertInto('work.window_offers')
-    .values({
-      visit_id: v.id,
-      project_id: v.project_id,
+  const published = await tx
+    .updateTable('work.window_offers')
+    .set({
+      state: 'open',
+      version: o.version + 1,
       number: Number(last?.n ?? 0) + 1,
+      published_by: actor.userId,
       hold_hours: policy.holdHours,
       policy_version: policyVersion,
-      offered_by: actor.userId,
-      // Both instants are set by the database (offered now, expiring holdHours later).
-      expires_at: holdExpiresAt(deps.now, policy),
-      preparation_instructions: instructions,
     })
-    .returning(['id', 'number', 'version', 'offered_at', 'expires_at'])
+    .where('id', '=', o.id)
+    .returning(['number', 'version', 'published_at', 'expires_at'])
     .executeTakeFirstOrThrow()
-  const expiresAt = new Date(offer.expires_at)
-  for (const [i, w] of windows.entries()) {
-    const r = ranges[i] as Interval
-    await tx
-      .insertInto('work.window_offer_options')
-      .values({
-        offer_id: offer.id,
-        position: i + 1,
-        local_date: w.date,
-        window_start: w.start,
-        window_end: w.end,
-        time_zone: w.zone,
-        start_offset_minutes: w.startOffsetMinutes,
-        end_offset_minutes: w.endOffsetMinutes,
-        starts_at: w.startsAt,
-        ends_at: w.endsAt,
-        reserved_starts_at: new Date(r.start),
-        reserved_ends_at: new Date(r.end),
-      })
-      .execute()
-  }
+  const expiresAt = new Date(published.expires_at as Date)
+  const number = published.number as number
 
   // The holds: every worker and item of the team for every window, in one step (resource id order, then window).
   const lead = workerIds[0] as string
@@ -357,7 +509,7 @@ export async function offerWindows(
       ends_at: new Date(r.end),
       time_zone: v.time_zone,
       assigned_by: actor.userId,
-      offer_id: offer.id,
+      offer_id: o.id,
       offer_position: i + 1,
     }
     return [
@@ -377,7 +529,7 @@ export async function offerWindows(
     for (const { row } of rows) await tx.insertInto('work.reservations').values(row).execute()
   } catch (err) {
     if (!RACE.has((err as { code?: string }).code ?? '')) throw err
-    // A concurrent offer or confirmation took the capacity first: nothing of this offer stays.
+    // A concurrent offer or confirmation took the capacity first: nothing of this publication stays.
     await sql`ROLLBACK TO SAVEPOINT window_offer_holds`.execute(tx)
     const again = await check()
     throw new ApiError('CONFLICT', {
@@ -387,47 +539,142 @@ export async function offerWindows(
   }
   await sql`RELEASE SAVEPOINT window_offer_holds`.execute(tx)
 
-  const requestId = requestIdOf(`window-offer:${offer.id}`)
+  const requestId = requestIdOf(`window-offer:${o.id}`)
   // The committed event of the automatic options notice: estimate-visit options (#5) or, TSK-0120, work-appointment
-  // windows (#11, OWN-DEC-156). One per offer: its id is the notice's subject.
+  // windows (#11, OWN-DEC-156). One per published offer: its id is the notice's subject. A replacement's notice is the
+  // customer's one notice of the change (B4); the replaced offer sends nothing of its own.
   const optionsEvent = work ? WORK_VISIT_OPTIONS_EVENT : ESTIMATE_VISIT_OPTIONS_EVENT
   await outbox.add(tx, {
     type: optionsEvent,
-    aggregate: { type: 'window_offer', id: offer.id, version: offer.version },
-    payload: { visitId: v.id, number: offer.number },
-    idempotencyKey: `${optionsEvent}:${offer.id}`,
+    aggregate: { type: 'window_offer', id: o.id, version: published.version },
+    payload: { visitId: v.id, number, ...(current ? { replaces: current.number } : {}) },
+    idempotencyKey: `${optionsEvent}:${o.id}`,
     requestId,
   })
   await scheduleJob(tx, deps.expiry, {
-    key: offer.id,
+    key: o.id,
     runAt: expiresAt,
-    target: { type: 'window_offer', id: offer.id },
+    target: { type: 'window_offer', id: o.id },
     requestId,
   })
   await resolveOfferItem(tx, v.project_id, 'new_offer')
   return {
-    offerId: offer.id,
-    number: offer.number,
+    offerId: o.id,
+    number,
+    state: 'open',
+    version: published.version,
     projectId: v.project_id,
     visitId: v.id,
     purpose: v.purpose,
+    publishedAt: new Date(published.published_at as Date),
     expiresAt,
     holdHours: policy.holdHours,
     policyVersion,
     windows,
     workerIds,
     equipmentIds,
+    replaced: current ? { offerId: current.id, number: current.number as number, version: current.version + 1 } : null,
   }
+}
+
+/**
+ * Offers windows of a tentative visit with the visit version the caller saw: saves the draft (saveOfferDraft) and,
+ * unless the caller asked for a draft only, publishes it at once in the same transaction (publishOffer, with a
+ * replacement reason when the visit already has an open offer). A refusal of either step writes nothing.
+ */
+export async function offerWindows(
+  tx: Tx,
+  actor: StaffActor,
+  scope: DataScope,
+  visitId: string,
+  input: OfferInput,
+  deps: { gates: readonly WorkVisitGate[]; now: Date; expectedVersion: number; expiry: Automation },
+): Promise<OfferResult> {
+  const saved = await saveOfferDraft(tx, actor, scope, visitId, input, deps)
+  if (input.draft) {
+    const o = await tx
+      .selectFrom('work.window_offers')
+      .selectAll()
+      .where('id', '=', saved.offerId)
+      .executeTakeFirstOrThrow()
+    const options = await tx
+      .selectFrom('work.window_offer_options')
+      .selectAll()
+      .where('offer_id', '=', o.id)
+      .orderBy('position')
+      .execute()
+    return {
+      offerId: o.id,
+      number: null,
+      state: 'draft',
+      version: o.version,
+      projectId: saved.projectId,
+      visitId: saved.visitId,
+      purpose: saved.purpose,
+      publishedAt: null,
+      expiresAt: null,
+      holdHours: o.hold_hours,
+      policyVersion: o.policy_version,
+      windows: options.map((p) => storedWindow(p)),
+      workerIds: o.worker_ids ?? [],
+      equipmentIds: o.equipment_ids ?? [],
+      replaced: null,
+    }
+  }
+  return publishOffer(
+    tx,
+    actor,
+    scope,
+    saved.offerId,
+    { replaceReason: input.replaceReason },
+    {
+      ...deps,
+      expectedVersion: saved.version,
+    },
+  )
+}
+
+/**
+ * Discards a draft offer that was never published (B1), with the offer version the caller saw: it held nothing and
+ * started no clock; it is kept as history. Refusals: NOT_FOUND, FORBIDDEN, STALE_VERSION, CONFLICT (OFFER_<state> for
+ * an offer that is not a draft: a published offer is withdrawn or replaced instead).
+ */
+export async function discardOfferDraft(
+  tx: Tx,
+  actor: StaffActor,
+  scope: DataScope,
+  offerId: string,
+  deps: { expectedVersion: number },
+): Promise<{ offerId: string; visitId: string; projectId: string; version: number }> {
+  const o = await lockOffer(tx, { id: offerId })
+  if (!o || !scopeIncludesProject(scope, o.project_id)) throw new ApiError('NOT_FOUND')
+  const v = await tx
+    .selectFrom('work.visits')
+    .select(['purpose'])
+    .where('id', '=', o.visit_id)
+    .executeTakeFirstOrThrow()
+  if (isWorkVisitPurpose(v.purpose) && !mayPlanWorkVisits(actor)) throw new ApiError('FORBIDDEN')
+  if (o.version !== deps.expectedVersion)
+    throw new ApiError('STALE_VERSION', { current: { version: o.version, values: { state: o.state } } })
+  if (o.state !== 'draft')
+    throw new ApiError('CONFLICT', { fieldErrors: [field('offer', `OFFER_${o.state.toUpperCase()}`)] })
+  const updated = await tx
+    .updateTable('work.window_offers')
+    .set({ state: 'discarded', version: o.version + 1, closed_by: actor.userId })
+    .where('id', '=', o.id)
+    .returning('version')
+    .executeTakeFirstOrThrow()
+  return { offerId: o.id, visitId: o.visit_id, projectId: o.project_id, version: updated.version }
 }
 
 type OfferRow = {
   id: string
   visit_id: string
   project_id: string
-  number: number
+  number: number | null
   state: string
   version: number
-  expires_at: Date
+  expires_at: Date | null
   offered_by: string
   selected_position: number | null
   selected_by_contact: string | null
@@ -456,9 +703,12 @@ async function lockOffer(tx: Tx, where: { id: string } | { projectId: string; nu
 }
 
 /**
- * Withdraws an open offer with the offer version the caller saw and a reason (PROPOSED); every hold of it ends
- * ('hold_released') and the visit stays tentative. Refusals: NOT_FOUND, FORBIDDEN, STALE_VERSION, VALIDATION_FAILED
- * (REASON_REQUIRED), CONFLICT (OFFER_<state> for an offer that already ended).
+ * Withdraws an open offer with the offer version the caller saw and a reason (OWN-DEC-194 B4); every hold of it ends
+ * ('hold_released') and the visit stays tentative. TSK-0145 (PROPOSED): no withdrawal notice has owner-approved
+ * wording, so none is sent; the withdrawn times leave the customer's Appointments tab at once and staff get the
+ * "offered windows need new times" item (window_offer_withdrawn), resolved when new windows are published (their
+ * notice tells the customer) or a window is selected. Refusals: NOT_FOUND, FORBIDDEN, STALE_VERSION,
+ * VALIDATION_FAILED (REASON_REQUIRED), CONFLICT (OFFER_<state> for an offer that is not open: a draft is discarded).
  */
 export async function withdrawOffer(
   tx: Tx,
@@ -488,7 +738,14 @@ export async function withdrawOffer(
     .where('id', '=', o.id)
     .returning('version')
     .executeTakeFirstOrThrow()
-  return { offerId: o.id, number: o.number, visitId: o.visit_id, projectId: o.project_id, version: updated.version }
+  await openOfferItem(tx, o.project_id, 'window_offer_withdrawn')
+  return {
+    offerId: o.id,
+    number: o.number as number,
+    visitId: o.visit_id,
+    projectId: o.project_id,
+    version: updated.version,
+  }
 }
 
 /**
@@ -500,7 +757,8 @@ export async function expireOfferIfDue(tx: Tx, offerId: string): Promise<'expire
   if (!o || o.state !== 'open') return 'unchanged'
   const now = await dbNow(tx)
   // Not due yet: the job fails and retries instead of expiring anything early.
-  if (now.getTime() < new Date(o.expires_at).getTime()) throw new Error(`window offer ${offerId} is not due to expire`)
+  if (now.getTime() < new Date(o.expires_at as Date).getTime())
+    throw new Error(`window offer ${offerId} is not due to expire`)
   await tx
     .updateTable('work.window_offers')
     .set({ state: 'expired', version: o.version + 1 })
@@ -597,7 +855,7 @@ export async function selectWindow(
     }
   if (o.state !== 'open') throw new ApiError('CONFLICT', { fieldErrors: [ended(o)] })
   const now = await dbNow(tx)
-  if (now.getTime() >= new Date(o.expires_at).getTime())
+  if (now.getTime() >= new Date(o.expires_at as Date).getTime())
     throw new ApiError('CONFLICT', { fieldErrors: [field('offer', 'OFFER_EXPIRED')] })
   if (!option) throw new ApiError('VALIDATION_FAILED', { fieldErrors: [field('body.position', 'POSITION_UNKNOWN')] })
   const window = storedWindow(option)
@@ -734,7 +992,7 @@ export async function requestOtherTimes(
   const o = await customerOffer(tx, scope, ref)
   if (o.state !== 'open') throw new ApiError('CONFLICT', { fieldErrors: [ended(o)] })
   const now = await dbNow(tx)
-  if (now.getTime() >= new Date(o.expires_at).getTime())
+  if (now.getTime() >= new Date(o.expires_at as Date).getTime())
     throw new ApiError('CONFLICT', { fieldErrors: [field('offer', 'OFFER_EXPIRED')] })
   await tx
     .updateTable('work.window_offers')
@@ -787,32 +1045,42 @@ export async function noticesOf(db: Reader, recordType: string, ids: readonly st
 
 export type StaffOfferView = {
   id: string
-  number: number
+  /** The project's offer number; null for a draft (numbered when published). */
+  number: number | null
   state: string
   /** Open and inside its hold time. */
   held: boolean
   version: number
+  /** Who saved it and when (a draft's saving, B1: no clock runs from it). */
   offeredBy: StaffRef
   offeredAt: string
-  expiresAt: string
+  /** TSK-0145 (B1): who published it to the customer and when: the hold runs from then; null for a draft. */
+  publishedBy: StaffRef | null
+  publishedAt: string | null
+  /** The exact end of the hold; null for a draft. */
+  expiresAt: string | null
   holdHours: number
   preparationInstructions: string | null
   windows: { position: number; window: WindowShown; reservedRange: { startsAt: string; endsAt: string } }[]
+  /** The team a draft holds when published (null for offers made before drafts existed: their holds name it). */
+  team: { workerIds: string[]; equipmentIds: string[] } | null
   selectedPosition: number | null
   closedAt: string | null
   closedBy: StaffRef | null
   closedReason: string | null
+  /** B4: the number of the offer that replaced this one. */
+  replacedByNumber: number | null
   customerNote: string | null
   /** The automatic notice this offer triggers; null: none is on the automatic list (work-visit windows). */
   noticeKey: string | null
   notices: NoticeView[]
-  actions: { withdraw: boolean }
+  actions: { withdraw: boolean; publish: boolean; discard: boolean }
 }
 
-/** The offers of these visits for staff, newest first per visit. */
+/** The offers of these visits for staff, newest first per visit (drafts first). */
 export async function staffOffers(
   db: Reader,
-  visits: readonly { id: string; purpose: string }[],
+  visits: readonly { id: string; purpose: string; state: string }[],
   names: (id: string) => StaffRef,
   canWithdraw: (purpose: string) => boolean,
   now: Date,
@@ -827,6 +1095,7 @@ export async function staffOffers(
       'in',
       visits.map((v) => v.id),
     )
+    .orderBy('offered_at', 'desc')
     .orderBy('number', 'desc')
     .execute()
   if (offers.length === 0) return out
@@ -845,18 +1114,23 @@ export async function staffOffers(
     'window_offer',
     offers.map((o) => o.id),
   )
+  const numberOf = new Map(offers.map((o) => [o.id, o.number]))
   for (const o of offers) {
-    const purpose = visits.find((v) => v.id === o.visit_id)?.purpose ?? 'site_estimate'
-    const expires = new Date(o.expires_at)
+    const visit = visits.find((v) => v.id === o.visit_id)
+    const purpose = visit?.purpose ?? 'site_estimate'
+    const expires = o.expires_at ? new Date(o.expires_at) : null
+    const may = canWithdraw(purpose)
     const view: StaffOfferView = {
       id: o.id,
       number: o.number,
       state: o.state,
-      held: o.state === 'open' && now.getTime() < expires.getTime(),
+      held: o.state === 'open' && expires !== null && now.getTime() < expires.getTime(),
       version: o.version,
       offeredBy: names(o.offered_by),
       offeredAt: new Date(o.offered_at).toISOString(),
-      expiresAt: expires.toISOString(),
+      publishedBy: o.published_by ? names(o.published_by) : null,
+      publishedAt: o.published_at ? new Date(o.published_at).toISOString() : null,
+      expiresAt: expires ? expires.toISOString() : null,
       holdHours: o.hold_hours,
       preparationInstructions: o.preparation_instructions,
       windows: options
@@ -869,14 +1143,21 @@ export async function staffOffers(
             endsAt: new Date(p.reserved_ends_at).toISOString(),
           },
         })),
+      team: o.worker_ids ? { workerIds: o.worker_ids, equipmentIds: o.equipment_ids ?? [] } : null,
       selectedPosition: o.selected_position,
       closedAt: o.closed_at ? new Date(o.closed_at).toISOString() : null,
       closedBy: o.closed_by ? names(o.closed_by) : null,
       closedReason: o.closed_reason,
+      replacedByNumber: o.replaced_by ? (numberOf.get(o.replaced_by) ?? null) : null,
       customerNote: o.customer_note,
       noticeKey: isWorkVisitPurpose(purpose) ? OFFER_NOTICE.work : OFFER_NOTICE.estimate,
       notices: notices.get(o.id) ?? [],
-      actions: { withdraw: o.state === 'open' && canWithdraw(purpose) },
+      actions: {
+        withdraw: o.state === 'open' && may,
+        // B1: a draft is published while its visit is tentative (over an open offer, as its replacement, B4).
+        publish: o.state === 'draft' && may && visit?.state === 'tentative',
+        discard: o.state === 'draft' && may,
+      },
     }
     out.set(o.visit_id, [...(out.get(o.visit_id) ?? []), view])
   }
@@ -962,12 +1243,14 @@ export async function appointmentsOf(db: Reader, projectId: string, now: Date): 
           'visit_id',
           'number',
           'state',
-          'offered_at',
+          'published_at',
           'expires_at',
           'preparation_instructions',
           'selected_position',
         ])
         .where('project_id', '=', projectId)
+        // TSK-0145 (B1): a draft (or a discarded draft) was never published to the customer.
+        .where('published_at', 'is not', null)
         .orderBy('number', 'desc')
         .execute()
     : []
@@ -991,8 +1274,8 @@ export async function appointmentsOf(db: Reader, projectId: string, now: Date): 
   )
   const purposeOf = new Map(visits.map((v) => [v.id, customerPurpose(v.purpose)]))
   // An offer that ended unselected is shown until a newer offer of the same purpose, or a confirmed visit of it, exists.
-  const superseded = (o: { visit_id: string; number: number }) =>
-    offers.some((x) => x.number > o.number && purposeOf.get(x.visit_id) === purposeOf.get(o.visit_id)) ||
+  const superseded = (o: { visit_id: string; number: number | null }) =>
+    offers.some((x) => (x.number ?? 0) > (o.number ?? 0) && purposeOf.get(x.visit_id) === purposeOf.get(o.visit_id)) ||
     visits.some(
       (x) =>
         (SHOWN_VISIT_STATES as readonly string[]).includes(x.state) &&
@@ -1007,7 +1290,7 @@ export async function appointmentsOf(db: Reader, projectId: string, now: Date): 
     ) {
       const status =
         latest.state === 'open'
-          ? now.getTime() < new Date(latest.expires_at).getTime()
+          ? now.getTime() < new Date(latest.expires_at as Date).getTime()
             ? 'open'
             : 'expired'
           : latest.state === 'expired' || latest.state === 'other_times_requested'
@@ -1015,11 +1298,11 @@ export async function appointmentsOf(db: Reader, projectId: string, now: Date): 
             : null
       if (status)
         shownOffers.push({
-          number: latest.number,
+          number: latest.number as number,
           purpose: customerPurpose(v.purpose),
           status,
-          offeredAt: new Date(latest.offered_at),
-          expiresAt: new Date(latest.expires_at),
+          offeredAt: new Date(latest.published_at as Date),
+          expiresAt: new Date(latest.expires_at as Date),
           windows: options
             .filter((p) => p.offer_id === latest.id)
             .map((p) => ({ position: p.position, ...windowShape(storedWindow(p)) })),
@@ -1116,7 +1399,7 @@ function optionsAutomation(messageKey: string, work: boolean, deps: VisitNoticeD
         .where('o.id', '=', id)
         .executeTakeFirst()
       if (!o || o.state !== 'open' || isWorkVisitPurpose(o.purpose) !== work) return 'stale'
-      if ((await dbNow(tx)).getTime() >= new Date(o.expires_at).getTime()) return 'stale'
+      if ((await dbNow(tx)).getTime() >= new Date(o.expires_at as Date).getTime()) return 'stale'
       const r = await requestOf(tx, o.project_id)
       if (!r) return 'stale'
       return {
@@ -1127,7 +1410,7 @@ function optionsAutomation(messageKey: string, work: boolean, deps: VisitNoticeD
           customerName: firstNameOf(r.full_name),
           ...(work ? { jobNumber: jobNumberOf(r.reference) } : { reference: r.reference }),
           appointmentLink: portalLink(deps.publicSiteUrl, r.reference, 'appointments'),
-          holdExpiration: instantText(new Date(o.expires_at), o.time_zone),
+          holdExpiration: instantText(new Date(o.expires_at as Date), o.time_zone),
           ...(work ? {} : { projectLink: portalLink(deps.publicSiteUrl, r.reference) }),
         }),
         failureItem: { reference: r.reference, projectId: o.project_id, assignedStaffId: r.responsible_staff_id },

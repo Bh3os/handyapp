@@ -30,8 +30,25 @@
 // with the authorized site contact and the accepted coverage), run beside these by every confirmation path; migration
 // 0106 refuses the confirmation in the database without them. Moving or reassigning an already confirmed visit does
 // not ask again.
+// TSK-0145 (OWN-DEC-193, OWN-DEC-208; migration 0120):
+// - A1: holds stay mandatory. While an intake review hold is open, the only visit of its project that can be
+//   confirmed (or offered) is a site visit the Owner authorized as a hazard-evaluation inspection, naming the qualified
+//   person and the safety conditions (authorizations.ts): the review holds it evaluates do not block that visit, and
+//   stay open for every other one. A review hold raised after the authorization, a job-level Hold and a critical
+//   safety hold still block it (PROPOSED, OQ-VISIT-AMENDMENT-DETAILS).
+// - A2: an estimate visit needs no approved job (no approval, no deposit); a work visit needs its approved job and
+//   every check. The same purpose-specific checks gate publishing windows (offers.ts), so options are offered only for
+//   a visit whose own conditions are met.
+// - A4: a work visit of a completed job (COMPLETED_JOB_STATES) needs its recorded follow-up authorization (a contractual
+//   obligation, a warranty, the punch-list process or an approved return-work authorization): followUp
+//   FOLLOW_UP_NOT_AUTHORIZED. New paid work needs an approved estimate or change order.
 import type { Db, Tx } from '@handyhub/db'
-import { BLOCKING_HOLD_STATES, CONFIRMATION_BLOCKING_HOLD_KINDS, isWorkVisitPurpose } from '@handyhub/domain'
+import {
+  BLOCKING_HOLD_STATES,
+  CONFIRMATION_BLOCKING_HOLD_KINDS,
+  isCompletedJob,
+  isWorkVisitPurpose,
+} from '@handyhub/domain'
 import type { FieldError } from '../../api/errors.js'
 import { confirmationDepositGate, depositGateProblem } from '../finance/deposit-gate.js'
 import { DEPOSIT_GATE, unmetGates, type WorkVisitGate } from './gates.js'
@@ -60,14 +77,17 @@ export type VisitToCheck = {
 
 const isWork = (v: VisitToCheck) => isWorkVisitPurpose(v.purpose)
 
-/** The approval a work visit needs: its job, an approved project and the job's accepted scope (job share-locked). */
+/**
+ * The approval a work visit needs: its job, an approved project and the job's accepted scope (job share-locked); for a
+ * job already complete, the visit's recorded follow-up authorization (A4). An estimate visit needs none (A2).
+ */
 export async function approvalProblems(tx: Tx, v: VisitToCheck): Promise<FieldError[]> {
   if (!isWork(v)) return []
   if (v.job_id === null) return [field('approval', 'NO_JOB')]
   const job = await tx
     .selectFrom('work.jobs as j')
     .innerJoin('crm.projects as p', 'p.id', 'j.project_id')
-    .select(['j.id', 'p.state'])
+    .select(['j.id', 'j.operational_state', 'p.state'])
     .select((eb) =>
       eb
         .exists(eb.selectFrom('work.job_scope_snapshots as s').select('s.job_id').whereRef('s.job_id', '=', 'j.id'))
@@ -81,19 +101,50 @@ export async function approvalProblems(tx: Tx, v: VisitToCheck): Promise<FieldEr
   if (!(WORK_VISIT_PROJECT_STATES as readonly string[]).includes(job.state))
     out.push(field('approval', 'APPROVAL_NOT_ACTIVE'))
   if (!job.scoped) out.push(field('approval', 'SCOPE_NOT_ACCEPTED'))
+  if (isCompletedJob(job.operational_state) && !(await hasFollowUpAuthorization(tx, v.id)))
+    out.push(field('followUp', 'FOLLOW_UP_NOT_AUTHORIZED'))
   return out
 }
 
-/** Every hold of the project that blocks confirmation now, oldest first: one entry per hold. */
-export async function blockingHoldProblems(db: Reader, projectId: string): Promise<FieldError[]> {
+async function hasFollowUpAuthorization(db: Reader, visitId: string): Promise<boolean> {
+  const row = await db
+    .selectFrom('work.follow_up_authorizations')
+    .select('id')
+    .where('visit_id', '=', visitId)
+    .executeTakeFirst()
+  return row !== undefined
+}
+
+/**
+ * Every hold of the project that blocks confirming this visit now, oldest first: one entry per hold. A1: the intake
+ * review holds the visit's own hazard-evaluation inspection evaluates do not block it (they stay open).
+ */
+export async function blockingHoldProblems(db: Reader, projectId: string, visitId?: string): Promise<FieldError[]> {
   const rows = await db
-    .selectFrom('work.holds')
-    .select(['id', 'kind'])
-    .where('project_id', '=', projectId)
-    .where('kind', 'in', [...CONFIRMATION_BLOCKING_HOLD_KINDS])
-    .where('state', 'in', [...BLOCKING_HOLD_STATES])
-    .orderBy('raised_at')
-    .orderBy('id')
+    .selectFrom('work.holds as h')
+    .select(['h.id', 'h.kind'])
+    .where('h.project_id', '=', projectId)
+    .where('h.kind', 'in', [...CONFIRMATION_BLOCKING_HOLD_KINDS])
+    .where('h.state', 'in', [...BLOCKING_HOLD_STATES])
+    .$if(visitId !== undefined, (q) =>
+      q.where((eb) =>
+        eb.not(
+          eb.and([
+            eb('h.kind', '=', 'review'),
+            eb.exists(
+              eb
+                .selectFrom('work.hazard_inspection_holds as ih')
+                .innerJoin('work.hazard_inspection_authorizations as a', 'a.id', 'ih.authorization_id')
+                .select('ih.hold_id')
+                .whereRef('ih.hold_id', '=', 'h.id')
+                .where('a.visit_id', '=', visitId as string),
+            ),
+          ]),
+        ),
+      ),
+    )
+    .orderBy('h.raised_at')
+    .orderBy('h.id')
     .execute()
   return rows.map((r) => field(`holds.${r.id}`, HOLD_CODES[r.kind as keyof typeof HOLD_CODES] ?? 'CRITICAL_HOLD_OPEN'))
 }
@@ -137,7 +188,7 @@ export async function confirmationPreconditions(
     ))
       out.push(field('job', code))
   }
-  out.push(...(await blockingHoldProblems(tx, v.project_id)))
+  out.push(...(await blockingHoldProblems(tx, v.project_id, v.id)))
   return out
 }
 

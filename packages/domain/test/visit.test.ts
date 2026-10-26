@@ -5,6 +5,9 @@ import {
   canChangeWindow,
   COMMITTED_VISIT_STATES,
   eventsFrom,
+  FOLLOW_UP_BASES,
+  followUpNeedsReturnWork,
+  isCompletedJob,
   isWorkVisitPurpose,
   VISIT_MACHINE,
   VISIT_PURPOSES,
@@ -76,5 +79,18 @@ describe('[HH-SCH-01] visit states are separate from preferences and scheduling 
     expect(canChangeWindow('confirmed')).toBe(true)
     for (const s of ['en_route', 'arrived', 'completed', 'expired', 'canceled', 'no_access'])
       expect(canChangeWindow(s)).toBe(false)
+  })
+})
+
+describe('[HH-SCH-06][OWN-DEC-193] follow-up visits on a completed job need a recorded basis (TSK-0145, A4)', () => {
+  it('[OWN-DEC-193] a job is complete once its quality review passed, closed or reopened since (PROPOSED)', () => {
+    for (const s of ['operationally_complete', 'closed', 'reopened']) expect(isCompletedJob(s)).toBe(true)
+    for (const s of ['pending_preparation', 'ready', 'in_progress', 'paused', 'ready_for_qa'])
+      expect(isCompletedJob(s)).toBe(false)
+  })
+
+  it('[OWN-DEC-193] the four bases; a warranty and a return-work authorization name the return work', () => {
+    expect(FOLLOW_UP_BASES).toEqual(['contractual_obligation', 'warranty', 'punch_list', 'return_work'])
+    expect(FOLLOW_UP_BASES.filter(followUpNeedsReturnWork)).toEqual(['warranty', 'return_work'])
   })
 })

@@ -149,6 +149,10 @@ export type { EstimateVersionEvent, EstimateVersionFacts, EstimateVersionState }
 export {
   canChangeWindow,
   COMMITTED_VISIT_STATES,
+  COMPLETED_JOB_STATES,
+  FOLLOW_UP_BASES,
+  followUpNeedsReturnWork,
+  isCompletedJob,
   isWorkVisitPurpose,
   VISIT_MACHINE,
   VISIT_PURPOSES,
@@ -156,7 +160,7 @@ export {
   WINDOW_CHANGE_STATES,
   WORK_VISIT_PURPOSES,
 } from './visit.js'
-export type { VisitEvent, VisitFacts, VisitPurpose, VisitState } from './visit.js'
+export type { FollowUpBasis, VisitEvent, VisitFacts, VisitPurpose, VisitState } from './visit.js'
 // TSK-0078: delays, no access, customer absence and the other recorded visit outcomes.
 export {
   VISIT_OUTCOME_KINDS,

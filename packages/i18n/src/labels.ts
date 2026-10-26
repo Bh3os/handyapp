@@ -194,6 +194,8 @@ export const LABEL_FAMILIES = {
     'estimate_update_requested',
     'window_other_times_requested',
     'window_offer_expired',
+    // TSK-0145 (OWN-DEC-194 B4): staff withdrew the offered windows.
+    'window_offer_withdrawn',
     'estimate_reminder_first',
     'estimate_reminder_final',
     'possible_duplicate',
@@ -902,6 +904,27 @@ export const LABEL_FAMILIES = {
     'NO_FEE_TO_WAIVE',
     'WAIVER_NOT_BELOW_FEE',
     'CIRCUMSTANCE_NOT_APPLICABLE',
+    // TSK-0145 (OWN-DEC-193, OWN-DEC-194): draft and replaced offers, the hazard-evaluation inspection and the
+    // follow-up authorization (apps/server/src/modules/visits/offers.ts, authorizations.ts).
+    'OFFER_DRAFT_EXISTS',
+    'OFFER_DRAFT_STALE',
+    'OFFER_DRAFT',
+    'OFFER_DISCARDED',
+    'OFFER_REPLACED',
+    'NO_OPEN_OFFER',
+    'FOLLOW_UP_NOT_AUTHORIZED',
+    'NOT_A_SITE_VISIT',
+    'INSPECTION_AUTHORIZED',
+    'NO_REVIEW_HOLD',
+    'NOT_A_WORK_VISIT',
+    'JOB_NOT_COMPLETE',
+    'FOLLOW_UP_AUTHORIZED',
+    'RETURN_WORK_REQUIRED',
+    'RETURN_WORK_UNKNOWN',
+    'RETURN_WORK_NOT_WARRANTY',
+    'RETURN_WORK_NOT_DECIDED',
+    'NOTE_REQUIRED',
+    'REQUIRED',
   ],
   /** The outcome of a final cancellation under FACT-CANCELLATION-RULES (TSK-0066; @handyhub/domain/cancellation). */
   cancellationOutcome: [
@@ -922,8 +945,19 @@ export const LABEL_FAMILIES = {
   handyhubCause: ['weather', 'safety_stop', 'sick_worker', 'other'],
   /** The customer's change requests of a confirmed visit (TSK-0066; HH-PORT-04, OWN-DEC-107). */
   changeRequestKind: ['reschedule', 'cancellation'],
-  /** Window offer states (TSK-0063; @handyhub/domain/window-offer, migration 0053). */
-  windowOfferState: ['open', 'selected', 'other_times_requested', 'withdrawn', 'expired'],
+  /** Window offer states (TSK-0063; @handyhub/domain/window-offer, migration 0053; TSK-0145 drafts, 0120). */
+  windowOfferState: [
+    'draft',
+    'discarded',
+    'open',
+    'selected',
+    'other_times_requested',
+    'withdrawn',
+    'replaced',
+    'expired',
+  ],
+  /** TSK-0145 (OWN-DEC-193 A4): the recorded basis of a follow-up visit on a completed job. */
+  followUpBasis: ['contractual_obligation', 'warranty', 'punch_list', 'return_work'],
   /** What happened to one automatic notice's delivery (migration 0008 message_deliveries.state). */
   noticeState: ['draft', 'queued', 'sent', 'delivered', 'failed', 'suppressed', 'cancelled'],
   /**

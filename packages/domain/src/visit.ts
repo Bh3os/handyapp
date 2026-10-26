@@ -52,6 +52,28 @@ export function isWorkVisitPurpose(p: string): boolean {
   return (WORK_VISIT_PURPOSES as readonly string[]).includes(p)
 }
 
+/**
+ * TSK-0145 (OWN-DEC-193 A4; PROPOSED states): a job whose work is complete (the Owner's quality review passed, closed or
+ * reopened since). A work visit of it is confirmed only with a recorded follow-up authorization naming its basis.
+ */
+export const COMPLETED_JOB_STATES = ['operationally_complete', 'closed', 'reopened'] as const
+
+/**
+ * OWN-DEC-193 A4: the bases that permit a follow-up visit on a completed job. New paid work needs an approved estimate
+ * or change order instead. A warranty and an approved return-work authorization name the job's return work.
+ */
+export const FOLLOW_UP_BASES = ['contractual_obligation', 'warranty', 'punch_list', 'return_work'] as const
+export type FollowUpBasis = (typeof FOLLOW_UP_BASES)[number]
+
+/** Whether a follow-up basis names the job's return work (a warranty claim, or return work the Owner decided). */
+export function followUpNeedsReturnWork(basis: FollowUpBasis): boolean {
+  return basis === 'warranty' || basis === 'return_work'
+}
+
+export function isCompletedJob(operationalState: string): boolean {
+  return (COMPLETED_JOB_STATES as readonly string[]).includes(operationalState)
+}
+
 export function canChangeWindow(state: string): boolean {
   return (WINDOW_CHANGE_STATES as readonly string[]).includes(state)
 }

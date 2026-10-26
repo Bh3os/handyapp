@@ -5,13 +5,16 @@ import {
   CANCELLATION_INITIATORS,
   CANCELLATION_OUTCOMES,
   CUSTOMER_CIRCUMSTANCES,
+  FOLLOW_UP_BASES,
   HANDYHUB_CAUSES,
   SITE_CONTACT_AUTHORITIES,
   SITE_CONTACT_DESIGNATIONS,
   STAFF_DETAIL_SOURCES,
   VISIT_PURPOSES,
   VISIT_STATES,
+  WINDOW_OFFER_STATES,
 } from '@handyhub/domain'
+import { AUTHORIZATION_LIMITS } from './authorizations.js'
 import { BOARD_VIEWS } from './board.js'
 import { CHANGE_KINDS, CHANGE_LIMITS, REQUEST_KINDS } from './changes.js'
 import { OFFER_LIMITS } from './offers.js'
@@ -176,6 +179,44 @@ export const OFFER_BODY = {
     workerIds: { type: 'array', minItems: 1, maxItems: CONFIRM_LIMITS.workers, items: UUID },
     equipmentIds: { type: 'array', maxItems: CONFIRM_LIMITS.equipment, items: UUID },
     preparationInstructions: { type: 'string', maxLength: OFFER_LIMITS.instructions },
+    // TSK-0145 (OWN-DEC-194 B1): save as a draft only (nothing held, no clock); otherwise published at once.
+    draft: { type: 'boolean' },
+    // TSK-0145 (B4): publishing over the visit's open offer replaces it, with this reason.
+    replaceReason: { type: 'string', minLength: 1, maxLength: OFFER_LIMITS.reason },
+  },
+} as const
+
+/** TSK-0145 (B1, B4): publish a draft offer; over an open offer it is a replacement and needs the reason. */
+export const PUBLISH_BODY = {
+  type: 'object',
+  additionalProperties: false,
+  properties: { replaceReason: { type: 'string', minLength: 1, maxLength: OFFER_LIMITS.reason } },
+} as const
+
+export const DISCARD_BODY = { type: 'object', additionalProperties: false, properties: {} } as const
+
+/** TSK-0145 (OWN-DEC-193 A1, OWN-DEC-208): the Owner's hazard-evaluation inspection authorization. */
+export const INSPECTION_BODY = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['qualifiedPerson', 'qualification', 'safetyConditions', 'reason'],
+  properties: {
+    qualifiedPerson: { type: 'string', minLength: 1, maxLength: AUTHORIZATION_LIMITS.person },
+    qualification: { type: 'string', minLength: 1, maxLength: AUTHORIZATION_LIMITS.qualification },
+    safetyConditions: { type: 'string', minLength: 1, maxLength: AUTHORIZATION_LIMITS.conditions },
+    reason: { type: 'string', minLength: 1, maxLength: AUTHORIZATION_LIMITS.reason },
+  },
+} as const
+
+/** TSK-0145 (OWN-DEC-193 A4): the recorded basis of a follow-up visit on a completed job. */
+export const FOLLOW_UP_BODY = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['basis', 'note'],
+  properties: {
+    basis: { type: 'string', enum: [...FOLLOW_UP_BASES] },
+    note: { type: 'string', minLength: 1, maxLength: AUTHORIZATION_LIMITS.note },
+    returnWorkId: UUID,
   },
 } as const
 
@@ -266,14 +307,18 @@ const OFFER = {
     'version',
     'offeredBy',
     'offeredAt',
+    'publishedBy',
+    'publishedAt',
     'expiresAt',
     'holdHours',
     'preparationInstructions',
     'windows',
+    'team',
     'selectedPosition',
     'closedAt',
     'closedBy',
     'closedReason',
+    'replacedByNumber',
     'customerNote',
     'noticeKey',
     'notices',
@@ -281,13 +326,17 @@ const OFFER = {
   ],
   properties: {
     id: { type: 'string' },
-    number: { type: 'integer' },
-    state: { type: 'string', enum: ['open', 'selected', 'expired', 'withdrawn', 'other_times_requested'] },
+    // TSK-0145: null for a draft (numbered when published).
+    number: NULLABLE_INT,
+    state: { type: 'string', enum: [...WINDOW_OFFER_STATES] },
     held: { type: 'boolean' },
     version: { type: 'integer' },
     offeredBy: STAFF_REF,
     offeredAt: { type: 'string', format: 'date-time' },
-    expiresAt: { type: 'string', format: 'date-time' },
+    // TSK-0145 (B1): the publication the hold runs from, and its exact end; null for a draft.
+    publishedBy: { anyOf: [STAFF_REF, { type: 'null' }] },
+    publishedAt: { type: ['string', 'null'] },
+    expiresAt: { type: ['string', 'null'] },
     holdHours: { type: 'integer' },
     preparationInstructions: NULLABLE_STRING,
     windows: {
@@ -299,18 +348,33 @@ const OFFER = {
         properties: { position: { type: 'integer' }, window: OFFERED_WINDOW, reservedRange: SPAN },
       },
     },
+    team: {
+      anyOf: [
+        {
+          type: 'object',
+          additionalProperties: false,
+          required: ['workerIds', 'equipmentIds'],
+          properties: {
+            workerIds: { type: 'array', items: { type: 'string' } },
+            equipmentIds: { type: 'array', items: { type: 'string' } },
+          },
+        },
+        { type: 'null' },
+      ],
+    },
     selectedPosition: NULLABLE_INT,
     closedAt: { type: ['string', 'null'] },
     closedBy: { anyOf: [STAFF_REF, { type: 'null' }] },
     closedReason: NULLABLE_STRING,
+    replacedByNumber: NULLABLE_INT,
     customerNote: NULLABLE_STRING,
     noticeKey: NULLABLE_STRING,
     notices: { type: 'array', items: NOTICE },
     actions: {
       type: 'object',
       additionalProperties: false,
-      required: ['withdraw'],
-      properties: { withdraw: { type: 'boolean' } },
+      required: ['withdraw', 'publish', 'discard'],
+      properties: { withdraw: { type: 'boolean' }, publish: { type: 'boolean' }, discard: { type: 'boolean' } },
     },
   },
 } as const
@@ -481,16 +545,81 @@ const CHANGE = {
   },
 } as const
 
+const AUTHORIZATIONS = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['inspection', 'followUp', 'jobCompleted', 'actions'],
+  properties: {
+    inspection: {
+      anyOf: [
+        {
+          type: 'object',
+          additionalProperties: false,
+          required: [
+            'id',
+            'qualifiedPerson',
+            'qualification',
+            'safetyConditions',
+            'reason',
+            'holdIds',
+            'authorizedBy',
+            'authorizedAt',
+          ],
+          properties: {
+            id: { type: 'string' },
+            qualifiedPerson: { type: 'string' },
+            qualification: { type: 'string' },
+            safetyConditions: { type: 'string' },
+            reason: { type: 'string' },
+            holdIds: { type: 'array', items: { type: 'string' } },
+            authorizedBy: STAFF_REF,
+            authorizedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+        { type: 'null' },
+      ],
+    },
+    followUp: {
+      anyOf: [
+        {
+          type: 'object',
+          additionalProperties: false,
+          required: ['id', 'basis', 'note', 'returnWorkId', 'authorizedBy', 'authorizedAt'],
+          properties: {
+            id: { type: 'string' },
+            basis: { type: 'string', enum: [...FOLLOW_UP_BASES] },
+            note: { type: 'string' },
+            returnWorkId: NULLABLE_STRING,
+            authorizedBy: STAFF_REF,
+            authorizedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+        { type: 'null' },
+      ],
+    },
+    // A work visit of a completed job (A4): it needs its follow-up authorization.
+    jobCompleted: { type: 'boolean' },
+    actions: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['authorizeInspection', 'authorizeFollowUp'],
+      properties: { authorizeInspection: { type: 'boolean' }, authorizeFollowUp: { type: 'boolean' } },
+    },
+  },
+} as const
+
 const VISIT_ACTIONS = {
   type: 'object',
   additionalProperties: false,
-  required: ['changeWindow', 'confirm', 'reassign', 'cancel', 'offerWindows'],
+  required: ['changeWindow', 'confirm', 'reassign', 'cancel', 'offerWindows', 'replaceOffer'],
   properties: {
     changeWindow: { type: 'boolean' },
     confirm: { type: 'boolean' },
     reassign: { type: 'boolean' },
     cancel: { type: 'boolean' },
     offerWindows: { type: 'boolean' },
+    // TSK-0145 (OWN-DEC-194 B4): new windows replace the visit's open offer, with a reason.
+    replaceOffer: { type: 'boolean' },
   },
 } as const
 
@@ -522,6 +651,7 @@ const VISIT = {
     'changeRequest',
     'cancellationPreview',
     'changes',
+    'authorizations',
     'actions',
   ],
   properties: {
@@ -642,6 +772,8 @@ const VISIT = {
     changeRequest: CHANGE_REQUEST,
     cancellationPreview: CANCELLATION_PREVIEW,
     changes: { type: 'array', items: CHANGE },
+    // TSK-0145 (OWN-DEC-193 A1, A4): the visit's hazard-evaluation inspection and follow-up authorizations.
+    authorizations: AUTHORIZATIONS,
     actions: VISIT_ACTIONS,
   },
 } as const

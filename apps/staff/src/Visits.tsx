@@ -37,6 +37,7 @@ import { NoticeLine, OfferWindows, VisitOffers, type Notice, type Offer, type Of
 import { codeLabel } from './Requests'
 import { countyVerificationText, type CountyVerification } from './Property'
 import { SiteChecksPanel, type SiteChecks } from './SiteChecks'
+import { VisitAuthorizations, type VisitAuthorizationsView } from './VisitAuthorizations'
 import { InitiatorFields, type Initiator } from './VisitChanges'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
@@ -102,7 +103,9 @@ export type Visit = {
   notices?: Notice[]
   /** TSK-0064: for a tentative visit, what still stops its confirmation (empty: nothing); null otherwise. */
   confirmationBlockers?: { field: string; code: string }[] | null
-  actions: { changeWindow: boolean; confirm?: boolean; offerWindows?: boolean }
+  /** TSK-0145 (OWN-DEC-193 A1, A4): the hazard-evaluation inspection and follow-up authorizations. */
+  authorizations?: VisitAuthorizationsView | null
+  actions: { changeWindow: boolean; confirm?: boolean; offerWindows?: boolean; replaceOffer?: boolean }
 }
 
 export type ProjectVisits = {
@@ -674,6 +677,15 @@ function VisitItem({
           </ul>
         </div>
       ) : null}
+      <VisitAuthorizations<ProjectVisits>
+        t={t}
+        locale={locale}
+        fetchImpl={fetchImpl}
+        visit={visit}
+        authorizations={visit.authorizations}
+        when={when}
+        onChanged={onChanged}
+      />
       <VisitOffers<ProjectVisits>
         t={t}
         locale={locale}
@@ -682,15 +694,16 @@ function VisitItem({
         when={when}
         onChanged={onChanged}
       />
-      {visit.actions.offerWindows && policy ? (
+      {(visit.actions.offerWindows || visit.actions.replaceOffer) && policy ? (
         <OfferWindows<ProjectVisits>
-          key={`offer-${visit.id}-${visit.version}`}
+          key={`offer-${visit.id}-${visit.version}-${(visit.offers ?? []).length}`}
           t={t}
           locale={locale}
           fetchImpl={fetchImpl}
           visit={visit}
           policy={policy}
           onOffered={onChanged}
+          replace={visit.actions.replaceOffer === true}
         />
       ) : null}
       {visit.actions.confirm ? (
