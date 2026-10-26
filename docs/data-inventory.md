@@ -83,8 +83,14 @@ Data owner for every category: the Owner, who decides each deletion-review entry
   customer's responses and selections, reminders never released or sent, and their stored files after the commit)
   and login accounts (closed: sign-in values cleared, sessions and project links revoked). Messages sent about an
   erased estimate keep only its reference. Signed approvals, approval receipts, jobs, deposit records and recorded
-  payments are protected evidence and block it. Requests that never became jobs keep their history
-  (OQ-RECORD-ERASURE); audit entries are append-only for every role (OQ-AUDIT-ENTRY-DELETION).
+  payments are protected evidence and block it. Audit entries are append-only for every role
+  (OQ-AUDIT-ENTRY-DELETION).
+- Requests that never became jobs (TSK-0137, OWN-DEC-176): erased with their photos and files, notes, questions,
+  conversations and messages, handling history, estimates never accepted, access links and sessions, and the
+  customer, contact and property records no kept record needs; only the reference, creation and closure dates and
+  final status remain (`privacy.request_remainders`). Consent evidence of the erased contact moves to a restricted
+  compliance record (`privacy.consent_evidence`) with its own review date. Site visits, cases and links between
+  customer records block it (OQ-REQUEST-ERASURE-DETAILS).
 - The deletion log (`privacy.deletions`, append-only) keeps actor, time, record reference, reason and counts, never
   the deleted content. Account deletion is separate from business records (OWN-DEC-71).
 - Privacy requests (HH-PRIV-03): the customer's export, correction or deletion request is reviewed and decided by
@@ -222,9 +228,11 @@ Data owner for every category: the Owner, who decides each deletion-review entry
 | `platform.rate_counters` | Request-form and API rate counters (hashed keys) | Technical records | `sessions_and_links` | Expires per its security settings; keeping expired rows NOT CONFIGURED | Render |
 | `platform.schema_migration` | Applied migrations and their checksums | Configuration and content | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
 | `platform.webhook_receipts` | Verified provider webhooks: delivery statuses and inbound messages | Technical records, Contact | `requests_not_converted`, `job_records`, `not_scheduled` | Owner's deletion review after the period; nothing deleted automatically | Render, Bird, Resend |
+| `privacy.consent_evidence` | Consent records of an erased request's contact (destination, purpose, permission, evidence), moved out of the live consent records with their own review date; read by no route | Contact, Logs and audit | `not_scheduled` | Archive, Void or audited correction; never ordinary deletion | Render |
 | `privacy.deletions` | The deletion log (TSK-0100): actor, time, record reference, reason and counts; never the deleted content | Logs and audit | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
 | `privacy.privacy_request_extensions` | The Owner's extensions of a privacy request's internal target: the dates and the reason the customer is told | Logs and audit | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
 | `privacy.privacy_requests` | Customers' export, correction and deletion requests: the requester, identity confirmation, the customer's words for a correction, the review's counts and the Owner's decision | Contact, Logs and audit | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
+| `privacy.request_remainders` | What remains of an erased request that never became a job: its reference, creation and closure dates and final status | Logs and audit | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
 | `privacy.retention_decisions` | The Owner's Delete, Archive and Keep longer decisions on review entries, with the reason | Logs and audit | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
 | `privacy.retention_reviews` | The Owner's deletion-review queue: record references and hold checks, never personal content | Logs and audit | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
 | `quality.case_attachments` | Supporting photos of a case (metadata; the files are in R2), in the class of their case; never in the project gallery, the customer view or a worker feed | Interior and work photos, Incident | `job_records`, `safety_records` | Owner's deletion review after the period; nothing deleted automatically | Render, R2 |

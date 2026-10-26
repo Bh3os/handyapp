@@ -247,6 +247,9 @@ export const CLEARED_CATEGORIES = {
     'privacy.retention_reviews',
     'privacy.retention_decisions',
     'privacy.deletions',
+    // TSK-0137 (0112): the remainders of erased requests and the consent evidence moved with them.
+    'privacy.request_remainders',
+    'privacy.consent_evidence',
   ],
 } as const satisfies Record<string, readonly string[]>
 

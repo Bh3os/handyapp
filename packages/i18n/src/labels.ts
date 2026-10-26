@@ -1102,6 +1102,8 @@ export const LABEL_FAMILIES = {
     'audit_append_only',
     'record_missing',
     'already_deleted',
+    // TSK-0137.
+    'linked_records',
   ],
   /** TSK-0100: what goes with a deleted record or stays (the confirmation and the log's counts). */
   deletionKind: [
@@ -1121,11 +1123,34 @@ export const LABEL_FAMILIES = {
     'sessions',
     'project_links',
     'access_links',
+    // TSK-0137: a request that never became a job (privacy/request-erasure.ts).
+    'request_submission',
+    'request_answers',
+    'photos',
+    'internal_notes',
+    'questions',
+    'conversations',
+    'message_deliveries',
+    'handling_history',
+    'work_packages',
+    'discount_requests',
+    'estimates',
+    'publication_approvals',
+    'project_details',
+    'help_requests',
+    'stored_responses',
+    'waiting_jobs',
+    'project_record',
+    'customer_profile',
+    'property_record',
+    'request_remainder',
+    'consent_evidence',
+    'revoked_sessions',
   ],
   /** TSK-0100: where a deletion decision came from (privacy.deletions.source). */
   deletionSource: ['retention_review', 'privacy_request', 'restore_reapply'],
   /** TSK-0100: the record types the deletion log names. */
-  deletionRecordType: ['estimate', 'customer_account'],
+  deletionRecordType: ['estimate', 'customer_account', 'request'],
   /** TSK-0100: privacy request kinds and states (ENT-PrivacyRequest). */
   privacyRequestKind: ['export', 'correction', 'deletion'],
   privacyRequestState: ['received', 'under_review', 'completed', 'partially_completed', 'declined'],

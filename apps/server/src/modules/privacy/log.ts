@@ -16,7 +16,7 @@ import type { ObjectStorage } from '../../providers/index.js'
 export const OBJECT_ERASURE_AUTOMATION = 'privacy.object_erasure'
 
 export type DeletionInput = {
-  recordType: 'estimate' | 'customer_account'
+  recordType: 'estimate' | 'customer_account' | 'request'
   recordId: string
   recordRef: string
   projectId: string | null
@@ -188,7 +188,7 @@ export async function listDeletions(db: Db, page: PageRequest): Promise<Page<Del
 /** One exported log entry: what a restore re-applies (references only, never content; T72). */
 export type ExportedDeletion = {
   id: string
-  recordType: 'estimate' | 'customer_account'
+  recordType: 'estimate' | 'customer_account' | 'request'
   recordId: string
   recordRef: string
   reason: string

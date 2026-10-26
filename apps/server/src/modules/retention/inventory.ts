@@ -766,6 +766,15 @@ export const TABLES = {
     classes: ['logs_audit'],
     categories: [NS],
   },
+  // TSK-0137 (0112): the restricted compliance record of an erased contact's consent evidence (OWN-DEC-176).
+  'privacy.consent_evidence': {
+    holds:
+      "Consent records of an erased request's contact (destination, purpose, permission, evidence), moved out of the " +
+      'live consent records with their own review date; read by no route',
+    classes: ['contact', 'logs_audit'],
+    categories: [NS],
+    protectedEvidence: true,
+  },
   // TSK-0136 (0103): the Owner's extensions of a request's internal target; the reason is what the customer is told.
   'privacy.privacy_request_extensions': {
     holds:
@@ -782,6 +791,14 @@ export const TABLES = {
   },
   'privacy.retention_decisions': {
     holds: "The Owner's Delete, Archive and Keep longer decisions on review entries, with the reason",
+    classes: ['logs_audit'],
+    categories: [NS],
+  },
+  // TSK-0137 (0112): what remains of an erased request (OWN-DEC-176): reference, dates and final status only.
+  'privacy.request_remainders': {
+    holds:
+      'What remains of an erased request that never became a job: its reference, creation and closure dates and ' +
+      'final status',
     classes: ['logs_audit'],
     categories: [NS],
   },
@@ -1346,8 +1363,14 @@ export function renderDataInventory(): string {
     "  customer's responses and selections, reminders never released or sent, and their stored files after the commit)",
     '  and login accounts (closed: sign-in values cleared, sessions and project links revoked). Messages sent about an',
     '  erased estimate keep only its reference. Signed approvals, approval receipts, jobs, deposit records and recorded',
-    '  payments are protected evidence and block it. Requests that never became jobs keep their history',
-    '  (OQ-RECORD-ERASURE); audit entries are append-only for every role (OQ-AUDIT-ENTRY-DELETION).',
+    '  payments are protected evidence and block it. Audit entries are append-only for every role',
+    '  (OQ-AUDIT-ENTRY-DELETION).',
+    '- Requests that never became jobs (TSK-0137, OWN-DEC-176): erased with their photos and files, notes, questions,',
+    '  conversations and messages, handling history, estimates never accepted, access links and sessions, and the',
+    '  customer, contact and property records no kept record needs; only the reference, creation and closure dates and',
+    '  final status remain (`privacy.request_remainders`). Consent evidence of the erased contact moves to a restricted',
+    '  compliance record (`privacy.consent_evidence`) with its own review date. Site visits, cases and links between',
+    '  customer records block it (OQ-REQUEST-ERASURE-DETAILS).',
     '- The deletion log (`privacy.deletions`, append-only) keeps actor, time, record reference, reason and counts, never',
     '  the deleted content. Account deletion is separate from business records (OWN-DEC-71).',
     "- Privacy requests (HH-PRIV-03): the customer's export, correction or deletion request is reviewed and decided by",
