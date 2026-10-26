@@ -91,6 +91,8 @@ const APPROVAL_REASON: Record<ApprovalReason, CustomerKey> = {
   superseded: 'portal.estimate.approval.reason.superseded',
   expired: 'portal.estimate.approval.reason.expired',
   not_published: 'portal.estimate.approval.reason.not_published',
+  reduction_pending_verification: 'portal.estimate.approval.reason.reduction_pending_verification',
+  reduction_not_verified: 'portal.estimate.approval.reason.reduction_not_verified',
 }
 const APPROVAL_FAILURE: Record<ApprovalFailure, CustomerKey> = {
   ...FAILURE,
@@ -219,7 +221,16 @@ function Content({ e }: { e: EstimateDetail }) {
         <dd>{usd(e.subtotalCents)}</dd>
         {e.reduction ? (
           <>
-            <dt>{e.reduction.label}</dt>
+            <dt>
+              {e.reduction.label}
+              {/* TSK-0125 (OWN-DEC-165): a requested reduction is provisional until it is verified. */}
+              {e.reduction.pendingVerification ? (
+                <>
+                  {' '}
+                  <StatusBadge tone="warning">{t('portal.estimate.reduction.pending')}</StatusBadge>
+                </>
+              ) : null}
+            </dt>
             <dd>-{usd(e.reduction.amountCents)}</dd>
           </>
         ) : null}
@@ -240,6 +251,11 @@ function Content({ e }: { e: EstimateDetail }) {
           {PAYMENT_TERM[e.paymentTerm] ? t(PAYMENT_TERM[e.paymentTerm] as CustomerKey) : t('estimatePdf.notProvided')}
         </dd>
       </dl>
+      {e.reduction?.pendingVerification ? (
+        <p className="hh-small" data-testid="estimate-reduction-pending">
+          {t('portal.estimate.reduction.pendingNote')}
+        </p>
+      ) : null}
       {TEXT_LISTS.map(([key, label]) =>
         e[key].length ? (
           <div key={key}>

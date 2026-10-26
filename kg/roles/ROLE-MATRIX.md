@@ -42,6 +42,8 @@ These are server rules, enforced by one policy point on every read, write, searc
 | Approve or reject publishing over the Owner approval threshold | Y | — | — | — | — | — |
 | Revise (new version), withdraw, expire, record a decline | Y | Record decline only (P) | Y | — | — | — |
 | View internal cost, markup and margin | Y | — | Own estimates (P) | — | — | — |
+| Record a discount verification or send it to owner review | Y | Y (P) | Y (P) | — | — | — |
+| Decide a discount owner review or override a verification | Y | — | — | — | — | — |
 | Approve, decline or request changes | — | — | — | — | V (fresh verification) | — |
 | Draft a change order | Y | — | Y | A | — | — |
 | Review and publish a change order | Y | — | Y | — | — | — |
@@ -52,6 +54,7 @@ These are server rules, enforced by one policy point on every read, write, searc
 | --- | --- | --- | --- | --- | --- | --- |
 | View scheduling board | Y | Y | View (P) | Own My Day only | — | — |
 | Offer windows; confirm, reschedule, reassign, cancel visits | Y | Y | Offer estimate-visit windows (P) | — | — | — |
+| Approve a service-area coverage exception, with a reason | Y | — | — | — | — | — |
 | Select an offered window | — | — | — | — | V | — |
 | Request reschedule or cancellation | — | — | — | — | V | — |
 | Cancel accepted, scheduled or paid work (financial review) | Y | — | — | — | — | — |
@@ -123,6 +126,8 @@ These are server rules, enforced by one policy point on every read, write, searc
 **Changed by [[OWN-DEC-164]], [[OWN-DEC-195]], [[OWN-DEC-200]] (2026-10-21):** audit editing stays refused for every role, and an owner-only audit-retention action is added by [[TSK-0135]]; routine customer-authorized work-visit cancellations within policy move to Office by [[TSK-0140]]; cash collection needs an explicit Owner grant to a trained Worker by [[TSK-0151]]. Each change updates this table and the policy data in the same pull request.
 
 **Built by [[TSK-0151]] (2026-10-24, migration 0098):** the Worker's cell of "Record a verified payment" reads "with the Owner's collect grant recording their training": the `collect` grant records the date the training was completed and what it covered, and the database refuses a live collect grant without it (collect grants from before 0098 without a training record were ended). The Owner's dismissal of a working-hours or equipment flag (`visit.dismiss_flag`, with a reason) sits in "Set working days, hours and time off" (P); a mandatory restriction is never dismissed ([[OWN-DEC-200]] H7). Restoring an earlier grant in a reactivated account's permission review is "grant roles or capabilities" (F); declining one is protective, in the disable row. PROPOSED details: [[OQ-STAFF-AMENDMENT-DETAILS]].
+
+**Built by [[TSK-0126]] (2026-10-25):** the row "Approve a service-area coverage exception, with a reason" is the Owner's explicit approval of [[OWN-DEC-167]] for a verified county outside the service area (`visit.approve_coverage_exception`); recording the address check, the site contact and a SERVED acceptance sits in "Offer windows; confirm, reschedule, reassign, cancel visits" (`visit.confirm`). PROPOSED details: [[OQ-SITE-CHECK-DETAILS]].
 
 **Changed by [[OWN-DEC-173]] (2026-10-21):** publishing an estimate or change order above [[FACT-OWNER-APPROVAL-THRESHOLD]] needs the Owner's approval first; the row "Approve or reject publishing over the Owner approval threshold" is the Owner's alone, and changing the threshold is "Change policy values" (F) ([[TSK-0130]]).
 

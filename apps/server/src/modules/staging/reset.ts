@@ -56,6 +56,9 @@ export const CLEARED_CATEGORIES = {
     // TSK-0123 (0066): the zone history of each property; TSK-0127 (0067): staff's address-and-county checks.
     'crm.property_time_zones',
     'crm.property_county_verifications',
+    // TSK-0126 (0106): the site contacts and coverage acceptances of first-visit confirmation.
+    'crm.project_site_contacts',
+    'crm.project_coverage_acceptances',
   ],
   requests: [
     'crm.projects',
@@ -86,6 +89,9 @@ export const CLEARED_CATEGORIES = {
     'estimating.approvals',
     // TSK-0130 (0068): the Owner's publication approvals of estimate versions.
     'estimating.publication_approvals',
+    // TSK-0125 (0105): requested discounts and their verification results.
+    'estimating.discount_requests',
+    'estimating.discount_verifications',
   ],
   appointments: [
     'work.visits',

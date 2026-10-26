@@ -433,7 +433,7 @@ export async function customerPlan(db: Reader, subject: PlanSubject, now = new D
         ).n,
       )
     : 0
-  add('consent_records', 'retain', consents, 'consent_evidence', 'not_scheduled')
+  add('consent_records', 'retain', consents, 'consent_evidence', 'consent_records')
 
   const versionIds = estimates.length
     ? (

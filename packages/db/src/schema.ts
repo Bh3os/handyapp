@@ -262,6 +262,35 @@ export interface CrmCustomersTable {
   version: Generated<number>
 }
 
+export interface CrmProjectCoverageAcceptancesTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  project_id: string
+  county_verification_id: string
+  outcome: string
+  exception_reason: string | null
+  accepted_by: string
+  accepted_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CrmProjectSiteContactsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  project_id: string
+  version: number
+  designation: string
+  contact_id: string | null
+  full_name: string
+  role: string | null
+  phone_e164: string | null
+  email: string | null
+  authority: string[]
+  source: string
+  note: string | null
+  recorded_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface CrmProjectsTable {
   id: Generated<string>
   reference: string
@@ -470,6 +499,25 @@ export interface EstimatingCustomerResponsesTable {
   contact_ref: string
   customer_session_id: string | null
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface EstimatingDiscountRequestsTable {
+  id: Generated<string>
+  project_id: string
+  request_id: string
+  category: string
+  requested_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface EstimatingDiscountVerificationsTable {
+  id: Generated<string>
+  discount_request_id: string
+  project_id: string
+  position: number
+  category: string
+  result: string
+  verified_by: string
+  verified_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
 export interface EstimatingEstimateDocumentsTable {
@@ -1329,6 +1377,7 @@ export interface IntakeRequestsTable {
   responsible_staff_id: string | null
   coverage_rule_set: number | null
   coverage_reason: string | null
+  time_window_hours: ColumnType<JsonValue, string | undefined, string>
 }
 
 export interface IntakeResponseClocksTable {
@@ -1749,7 +1798,7 @@ export interface PrivacyRetentionReviewsTable {
   project_id: string | null
   policy_key: string
   policy_version: number
-  period_years: number
+  period_years: number | null
   retention_started_at: Timestamp
   period_ends_at: Timestamp
   hold_checks: Json
@@ -1757,6 +1806,8 @@ export interface PrivacyRetentionReviewsTable {
   opened_by: string
   opened_at: ColumnType<Date, Date | string | undefined, Date | string>
   request_id: string
+  period_days: number | null
+  record_count: number | null
 }
 
 export interface QualityCaseAttachmentsTable {
@@ -2797,6 +2848,8 @@ export interface WorkVisitsTable {
   updated_at: ColumnType<Date, Date | string | undefined, Date | string>
   number: Generated<number>
   county_verification_id: string | null
+  site_contact_id: string | null
+  coverage_acceptance_id: string | null
 }
 
 export interface WorkWalkthroughsTable {
@@ -2955,6 +3008,8 @@ export interface Database {
   'crm.customer_notes': CrmCustomerNotesTable
   'crm.customer_properties': CrmCustomerPropertiesTable
   'crm.customers': CrmCustomersTable
+  'crm.project_coverage_acceptances': CrmProjectCoverageAcceptancesTable
+  'crm.project_site_contacts': CrmProjectSiteContactsTable
   'crm.projects': CrmProjectsTable
   'crm.properties': CrmPropertiesTable
   'crm.property_addresses': CrmPropertyAddressesTable
@@ -2968,6 +3023,8 @@ export interface Database {
   'estimating.approval_selections': EstimatingApprovalSelectionsTable
   'estimating.approvals': EstimatingApprovalsTable
   'estimating.customer_responses': EstimatingCustomerResponsesTable
+  'estimating.discount_requests': EstimatingDiscountRequestsTable
+  'estimating.discount_verifications': EstimatingDiscountVerificationsTable
   'estimating.estimate_documents': EstimatingEstimateDocumentsTable
   'estimating.estimate_line_costs': EstimatingEstimateLineCostsTable
   'estimating.estimate_lines': EstimatingEstimateLinesTable

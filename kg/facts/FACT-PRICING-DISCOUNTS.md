@@ -6,10 +6,12 @@ status: active
 area: estimates
 links:
   decided_by: ["[[OWN-DEC-66]]", "[[OWN-DEC-145]]", "[[OWN-DEC-165]]"]
-  related: ["[[FACT-PRICING-PER-JOB]]", "[[FACT-DEPOSIT-RULE]]", "[[OQ-DISCOUNT-ELIGIBILITY]]"]
+  related: ["[[FACT-PRICING-PER-JOB]]", "[[FACT-DEPOSIT-RULE]]", "[[OQ-DISCOUNT-ELIGIBILITY]]", "[[OQ-DISCOUNT-REQUEST-DETAILS]]"]
 source: "OWN-DEC-66, OWN-DEC-145; owner-answers-verbatim.md 2026-10-05T16:25:23Z, 16:28:06Z, 17:29:11Z"
 ---
 **Changed by [[OWN-DEC-165]] (2026-10-21):** military 10% covers eligible service members, veterans and military spouses; senior 10% is 60 or older; returning customer 10% needs a qualifying completed, non-voided job in the preceding 12 months. One per job, chosen by the customer, never stacked; requested at submission and verified by staff (category, result, verifier and time only); applied once to eligible labor and service charges. Eligibility is no longer open.
+
+**Configured by [[TSK-0125]] (migration 0105):** `discount.rule` version 2 (`perJob: one_customer_choice`, still 10% of the subtotal: every estimate line is labor or service) and `discount.eligibility_verification` version 2 (military: service members, veterans, military spouses, checked visually; senior: 60 or older, checked visually; returning customer: a completed job within 12 months from the matched job history; no document kept; owner review).
 
 **Value:** 10% of the quote for military members, seniors and returning customers; one discount per job, the biggest applies ([[OWN-DEC-66]]). Eligibility as the owner stated it on 2026-10-05: "60+, spouses, last 12 months"; how it is verified is open ([[OQ-DISCOUNT-ELIGIBILITY]]).
 

@@ -18,6 +18,8 @@
 // - TSK-0064 (HH-SCH-06, HH-SCH-05): a tentative visit lists every confirmation precondition the server says is still
 //   unmet (approval, deposit, a blocking hold, a missing visit fact) as "Not ready to confirm", and Confirm is offered
 //   only once nothing stops it. The server decides again on confirming.
+// - TSK-0126 (OWN-DEC-167): the three first-visit site checks (SiteChecks.tsx) sit above the visits, each a checkbox
+//   with what it rests on; a missing one is named under "Not ready to confirm".
 import {
   formatOffset,
   resolveLocalTime,
@@ -34,6 +36,7 @@ import { AlternativesView, Assignments, ConfirmVisit, spanText, type Alternative
 import { NoticeLine, OfferWindows, VisitOffers, type Notice, type Offer, type OfferPolicy } from './Offers'
 import { codeLabel } from './Requests'
 import { countyVerificationText, type CountyVerification } from './Property'
+import { SiteChecksPanel, type SiteChecks } from './SiteChecks'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
 type StaffRef = { id: string; name: string | null }
@@ -108,6 +111,8 @@ export type ProjectVisits = {
   timeZone: string | null
   /** TSK-0127: the property's coverage, shown beside confirmation (staff accept it; TSK-0126 records the check). */
   coverage?: { result: string; code: string; reason: string | null; countyVerification?: CountyVerification | null }
+  /** TSK-0126: the three first-visit site checks, each with what it rests on. */
+  siteChecks?: SiteChecks
   businessTimeZone: { zone: string; proposed: boolean } | null
   visitHours: { open: string; close: string } | null
   /** TSK-0063: the offer policy (scheduling.window_offers); null while NOT CONFIGURED. */
@@ -801,6 +806,16 @@ export function ProjectVisitsSection({
           </div>
         ) : null}
       </dl>
+      {data.siteChecks ? (
+        <SiteChecksPanel
+          t={t}
+          fetchImpl={fetchImpl}
+          projectId={data.projectId}
+          checks={data.siteChecks}
+          when={when}
+          onChanged={() => void load()}
+        />
+      ) : null}
       {data.businessTimeZone === null ? <StateView kind="blocked" title={t('visits.zoneNotConfigured')} /> : null}
       {data.timeZone === null ? <StateView kind="blocked" title={t('visits.propertyZoneUnknown')} /> : null}
       {data.visits.length === 0 ? (

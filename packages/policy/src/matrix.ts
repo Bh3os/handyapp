@@ -48,6 +48,11 @@ export const ACTIONS = [
   'estimate.expire',
   'estimate.record_decline',
   'estimate.view_internal_cost',
+  // TSK-0125 (OWN-DEC-165): recording a requested discount's verification (a staff check of military or senior
+  // eligibility, the job-history check of a returning customer, sending it to the Owner's review), and the Owner's
+  // decision on a review or override.
+  'discount.verify',
+  'discount.decide',
   'estimate.approve',
   'estimate.decline',
   'estimate.request_changes',
@@ -63,6 +68,9 @@ export const ACTIONS = [
   'visit.reschedule',
   'visit.reassign',
   'visit.cancel',
+  // TSK-0126 (OWN-DEC-167): the Owner's explicit approval of a coverage exception for a location outside the standard
+  // service area, with a reason. Staff confirm SERVED coverage and the other site checks under visit.confirm.
+  'visit.approve_coverage_exception',
   'visit.select_window',
   'visit.request_reschedule',
   'visit.request_cancellation',
@@ -408,6 +416,12 @@ export const MATRIX: readonly MatrixRow[] = [
     owner: Y(),
     estimator: every('Own estimates (P)', 'own_staff', P),
   }),
+  row(ESTIMATES, 'Record a discount verification or send it to owner review', ['discount.verify'], {
+    owner: Y(),
+    office: Y('Y (P)', P),
+    estimator: Y('Y (P)', P),
+  }),
+  row(ESTIMATES, 'Decide a discount owner review or override a verification', ['discount.decide'], { owner: Y() }),
   row(
     ESTIMATES,
     'Approve, decline or request changes',
@@ -443,6 +457,9 @@ export const MATRIX: readonly MatrixRow[] = [
       }),
     },
   ),
+  row(SCHEDULING, 'Approve a service-area coverage exception, with a reason', ['visit.approve_coverage_exception'], {
+    owner: Y(),
+  }),
   row(SCHEDULING, 'Select an offered window', ['visit.select_window'], { customer: V() }),
   row(SCHEDULING, 'Request reschedule or cancellation', ['visit.request_reschedule', 'visit.request_cancellation'], {
     customer: V(),

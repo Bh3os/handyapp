@@ -124,7 +124,8 @@ const ALL_OK = Object.fromEntries(
 )
 
 let ip = 1
-async function readyRequest() {
+/** TSK-0125: a discount on an estimate is the one the customer requested on the request form. */
+async function readyRequest(requestedDiscount?: string) {
   const res = await app.inject({
     method: 'POST',
     url: '/api/v1/public/requests',
@@ -147,6 +148,7 @@ async function readyRequest() {
       },
       smsOptIn: false,
       marketingOptIn: false,
+      ...(requestedDiscount ? { requestedDiscount } : {}),
     },
   })
   expect(res.statusCode).toBe(201)
@@ -272,7 +274,7 @@ async function save(who: Person, versionId: string, v: View, list: Line[], disco
   return out
 }
 async function draft(list: Line[], who: Person = 'estimator', discountCategory?: string) {
-  const r = await readyRequest()
+  const r = await readyRequest(discountCategory)
   return { ...r, ...(await draftIn(r.projectId, list, who, discountCategory)) }
 }
 

@@ -18,6 +18,7 @@
 import { randomUUID } from 'node:crypto'
 import type { Db, Tx } from '@handyhub/db'
 import {
+  addressProblems,
   countyRef,
   looksLikeAccessCode,
   looksLikeCardNumber,
@@ -419,7 +420,8 @@ const editAddress = writeRoute({
 // TSK-0127 (final owner amendments 2026-10-22; OWN-DEC-179, OWN-DEC-167): a ZIP-only coverage outcome is preliminary
 // screening. Staff verify the complete property address and its county for the current address version before any
 // visit is confirmed (visits/preconditions.ts; migration 0067 refuses it in the database). The county is compared
-// with coverage.area: inside, the confirmation may go ahead; outside, it needs the Owner's exception (TSK-0126). The
+// with coverage.area: inside, staff accept the coverage; outside, it needs the Owner's exception (TSK-0126,
+// visits/site-checks.ts). TSK-0126: the address is pre-validated first (@handyhub/domain addressProblems). The
 // verification is a new row each time; nothing is overwritten. The county is what staff checked against an official
 // record of their choice: no geographic source is configured in the software (coverage.verification_source).
 const verifyCounty = writeRoute({
@@ -430,9 +432,12 @@ const verifyCounty = writeRoute({
   description:
     'Staff with visit.confirm (Owner, Office). Records that staff checked the complete address of the current ' +
     'address version (addressChecked) and the county it lies in, with an optional note on how. The county is ' +
-    'compared with the service area (coverage.area): inArea. A first visit is confirmed only after this, with the ' +
-    'county inside the area; a later address change needs a new verification. If-Match is the property version; ' +
-    'addressVersion must be the current one (ADDRESS_VERSION_CHANGED). The property version does not change.',
+    'compared with the service area (coverage.area): inArea. A first visit is confirmed only after this (the address ' +
+    'check of the three site checks, TSK-0126), with its coverage accepted (inside the area) or the Owner’s exception ' +
+    '(outside it); a later address change needs a new verification. The address is pre-validated first (TSK-0126, ' +
+    'PROPOSED; address: ADDRESS_PO_BOX, ADDRESS_MAILING_ZIP, ADDRESS_ZIP_STATE_MISMATCH): corrected on the address ' +
+    'before it can be verified. If-Match is the property version; addressVersion must be the current one ' +
+    '(ADDRESS_VERSION_CHANGED). The property version does not change.',
   permission: 'visit.confirm',
   audit: 'property.verify_county',
   expectedVersion: 'required',
@@ -449,6 +454,12 @@ const verifyCounty = writeRoute({
       throw new ApiError('CONFLICT', {
         fieldErrors: [{ field: 'body.addressVersion', code: 'ADDRESS_VERSION_CHANGED', message: '' }],
       })
+    // TSK-0126 (OWN-DEC-167, OWN-DEC-179 rule 8): the automated pre-validation comes first; a PO box street, a
+    // mailing ZIP or a ZIP of another state is corrected on the address before staff can verify it.
+    const zipRule = await coverageOrUnknown(tx, p.zip)
+    const problems = addressProblems(p, { category: zipRule.zipCategory, counties: zipRule.counties })
+    if (problems.length > 0)
+      throw new ApiError('CONFLICT', { fieldErrors: problems.map((code) => ({ field: 'address', code, message: '' })) })
     const note = (b.note ?? '').trim()
     if (note && (looksLikeAccessCode(note) || looksLikeCardNumber(note)))
       throw invalid('body.note', 'looks_like_access_code')

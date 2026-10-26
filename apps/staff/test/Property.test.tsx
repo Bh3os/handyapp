@@ -244,6 +244,24 @@ describe('the address and county check (TSK-0127, final owner amendments 2026-10
     expect((init.headers as Record<string, string>)['if-match']).toBe('"3"')
   })
 
+  it('[OWN-DEC-167][OWN-DEC-179] an address the pre-validation stops names what to correct (TSK-0126)', async () => {
+    const write = vi.fn(() =>
+      json(409, {
+        error: { code: 'CONFLICT', fieldErrors: [{ field: 'address', code: 'ADDRESS_PO_BOX', message: '' }] },
+      }),
+    )
+    renderRecord(api(view({ actions: { ...view().actions, verifyCounty: true } }), write))
+    const county = await screen.findByRole('region', { name: 'Address and county check' })
+    fireEvent.click(within(county).getByRole('button', { name: 'Record address and county check' }))
+    const form = within(county).getByRole('form', { name: 'Record address and county check' })
+    fireEvent.change(within(form).getByLabelText('County'), { target: { value: 'KY:Oldham' } })
+    fireEvent.click(within(form).getByLabelText('I checked the complete address, including any unit number'))
+    fireEvent.click(within(form).getByRole('button', { name: 'Record address and county check' }))
+    expect(
+      await within(form).findByText('The street is a PO box. Work needs the physical address of the property.'),
+    ).toBeTruthy()
+  })
+
   it('[OWN-DEC-167][RULE-LANGUAGES] a recorded check is shown, in English and Spanish; roles without it get no form', async () => {
     renderRecord(api(view({ countyVerification: verified })))
     const county = await screen.findByRole('region', { name: 'Address and county check' })
