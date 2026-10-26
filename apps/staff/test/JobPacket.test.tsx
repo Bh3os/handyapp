@@ -255,7 +255,7 @@ describe('job packet screen (TSK-0069)', () => {
     await waitFor(() => expect(screen.queryByText(CODE)).toBeNull())
   })
 
-  it('[HH-PKT-07] Print records the export first, then prints with "Printed <time>; check the app for changes"', async () => {
+  it('[HH-PKT-07][OWN-DEC-196] Print records the export first, then prints with the print time, the outdated-copy notice, the job reference, the revision and its generation time', async () => {
     const print = vi.spyOn(window, 'print').mockImplementation(() => undefined)
     const fetchImpl = api(view())
     renderPacket(fetchImpl)
@@ -267,7 +267,11 @@ describe('job packet screen (TSK-0069)', () => {
     ]
     expect(JSON.parse(String(init.body))).toEqual({ version: 3, format: 'print' })
     expect(screen.getByTestId('packet-print-mark').textContent).toMatch(
-      /^Printed .+; check the app for changes\. Packet version 3\.$/,
+      /^Printed .+\. Printed copies may be out of date; check the app before starting\.$/,
+    )
+    // TSK-0147 (OWN-DEC-196 D2): the job reference, the packet revision and when it was generated.
+    expect(screen.getByTestId('packet-print-meta').textContent).toMatch(
+      /^Job HH-SYNTH-69 · packet revision 3 · generated Oct 21, 2026/,
     )
     expect(screen.getByTestId('packet-printed').textContent).toContain('the print is recorded')
     const pdf = screen.getByRole('link', { name: 'Download PDF' })
@@ -328,6 +332,40 @@ describe('job packet screen (TSK-0069)', () => {
     expect(
       changeText(t, { section: 'x' as never, code: 'unknown_code', critical: false, ref: null, from: null, to: null }),
     ).toBe('unknown_code')
+  })
+
+  it('[HH-PKT-02][HH-DATA-08][OWN-DEC-196] the wider re-review triggers are worded and marked critical; the site contact authority shows on the visit day', async () => {
+    const { t } = staffTranslator('en')
+    expect(
+      changeText(t, {
+        section: 'occupants',
+        code: 'detail_recorded',
+        critical: true,
+        ref: 'restricted_areas',
+        from: null,
+        to: null,
+      }),
+    ).toBe('Restricted areas recorded')
+    expect(
+      changeText(t, {
+        section: 'site_access',
+        code: 'site_contact_authority',
+        critical: true,
+        ref: null,
+        from: 'property_access,visit_coordination',
+        to: 'visit_coordination',
+      }),
+    ).toBe('the authorized site contact or what they may authorize changed')
+    const fetchImpl = api(
+      view({
+        communication: {
+          ...view().communication,
+          siteContactAuthority: { version: 2, designation: 'customer', authority: ['visit_coordination'] },
+        },
+      }),
+    )
+    renderPacket(fetchImpl)
+    expect((await screen.findByTestId('packet-site-contact-authority')).textContent).toBe('May coordinate the visit')
   })
 })
 

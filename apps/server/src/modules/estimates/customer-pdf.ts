@@ -282,11 +282,15 @@ export async function renderPdfModel(
     if (!model.mark) return
     const y = PAGE.margin - 30
     doc.save().rect(left, y, CONTENT_WIDTH, 20).fillAndStroke('#fff4e5', '#b45309').restore()
+    // A mark too long for one line at the body size (the packet's print mark in Spanish, TSK-0147) is set smaller.
+    const text = pdfText(model.mark)
+    doc.font('Helvetica-Bold').fontSize(BODY)
+    const size = doc.widthOfString(text) > CONTENT_WIDTH - 8 ? SMALL : BODY
     doc
       .fillColor('#7c2d12')
       .font('Helvetica-Bold')
-      .fontSize(BODY)
-      .text(pdfText(model.mark), left, y + 5, { width: CONTENT_WIDTH, align: 'center', lineBreak: false })
+      .fontSize(size)
+      .text(text, left, y + (size === BODY ? 5 : 6), { width: CONTENT_WIDTH, align: 'center', lineBreak: false })
       .fillColor('black')
     doc.x = left
     doc.y = PAGE.margin

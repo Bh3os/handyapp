@@ -457,7 +457,7 @@ test.describe('Versioned job packet, freshness and safe export (TSK-0069)', () =
       expect(await w.content()).not.toContain(CODE)
       await axe(w)
 
-      // Print: recorded first, then printed with the version and the freshness warning; the code label stays out.
+      // Print: recorded first, then printed with the outdated-copy notice; the code label stays out.
       await w.evaluate(() => {
         window.print = () => {
           document.body.dataset['printed'] = 'yes'
@@ -469,7 +469,12 @@ test.describe('Versioned job packet, freshness and safe export (TSK-0069)', () =
       await w.emulateMedia({ media: 'print' })
       await expect(packet.getByTestId('packet-print-mark')).toBeVisible()
       await expect(packet.getByTestId('packet-print-mark')).toContainText(
-        'check the app for changes. Packet version 2.',
+        'Printed copies may be out of date; check the app before starting.',
+      )
+      // TSK-0147 (OWN-DEC-196 D2): the job reference, the packet revision and its generation time on the copy.
+      await expect(packet.getByTestId('packet-print-meta')).toBeVisible()
+      await expect(packet.getByTestId('packet-print-meta')).toContainText(
+        `Job ${link.reference} · packet revision 2 · generated `,
       )
       await expect(packet.getByText('Synthetic side box')).toBeHidden()
       await w.emulateMedia({ media: 'screen' })

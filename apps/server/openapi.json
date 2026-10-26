@@ -113409,6 +113409,7 @@
                       "additionalProperties": false,
                       "required": [
                         "siteContact",
+                        "siteContactAuthority",
                         "escalationContact",
                         "emergency",
                         "stopWork"
@@ -113441,6 +113442,32 @@
                             },
                             "confirmedAt": {
                               "type": "string"
+                            }
+                          }
+                        },
+                        "siteContactAuthority": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "additionalProperties": false,
+                          "required": [
+                            "version",
+                            "designation",
+                            "authority"
+                          ],
+                          "properties": {
+                            "version": {
+                              "type": "integer"
+                            },
+                            "designation": {
+                              "type": "string"
+                            },
+                            "authority": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
                             }
                           }
                         },
@@ -114180,7 +114207,7 @@
       "post": {
         "operationId": "recordJobPacketPrint",
         "summary": "Record a print of a packet version",
-        "description": "Staff with job.view_packet inside their scope (as for the packet; PROPOSED: printing uses the view permission). Records and audits the print of the given version (who, when, which version, the latest version then); the staff app then prints its print view, which carries the version and \"Printed <time>; check the app for changes\" and never an access code. An older version is recorded as stale.",
+        "description": "Staff with job.view_packet inside their scope (as for the packet; PROPOSED: printing uses the view permission). Records and audits the print of the given version (who, when, which version, the latest version then); the staff app then prints its print view, which carries \"Printed <time>. Printed copies may be out of date; check the app before starting\", the job reference, the packet revision and its generation time (TSK-0147, OWN-DEC-196) and never an access code. An older version is recorded as stale.",
         "tags": [
           "packets"
         ],
@@ -114387,7 +114414,7 @@
       "get": {
         "operationId": "getJobPacketPdf",
         "summary": "The printable PDF of a packet version",
-        "description": "Staff with job.view_packet inside their scope (as for the packet). The PDF of the given version (default: the latest), in the caller's interface language: every page says \"Printed <time>; check the app for changes\" with the version, an older version says it is not the latest, and it never contains an access code, a code label, a price or a photo link. Each download is recorded and audited as an export (who, when, which version). Never cached. PROPOSED limit: 60 per staff member per hour.",
+        "description": "Staff with job.view_packet inside their scope (as for the packet). The PDF of the given version (default: the latest), in the caller's interface language: every page says \"Printed <time>. Printed copies may be out of date; check the app before starting\" with the job reference, the packet revision and its generation time (TSK-0147, OWN-DEC-196), an older version says it is not the latest, and it never contains an access code, a code label, a price or a photo link. Each download is recorded and audited as an export (who, when, which version). Never cached. PROPOSED limit: 60 per staff member per hour.",
         "tags": [
           "packets"
         ],
@@ -114521,7 +114548,7 @@
       "get": {
         "operationId": "listJobPacketVersions",
         "summary": "The versions of a job packet",
-        "description": "Staff with job.view_packet inside their scope (as for the packet). Every version, newest first, with when it was generated, what changed against the version before it and whether a change was critical (scope, holds, SOP version, assignment, site access). Versions are never changed or deleted.",
+        "description": "Staff with job.view_packet inside their scope (as for the packet). Every version, newest first, with when it was generated, what changed against the version before it and whether a change was critical (scope, holds, SOP version, assignment, site access, and since TSK-0147 the hazard and restriction details and what the authorized site contact may authorize). Versions are never changed or deleted.",
         "tags": [
           "packets"
         ],

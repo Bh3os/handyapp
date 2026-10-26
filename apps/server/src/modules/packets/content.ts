@@ -4,7 +4,8 @@
 //   empty source stays empty: no window, team, detail, scope line, SOP step, hold, item or deposit state is ever made
 //   up, and money never enters the packet (the scope lines keep description, quantity and unit only).
 // - Never an access code: crm.access_instruction_secrets is read for the code's kind, label, confirmation and version
-//   only; its sealed value is never selected. Never the address text: the address version only.
+//   only; its sealed value is never selected. Never the address text: the address version only. The authorized site
+//   contact (TSK-0147) is its version, designation and authority only.
 // - refreshJobPacket() writes a new version when the content differs from the job's latest version (under a per-job
 //   advisory lock, so two refreshes never race), with what changed and whether a change is critical, and returns the
 //   latest version. The packet routes refresh before they answer, so a packet is never older than the request that
@@ -173,6 +174,16 @@ export async function packetContent(db: Reader, jobId: string): Promise<PacketCo
     .orderBy('id')
     .execute()
 
+  // TSK-0147 (OWN-DEC-196 D1): the project's authorized site contact (TSK-0126), its version, designation and
+  // authority only: what the contact may authorize is an authorization restriction. Never the name, phone or email.
+  const contact = await db
+    .selectFrom('crm.project_site_contacts')
+    .select(['version', 'designation', 'authority'])
+    .where('project_id', '=', job.project_id)
+    .orderBy('version', 'desc')
+    .limit(1)
+    .executeTakeFirst()
+
   const scopes = await db
     .selectFrom('work.job_scope_snapshots')
     .select(['id', 'version', 'source', 'lines', 'texts', 'selected_options', 'created_at'])
@@ -259,6 +270,9 @@ export async function packetContent(db: Reader, jobId: string): Promise<PacketCo
         confirmedAt: iso(c.confirmed_at),
         version: c.version,
       })),
+      siteContact: contact
+        ? { version: contact.version, designation: contact.designation, authority: [...contact.authority] }
+        : null,
     },
     occupants: { details: detail(OCCUPANT_DETAILS) },
     scope: {
