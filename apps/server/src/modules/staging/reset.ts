@@ -173,6 +173,9 @@ export const CLEARED_CATEGORIES = {
   ],
   conversations: [
     'comms.conversations',
+    // TSK-0155 (0122): workers' proposed replies and their review history.
+    'comms.reply_proposal_events',
+    'comms.reply_proposals',
     'comms.messages',
     'comms.message_links',
     'comms.project_reply_tokens',

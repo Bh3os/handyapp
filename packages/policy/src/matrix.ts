@@ -164,6 +164,12 @@ export const ACTIONS = [
   // Messages, content and configuration
   'message.reply',
   'message.release_draft',
+  // TSK-0155 (OWN-DEC-211): a worker proposes a customer reply from an assigned job (Spanish or English) and follows
+  // their own proposals (edit a draft, submit it, answer a clarification, see the status); the Owner and Office review
+  // it: ask for clarification, reject it, or write the English message and send it.
+  'message.propose_reply',
+  'message.follow_own_proposal',
+  'message.review_proposal',
   'message.link',
   'message.view_unmatched',
   'media.share_with_customer',
@@ -692,9 +698,27 @@ export const MATRIX: readonly MatrixRow[] = [
     owner: Y(),
     office: Y(),
     estimator: every('Own estimating threads (P)', 'own_staff', { limit: 'estimating_threads', ...P }),
-    worker: A('Assigned operational thread (P)', { limit: 'operational_thread', ...P }),
+    // TSK-0155 (OWN-DEC-211): a worker never sends to a customer; they propose a reply for review (row below).
+    worker: no('— (proposes a reply for review)'),
     customer: only('V project thread', { 'message.reply': { scope: 'customer_project' } }),
   }),
+  row(
+    MESSAGES,
+    'Write a proposed customer reply (Spanish or English) for review; follow its status',
+    ['message.propose_reply', 'message.follow_own_proposal'],
+    {
+      worker: only('Assigned jobs; own proposals', {
+        'message.propose_reply': { scope: 'assigned' },
+        'message.follow_own_proposal': { scope: 'own_staff' },
+      }),
+    },
+  ),
+  row(
+    MESSAGES,
+    'Review a proposed reply: ask for clarification, reject, or write and send the English reply',
+    ['message.review_proposal'],
+    { owner: Y(), office: Y() },
+  ),
   row(MESSAGES, 'Link a Needs Linking message; view unmatched messages', ['message.link', 'message.view_unmatched'], {
     owner: Y(),
     office: Y(),

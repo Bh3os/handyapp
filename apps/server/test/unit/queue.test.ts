@@ -105,6 +105,23 @@ describe('queue item types (TSK-0041, HH-OPS-01)', () => {
     ])
   })
 
+  it("[HH-COM-16][HH-OPS-01] a worker's proposed reply is reviewed by the Owner and Office only (TSK-0155)", () => {
+    for (const role of ['owner', 'office'] as const)
+      expect(visibleTypes(staff(role), 'queue').all).toContain('reply_proposal')
+    for (const role of ['estimator', 'worker'] as const) {
+      const v = visibleTypes(staff(role), 'queue')
+      expect([...v.all, ...v.own]).not.toContain('reply_proposal')
+    }
+    const type = queueItemType('reply_proposal')
+    if (!type) throw new Error('reply_proposal is declared')
+    expect([type.section, type.subject, type.action, deepLink(type, 'p1')]).toEqual([
+      'queue',
+      'reply_proposal',
+      'review_proposal',
+      '/reply-proposals/p1',
+    ])
+  })
+
   it('[HH-OPS-01] an item past its due time ranks as time-sensitive at the least', () => {
     const now = new Date('2026-10-20T12:00:00Z')
     const past = new Date('2026-10-20T11:00:00Z')

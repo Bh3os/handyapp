@@ -5,7 +5,7 @@ title: "Permission matrix: every action by role"
 status: active
 area: security
 links:
-  decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-118]]", "[[OWN-DEC-123]]", "[[OWN-DEC-67]]", "[[OWN-DEC-68]]", "[[OWN-DEC-69]]", "[[OWN-DEC-70]]", "[[OWN-DEC-71]]", "[[OWN-DEC-76]]", "[[OWN-DEC-77]]", "[[OWN-DEC-38]]", "[[OWN-DEC-64]]", "[[OWN-DEC-81]]", "[[OWN-DEC-100]]", "[[OWN-DEC-111]]", "[[OWN-DEC-115]]", "[[OWN-DEC-117]]", "[[OWN-DEC-119]]", "[[OWN-DEC-121]]", "[[OWN-DEC-124]]", "[[OWN-DEC-125]]", "[[OWN-DEC-134]]", "[[OWN-DEC-137]]", "[[OWN-DEC-138]]", "[[OWN-DEC-143]]", "[[OWN-DEC-171]]"]
+  decided_by: ["[[OWN-DEC-114]]", "[[OWN-DEC-118]]", "[[OWN-DEC-123]]", "[[OWN-DEC-67]]", "[[OWN-DEC-68]]", "[[OWN-DEC-69]]", "[[OWN-DEC-70]]", "[[OWN-DEC-71]]", "[[OWN-DEC-76]]", "[[OWN-DEC-77]]", "[[OWN-DEC-38]]", "[[OWN-DEC-64]]", "[[OWN-DEC-81]]", "[[OWN-DEC-100]]", "[[OWN-DEC-111]]", "[[OWN-DEC-115]]", "[[OWN-DEC-117]]", "[[OWN-DEC-119]]", "[[OWN-DEC-121]]", "[[OWN-DEC-124]]", "[[OWN-DEC-125]]", "[[OWN-DEC-134]]", "[[OWN-DEC-137]]", "[[OWN-DEC-138]]", "[[OWN-DEC-143]]", "[[OWN-DEC-171]]", "[[OWN-DEC-211]]"]
   constrained_by: ["[[RULE-SERVER-AUTHZ]]", "[[RULE-SAFETY-GATES]]", "[[RULE-AI-WAVE2]]"]
   uses: ["[[ROLE-OWNER]]", "[[ROLE-OFFICE]]", "[[ROLE-ESTIMATOR]]", "[[ROLE-WORKER]]", "[[ROLE-CUSTOMER]]", "[[ROLE-GUEST]]", "[[ENT-RoleGrant]]", "[[ENT-AuditEvent]]"]
   tested_by: ["[[T26]]", "[[T64]]", "[[T19]]", "[[T68]]", "[[T28]]"]
@@ -105,7 +105,9 @@ These are server rules, enforced by one policy point on every read, write, searc
 ### Messages, content and configuration
 | Action | Owner | Office | Estimator | Worker | Customer | Guest |
 | --- | --- | --- | --- | --- | --- | --- |
-| Reply from a project, release drafts | Y | Y | Own estimating threads (P) | Assigned operational thread (P) | V project thread | — |
+| Reply from a project, release drafts | Y | Y | Own estimating threads (P) | — (proposes a reply for review) | V project thread | — |
+| Write a proposed customer reply (Spanish or English) for review; follow its status | — | — | — | Assigned jobs; own proposals | — | — |
+| Review a proposed reply: ask for clarification, reject, or write and send the English reply | Y | Y | — | — | — | — |
 | Link a Needs Linking message; view unmatched messages | Y | Y | — | — | — | — |
 | Share photos or care notes with the customer | Y | Y (P) | — | — | — | — |
 | Mark media marketing-eligible (with recorded consent) | Y | — | — | — | — | — |
@@ -143,6 +145,8 @@ These are server rules, enforced by one policy point on every read, write, searc
 **Built by [[TSK-0092]] (2026-10-25):** closing a job (`job.close`) sits in the Owner's cell of "Quality review, punch items, self-review" (P: ENT-Job "the Owner reviews quality, closes and reopens"); reopening is "Reopen a closed job" (F). Releasing the satisfaction check and review requests, preparing a review request and recording the customer's answer are "Reply from a project, release drafts" on the project's records (the Owner, Office). PROPOSED details: [[OQ-CLOSEOUT-DETAILS]].
 
 **Built by [[TSK-0095]] (2026-10-26):** reading a job's estimated-versus-actual costs and recording cost entries, voids and category confirmations (`job_cost.view`, `job_cost.record`) are the new Finance row "View and record job costs, estimated versus actual" (P: the Owner only). PROPOSED details: [[OQ-JOB-COST-DETAILS]].
+
+**Changed by [[OWN-DEC-211]], built by [[TSK-0155]] (2026-10-26):** a worker never sends a customer message: the Worker cell of "Reply from a project, release drafts" (formerly "Assigned operational thread (P)") is refused. Workers write internal notes from an assigned job ("Checklist steps, photos, notes…", `job.add_note`) and propose customer replies in Spanish or English (`message.propose_reply` on an assigned job; `message.follow_own_proposal` on their own proposals: edit a draft, submit it, answer a clarification, see the status). The Owner and Office review them (`message.review_proposal`): ask for clarification, reject, or write the English message and send it. PROPOSED details: [[OQ-SPANISH-NOTES-DETAILS]].
 
 **Built by [[TSK-0096]] (2026-10-26):** "Owner Dashboard and its CSV" is `dashboard.view` (the dashboard and its drill-down lists) and `dashboard.export_csv` (its CSV, which also needs a sign-in within the last 5 minutes, as every bulk export does under [[T64]]); "Accounting exports" is `export.accounting` (F) for the accountant's files. PROPOSED details: [[OQ-DASHBOARD-DETAILS]].
 

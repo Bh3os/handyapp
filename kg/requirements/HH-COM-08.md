@@ -24,3 +24,5 @@ source: "OWN-DEC-120"
 **Changed by [[OWN-DEC-154]] (2026-10-21):** the reply shows in the portal and is emailed at once at any hour; a text waits for the recipient's permitted local hours ([[HH-COM-15]]).
 
 **Changed by [[OWN-DEC-211]] (2026-10-22):** workers' Spanish notes and proposed replies go through the Owner/Office review queue of [[HH-COM-16]]; only Owner or Office send the English reply.
+
+**Built by [[TSK-0155]] (2026-10-26):** a worker never replies from a project (ROLE-MATRIX); the reviewer's reply to a worker's proposed reply goes through the same composer and rules, with the reviewer's explicit approval of the English message.

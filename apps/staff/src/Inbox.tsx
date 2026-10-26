@@ -62,6 +62,8 @@ export type ThreadMessage = {
   author: { kind: 'contact' | 'unknown_sender' | 'staff'; id: string | null; name: string | null }
   /** TSK-0050: a staff reply's email or text as its delivery records it. */
   delivery?: { id: string; state: string; errorCode: string | null; sendAt: string | null; retry: boolean } | null
+  /** TSK-0155: a reply sent from a worker's proposed reply carries the worker's original text (staff only). */
+  proposal?: { id: string; originalText: string; author: { id: string; name: string | null } } | null
 }
 export type Conversation = {
   id: string
@@ -471,10 +473,10 @@ function NewConversationView({
 }
 
 type Draft = { text: string; channel: ReplyChannel | null; key: string | null }
-const draftStore = (projectId: string) => `hh.staff.replyDraft.${projectId}`
-function readDraft(projectId: string): Draft {
+const draftStore = (storeKey: string) => `hh.staff.replyDraft.${storeKey}`
+function readDraft(storeKey: string): Draft {
   try {
-    const raw = window.sessionStorage.getItem(draftStore(projectId))
+    const raw = window.sessionStorage.getItem(draftStore(storeKey))
     const d = raw ? (JSON.parse(raw) as Partial<Draft>) : null
     if (d && typeof d.text === 'string')
       return {
@@ -487,21 +489,26 @@ function readDraft(projectId: string): Draft {
   }
   return { text: '', channel: null, key: null }
 }
-function writeDraft(projectId: string, d: Draft | null) {
+function writeDraft(storeKey: string, d: Draft | null) {
   try {
-    if (d && (d.text || d.key)) window.sessionStorage.setItem(draftStore(projectId), JSON.stringify(d))
-    else window.sessionStorage.removeItem(draftStore(projectId))
+    if (d && (d.text || d.key)) window.sessionStorage.setItem(draftStore(storeKey), JSON.stringify(d))
+    else window.sessionStorage.removeItem(draftStore(storeKey))
   } catch {
     // Storage unavailable: nothing to keep.
   }
 }
 
-/** The reply composer of a project (TSK-0050; HH-COM-08, HH-COM-09, OWN-DEC-120). */
-function ReplyComposer({
+/**
+ * The reply composer of a project (TSK-0050; HH-COM-08, HH-COM-09, OWN-DEC-120). TSK-0155 (OWN-DEC-211): with a
+ * `proposalId`, the reviewer's English reply to a worker's proposed reply, sent only with the reviewer's explicit
+ * approval; the worker's text is never sent.
+ */
+export function ReplyComposer({
   t,
   locale,
   fetchImpl,
   projectId,
+  proposalId,
   sent = false,
   onSent,
 }: {
@@ -509,19 +516,22 @@ function ReplyComposer({
   locale: StaffLocale
   fetchImpl: Fetch
   projectId: string
+  proposalId?: string
   /** A reply was just sent from this screen (the confirmation survives the reload that follows). */
   sent?: boolean
   onSent: () => Promise<void>
 }) {
   const ids = useId()
+  const storeKey = proposalId ? `proposal.${proposalId}` : projectId
   const [options, setOptions] = useState<ReplyOptions | null | undefined>(undefined)
-  const [draft, setDraftState] = useState<Draft>(() => readDraft(projectId))
+  const [draft, setDraftState] = useState<Draft>(() => readDraft(storeKey))
+  const [approved, setApproved] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(sent ? t('inbox.reply.sent') : null)
   const setDraft = (next: Draft) => {
     setDraftState(next)
-    writeDraft(projectId, next)
+    writeDraft(storeKey, next)
   }
   const loadOptions = useCallback(async () => {
     const r = await call<ReplyOptions>(
@@ -537,7 +547,7 @@ function ReplyComposer({
   if (options === undefined) return <StateView kind="loading" title={t('common.loading')} />
   const heading = (
     <h2 id={`${ids}-reply`} className="staff-queue__heading">
-      {t('inbox.reply.heading')}
+      {t(proposalId ? 'proposal.review.replyHeading' : 'inbox.reply.heading')}
     </h2>
   )
   if (options === null)
@@ -575,7 +585,7 @@ function ReplyComposer({
   const reason = (o: ReplyOptions['options'][number]) => codeLabel(t, 'replyChannelReason', o.reason)
   async function send(e: FormEvent) {
     e.preventDefault()
-    if (!channel || !draft.text.trim()) return
+    if (!channel || !draft.text.trim() || (proposalId && !approved)) return
     setPending(true)
     setError(null)
     setNotice(null)
@@ -583,11 +593,17 @@ function ReplyComposer({
     const key = draft.key ?? idempotencyKey()
     const kept = { ...draft, channel, key }
     setDraft(kept)
-    const r = await call<{ id: string }>(fetchImpl, `/staff/inbox/projects/${encodeURIComponent(projectId)}/replies`, {
-      method: 'POST',
-      body: { body: draft.text, channel },
-      headers: { 'idempotency-key': key },
-    })
+    const r = await call<{ id: string }>(
+      fetchImpl,
+      proposalId
+        ? `/staff/reply-proposals/${encodeURIComponent(proposalId)}/send`
+        : `/staff/inbox/projects/${encodeURIComponent(projectId)}/replies`,
+      {
+        method: 'POST',
+        body: proposalId ? { body: draft.text, channel, approveEnglish: true } : { body: draft.text, channel },
+        headers: { 'idempotency-key': key },
+      },
+    )
     setPending(false)
     if (r.ok) {
       setDraft({ text: '', channel: null, key: null })
@@ -600,6 +616,12 @@ function ReplyComposer({
     if (r.status >= 400 && r.status < 500) setDraft({ ...kept, key: null })
     const codes = r.error.fieldErrors.map((f) => f.code)
     if (codes.includes('card_number')) return setError(t('inbox.cardNumber'))
+    if (codes.includes('PROPOSAL_NOT_AWAITING_REVIEW')) {
+      // TSK-0155: someone else rejected or sent it meanwhile; nothing was sent now.
+      setError(t('proposal.review.notOpen'))
+      await onSent()
+      return
+    }
     const conflict = codes.find((c) =>
       ['PREFERRED_CHANNEL_AVAILABLE', 'CHANNEL_UNAVAILABLE', 'NO_PERMITTED_CHANNEL', 'NO_CONTACT'].includes(c),
     )
@@ -616,7 +638,7 @@ function ReplyComposer({
   return (
     <section className="staff-request__section" aria-labelledby={`${ids}-reply`}>
       {heading}
-      <p className="staff-request__hint">{t('inbox.reply.intro')}</p>
+      <p className="staff-request__hint">{t(proposalId ? 'proposal.review.replyIntro' : 'inbox.reply.intro')}</p>
       {!options.contact ? (
         <StateView kind="blocked" title={t('inbox.reply.noContact')} />
       ) : available.length === 0 ? (
@@ -677,6 +699,13 @@ function ReplyComposer({
             value={draft.text}
             onChange={(e) => setDraft({ ...draft, text: e.target.value, key: null })}
           />
+          {proposalId ? (
+            // TSK-0155 (OWN-DEC-211 4, 6): the reviewer's explicit approval of the English customer message.
+            <label className="staff-request__check" data-testid="proposal-approve-english">
+              <input type="checkbox" checked={approved} onChange={(e) => setApproved(e.target.checked)} />{' '}
+              {t('proposal.review.approveEnglish')}
+            </label>
+          ) : null}
           {error ? <StateView kind="error" title={error} /> : null}
           {notice ? (
             <p role="status" className="staff-request__hint">
@@ -690,7 +719,9 @@ function ReplyComposer({
               ? { disabledReason: t('inbox.reply.empty') }
               : !channel
                 ? { disabledReason: t('inbox.reply.chooseChannel') }
-                : {})}
+                : proposalId && !approved
+                  ? { disabledReason: t('proposal.review.approveFirst') }
+                  : {})}
           >
             {t('inbox.reply.send')}
           </Button>
@@ -791,6 +822,17 @@ function MessageCard({
         <p className="staff-queue__masked">{t('inbox.attachmentsNotImported', { count: m.attachments.length })}</p>
       ) : null}
       {m.direction === 'outbound' ? <ReplyDelivery t={t} when={when} m={m} {...(onRetry ? { onRetry } : {})} /> : null}
+      {m.proposal ? (
+        // TSK-0155 (OWN-DEC-211 5): the worker's original, kept internally beside the reply sent from it.
+        <div className="staff-inbox__proposal" data-testid="reply-proposal-original">
+          <p className="staff-queue__masked">
+            {t('proposal.originalOf', { name: m.proposal.author.name ?? t('inbox.staffMember') })}
+          </p>
+          <p className="staff-inbox__body" lang="">
+            {m.proposal.originalText}
+          </p>
+        </div>
+      ) : null}
     </li>
   )
 }
