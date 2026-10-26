@@ -55,7 +55,9 @@ const project = (fetchImpl: Fetch) => render(<App path={`/portal/p/${REF}`} fetc
 
 describe('HandyHub customer portal frame (TSK-0001, TSK-0038, RULE-LANGUAGES)', () => {
   it('[RULE-LANGUAGES] the portal renders in English with its name in the banner and one page heading', async () => {
-    const { fetchImpl } = scripted(() => json(200, { projects: [], refreshedAt: NOW, refreshSeconds: 0 }))
+    const { fetchImpl } = scripted(() =>
+      json(200, { projects: [], access: 'project_link', refreshedAt: NOW, refreshSeconds: 0 }),
+    )
     const { container } = render(<App path="/portal/" fetchImpl={fetchImpl} />)
     expect(container.querySelector('main')?.getAttribute('lang')).toBe('en')
     expect(within(screen.getByRole('banner')).getByText('HandyHub customer portal')).toBeTruthy()
@@ -90,8 +92,11 @@ describe('the projects list (TSK-0038, HH-PORT-02, HH-PORT-06)', () => {
               nextAction: 'reply',
               since: NOW,
             },
+            section: 'active',
+            documents: 0,
           },
         ],
+        access: 'project_link',
         refreshedAt: NOW,
         refreshSeconds: 0,
       }),
@@ -107,6 +112,9 @@ describe('the projects list (TSK-0038, HH-PORT-02, HH-PORT-06)', () => {
         .getAttribute('href'),
     ).toBe(`/portal/p/${REF}`)
     expect(urls).toEqual(['/api/v1/customer/projects'])
+    // TSK-0124: a guest link's one project, in its section; no Add a project.
+    expect(within(screen.getByRole('region', { name: 'Active' })).getByRole('listitem')).toBe(item)
+    expect(screen.queryByRole('region', { name: 'Add a project to your account' })).toBeNull()
   })
 
   it('[HH-PORT-06] no session: the ended-session state with the way back through the secure link', async () => {

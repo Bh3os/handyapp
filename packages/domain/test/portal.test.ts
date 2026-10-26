@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest'
 import {
   customerSituation,
   customerStatus,
+  DASHBOARD_SECTIONS,
+  dashboardSection,
   REQUEST_STATES,
   PROJECT_STATES,
   type PortalFacts,
@@ -188,5 +190,24 @@ describe('the T23 sequence: one next action at each step from the shared records
       ],
     ]
     for (const [name, facts, expected] of steps) expect(status(facts), name).toMatchObject(expected)
+  })
+})
+
+describe('the customer dashboard sections (TSK-0124, HH-ID-14, OWN-DEC-160)', () => {
+  it('[HH-ID-14] Active, Completed (Project History) and Cancelled/Archived from the project lifecycle', () => {
+    const sections = Object.fromEntries(
+      PROJECT_STATES.map((s) => [s, [dashboardSection(s, false), dashboardSection(s, true)]]),
+    )
+    expect(sections).toEqual({
+      open: ['active', 'active'],
+      approved: ['active', 'active'],
+      // A cancellation under the Owner's review is not decided yet.
+      cancellation_review: ['active', 'active'],
+      completed: ['completed', 'completed'],
+      // Closeout keeps a completed project in its history; a request that closed without a job is archived.
+      closed: ['archived', 'completed'],
+      canceled: ['archived', 'archived'],
+    })
+    expect([...DASHBOARD_SECTIONS]).toEqual(['active', 'completed', 'archived'])
   })
 })

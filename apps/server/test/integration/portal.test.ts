@@ -275,8 +275,13 @@ describe('the projects list and the session’s scope (TSK-0038, HH-PORT-01, T19
           nextAction: 'none',
           since: expect.any(String),
         },
+        // TSK-0124: its dashboard section and documents count.
+        section: 'active',
+        documents: 0,
       },
     ])
+    // TSK-0124: a guest link's session, not an account's dashboard.
+    expect(body).toMatchObject({ access: 'project_link' })
     expect(body.refreshSeconds).toBe(30)
   })
 

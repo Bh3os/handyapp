@@ -94,14 +94,26 @@ export type Status = {
   nextAction: NextAction
   since: string
 }
+/** TSK-0124 (HH-ID-14, OWN-DEC-160): the dashboard sections, Active, Completed (Project History) and Cancelled/Archived. */
+export const SECTIONS = ['active', 'completed', 'archived'] as const
+export type Section = (typeof SECTIONS)[number]
 export type ProjectSummary = {
   reference: string
   services: string[]
   notSure: boolean
   submittedAt: string
   status: Status
+  section: Section
+  /** How many documents the project's Documents tab lists. */
+  documents: number
 }
-export type ProjectList = { projects: ProjectSummary[]; refreshedAt: string; refreshSeconds: number }
+export type ProjectList = {
+  projects: ProjectSummary[]
+  /** How the session came in: an account (its dashboard, with Add a project) or a single project's guest link. */
+  access: 'account' | 'project_link'
+  refreshedAt: string
+  refreshSeconds: number
+}
 export type TimelineEntry = { kind: TimelineKind; at: string; text: string | null }
 export type ProjectOverview = {
   reference: string
@@ -154,7 +166,8 @@ function status(v: unknown): Status | null {
   return { situation, step, waitingOn, nextAction, since }
 }
 
-function summary(v: unknown): ProjectSummary | null {
+type Head = Omit<ProjectSummary, 'section' | 'documents'>
+function summary(v: unknown): Head | null {
   if (!isObj(v)) return null
   const s = status(v['status'])
   const { reference, services, notSure, submittedAt } = v
@@ -163,12 +176,26 @@ function summary(v: unknown): ProjectSummary | null {
   return { reference, services, notSure, submittedAt, status: s }
 }
 
+/** One project of the dashboard (TSK-0124): the summary with its section and documents count. */
+function listed(v: unknown): ProjectSummary | null {
+  const head = summary(v)
+  if (!head || !isObj(v) || !oneOf(SECTIONS)(v['section']) || !isSeconds(v['documents'])) return null
+  return { ...head, section: v['section'], documents: v['documents'] }
+}
+
 export function parseList(v: unknown): ProjectList | null {
   if (!isObj(v) || !Array.isArray(v['projects']) || !isDate(v['refreshedAt']) || !isSeconds(v['refreshSeconds']))
     return null
-  const projects = v['projects'].map(summary)
+  const access = v['access']
+  if (access !== 'account' && access !== 'project_link') return null
+  const projects = v['projects'].map(listed)
   if (projects.some((p) => p === null)) return null
-  return { projects: projects as ProjectSummary[], refreshedAt: v['refreshedAt'], refreshSeconds: v['refreshSeconds'] }
+  return {
+    projects: projects as ProjectSummary[],
+    access,
+    refreshedAt: v['refreshedAt'],
+    refreshSeconds: v['refreshSeconds'],
+  }
 }
 
 function entry(v: unknown): TimelineEntry | null {
@@ -1821,6 +1848,56 @@ async function dataExport(fetchImpl: Fetch, reference: string, request: string):
   return { ok: false, failure: failureOf(res.status, json) }
 }
 
+/**
+ * Add a project to the account (TSK-0124; HH-ID-14, HH-ID-03): the code request gets one answer whether or not the
+ * details match anything; only what depends on no record is told apart (malformed input, texts unavailable for every
+ * phone, a network over its limit, not configured).
+ */
+export type ClaimFailure =
+  | 'expired'
+  | 'unavailable'
+  | 'invalid_reference'
+  | 'invalid_contact'
+  | 'texts_unavailable'
+  | 'invalid_code'
+  | 'rate_limited'
+  | 'not_configured'
+  | 'failed'
+function claimFailure(r: { status: number; json: unknown }): ClaimFailure {
+  if (r.status === 401) return 'expired'
+  if (r.status === 404) return 'unavailable'
+  if (r.status === 429) return 'rate_limited'
+  if (r.status === 503) return 'not_configured'
+  const codes = fieldCodes(r.json)
+  for (const c of ['invalid_reference', 'invalid_contact', 'texts_unavailable', 'invalid_code'] as const)
+    if (r.status === 400 && codes.includes(c)) return c
+  return 'failed'
+}
+async function sendClaimCode(
+  fetchImpl: Fetch,
+  reference: string,
+  contact: string,
+): Promise<{ ok: true; minutes: number } | { ok: false; failure: ClaimFailure }> {
+  const r = await post(fetchImpl, '/customer/account/claims/codes', { reference, contact })
+  if (!r) return { ok: false, failure: 'failed' }
+  if (r.status === 202 && isObj(r.json) && r.json['accepted'] === true && isInt(r.json['codeMinutes']))
+    return { ok: true, minutes: r.json['codeMinutes'] }
+  return { ok: false, failure: claimFailure(r) }
+}
+async function claimProject(
+  fetchImpl: Fetch,
+  reference: string,
+  contact: string,
+  code: string,
+): Promise<{ ok: true; reference: string } | { ok: false; failure: ClaimFailure }> {
+  const r = await post(fetchImpl, '/customer/account/claims', { reference, contact, code })
+  if (!r) return { ok: false, failure: 'failed' }
+  const project = isObj(r.json) ? r.json['project'] : null
+  if (r.status === 200 && isObj(project) && isStr(project['reference']))
+    return { ok: true, reference: project['reference'] }
+  return { ok: false, failure: claimFailure(r) }
+}
+
 export const portalApi = {
   projects: (f: Fetch) => read(f, '/customer/projects', parseList),
   caseUpdates: (f: Fetch, reference: string) =>
@@ -1883,4 +1960,7 @@ export const portalApi = {
     body: { contentDigest: string; reason?: string },
     key: string,
   ) => decideChangeOrder(f, ref, 'reject', body, key),
+  // TSK-0124: Add a project to the account with a code to its verified contact.
+  sendClaimCode,
+  claimProject,
 }

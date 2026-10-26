@@ -45,8 +45,12 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
     // recorded the decided window hours as request.window_hours version 2 (OWN-DEC-170). TSK-0125 (migration 0105)
     // recorded the customer's choice of one discount and how eligibility is verified (OWN-DEC-165): discount.rule and
     // discount.eligibility_verification version 2. TSK-0140 (migration 0115) recorded the cancellation rules of
-    // OWN-DEC-161, OWN-DEC-163 and OWN-DEC-195 as cancellation.rules version 2.
+    // OWN-DEC-161, OWN-DEC-163 and OWN-DEC-195 as cancellation.rules version 2. TSK-0124 (migration 0119) recorded the
+    // decided 24-hour guest link and the reissue limit (OWN-DEC-160, OWN-DEC-198 F5) as access.grants and
+    // access.recovery version 2.
     const expected: Record<string, number> = {
+      'access.grants': 2,
+      'access.recovery': 2,
       'cancellation.rules': 2,
       'messages.automatic': 4,
       'business.timezone': 2,
