@@ -5,7 +5,7 @@
 //   a pending check, a refund or credit, a fee, a payout (settlement), a balance, a cost or an estimated profit.
 // - Figures of different bases are never added together: there is no "cash" figure made of pending checks, failed
 //   charges, estimates, invoices, fees and payouts. combinable() is the one test the Owner Dashboard (TSK-0096) and job
-//   margin (TSK-0131) use before they sum two figures.
+//   margin (TSK-0131, the `job_margin` definition) use before they sum two figures.
 // - Deposits are counted once: the deposit invoice is left out of invoiced revenue (the final invoice's total already
 //   holds the whole price and credits the deposit), and money received counts each payment once, never an invoice's
 //   paid amount beside its payments.
@@ -191,6 +191,39 @@ export const REPORT_DEFINITIONS = [
     excludes: [{ record: 'quality.return_work_costs', where: { state: ['voided'] } }],
     unknown: 'incomplete',
     builtBy: 'TSK-0095',
+  },
+  {
+    // TSK-0131 (HH-FIN-20, OWN-DEC-189): a job's gross margin. Revenue is the invoiced basis less refunds and credits
+    // (never money received: a partial payment changes nothing; the deposit counts once, inside the final invoice);
+    // costs are the job_costs report with labor and burden from the Owner-entered rates. Final only when every part is.
+    id: 'job_margin',
+    basis: 'estimated_profit',
+    includes: [
+      { record: INVOICES, where: { kind: ['final'], state: [...ISSUED_INVOICE_STATES] } },
+      { record: 'finance.refunds', where: { type: ['refund'], state: ['succeeded'] } },
+      { record: 'finance.refunds', where: { type: ['credit'], state: ['issued', 'applied'] } },
+      // Estimated: the job's contract price (its latest scope snapshot) and the accepted version's internal costs.
+      { record: 'work.job_scope_snapshots', where: {} },
+      { record: 'estimating.estimate_line_costs', where: {} },
+      { record: 'finance.job_costs', where: { state: ['recorded'] } },
+      { record: 'finance.job_cost_events', where: { event: ['category_confirmed', 'category_reopened'] } },
+      { record: 'finance.labor_cost_rates', where: {} },
+      { record: 'work.time_stamps', where: {} },
+      { record: 'work.time_stamp_corrections', where: {} },
+      { record: 'work.visits', where: { purpose: ['service', 'follow_up'] } },
+    ],
+    excludes: [
+      { record: INVOICES, where: { kind: ['deposit'] } },
+      { record: INVOICES, where: { state: ['draft', 'voided'] } },
+      // Money received is another basis; write-offs are NOT CONFIGURED (they leave the margin incomplete).
+      { record: PAYMENTS, where: {} },
+      { record: 'finance.refunds', where: { type: ['write_off'] } },
+      { record: 'finance.job_costs', where: { state: ['voided'] } },
+      { record: 'quality.return_work_costs', where: {} },
+      { record: 'work.visits', where: { purpose: ['return_work'] } },
+    ],
+    unknown: 'incomplete',
+    builtBy: 'TSK-0131',
   },
 ] as const satisfies readonly ReportDefinition[]
 

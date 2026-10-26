@@ -168,6 +168,8 @@ export const CLEARED_CATEGORIES = {
     // TSK-0095 (0109): a job's actual costs and their history.
     'finance.job_costs',
     'finance.job_cost_events',
+    // TSK-0131 (0116): the Owner's reasons for jobs below the target margin.
+    'finance.job_margin_reviews',
   ],
   conversations: [
     'comms.conversations',
@@ -334,6 +336,8 @@ export const KEPT_TABLES = [
   'identity.permission_review_items',
   // TSK-0129 (0099): the Owner's escalation number is staff profile data, kept like the staff accounts.
   'identity.staff_escalation_phones',
+  // TSK-0131 (0116): the labor cost rates the Owner entered per staff member, kept like the staff accounts.
+  'finance.labor_cost_rates',
   'identity.rate_limits',
   'platform.message_templates',
   'platform.rate_counters',

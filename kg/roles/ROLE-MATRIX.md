@@ -98,6 +98,7 @@ These are server rules, enforced by one policy point on every read, write, searc
 | Accounting exports | F | — | — | — | — | — |
 | Owner Dashboard and its CSV | Y | — | — | — | — | — |
 | View and record job costs, estimated versus actual | Y (P) | — | — | — | — | — |
+| Enter labor cost rates per worker; record why a job is below the target margin | Y | — | — | — | — | — |
 
 ### Messages, content and configuration
 | Action | Owner | Office | Estimator | Worker | Customer | Guest |
@@ -137,3 +138,5 @@ These are server rules, enforced by one policy point on every read, write, searc
 **Built by [[TSK-0095]] (2026-10-26):** reading a job's estimated-versus-actual costs and recording cost entries, voids and category confirmations (`job_cost.view`, `job_cost.record`) are the new Finance row "View and record job costs, estimated versus actual" (P: the Owner only). PROPOSED details: [[OQ-JOB-COST-DETAILS]].
 
 **Built by [[TSK-0096]] (2026-10-26):** "Owner Dashboard and its CSV" is `dashboard.view` (the dashboard and its drill-down lists) and `dashboard.export_csv` (its CSV, which also needs a sign-in within the last 5 minutes, as every bulk export does under [[T64]]); "Accounting exports" is `export.accounting` (F) for the accountant's files. PROPOSED details: [[OQ-DASHBOARD-DETAILS]].
+
+**Built by [[TSK-0131]] (2026-10-26):** a job's gross margin and its advisory target flag are read with the job's costs (`job_cost.view`, the Owner); entering the labor cost rate per worker (`labor_rate.manage`) and recording why a job is below the target margin (`job_margin.review`) are the new Finance row "Enter labor cost rates per worker; record why a job is below the target margin" (the Owner, [[OWN-DEC-189]]); changing the target is "Change policy values" (F). PROPOSED details: [[OQ-JOB-MARGIN-DETAILS]].

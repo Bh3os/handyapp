@@ -361,6 +361,8 @@ export const LABEL_FAMILIES = {
     'estimate.publishing_roles',
     'owner_approval.threshold',
     'owner_approval.discretionary_credit',
+    // TSK-0131: the target gross margin per job (advisory).
+    'job_margin.target',
     'payment.term_default',
     'payment.methods',
     'payment.instructions',
@@ -960,6 +962,9 @@ export const LABEL_FAMILIES = {
     'return_work',
     // TSK-0095: a job's cost entries and the Owner's category confirmations.
     'job_cost',
+    // TSK-0131: labor cost rates, low-margin reasons and the target margin.
+    'labor_rate',
+    'job_margin',
     // TSK-0096: the Owner Dashboard's CSV and the accountant's files.
     'dashboard',
     'accounting',
@@ -2241,7 +2246,31 @@ export const LABEL_FAMILIES = {
   jobCostLine: ['labor', 'burden', 'materials', 'purchase', 'subcontractor', 'rental', 'disposal', 'other'],
   jobCostEvent: ['cost_recorded', 'cost_voided', 'category_confirmed', 'category_reopened'],
   /** The server's refusal codes of the job-cost routes (apps/server/src/modules/job-costs). */
-  jobCostCode: ['CATEGORY_CONFIRMED', 'CATEGORY_NOT_CONFIRMED', 'COST_VOIDED', 'IN_FUTURE', 'AMOUNT_INVALID'],
+  jobCostCode: [
+    'CATEGORY_CONFIRMED',
+    'CATEGORY_NOT_CONFIRMED',
+    'COST_VOIDED',
+    'IN_FUTURE',
+    'AMOUNT_INVALID',
+    // TSK-0131: labor cost rates and low-margin reasons.
+    'RATE_INVALID',
+    'BURDEN_INVALID',
+    'NOT_A_STAFF_MEMBER',
+    'MARGIN_NOT_BELOW_TARGET',
+    'NOTE_REQUIRED',
+  ],
+  // TSK-0131 (HH-FIN-20, OWN-DEC-189): the low-margin reasons, where a margin stands against the target, and why a
+  // margin is not final (@handyhub/domain job-margin.ts).
+  marginReason: ['underpricing', 'material_overrun', 'additional_labor', 'site_conditions', 'other'],
+  marginFlag: ['below_target', 'at_or_above_target', 'incomplete', 'target_not_configured', 'no_revenue'],
+  marginGap: [
+    'not_invoiced',
+    'adjustment_in_process',
+    'write_off_not_configured',
+    'costs_incomplete',
+    'estimate_incomplete',
+    'no_estimate',
+  ],
   // TSK-0096 (HH-FIN-18, HH-FIN-16): the Owner Dashboard's sections, figures and value states, the report bases
   // (@handyhub/domain owner-dashboard.ts, report-sources.ts), the accountant's files and the dashboard's refusals.
   dashboardSection: ['overview', 'response', 'estimates', 'quality', 'payments', 'costs', 'cases'],
@@ -2301,6 +2330,11 @@ export const LABEL_FAMILIES = {
     'costs.incomplete',
     'costs.recorded',
     'costs.return_work',
+    'costs.margin_target',
+    'costs.margin_final',
+    'costs.margin_incomplete',
+    'costs.below_target',
+    'costs.below_target_unreviewed',
     'cases.open_complaints',
     'cases.open_damage_injury',
     'cases.open_unassigned',

@@ -42,8 +42,9 @@ describe('policy data matches ROLE-MATRIX exactly (TSK-0006, RULE-SERVER-AUTHZ)'
 
   it('has every matrix row, in order, with its section and every cell text verbatim', () => {
     // TSK-0125: the two discount verification rows; TSK-0126: the Owner's coverage exception row; TSK-0128: the
-    // Owner's extension of a worker's visit-day access; TSK-0095: the job-costs row.
-    expect(md.rows.length).toBe(78)
+    // Owner's extension of a worker's visit-day access; TSK-0095: the job-costs row; TSK-0131: the labor-rate and
+    // low-margin reason row.
+    expect(md.rows.length).toBe(79)
     expect(
       MATRIX.map((r) => ({
         section: r.section,

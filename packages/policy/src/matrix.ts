@@ -152,6 +152,10 @@ export const ACTIONS = [
   // Owner's category confirmations (HH-FIN-17).
   'job_cost.view',
   'job_cost.record',
+  // TSK-0131 (OWN-DEC-189): the labor cost rate the Owner enters per worker (reading and entering it) and the reason the
+  // Owner records for a job below the target gross margin. The margin itself is read under job_cost.view.
+  'labor_rate.manage',
+  'job_margin.review',
   // Messages, content and configuration
   'message.reply',
   'message.release_draft',
@@ -658,6 +662,12 @@ export const MATRIX: readonly MatrixRow[] = [
   row(FINANCE, 'View and record job costs, estimated versus actual', ['job_cost.view', 'job_cost.record'], {
     owner: Y('Y (P)', P),
   }),
+  row(
+    FINANCE,
+    'Enter labor cost rates per worker; record why a job is below the target margin',
+    ['labor_rate.manage', 'job_margin.review'],
+    { owner: Y() },
+  ),
 
   // Messages, content and configuration
   row(MESSAGES, 'Reply from a project, release drafts', ['message.reply', 'message.release_draft'], {

@@ -4,8 +4,9 @@
 //   says what it is: a final amount, the part known so far (incomplete), not recorded, not estimated or not
 //   configured. Missing cost is never shown as $0.00; the only $0.00 is a category the Owner confirmed holds nothing.
 //   A variance is shown only between two final figures.
-// - Labor is the elapsed Arrived-to-Finished time per worker; its cost and the burden need rates that are NOT
-//   CONFIGURED, so the actual total stays incomplete. No margin is shown (TSK-0131).
+// - Labor is the elapsed Arrived-to-Finished time per worker, costed at the rate the Owner entered for the worker
+//   (TSK-0131); a time with no rate is NOT CONFIGURED and keeps the actual total incomplete. The job's gross margin
+//   and the advisory target flag follow the costs (JobMarginSection).
 // - The Owner records cost entries in cents, voids one entered in error with a reason, confirms that a category holds
 //   every cost and reopens it with a reason. Every control is one the server offered (`actions`); the server checks
 //   it again.
@@ -15,6 +16,7 @@ import { cents, centsFromDecimal, formatUsd } from '@handyhub/money'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useState, type FormEvent } from 'react'
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
+import { JobMarginSection, type MarginData } from './JobMargin'
 import { codeLabel } from './Requests'
 
 type T = (key: StaffKey, values?: Record<string, string | number>) => string
@@ -45,6 +47,7 @@ export type JobCostsData = {
     minutes: number
     minutesComplete: boolean
     unknownTimes: number
+    workDone: boolean
     times: {
       visitId: string
       visitNumber: number
@@ -53,6 +56,9 @@ export type JobCostsData = {
       name: string | null
       minutes: number | null
       flagged: boolean
+      rated: boolean
+      laborCents: number | null
+      burdenCents: number | null
     }[]
   }
   entries: {
@@ -76,6 +82,7 @@ export type JobCostsData = {
     at: string | null
   }[]
   report: { id: string; basis: string; unknown: string }
+  margin: MarginData
   actions: { record: boolean }
 }
 
@@ -255,7 +262,9 @@ export function JobCostsPage({
           {t('jobCosts.incompleteLines', { lines: view.totals.incompleteLines.map(lineName).join(', ') })}
         </p>
       ) : null}
-      <p className="staff-request__hint">{t('jobCosts.laborNotConfigured')}</p>
+      <p className="staff-request__hint">
+        {t(view.labor.workDone ? 'jobCosts.laborFromRates' : 'jobCosts.laborWorkNotDone')}
+      </p>
 
       <section className="staff-request__section" aria-labelledby={`${ids}-labor`} data-testid="job-costs-labor">
         <h2 id={`${ids}-labor`} className="staff-queue__heading">
@@ -281,6 +290,15 @@ export function JobCostsPage({
                 </StatusBadge>
               ) : (
                 t('jobCosts.labor.workerMinutes', { minutes: w.minutes })
+              )}{' '}
+              ·{' '}
+              {!w.rated ? (
+                <StatusBadge tone="warning">{t('jobCosts.labor.noRate')}</StatusBadge>
+              ) : w.laborCents === null ? null : (
+                t('jobCosts.labor.cost', {
+                  labor: usd(w.laborCents),
+                  burden: w.burdenCents === null ? t('jobCosts.labor.burdenUnknown') : usd(w.burdenCents),
+                })
               )}
             </li>
           ))}
@@ -406,6 +424,8 @@ export function JobCostsPage({
           {problem}
         </p>
       ) : null}
+
+      <JobMarginSection t={t} margin={view.margin} send={(path, body) => send(`${base}/${path}`, body)} />
 
       <section className="staff-request__section" aria-labelledby={`${ids}-return`} data-testid="job-costs-return-work">
         <h2 id={`${ids}-return`} className="staff-queue__heading">

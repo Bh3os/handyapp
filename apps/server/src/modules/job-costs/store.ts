@@ -7,17 +7,20 @@
 //   without a cost estimate, so it leaves the estimate incomplete.
 // - Actual: cost entries in integer cents per category; the Owner confirms a category once it holds every cost, and
 //   reopens it with a reason to add or void an entry. Labor is the elapsed Arrived-to-Finished time per worker on the
-//   job's started visits (the Owner's corrections applied, return visits apart); no labor cost rate or burden rate is
-//   configured, so their cost is NOT CONFIGURED and the actual total stays incomplete. @handyhub/domain
-//   summarizeJobCosts computes every figure: missing cost is never zero.
+//   job's started visits (the Owner's corrections applied, return visits apart); its cost and the burden come from the
+//   rates the Owner entered per worker (TSK-0131, laborCostOf: final once the work is done and every time is known
+//   and rated; a time with no rate is NOT CONFIGURED). @handyhub/domain summarizeJobCosts computes every figure:
+//   missing cost is never zero.
 // - Return work: the costs recorded on the job's return work (quality.return_work_costs) are shown apart, never added
 //   to the job's own (HH-QA-08).
 // - The report states its sources (job_costs of @handyhub/domain REPORT_DEFINITIONS).
-// No margin, rate, overhead or target is computed here (TSK-0131 adds the margin and the Owner-entered labor rate).
+// - The job's gross margin and the advisory target flag (TSK-0131) are computed from this report's totals by
+//   job-margin/margin.ts and shown with it. No overhead is ever a job cost.
 import type { Db, Tx } from '@handyhub/db'
 import {
   costEntryProblem,
   JOB_COST_CATEGORIES,
+  laborCostOf,
   localDateOf,
   sourceStatement,
   summarizeJobCosts,
@@ -29,6 +32,8 @@ import { sql } from 'kysely'
 import { ApiError, type FieldError } from '../../api/errors.js'
 import { loadConfig } from '../../platform/config/index.js'
 import { visitTimes } from '../field/timestamps.js'
+import { jobMarginView } from '../job-margin/margin.js'
+import { laborRatesOf } from '../job-margin/rates.js'
 import { businessZone } from '../visits/visits.js'
 
 type Reader = Db | Tx
@@ -42,6 +47,8 @@ const dateText = (d: Date | string): string => (typeof d === 'string' ? d.slice(
 /** The visits whose time counts as the job's labor: its own work visits once they started (never return visits). */
 const LABOR_PURPOSES = ['service', 'follow_up'] as const
 const STARTED = ['en_route', 'arrived', 'completed'] as const
+/** PROPOSED (OQ-JOB-MARGIN-DETAILS): the work is done, so no visit adds labor time, once the job is complete. */
+const WORK_DONE = ['operationally_complete', 'closed'] as const
 
 export async function jobOf(db: Reader, jobId: string) {
   return db
@@ -239,6 +246,11 @@ const allows = (actor: StaffActor, action: 'job_cost.record', projectId: string)
 
 /** The job's cost report as the caller may act on it (the route authorized job_cost.view). */
 export async function jobCostsView(db: Reader, actor: StaffActor, jobId: string) {
+  return (await jobCostsReport(db, actor, jobId)).view
+}
+
+/** The report and the job's margin as the domain computed it (for the Owner's low-margin reason). */
+export async function jobCostsReport(db: Reader, actor: StaffActor, jobId: string) {
   const j = await jobOf(db, jobId)
   if (!j) throw new ApiError('NOT_FOUND')
   const records = allows(actor, 'job_cost.record', j.project_id)
@@ -284,12 +296,26 @@ export async function jobCostsView(db: Reader, actor: StaffActor, jobId: string)
       })
   }
   const live = entries.filter((e) => e.voided_at === null)
+  const workDone = (WORK_DONE as readonly string[]).includes(j.operational_state)
+  const laborCost = laborCostOf(
+    times.map((t) => ({ staffUserId: t.staffUserId, localDate: t.localDate, minutes: t.minutes })),
+    await laborRatesOf(
+      db,
+      times.map((t) => t.staffUserId),
+    ),
+    workDone,
+  )
   const summary = summarizeJobCosts({
     estimateLines: lines,
     changeOrders,
     entries: live.map((e) => ({ category: e.category as JobCostCategory, amountCents: Number(e.amount_cents) })),
     confirmed: JOB_COST_CATEGORIES.filter((c) => confirmed.has(c)),
     times: times.map((t) => ({ staffUserId: t.staffUserId, minutes: t.minutes })),
+    laborCost: { labor: laborCost.labor, burden: laborCost.burden },
+  })
+  const margin = await jobMarginView(db, actor, j, {
+    estimated: summary.estimatedTotal,
+    actual: summary.actualTotal,
   })
   // Return work, apart from the job's own costs (HH-QA-08): recorded so far, so never final.
   const returnCosts = await db
@@ -318,7 +344,7 @@ export async function jobCostsView(db: Reader, actor: StaffActor, jobId: string)
   ])
   const ref = (id: string | null) => (id ? { id, name: n.get(id) ?? null } : null)
   const returnCents = returnCosts.reduce((s, k) => s + k.amount_cents, 0)
-  return {
+  const view = {
     jobId: j.id,
     projectId: j.project_id,
     projectReference: j.reference,
@@ -350,7 +376,14 @@ export async function jobCostsView(db: Reader, actor: StaffActor, jobId: string)
       minutes: summary.labor.minutes,
       minutesComplete: summary.labor.minutesComplete,
       unknownTimes: summary.labor.unknownTimes,
-      times,
+      workDone,
+      // Each time's cost at the rate in force on the visit's date (null: no rate entered, or the time not known).
+      times: times.map((t, n) => ({
+        ...t,
+        rated: laborCost.lines[n]?.rateCents !== null,
+        laborCents: laborCost.lines[n]?.laborCents ?? null,
+        burdenCents: laborCost.lines[n]?.burdenCents ?? null,
+      })),
     },
     entries: entries.map((e) => ({
       id: e.id,
@@ -377,7 +410,9 @@ export async function jobCostsView(db: Reader, actor: StaffActor, jobId: string)
       at: iso(h.at),
     })),
     report: sourceStatement('job_costs'),
+    margin: margin.view,
     actions: { record: records },
   }
+  return { job: j, view, margin: margin.margin }
 }
 export type JobCostsView = Awaited<ReturnType<typeof jobCostsView>>

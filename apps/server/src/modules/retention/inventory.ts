@@ -497,6 +497,21 @@ export const TABLES = {
     classes: ['logs_audit'],
     categories: [J, F],
   },
+  // TSK-0131 (0116): the Owner-entered labor cost rates per staff member and the reasons for low-margin jobs.
+  'finance.labor_cost_rates': {
+    holds:
+      "A staff member's labor cost and employee burden per hour in cents from a date, with the Owner's reason, who " +
+      'and when',
+    classes: ['staff_account'],
+    categories: [ST, F],
+  },
+  'finance.job_margin_reviews': {
+    holds:
+      "The Owner's reason for a job below the target gross margin, with the margin it was recorded against, who " +
+      'and when',
+    classes: ['payment_reference'],
+    categories: [J, F],
+  },
   'finance.payment_allocations': {
     holds: "A payment's application to an invoice or its job's deposit requirement, in cents",
     classes: ['payment_reference'],
