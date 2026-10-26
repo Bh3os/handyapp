@@ -174,6 +174,8 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       'refund_request',
       'cancellation_outcome',
       'deletion_request',
+      // TSK-0136: an open privacy request with its deadlines (privacy.decide).
+      'privacy_request',
       'invoice_overdue_decision',
       'cancellation_review',
       'visit_cancellation_review',

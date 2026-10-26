@@ -118,6 +118,8 @@ export const LABEL_FAMILIES = {
     'refund_request',
     'cancellation_outcome',
     'deletion_request',
+    // TSK-0136: an open privacy request with its deadlines and overdue alerts.
+    'privacy_request',
     'invoice_overdue_decision',
     'cancellation_review',
     'visit_cancellation_review',
@@ -164,6 +166,13 @@ export const LABEL_FAMILIES = {
     'project_link',
     'cancellation_outcome_requested',
     'deletion_requested',
+    // TSK-0136: which date of a privacy request is due or overdue.
+    'privacy_acknowledgment_due',
+    'privacy_acknowledgment_overdue',
+    'privacy_completion_due',
+    'privacy_completion_overdue',
+    'privacy_legal_deadline_overdue',
+    'privacy_dates_not_configured',
     'overdue_owner_decision',
     // TSK-0091: why an invoice's reminders wait for staff.
     'payment_recorded',
@@ -340,6 +349,9 @@ export const LABEL_FAMILIES = {
     'cancellation.rules',
     'contact.hours',
     'business.timezone',
+    // TSK-0136: the internal business-day calendar and the privacy request targets.
+    'business.calendar',
+    'privacy.request_targets',
     'reminders.cadences',
     'request.reopen_period',
     'messages.delivery_hours',
@@ -1095,6 +1107,12 @@ export const LABEL_FAMILIES = {
     'REVIEW_NOT_STARTED',
     'REVIEW_ALREADY_STARTED',
     'PRIVACY_REQUEST_OPEN',
+    // TSK-0136: the Owner's changes of a request's dates.
+    'NOT_AFTER_TARGET',
+    'DATE_NOT_AHEAD',
+    'DATE_TOO_FAR',
+    'BEFORE_RECEIPT',
+    'DATES_NOT_CONFIGURED',
     'required',
     'FRESH_AUTH_REQUIRED',
     'STALE_VERSION',
@@ -1106,6 +1124,8 @@ export const LABEL_FAMILIES = {
     'INTERNAL',
     'UNAVAILABLE',
   ],
+  /** TSK-0136: the overdue alerts of an open privacy request (@handyhub/domain PRIVACY_DEADLINE_ALERTS). */
+  privacyAlert: ['acknowledgment_overdue', 'completion_overdue', 'legal_deadline_overdue'],
   /** The result of an audited action (ENT-AuditEvent; platform.audit_events.result). */
   auditResult: ['succeeded', 'denied', 'failed'],
   /** Who performed an audited action, when it was not a staff member (ENT-AuditEvent; actor_kind). */

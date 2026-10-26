@@ -11,6 +11,7 @@ import { AuditLogScreen } from './AuditLog'
 import { MessagesScreen } from './Messages'
 import { EstimatePublishingSetting } from './EstimateLifecycle'
 import { ApprovalThresholdSetting } from './OwnerApproval'
+import { BusinessCalendarSetting } from './BusinessCalendar'
 import { LegalDocumentsView, MailingAddressSetting } from './BusinessSettings'
 import { EstimateBuilder, EstimatesScreen } from './Estimates'
 import { CasePage, CasesScreen } from './Cases'
@@ -423,6 +424,13 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
                 fetchImpl={doFetch}
                 onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
               />
+              {/* TSK-0136: the internal business-day calendar (the substantive privacy acknowledgment). */}
+              <BusinessCalendarSetting
+                t={t}
+                locale={locale}
+                fetchImpl={doFetch}
+                onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
+              />
               <LegalDocumentsView t={t} fetchImpl={doFetch} />
             </>
           ) : (route.page === 'screen' || route.page === 'record') && shown === 'staff' && allowed ? (
@@ -458,12 +466,15 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
               href={href}
               requestId={route.id}
             />
-          ) : route.page === 'screen' && shown === 'privacy' && allowed ? (
+          ) : (route.page === 'screen' || route.page === 'record') && shown === 'privacy' && allowed ? (
+            // TSK-0136: an Owner Decisions item opens its request (/privacy/<id>).
             <PrivacyScreen
+              key={route.page === 'record' ? route.id : 'privacy'}
               t={t}
               locale={locale}
               fetchImpl={doFetch}
               href={href}
+              {...(route.page === 'record' ? { requestId: route.id } : {})}
               onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
             />
           ) : route.page === 'screen' && shown === 'cases' && allowed ? (

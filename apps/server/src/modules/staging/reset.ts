@@ -224,6 +224,8 @@ export const CLEARED_CATEGORIES = {
   workflow: [
     'ops.queue_items',
     'privacy.privacy_requests',
+    // TSK-0136 (0103): the Owner's extensions of a privacy request's internal target.
+    'privacy.privacy_request_extensions',
     'privacy.retention_reviews',
     'privacy.retention_decisions',
     'privacy.deletions',

@@ -8841,7 +8841,12 @@
                           "details",
                           "submittedAt",
                           "decidedAt",
-                          "outcome"
+                          "outcome",
+                          "acknowledgedAt",
+                          "acknowledgmentDueOn",
+                          "reviewStartedAt",
+                          "targetOn",
+                          "extensions"
                         ],
                         "properties": {
                           "reference": {
@@ -9121,6 +9126,59 @@
                                 }
                               }
                             ]
+                          },
+                          "acknowledgedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "acknowledgmentDueOn": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date"
+                          },
+                          "reviewStartedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "targetOn": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date"
+                          },
+                          "extensions": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "targetOn",
+                                "reason",
+                                "decidedAt"
+                              ],
+                              "properties": {
+                                "targetOn": {
+                                  "type": "string",
+                                  "format": "date"
+                                },
+                                "reason": {
+                                  "type": "string"
+                                },
+                                "decidedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            }
                           }
                         }
                       }
@@ -9792,7 +9850,7 @@
       "post": {
         "operationId": "requestCorrection",
         "summary": "Ask for a correction",
-        "description": "A correction request about this project’s customer from its verified contact (ROLE-MATRIX privacy.request_correction: Customer V). The identity confirmation is a one-time code entered in this session within the freshness window (PROPOSED): an older verification is FRESH_VERIFICATION_REQUIRED and nothing is written. One open request of each kind per customer (CONFLICT PRIVACY_REQUEST_OPEN). The Owner reviews and decides it; nothing is deleted or changed by the request itself. The customer says what to correct (details, kept as written). Any other project is NOT_FOUND (T19).",
+        "description": "A correction request about this project’s customer from its verified contact (ROLE-MATRIX privacy.request_correction: Customer V). The identity confirmation is a one-time code entered in this session within the freshness window (PROPOSED): an older verification is FRESH_VERIFICATION_REQUIRED and nothing is written. One open request of each kind per customer (CONFLICT PRIVACY_REQUEST_OPEN). The Owner reviews and decides it; nothing is deleted or changed by the request itself. The response is the automatic acknowledgment: the request with the date its substantive acknowledgment is due (3 business days on the business calendar) and its internal target (30 calendar days), counted in the business time zone (TSK-0136). The customer says what to correct (details, kept as written). Any other project is NOT_FOUND (T19).",
         "tags": [
           "privacy"
         ],
@@ -9853,7 +9911,12 @@
                     "details",
                     "submittedAt",
                     "decidedAt",
-                    "outcome"
+                    "outcome",
+                    "acknowledgedAt",
+                    "acknowledgmentDueOn",
+                    "reviewStartedAt",
+                    "targetOn",
+                    "extensions"
                   ],
                   "properties": {
                     "reference": {
@@ -10133,6 +10196,59 @@
                           }
                         }
                       ]
+                    },
+                    "acknowledgedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "acknowledgmentDueOn": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "reviewStartedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "targetOn": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "extensions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "targetOn",
+                          "reason",
+                          "decidedAt"
+                        ],
+                        "properties": {
+                          "targetOn": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "decidedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -10257,7 +10373,7 @@
       "post": {
         "operationId": "requestDeletion",
         "summary": "Ask for deletion",
-        "description": "A deletion request about this project’s customer from its verified contact (ROLE-MATRIX privacy.request_deletion: Customer V). The identity confirmation is a one-time code entered in this session within the freshness window (PROPOSED): an older verification is FRESH_VERIFICATION_REQUIRED and nothing is written. One open request of each kind per customer (CONFLICT PRIVACY_REQUEST_OPEN). The Owner reviews and decides it; nothing is deleted or changed by the request itself. Any other project is NOT_FOUND (T19).",
+        "description": "A deletion request about this project’s customer from its verified contact (ROLE-MATRIX privacy.request_deletion: Customer V). The identity confirmation is a one-time code entered in this session within the freshness window (PROPOSED): an older verification is FRESH_VERIFICATION_REQUIRED and nothing is written. One open request of each kind per customer (CONFLICT PRIVACY_REQUEST_OPEN). The Owner reviews and decides it; nothing is deleted or changed by the request itself. The response is the automatic acknowledgment: the request with the date its substantive acknowledgment is due (3 business days on the business calendar) and its internal target (30 calendar days), counted in the business time zone (TSK-0136). Any other project is NOT_FOUND (T19).",
         "tags": [
           "privacy"
         ],
@@ -10310,7 +10426,12 @@
                     "details",
                     "submittedAt",
                     "decidedAt",
-                    "outcome"
+                    "outcome",
+                    "acknowledgedAt",
+                    "acknowledgmentDueOn",
+                    "reviewStartedAt",
+                    "targetOn",
+                    "extensions"
                   ],
                   "properties": {
                     "reference": {
@@ -10590,6 +10711,59 @@
                           }
                         }
                       ]
+                    },
+                    "acknowledgedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "acknowledgmentDueOn": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "reviewStartedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "targetOn": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "extensions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "targetOn",
+                          "reason",
+                          "decidedAt"
+                        ],
+                        "properties": {
+                          "targetOn": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "decidedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -10714,7 +10888,7 @@
       "post": {
         "operationId": "requestExport",
         "summary": "Ask for a data export",
-        "description": "A export request about this project’s customer from its verified contact (ROLE-MATRIX privacy.request_export: Customer V). The identity confirmation is a one-time code entered in this session within the freshness window (PROPOSED): an older verification is FRESH_VERIFICATION_REQUIRED and nothing is written. One open request of each kind per customer (CONFLICT PRIVACY_REQUEST_OPEN). The Owner reviews and decides it; nothing is deleted or changed by the request itself. Any other project is NOT_FOUND (T19).",
+        "description": "A export request about this project’s customer from its verified contact (ROLE-MATRIX privacy.request_export: Customer V). The identity confirmation is a one-time code entered in this session within the freshness window (PROPOSED): an older verification is FRESH_VERIFICATION_REQUIRED and nothing is written. One open request of each kind per customer (CONFLICT PRIVACY_REQUEST_OPEN). The Owner reviews and decides it; nothing is deleted or changed by the request itself. The response is the automatic acknowledgment: the request with the date its substantive acknowledgment is due (3 business days on the business calendar) and its internal target (30 calendar days), counted in the business time zone (TSK-0136). Any other project is NOT_FOUND (T19).",
         "tags": [
           "privacy"
         ],
@@ -10767,7 +10941,12 @@
                     "details",
                     "submittedAt",
                     "decidedAt",
-                    "outcome"
+                    "outcome",
+                    "acknowledgedAt",
+                    "acknowledgmentDueOn",
+                    "reviewStartedAt",
+                    "targetOn",
+                    "extensions"
                   ],
                   "properties": {
                     "reference": {
@@ -11047,6 +11226,59 @@
                           }
                         }
                       ]
+                    },
+                    "acknowledgedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "acknowledgmentDueOn": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "reviewStartedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "targetOn": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "extensions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "targetOn",
+                          "reason",
+                          "decidedAt"
+                        ],
+                        "properties": {
+                          "targetOn": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "decidedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -40782,6 +41014,8 @@
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
+                                  "business.calendar",
+                                  "privacy.request_targets",
                                   "reminders.cadences",
                                   "request.reopen_period",
                                   "messages.delivery_hours",
@@ -42905,6 +43139,8 @@
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
+                                  "business.calendar",
+                                  "privacy.request_targets",
                                   "reminders.cadences",
                                   "request.reopen_period",
                                   "messages.delivery_hours",
@@ -45308,6 +45544,8 @@
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
+                                  "business.calendar",
+                                  "privacy.request_targets",
                                   "reminders.cadences",
                                   "request.reopen_period",
                                   "messages.delivery_hours",
@@ -47284,6 +47522,8 @@
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
+                                  "business.calendar",
+                                  "privacy.request_targets",
                                   "reminders.cadences",
                                   "request.reopen_period",
                                   "messages.delivery_hours",
@@ -49436,6 +49676,8 @@
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
+                                  "business.calendar",
+                                  "privacy.request_targets",
                                   "reminders.cadences",
                                   "request.reopen_period",
                                   "messages.delivery_hours",
@@ -51412,6 +51654,8 @@
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
+                                  "business.calendar",
+                                  "privacy.request_targets",
                                   "reminders.cadences",
                                   "request.reopen_period",
                                   "messages.delivery_hours",
@@ -53755,6 +53999,8 @@
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
+                                  "business.calendar",
+                                  "privacy.request_targets",
                                   "reminders.cadences",
                                   "request.reopen_period",
                                   "messages.delivery_hours",
@@ -55920,6 +56166,8 @@
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
+                                  "business.calendar",
+                                  "privacy.request_targets",
                                   "reminders.cadences",
                                   "request.reopen_period",
                                   "messages.delivery_hours",
@@ -58076,6 +58324,8 @@
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
+                                  "business.calendar",
+                                  "privacy.request_targets",
                                   "reminders.cadences",
                                   "request.reopen_period",
                                   "messages.delivery_hours",
@@ -60232,6 +60482,8 @@
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
+                                  "business.calendar",
+                                  "privacy.request_targets",
                                   "reminders.cadences",
                                   "request.reopen_period",
                                   "messages.delivery_hours",
@@ -62393,6 +62645,8 @@
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
+                                  "business.calendar",
+                                  "privacy.request_targets",
                                   "reminders.cadences",
                                   "request.reopen_period",
                                   "messages.delivery_hours",
@@ -64847,6 +65101,8 @@
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
+                                  "business.calendar",
+                                  "privacy.request_targets",
                                   "reminders.cadences",
                                   "request.reopen_period",
                                   "messages.delivery_hours",
@@ -67003,6 +67259,8 @@
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
+                                  "business.calendar",
+                                  "privacy.request_targets",
                                   "reminders.cadences",
                                   "request.reopen_period",
                                   "messages.delivery_hours",
@@ -69364,6 +69622,8 @@
                                   "cancellation.rules",
                                   "contact.hours",
                                   "business.timezone",
+                                  "business.calendar",
+                                  "privacy.request_targets",
                                   "reminders.cadences",
                                   "request.reopen_period",
                                   "messages.delivery_hours",
@@ -124033,7 +124293,7 @@
       "get": {
         "operationId": "listPrivacyRequests",
         "summary": "Privacy requests",
-        "description": "Owner only (privacy.decide). Every privacy request in the order received, optionally of one state: the reference, kind, state, project, customer, the requesting contact, whether it came from a login account, and when it was received, reviewed and decided. Response deadlines are NOT CONFIGURED (OQ-PRIVACY-REQUESTS).",
+        "description": "Owner only (privacy.decide). Every privacy request in the order received, optionally of one state: the reference, kind, state, project, customer, the requesting contact, whether it came from a login account, and when it was received, reviewed and decided, and its dates (TSK-0136): the receipt date, the automatic acknowledgment, the substantive acknowledgment due date, the internal target in force with its extensions, the legal deadline once the Owner records it, and the overdue alerts as of today in the business time zone. Nothing closes when a date passes.",
         "tags": [
           "privacy"
         ],
@@ -124106,7 +124366,12 @@
                           "contact",
                           "account",
                           "accessClosed",
-                          "outcome"
+                          "outcome",
+                          "acknowledgedAt",
+                          "acknowledgmentDueOn",
+                          "targetOn",
+                          "extensions",
+                          "deadlines"
                         ],
                         "properties": {
                           "id": {
@@ -124486,6 +124751,220 @@
                                 }
                               }
                             ]
+                          },
+                          "acknowledgedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date-time"
+                          },
+                          "acknowledgmentDueOn": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date"
+                          },
+                          "targetOn": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "format": "date"
+                          },
+                          "extensions": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "targetOn",
+                                "reason",
+                                "decidedAt"
+                              ],
+                              "properties": {
+                                "targetOn": {
+                                  "type": "string",
+                                  "format": "date"
+                                },
+                                "reason": {
+                                  "type": "string"
+                                },
+                                "decidedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          },
+                          "deadlines": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "state",
+                              "receivedOn",
+                              "zone",
+                              "calendarVersion",
+                              "targetsVersion",
+                              "acknowledgedAt",
+                              "acknowledgmentDueOn",
+                              "substantiveAcknowledgedAt",
+                              "targetDueOn",
+                              "targetOn",
+                              "extensions",
+                              "legalDeadline",
+                              "today",
+                              "alerts"
+                            ],
+                            "properties": {
+                              "state": {
+                                "type": "string",
+                                "enum": [
+                                  "CONFIGURED",
+                                  "NOT_CONFIGURED"
+                                ]
+                              },
+                              "receivedOn": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date"
+                              },
+                              "zone": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "calendarVersion": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              },
+                              "targetsVersion": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              },
+                              "acknowledgedAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              },
+                              "acknowledgmentDueOn": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date"
+                              },
+                              "substantiveAcknowledgedAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              },
+                              "targetDueOn": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date"
+                              },
+                              "targetOn": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date"
+                              },
+                              "extensions": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "previousTargetOn",
+                                    "targetOn",
+                                    "reason",
+                                    "decidedAt"
+                                  ],
+                                  "properties": {
+                                    "previousTargetOn": {
+                                      "type": "string",
+                                      "format": "date"
+                                    },
+                                    "targetOn": {
+                                      "type": "string",
+                                      "format": "date"
+                                    },
+                                    "reason": {
+                                      "type": "string"
+                                    },
+                                    "decidedAt": {
+                                      "type": "string",
+                                      "format": "date-time"
+                                    }
+                                  }
+                                }
+                              },
+                              "legalDeadline": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "on",
+                                  "note",
+                                  "recordedAt"
+                                ],
+                                "properties": {
+                                  "on": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "format": "date"
+                                  },
+                                  "note": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "recordedAt": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "format": "date-time"
+                                  }
+                                }
+                              },
+                              "today": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date"
+                              },
+                              "alerts": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "enum": [
+                                    "acknowledgment_overdue",
+                                    "completion_overdue",
+                                    "legal_deadline_overdue"
+                                  ]
+                                }
+                              }
+                            }
                           }
                         }
                       }
@@ -124634,6 +125113,11 @@
                     "account",
                     "accessClosed",
                     "outcome",
+                    "acknowledgedAt",
+                    "acknowledgmentDueOn",
+                    "targetOn",
+                    "extensions",
+                    "deadlines",
                     "plan",
                     "findings"
                   ],
@@ -125015,6 +125499,220 @@
                           }
                         }
                       ]
+                    },
+                    "acknowledgedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "acknowledgmentDueOn": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "targetOn": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "extensions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "targetOn",
+                          "reason",
+                          "decidedAt"
+                        ],
+                        "properties": {
+                          "targetOn": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "decidedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "deadlines": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state",
+                        "receivedOn",
+                        "zone",
+                        "calendarVersion",
+                        "targetsVersion",
+                        "acknowledgedAt",
+                        "acknowledgmentDueOn",
+                        "substantiveAcknowledgedAt",
+                        "targetDueOn",
+                        "targetOn",
+                        "extensions",
+                        "legalDeadline",
+                        "today",
+                        "alerts"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "CONFIGURED",
+                            "NOT_CONFIGURED"
+                          ]
+                        },
+                        "receivedOn": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date"
+                        },
+                        "zone": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "calendarVersion": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "targetsVersion": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "acknowledgedAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "acknowledgmentDueOn": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date"
+                        },
+                        "substantiveAcknowledgedAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "targetDueOn": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date"
+                        },
+                        "targetOn": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date"
+                        },
+                        "extensions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "previousTargetOn",
+                              "targetOn",
+                              "reason",
+                              "decidedAt"
+                            ],
+                            "properties": {
+                              "previousTargetOn": {
+                                "type": "string",
+                                "format": "date"
+                              },
+                              "targetOn": {
+                                "type": "string",
+                                "format": "date"
+                              },
+                              "reason": {
+                                "type": "string"
+                              },
+                              "decidedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        },
+                        "legalDeadline": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "on",
+                            "note",
+                            "recordedAt"
+                          ],
+                          "properties": {
+                            "on": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date"
+                            },
+                            "note": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "recordedAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            }
+                          }
+                        },
+                        "today": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date"
+                        },
+                        "alerts": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "acknowledgment_overdue",
+                              "completion_overdue",
+                              "legal_deadline_overdue"
+                            ]
+                          }
+                        }
+                      }
                     },
                     "plan": {
                       "type": "object",
@@ -125617,6 +126315,11 @@
                     "account",
                     "accessClosed",
                     "outcome",
+                    "acknowledgedAt",
+                    "acknowledgmentDueOn",
+                    "targetOn",
+                    "extensions",
+                    "deadlines",
                     "plan",
                     "findings"
                   ],
@@ -125998,6 +126701,220 @@
                           }
                         }
                       ]
+                    },
+                    "acknowledgedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "acknowledgmentDueOn": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "targetOn": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "extensions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "targetOn",
+                          "reason",
+                          "decidedAt"
+                        ],
+                        "properties": {
+                          "targetOn": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "decidedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "deadlines": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state",
+                        "receivedOn",
+                        "zone",
+                        "calendarVersion",
+                        "targetsVersion",
+                        "acknowledgedAt",
+                        "acknowledgmentDueOn",
+                        "substantiveAcknowledgedAt",
+                        "targetDueOn",
+                        "targetOn",
+                        "extensions",
+                        "legalDeadline",
+                        "today",
+                        "alerts"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "CONFIGURED",
+                            "NOT_CONFIGURED"
+                          ]
+                        },
+                        "receivedOn": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date"
+                        },
+                        "zone": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "calendarVersion": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "targetsVersion": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "acknowledgedAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "acknowledgmentDueOn": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date"
+                        },
+                        "substantiveAcknowledgedAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "targetDueOn": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date"
+                        },
+                        "targetOn": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date"
+                        },
+                        "extensions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "previousTargetOn",
+                              "targetOn",
+                              "reason",
+                              "decidedAt"
+                            ],
+                            "properties": {
+                              "previousTargetOn": {
+                                "type": "string",
+                                "format": "date"
+                              },
+                              "targetOn": {
+                                "type": "string",
+                                "format": "date"
+                              },
+                              "reason": {
+                                "type": "string"
+                              },
+                              "decidedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        },
+                        "legalDeadline": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "on",
+                            "note",
+                            "recordedAt"
+                          ],
+                          "properties": {
+                            "on": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date"
+                            },
+                            "note": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "recordedAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            }
+                          }
+                        },
+                        "today": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date"
+                        },
+                        "alerts": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "acknowledgment_overdue",
+                              "completion_overdue",
+                              "legal_deadline_overdue"
+                            ]
+                          }
+                        }
+                      }
                     },
                     "plan": {
                       "type": "object",
@@ -126537,11 +127454,474 @@
         }
       }
     },
+    "/api/v1/staff/privacy-requests/{id}/extension": {
+      "post": {
+        "operationId": "extendPrivacyRequestTarget",
+        "summary": "Extend the internal target of a privacy request",
+        "description": "Owner only (privacy.decide), with the new date and the reason, which the customer is shown with it in their project page (the notice message has no approved wording, OQ-MESSAGES-OUTSIDE-THE-21). OWN-DEC-175: more time only where it is legally permitted and necessary, which the Owner confirms; the software cannot. The new date is after the target in force and after today (business time zone), at most DEADLINE_MAX_DAYS_AHEAD ahead. The legal deadline is not changed. If-Match: the request version. Refusals: CONFLICT ALREADY_DECIDED / DATES_NOT_CONFIGURED, STALE_VERSION, VALIDATION_FAILED (NOT_AFTER_TARGET, DATE_NOT_AHEAD, DATE_TOO_FAR).",
+        "tags": [
+          "privacy"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "targetOn",
+                  "reason"
+                ],
+                "properties": {
+                  "targetOn": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "version",
+                    "previous",
+                    "current"
+                  ],
+                  "properties": {
+                    "version": {
+                      "type": "integer"
+                    },
+                    "previous": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "current": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "privacy.decide",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "privacy.target_extend",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/privacy.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/privacy-requests/{id}/legal-deadline": {
+      "put": {
+        "operationId": "recordPrivacyLegalDeadline",
+        "summary": "Record the legal deadline of a privacy request",
+        "description": "Owner only (privacy.decide). The applicable legal deadline, tracked separately from the internal target (OWN-DEC-175): the date the attorney defines for this request, with a note saying where it comes from, or null to clear it (with a note). Never computed by the software, never from the business calendar (OWN-DEC-205). On or after the receipt date, at most DEADLINE_MAX_DAYS_AHEAD ahead; a date already passed is overdue at once. If-Match: the request version. Refusals: CONFLICT ALREADY_DECIDED / DATES_NOT_CONFIGURED, STALE_VERSION, VALIDATION_FAILED (BEFORE_RECEIPT, DATE_TOO_FAR).",
+        "tags": [
+          "privacy"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "on",
+                  "note"
+                ],
+                "properties": {
+                  "on": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date"
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "version",
+                    "previous",
+                    "current"
+                  ],
+                  "properties": {
+                    "version": {
+                      "type": "integer"
+                    },
+                    "previous": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "current": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "privacy.decide",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "privacy.legal_deadline_record",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/privacy.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/privacy-requests/{id}/review": {
       "post": {
         "operationId": "startPrivacyReview",
         "summary": "Open the review of a privacy request",
-        "description": "Owner only (privacy.decide). received -> under_review, keeping what the scoped search found (categories and counts, never content). If-Match: the request version. Refusals: CONFLICT REVIEW_ALREADY_STARTED, STALE_VERSION.",
+        "description": "Owner only (privacy.decide). received -> under_review, keeping what the scoped search found (categories and counts, never content). Opening the review is the substantive acknowledgment the customer sees (PROPOSED, TSK-0136). If-Match: the request version. Refusals: CONFLICT REVIEW_ALREADY_STARTED, STALE_VERSION.",
         "tags": [
           "privacy"
         ],
@@ -126610,6 +127990,11 @@
                     "account",
                     "accessClosed",
                     "outcome",
+                    "acknowledgedAt",
+                    "acknowledgmentDueOn",
+                    "targetOn",
+                    "extensions",
+                    "deadlines",
                     "plan",
                     "findings"
                   ],
@@ -126991,6 +128376,220 @@
                           }
                         }
                       ]
+                    },
+                    "acknowledgedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    },
+                    "acknowledgmentDueOn": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "targetOn": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date"
+                    },
+                    "extensions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "targetOn",
+                          "reason",
+                          "decidedAt"
+                        ],
+                        "properties": {
+                          "targetOn": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "decidedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "deadlines": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state",
+                        "receivedOn",
+                        "zone",
+                        "calendarVersion",
+                        "targetsVersion",
+                        "acknowledgedAt",
+                        "acknowledgmentDueOn",
+                        "substantiveAcknowledgedAt",
+                        "targetDueOn",
+                        "targetOn",
+                        "extensions",
+                        "legalDeadline",
+                        "today",
+                        "alerts"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "CONFIGURED",
+                            "NOT_CONFIGURED"
+                          ]
+                        },
+                        "receivedOn": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date"
+                        },
+                        "zone": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "calendarVersion": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "targetsVersion": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "acknowledgedAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "acknowledgmentDueOn": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date"
+                        },
+                        "substantiveAcknowledgedAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date-time"
+                        },
+                        "targetDueOn": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date"
+                        },
+                        "targetOn": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date"
+                        },
+                        "extensions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "previousTargetOn",
+                              "targetOn",
+                              "reason",
+                              "decidedAt"
+                            ],
+                            "properties": {
+                              "previousTargetOn": {
+                                "type": "string",
+                                "format": "date"
+                              },
+                              "targetOn": {
+                                "type": "string",
+                                "format": "date"
+                              },
+                              "reason": {
+                                "type": "string"
+                              },
+                              "decidedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        },
+                        "legalDeadline": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "on",
+                            "note",
+                            "recordedAt"
+                          ],
+                          "properties": {
+                            "on": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date"
+                            },
+                            "note": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "recordedAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "format": "date-time"
+                            }
+                          }
+                        },
+                        "today": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "format": "date"
+                        },
+                        "alerts": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "acknowledgment_overdue",
+                              "completion_overdue",
+                              "legal_deadline_overdue"
+                            ]
+                          }
+                        }
+                      }
                     },
                     "plan": {
                       "type": "object",
@@ -138938,6 +140537,7 @@
                 "refund_request",
                 "cancellation_outcome",
                 "deletion_request",
+                "privacy_request",
                 "invoice_overdue_decision",
                 "cancellation_review",
                 "visit_cancellation_review",
@@ -139083,6 +140683,7 @@
                               "refund_request",
                               "cancellation_outcome",
                               "deletion_request",
+                              "privacy_request",
                               "invoice_overdue_decision",
                               "cancellation_review",
                               "visit_cancellation_review",
@@ -139387,6 +140988,7 @@
                           "refund_request",
                           "cancellation_outcome",
                           "deletion_request",
+                          "privacy_request",
                           "invoice_overdue_decision",
                           "cancellation_review",
                           "visit_cancellation_review",
@@ -139552,6 +141154,7 @@
                 "refund_request",
                 "cancellation_outcome",
                 "deletion_request",
+                "privacy_request",
                 "invoice_overdue_decision",
                 "cancellation_review",
                 "visit_cancellation_review",
@@ -139697,6 +141300,7 @@
                               "refund_request",
                               "cancellation_outcome",
                               "deletion_request",
+                              "privacy_request",
                               "invoice_overdue_decision",
                               "cancellation_review",
                               "visit_cancellation_review",
@@ -140001,6 +141605,7 @@
                           "refund_request",
                           "cancellation_outcome",
                           "deletion_request",
+                          "privacy_request",
                           "invoice_overdue_decision",
                           "cancellation_review",
                           "visit_cancellation_review",
@@ -154456,6 +156061,635 @@
         }
       }
     },
+    "/api/v1/staff/settings/business-calendar": {
+      "get": {
+        "operationId": "getBusinessCalendar",
+        "summary": "The internal business-day calendar",
+        "description": "The Owner (dashboard.view, PROPOSED: reading configuration, as the system configuration view). The calendar in force (business.calendar, OWN-DEC-205): the weekdays that are business days, the US federal holidays it excludes on their observed dates (Saturday: the Friday before; Sunday: the Monday after) and further closed dates, with the holidays observed this year and next as the server counts them. Internal service targets only (the substantive privacy acknowledgment); never a statutory deadline. ETag: the configuration version.",
+        "tags": [
+          "business"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "state",
+                    "version",
+                    "calendar",
+                    "sourceIds",
+                    "observed"
+                  ],
+                  "properties": {
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "CONFIGURED",
+                        "NOT_CONFIGURED"
+                      ]
+                    },
+                    "version": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "calendar": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "workdays",
+                            "holidays",
+                            "closedDates",
+                            "observance"
+                          ],
+                          "properties": {
+                            "workdays": {
+                              "type": "array",
+                              "minItems": 1,
+                              "maxItems": 7,
+                              "uniqueItems": true,
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "monday",
+                                  "tuesday",
+                                  "wednesday",
+                                  "thursday",
+                                  "friday",
+                                  "saturday",
+                                  "sunday"
+                                ]
+                              }
+                            },
+                            "holidays": {
+                              "type": "array",
+                              "maxItems": 11,
+                              "uniqueItems": true,
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "new_years_day",
+                                  "martin_luther_king_jr_birthday",
+                                  "washingtons_birthday",
+                                  "memorial_day",
+                                  "juneteenth",
+                                  "independence_day",
+                                  "labor_day",
+                                  "columbus_day",
+                                  "veterans_day",
+                                  "thanksgiving_day",
+                                  "christmas_day"
+                                ]
+                              }
+                            },
+                            "closedDates": {
+                              "type": "array",
+                              "maxItems": 366,
+                              "uniqueItems": true,
+                              "items": {
+                                "type": "string",
+                                "format": "date"
+                              }
+                            },
+                            "observance": {
+                              "type": "string",
+                              "enum": [
+                                "federal_weekend_rule"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "sourceIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "observed": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "holiday",
+                          "date",
+                          "observed"
+                        ],
+                        "properties": {
+                          "holiday": {
+                            "type": "string",
+                            "enum": [
+                              "new_years_day",
+                              "martin_luther_king_jr_birthday",
+                              "washingtons_birthday",
+                              "memorial_day",
+                              "juneteenth",
+                              "independence_day",
+                              "labor_day",
+                              "columbus_day",
+                              "veterans_day",
+                              "thanksgiving_day",
+                              "christmas_day"
+                            ]
+                          },
+                          "date": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "observed": {
+                            "type": "string",
+                            "format": "date"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "dashboard.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/privacy-deadlines.test.ts"
+        }
+      },
+      "put": {
+        "operationId": "setBusinessCalendar",
+        "summary": "Change the business-day calendar (Owner only)",
+        "description": "The Owner only (policy_values.change: a fresh sign-in within 5 minutes and a written reason), with If-Match: the configuration version shown. Records the next version of business.calendar: at least one workday, any of the 11 federal holidays, and up to 366 further closed dates. Requests already received keep the dates counted with the version they were received under; it applies to requests received afterwards. Audited with the old and new values.",
+        "tags": [
+          "business"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "workdays",
+                  "holidays",
+                  "closedDates",
+                  "reason"
+                ],
+                "properties": {
+                  "workdays": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 7,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "monday",
+                        "tuesday",
+                        "wednesday",
+                        "thursday",
+                        "friday",
+                        "saturday",
+                        "sunday"
+                      ]
+                    }
+                  },
+                  "holidays": {
+                    "type": "array",
+                    "maxItems": 11,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "new_years_day",
+                        "martin_luther_king_jr_birthday",
+                        "washingtons_birthday",
+                        "memorial_day",
+                        "juneteenth",
+                        "independence_day",
+                        "labor_day",
+                        "columbus_day",
+                        "veterans_day",
+                        "thanksgiving_day",
+                        "christmas_day"
+                      ]
+                    }
+                  },
+                  "closedDates": {
+                    "type": "array",
+                    "maxItems": 366,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "format": "date"
+                    }
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "state",
+                    "version",
+                    "calendar",
+                    "sourceIds",
+                    "observed"
+                  ],
+                  "properties": {
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "CONFIGURED",
+                        "NOT_CONFIGURED"
+                      ]
+                    },
+                    "version": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "calendar": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "workdays",
+                            "holidays",
+                            "closedDates",
+                            "observance"
+                          ],
+                          "properties": {
+                            "workdays": {
+                              "type": "array",
+                              "minItems": 1,
+                              "maxItems": 7,
+                              "uniqueItems": true,
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "monday",
+                                  "tuesday",
+                                  "wednesday",
+                                  "thursday",
+                                  "friday",
+                                  "saturday",
+                                  "sunday"
+                                ]
+                              }
+                            },
+                            "holidays": {
+                              "type": "array",
+                              "maxItems": 11,
+                              "uniqueItems": true,
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "new_years_day",
+                                  "martin_luther_king_jr_birthday",
+                                  "washingtons_birthday",
+                                  "memorial_day",
+                                  "juneteenth",
+                                  "independence_day",
+                                  "labor_day",
+                                  "columbus_day",
+                                  "veterans_day",
+                                  "thanksgiving_day",
+                                  "christmas_day"
+                                ]
+                              }
+                            },
+                            "closedDates": {
+                              "type": "array",
+                              "maxItems": 366,
+                              "uniqueItems": true,
+                              "items": {
+                                "type": "string",
+                                "format": "date"
+                              }
+                            },
+                            "observance": {
+                              "type": "string",
+                              "enum": [
+                                "federal_weekend_rule"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "sourceIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "observed": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "holiday",
+                          "date",
+                          "observed"
+                        ],
+                        "properties": {
+                          "holiday": {
+                            "type": "string",
+                            "enum": [
+                              "new_years_day",
+                              "martin_luther_king_jr_birthday",
+                              "washingtons_birthday",
+                              "memorial_day",
+                              "juneteenth",
+                              "independence_day",
+                              "labor_day",
+                              "columbus_day",
+                              "veterans_day",
+                              "thanksgiving_day",
+                              "christmas_day"
+                            ]
+                          },
+                          "date": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "observed": {
+                            "type": "string",
+                            "format": "date"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "policy_values.change",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": 5,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "business_settings.change_calendar",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/privacy-deadlines.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/settings/business-details": {
       "get": {
         "operationId": "getBusinessDetails",
@@ -157869,6 +160103,8 @@
                               "cancellation.rules",
                               "contact.hours",
                               "business.timezone",
+                              "business.calendar",
+                              "privacy.request_targets",
                               "reminders.cadences",
                               "request.reopen_period",
                               "messages.delivery_hours",

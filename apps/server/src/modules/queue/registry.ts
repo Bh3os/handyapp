@@ -630,6 +630,28 @@ export const QUEUE_ITEM_TYPES = [
     action: 'decide',
     screen: 'customers',
   },
+  // TSK-0136 (HH-PRIV-07, OWN-DEC-175 "Display pending privacy requests, deadlines, and overdue alerts"): one item per
+  // open privacy request, opened in the submission's transaction and resolved by the Owner's decision. Its due time is
+  // the request's next deadline (the end of that date in the business zone: the substantive acknowledgment, then the
+  // internal target or the legal deadline); its reason says which date is due or overdue, kept in line by a job at
+  // each deadline. Never closes the request. Seen by the Owner (privacy.decide). Band PROPOSED.
+  {
+    id: 'privacy_request',
+    section: 'owner_decisions',
+    subject: 'privacy_request',
+    band: 'time_sensitive',
+    view: 'privacy.decide',
+    reasons: [
+      'privacy_acknowledgment_due',
+      'privacy_acknowledgment_overdue',
+      'privacy_completion_due',
+      'privacy_completion_overdue',
+      'privacy_legal_deadline_overdue',
+      'privacy_dates_not_configured',
+    ],
+    action: 'decide',
+    screen: 'privacy',
+  },
   // TSK-0091 (OWN-DEC-112, OWN-DEC-210, HH-FIN-19): the second automatic reminder was actually sent and the balance
   // remains. One item per invoice until the Owner decides, an arrangement is recorded or the balance is gone; the link
   // opens the invoice's reminders.

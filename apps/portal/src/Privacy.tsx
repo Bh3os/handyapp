@@ -3,8 +3,11 @@
 // reviews each request; nothing is deleted or changed by asking. Asking needs a new one-time code in this session
 // (the identity confirmation; the same check as an approval, HH-ID-07). Each request shows its state and, once
 // decided, what was deleted, what was kept, why and until when where that is known. A completed export is
-// downloaded here as a JSON file. English only; the wording no decision gives is PROPOSED (OQ-PORTAL-WORDING) and
-// response times are not stated (NOT CONFIGURED).
+// downloaded here as a JSON file. English only; the wording no decision gives is PROPOSED (OQ-PORTAL-WORDING).
+// TSK-0136 (HH-PRIV-07, OWN-DEC-175): an open request shows its automatic acknowledgment here (its message wording is
+// not given, OQ-MESSAGES-OUTSIDE-THE-21): when it was received, the date HandyHub follows up by, then that the review
+// started, the internal target date, and each extension with its new date and reason. The legal deadline is not shown
+// (PROPOSED, OQ-PRIVACY-DEADLINE-DETAILS).
 import type { CustomerKey } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge, type StatusTone } from '@handyhub/ui'
 import { useId, useRef, useState } from 'react'
@@ -21,7 +24,7 @@ import {
   type PrivacyState,
 } from './api'
 import { Reverify } from './Estimate'
-import { t, when } from './labels'
+import { calendarDate, t, when } from './labels'
 import { useLive } from './live'
 import { NotShown } from './States'
 
@@ -126,6 +129,28 @@ function ExportDownload({ reference, request, fetchImpl }: { reference: string; 
   )
 }
 
+/** TSK-0136: the acknowledgment and the dates of a request not yet decided. */
+function Acknowledgment({ r }: { r: PrivacyRequest }) {
+  return (
+    <div className="portal-privacy__acknowledgment" data-testid="privacy-acknowledgment">
+      <p>
+        {r.acknowledgedAt
+          ? t('portal.privacy.ack.received', { date: when(r.acknowledgedAt) })
+          : t('portal.privacy.request.waiting')}
+      </p>
+      {r.reviewStartedAt ? (
+        <p>{t('portal.privacy.ack.reviewing', { date: when(r.reviewStartedAt) })}</p>
+      ) : r.acknowledgmentDueOn ? (
+        <p>{t('portal.privacy.ack.followUp', { date: calendarDate(r.acknowledgmentDueOn) })}</p>
+      ) : null}
+      {r.targetOn ? <p>{t('portal.privacy.ack.target', { date: calendarDate(r.targetOn) })}</p> : null}
+      {r.extensions.map((e) => (
+        <p key={e.targetOn}>{t('portal.privacy.ack.extended', { date: calendarDate(e.targetOn), reason: e.reason })}</p>
+      ))}
+    </div>
+  )
+}
+
 function RequestItem({ r, reference, fetchImpl }: { r: PrivacyRequest; reference: string; fetchImpl: Fetch }) {
   const ids = useId()
   return (
@@ -161,7 +186,7 @@ function RequestItem({ r, reference, fetchImpl }: { r: PrivacyRequest; reference
           ) : null}
         </div>
       ) : (
-        <p>{t('portal.privacy.request.waiting')}</p>
+        <Acknowledgment r={r} />
       )}
     </li>
   )
