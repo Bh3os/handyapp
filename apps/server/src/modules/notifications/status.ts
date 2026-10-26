@@ -143,6 +143,38 @@ async function applyStatus(tx: Tx, r: Receipt, status: DeliveryStatus): Promise<
   return 'applied'
 }
 
+/**
+ * TSK-0107 (HH-DATA-04: provider ordering is never assumed): a status can be processed before the send it reports on
+ * has committed. The provider answers, and calls back, while the sending transaction is still open; or an attempt
+ * crashed after the provider took the message, and the retry records the same message ID (the same idempotency key).
+ * That status found no delivery and was ignored. When a delivery records its provider message ID, the statuses ignored
+ * for that ID apply to it, oldest first, under the same forward-only rules; each applied one is recorded once.
+ */
+export async function applyEarlierStatuses(
+  tx: Tx,
+  input: { channel: 'email' | 'sms'; providerMessageId: string },
+): Promise<number> {
+  const provider = input.channel === 'sms' ? 'bird' : 'resend'
+  const earlier = (await tx
+    .selectFrom('platform.webhook_receipts')
+    .select(['id', 'provider', 'event_type', 'provider_message_id', 'event_occurred_at', 'payload', 'state'])
+    .where('provider', '=', provider)
+    .where('provider_message_id', '=', input.providerMessageId)
+    .where('state', '=', 'ignored')
+    .orderBy(sql`event_occurred_at NULLS LAST`)
+    .orderBy('seq')
+    .forUpdate()
+    .execute()) as Receipt[]
+  let applied = 0
+  for (const r of earlier) {
+    const status = r.provider === 'bird' ? mapBirdEvent(r.event_type) : mapResendEvent(r.event_type)
+    if (!status || (await applyStatus(tx, r, status)) !== 'applied') continue
+    await setReceipt(tx, r.id, 'processed')
+    applied++
+  }
+  return applied
+}
+
 function data(r: Receipt): Record<string, unknown> {
   const d = (r.payload as { data?: unknown } | null)?.data
   return d && typeof d === 'object' ? (d as Record<string, unknown>) : {}
