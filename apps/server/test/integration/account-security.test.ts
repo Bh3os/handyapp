@@ -449,6 +449,7 @@ describe('the secure alternative: asking HandyHub for help (OWN-DEC-198 F4, F5, 
     expect([limited.statusCode, limited.json()]).toEqual([202, REISSUE_ACCEPTED])
     expect(observed(unknown)).toEqual(observed(limited))
     // The secure alternative answers every visitor the same way too, whether or not anything matches.
+    const sentBeforeHelp = sentTo(email).length
     const helpKnown = await call('POST', '/public/access/help', {
       payload: { kind: 'project_link', contact: email, reference: s.reference },
     })
@@ -463,6 +464,8 @@ describe('the secure alternative: asking HandyHub for help (OWN-DEC-198 F4, F5, 
     expect(bad.statusCode).toBe(400)
     expect(bad.json().error.fieldErrors[0].code).toBe('invalid_contact')
     // Both wait for the Owner, who sees what was typed and what it points to; the audit holds no typed value.
+    // TSK-0150 (OWN-DEC-199, access.help.done): asking opens a review for the Owner and sends nothing by itself.
+    expect(sentTo(email)).toHaveLength(sentBeforeHelp)
     const list = await staffGet('owner', '/staff/access-help')
     expect(list.statusCode).toBe(200)
     const open = list.json<{ open: { id: string; contact: string; reference: string | null }[] }>().open

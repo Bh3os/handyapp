@@ -88,6 +88,7 @@ const SENT: Record<ResponseKind, CustomerKey> = {
 const APPROVAL_REASON: Record<ApprovalReason, CustomerKey> = {
   terms_not_configured: 'portal.estimate.approval.reason.terms_not_configured',
   terms_not_in_effect: 'portal.estimate.approval.reason.terms_not_in_effect',
+  terms_not_current: 'portal.estimate.approval.reason.terms_not_current',
   superseded: 'portal.estimate.approval.reason.superseded',
   expired: 'portal.estimate.approval.reason.expired',
   not_published: 'portal.estimate.approval.reason.not_published',

@@ -31,7 +31,7 @@ const TABS = [
   { name: 'Messages', path: '/messages', text: 'No messages yet' },
   { name: 'Documents', path: '/documents', text: 'No documents yet' },
   { name: 'Photos', path: '/photos', text: 'No photos yet' },
-  { name: 'Appointments', path: '/appointments', text: 'No appointment yet' },
+  { name: 'Appointments', path: '/appointments', text: 'No upcoming appointment' },
   { name: 'Payments', path: '/payments', text: 'Nothing to pay yet' },
 ] as const
 

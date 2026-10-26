@@ -173,6 +173,12 @@ describe('the T23 sequence: one next action at each step from the shared records
         { situation: 'on_the_way', step: 'arrival_update', waitingOn: 'handyhub', nextAction: 'none' },
       ],
       [
+        // TSK-0150 (OWN-DEC-199): once "Arrived" is recorded the step no longer says the visit is on the way.
+        'arrived, work not started',
+        { requestState: 'estimated', projectState: 'approved', estimateApproved: true, visit: 'arrived' },
+        { situation: 'on_the_way', step: 'arrival_recorded', waitingOn: 'handyhub', nextAction: 'none' },
+      ],
+      [
         'work complete',
         { requestState: 'estimated', projectState: 'completed', estimateApproved: true, completion: 'complete' },
         { situation: 'work_complete', step: 'review_care_notes_and_invoice', waitingOn: 'nobody', nextAction: 'none' },
@@ -205,6 +211,7 @@ describe('the customer dashboard sections (TSK-0124, HH-ID-14, OWN-DEC-160)', ()
       cancellation_review: ['active', 'active'],
       completed: ['completed', 'completed'],
       // Closeout keeps a completed project in its history; a request that closed without a job is archived.
+      // TSK-0150 (OWN-DEC-199, portal.projects.section.archivedEmpty): so "closed" alone is not archived.
       closed: ['archived', 'completed'],
       canceled: ['archived', 'archived'],
     })

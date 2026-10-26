@@ -35,6 +35,7 @@ function overview(over: Partial<ProjectOverview> = {}, status: Partial<ProjectOv
     timeline: [{ kind: 'received', at: SENT, text: null }],
     appointment: null,
     payment: { state: 'none' },
+    invoiceBalanceCents: 0,
     refreshedAt: NOW,
     refreshSeconds: 0,
     ...over,
@@ -137,7 +138,10 @@ describe('the Overview (TSK-0038, HH-PORT-02, HH-PORT-03, T23)', () => {
     expect(screen.getByRole('heading', { level: 1, name: `Project ${REF}` })).toBeTruthy()
     const timeline = screen.getByRole('region', { name: 'Timeline' })
     expect(within(timeline).getAllByRole('listitem')).toHaveLength(1)
-    expect(within(screen.getByRole('region', { name: 'Appointment' })).getByText('No appointment yet')).toBeTruthy()
+    // TSK-0150 (OWN-DEC-199, portal.appointment.none.title): no live visit, so none is upcoming.
+    expect(
+      within(screen.getByRole('region', { name: 'Appointment' })).getByText('No upcoming appointment'),
+    ).toBeTruthy()
     expect(within(screen.getByRole('region', { name: 'Payments' })).getByText('Nothing to pay yet')).toBeTruthy()
     expect(screen.getByText(`Updated ${AT}`)).toBeTruthy()
     // TSK-0093: the Overview also reads the released case updates (none here, so nothing is shown). That read can
@@ -298,6 +302,75 @@ describe('the deposit in the payment summary (TSK-0059, HH-FIN-02, OWN-DEC-104, 
     expect(parseOverview({ ...overview(), payment: { ...due, payByCardUrl: 'http://square.link/u/x' } })).toBeNull()
     expect(parseOverview({ ...overview(), payment: { ...due, payByCardUrl: 'javascript:alert(1)' } })).toBeNull()
     expect(parseOverview({ ...overview(), payment: { ...due, amountCents: 1.5, payByCardUrl: null } })).toBeNull()
+  })
+})
+
+describe('wording checked against behaviour (TSK-0150, OWN-DEC-199, HH-PORT-02)', () => {
+  it('[HH-PORT-02][T23] an invoice with a balance: Pay your invoice opens Payments, and the balance is named, never "Nothing to pay yet"', async () => {
+    const { fetchImpl } = scripted(() =>
+      json(
+        200,
+        overview(
+          { invoiceBalanceCents: 60_000 },
+          {
+            situation: 'work_complete',
+            step: 'review_care_notes_and_invoice',
+            waitingOn: 'customer',
+            nextAction: 'pay_invoice',
+          },
+        ),
+      ),
+    )
+    project(fetchImpl)
+    const next = await screen.findByTestId('next-action')
+    expect(within(next).getByText('Waiting on you')).toBeTruthy()
+    expect(within(next).getByRole('link', { name: 'Pay your invoice' }).getAttribute('href')).toBe(
+      `/portal/p/${REF}/payments`,
+    )
+    const payments = screen.getByRole('region', { name: 'Payments' })
+    expect(within(payments).getByText('Invoice balance due: $600.00.')).toBeTruthy()
+    expect(within(payments).queryByText('Nothing to pay yet')).toBeNull()
+    // Nothing owed and no deposit: the empty state names only what can appear there.
+    cleanup()
+    project(scripted(() => json(200, overview())).fetchImpl)
+    const empty = await screen.findByRole('region', { name: 'Payments' })
+    expect(
+      within(empty).getByText('Your deposit and invoice amounts appear here once HandyHub shares them.'),
+    ).toBeTruthy()
+  })
+
+  it('[HH-PORT-02] a change order waiting for a decision: Review the change opens the Documents tab, where it is decided', async () => {
+    const { fetchImpl } = scripted(() =>
+      json(
+        200,
+        overview(
+          {},
+          { situation: 'scheduled', step: 'view_appointment', waitingOn: 'customer', nextAction: 'review_change' },
+        ),
+      ),
+    )
+    project(fetchImpl)
+    const next = await screen.findByTestId('next-action')
+    expect(within(next).getByRole('link', { name: 'Review the change' }).getAttribute('href')).toBe(
+      `/portal/p/${REF}/documents`,
+    )
+  })
+
+  it('[HH-PORT-07] after a recorded "Arrived" the step says so, never that the visit is on the way', async () => {
+    const { fetchImpl } = scripted(() =>
+      json(200, overview({}, { situation: 'on_the_way', step: 'arrival_recorded', waitingOn: 'handyhub' })),
+    )
+    project(fetchImpl)
+    const next = await screen.findByTestId('next-action')
+    expect(within(next).getByText('HandyHub recorded that your visit has arrived.')).toBeTruthy()
+    expect(within(next).queryByText('HandyHub recorded that your visit is on the way.')).toBeNull()
+  })
+
+  it('an overview without the invoice balance is refused, never read as nothing owed', () => {
+    const { invoiceBalanceCents: _b, ...rest } = overview()
+    void _b
+    expect(parseOverview(rest)).toBeNull()
+    expect(parseOverview({ ...overview(), invoiceBalanceCents: -1 })).toBeNull()
   })
 })
 

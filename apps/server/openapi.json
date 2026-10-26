@@ -8296,6 +8296,7 @@
                                   "choose_work_appointment",
                                   "view_appointment",
                                   "arrival_update",
+                                  "arrival_recorded",
                                   "view_updates",
                                   "safety_review",
                                   "update_pending",
@@ -10113,6 +10114,7 @@
                     "reference",
                     "original",
                     "currentTotalCents",
+                    "validUntilZone",
                     "changeOrders",
                     "refreshedAt",
                     "refreshSeconds"
@@ -10153,6 +10155,29 @@
                       "type": [
                         "integer",
                         "null"
+                      ]
+                    },
+                    "validUntilZone": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "zone",
+                            "business"
+                          ],
+                          "properties": {
+                            "zone": {
+                              "type": "string"
+                            },
+                            "business": {
+                              "type": "boolean"
+                            }
+                          }
+                        }
                       ]
                     },
                     "changeOrders": {
@@ -11136,7 +11161,8 @@
                           "publishedAt",
                           "validUntil",
                           "totalCents",
-                          "receipt"
+                          "receipt",
+                          "validUntilZone"
                         ],
                         "properties": {
                           "number": {
@@ -11182,6 +11208,29 @@
                                   "preparing",
                                   "issued"
                                 ]
+                              }
+                            ]
+                          },
+                          "validUntilZone": {
+                            "oneOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "zone",
+                                  "business"
+                                ],
+                                "properties": {
+                                  "zone": {
+                                    "type": "string"
+                                  },
+                                  "business": {
+                                    "type": "boolean"
+                                  }
+                                }
                               }
                             ]
                           }
@@ -11706,6 +11755,7 @@
                             "enum": [
                               "terms_not_configured",
                               "terms_not_in_effect",
+                              "terms_not_current",
                               "superseded",
                               "expired",
                               "not_published",
@@ -14298,6 +14348,7 @@
                     "timeline",
                     "appointment",
                     "payment",
+                    "invoiceBalanceCents",
                     "refreshedAt",
                     "refreshSeconds"
                   ],
@@ -14363,6 +14414,7 @@
                             "choose_work_appointment",
                             "view_appointment",
                             "arrival_update",
+                            "arrival_recorded",
                             "view_updates",
                             "safety_review",
                             "update_pending",
@@ -14692,6 +14744,10 @@
                           }
                         }
                       ]
+                    },
+                    "invoiceBalanceCents": {
+                      "type": "integer",
+                      "minimum": 0
                     },
                     "refreshedAt": {
                       "type": "string",

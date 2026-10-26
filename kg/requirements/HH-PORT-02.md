@@ -17,3 +17,5 @@ source: "guide 9.2 HH-PORT-02; OWN-DEC-106, OWN-DEC-98, OWN-DEC-105"
 - The Overview shows exactly one clear next action: answer a question ("Waiting on you" with **Reply**), choose an estimate-visit window, review the estimate, pay the deposit, choose a work appointment, review a visit, review a change, pay the invoice, or contact support.
 - It always says whether HandyHub is waiting on the customer or the customer is waiting on HandyHub.
 - The next-step wording after approval comes from the approval rules (for example "Estimate approved—pay your deposit to proceed with scheduling." or "Estimate approved—choose your work appointment.").
+
+**Built by [[TSK-0150]] (2026-10-26):** the Overview reads every record that changes the customer's step: a change order open for a decision (Review the change), an issued final invoice with a balance a pending check does not cover (Pay your invoice, with the balance in the payment summary), a started job (Work in progress) and a recorded Arrived. The wording review and the owner wording that differs from behaviour are in [[OQ-PORTAL-WORDING-DETAILS]].

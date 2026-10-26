@@ -715,6 +715,17 @@ describe('[HH-INC-03][T54][RULE-SAFETY-GATES] resuming after an incident needs t
     expect((await holdOf(holdId)).state).toBe('resolved')
     // Releasing the hold resumes nothing by itself.
     expect(await jobState(jobId)).toBe('paused')
+    // TSK-0150 (OWN-DEC-199): the paused job, its safety hold released, is "Update pending" for the customer: never
+    // "Work in progress" nor an appointment step, and nothing is asked of them.
+    const overview = await app.inject({
+      method: 'GET',
+      url: `/api/v1/customer/projects/${p.reference}/overview`,
+      headers: { cookie: p.cookie },
+    })
+    expect(overview.statusCode, overview.body).toBe(200)
+    expect(overview.json()).toMatchObject({
+      status: { situation: 'update_pending', waitingOn: 'handyhub', nextAction: 'none' },
+    })
   })
 
   it('[HH-INC-03] after the release: a renewed site check and the packet version the release made, reviewed', async () => {

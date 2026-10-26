@@ -313,6 +313,7 @@ describe('verified project claiming (TSK-0124, HH-ID-14, OWN-DEC-160)', () => {
   })
 
   it('[HH-ID-03][HH-ID-02][OWN-DEC-198 F6] an unverified or wrong match links nothing, sends nothing, and answers like an unknown reference', async () => {
+    // TSK-0150 (OWN-DEC-199, portal.claim.text): a code goes only to an email or phone confirmed on the request.
     const email = 'claim-unverified@example.test'
     const { cookie, accountId } = await accountFor(email)
     // The same email as the account, on a request whose contact was never verified: a match, but not proof.
@@ -396,6 +397,7 @@ describe('verified project claiming (TSK-0124, HH-ID-14, OWN-DEC-160)', () => {
 
 describe('the permanent dashboard: Active, Project History and Cancelled/Archived (TSK-0124, HH-ID-14)', () => {
   it('[HH-ID-14][HH-ID-06][OWN-DEC-160] every linked project sits in its section; a guest link’s expiry closes and moves nothing', async () => {
+    // TSK-0150 (OWN-DEC-199, portal.projects.empty.text): an account lists the projects linked to it, and only those.
     const email = 'dashboard-sections@example.test'
     const { s: active, cookie, accountId } = await accountFor(email)
     // Three more requests, each with its own verified email, claimed into the account with a code to that email.
