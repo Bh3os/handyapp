@@ -155,6 +155,8 @@ export function reviewSections(
         rows: rows(
           { label: t('request.review.address'), value: addressLines(v) },
           { label: t('request.property.type'), value: labelOf(PROPERTY_LABEL, v.propertyType) },
+          // TSK-0113: Request This Service Again names the earlier project the request is linked to.
+          v.repeatOf ? { label: t('request.review.repeatOf'), value: v.repeatOf } : null,
         ),
       },
     ],

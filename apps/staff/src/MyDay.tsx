@@ -13,11 +13,14 @@
 // - TSK-0128 (HH-PKT-08, OWN-DEC-171): the customer's first name and the address show only during the worker's
 //   visit-day access (the visit's own local day, or an Owner extension until the time shown); before it the general
 //   service area. The screen says that removing access cannot erase screenshots or copies.
+// - TSK-0155 (HH-COM-16, OWN-DEC-211): a confirmed visit links to its job's notes and proposed replies, and the screen
+//   lists the worker's own proposed replies with their status.
 import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { Button, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { call, idempotencyKey, type Fetch } from './api'
 import { MyJobPackets } from './JobPacket'
+import { MyReplyProposals } from './ReplyProposals'
 import { codeLabel } from './Requests'
 import { StopWorkPanel } from './StopWork'
 import { VisitOutcomeForm, type RecordedOutcome } from './VisitOutcomes'
@@ -203,6 +206,8 @@ export function MyDay({
         </>
       )}
       <MyJobPackets t={t} fetchImpl={fetchImpl} href={href} />
+      {/* TSK-0155: the worker's proposed customer replies and their status (Draft, Awaiting Review, Sent, Rejected). */}
+      <MyReplyProposals t={t} locale={locale} fetchImpl={fetchImpl} />
     </section>
   )
 }
@@ -426,6 +431,15 @@ function VisitCard({
           {v.jobId && v.readiness ? (
             <p>
               <a href={href(`/packets/${v.jobId}`)}>{t('myday.openPacket')}</a>
+              {/* TSK-0155: internal notes and proposed customer replies from the job (Spanish or English). */}
+              {v.assignment === 'confirmed' ? (
+                <>
+                  {' · '}
+                  <a href={href(`/job-notes/${v.jobId}`)} data-testid="myday-notes">
+                    {t('myday.openNotes')}
+                  </a>
+                </>
+              ) : null}
               {v.readiness.blockers.some((b) => b.code.startsWith('loadout_')) ? (
                 <>
                   {' · '}

@@ -17,6 +17,12 @@
 // TSK-0125 (HH-EST-15, OWN-DEC-165): the contact step offers one reduction (military, senior or returning customer)
 // with what each needs, from configuration; the customer picks at most one, and it is pending verification until
 // staff confirm it. While the server's settings name none, none is offered.
+// TSK-0113 (HH-ID-12, OWN-DEC-113): Request This Service Again (/request?again=<reference>) and a request at a saved
+// property (/request?property=<id>) start from the signed-in account's own project (again.ts): the services still
+// offered, the property address and type, and the contact details. The property step says where they came from and
+// asks the customer to confirm they are still current; the request is sent with repeatOf, which links it to that
+// project. Nothing else is reused. Such a start keeps no browser draft (the starting point is read again each time),
+// and a link the server no longer accepts is dropped and said so, never sent silently as something else.
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { Button, Dialog, Field, StateView } from '@handyhub/ui'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
@@ -24,6 +30,7 @@ import { checkZip, takeRememberedZip, type CoverageCheck } from '../coverage/cov
 import { zip5 } from '@handyhub/domain/coverage'
 import { legalDocument, PRIVACY_NOTICE, SMS_DISCLOSURE } from '@handyhub/domain/legal'
 import { contactDetails, parseSiteFacts, type ContactDetail } from '../site/facts.js'
+import { asksForPrefill, parsePrefill, prefillUrl, prefillValues } from './again.js'
 import { DraftStore, newSend, type DraftSend } from './draft.js'
 import { PhotoReviewList, PhotoUploader, usePhotos, type PhotoLimits } from './photos.js'
 import { Receipt, useReceiptPhotos } from './Receipt.tsx'
@@ -89,6 +96,8 @@ const PRIVACY_NOTICE_VERSION = PRIVACY_NOTICE.documentId
 /** The SMS disclosure shown beside the SMS box, recorded with an opt-in (TSK-0029; HH-INT-22, OWN-DEC-147). */
 const SMS_DISCLOSURE_VERSION = SMS_DISCLOSURE.documentId
 const IDENTITY = 'guest'
+/** TSK-0113: the draft identity of a form started from an account's project; such a form keeps no draft. */
+const AGAIN_IDENTITY = 'account-again'
 
 const STEP_LABEL: Record<StepId, CustomerKey> = {
   services: 'request.step.services',
@@ -121,6 +130,7 @@ const FIELD_LABEL: Record<string, CustomerKey> = {
   smsDisclosureVersion: 'request.sms.title',
   marketingOptIn: 'request.marketing.title',
   requestedDiscount: 'request.requestedDiscount.title',
+  'repeatOf.detailsConfirmed': 'request.again.confirm',
 }
 
 function fieldOf(path: string): string {
@@ -204,6 +214,10 @@ export default function RequestWizard() {
   const [phase, setPhase] = useState<Phase>('loading')
   /** TSK-0036: the visitor chose Create an Account; the form says how the account is made after sending. */
   const [accountIntent, setAccountIntent] = useState(false)
+  /** TSK-0113: the form started from one of the account's projects (its reference); null for any other request. */
+  const [again, setAgain] = useState<string | null>(null)
+  /** TSK-0113: the page asked for a starting point the server did not give (signed out, not this account's). */
+  const [againFailed, setAgainFailed] = useState(false)
   const [values, setValues] = useState<FormValues>(EMPTY_VALUES)
   const [step, setStep] = useState<StepId>('services')
   const [problems, setProblems] = useState<Problem[]>([])
@@ -240,8 +254,13 @@ export default function RequestWizard() {
 
   const loaded = phase !== 'loading'
   const store = useMemo(
-    () => (loaded ? new DraftStore(browserStorage(), IDENTITY, settings.draftDays) : null),
-    [loaded, settings.draftDays],
+    () =>
+      loaded
+        ? again
+          ? new DraftStore(browserStorage(), AGAIN_IDENTITY, null)
+          : new DraftStore(browserStorage(), IDENTITY, settings.draftDays)
+        : null,
+    [loaded, settings.draftDays, again],
   )
   // Settings (the configured draft period) and the services on offer, then any saved draft.
   useEffect(() => {
@@ -274,7 +293,29 @@ export default function RequestWizard() {
         setValues((v) => ({ ...v, services: [preselect.id] }))
         setOpenCategory(preselect.category)
       } else if (wanted === 'not-sure') setValues((v) => ({ ...v, notSure: true }))
-      setPhase(draft ? 'draftFound' : 'choose')
+      // TSK-0113: Request This Service Again, or a request at a saved property, from the signed-in account.
+      const search = window.location.search
+      if (!asksForPrefill(search)) return setPhase(draft ? 'draftFound' : 'choose')
+      const url = prefillUrl(search)
+      const read = url
+        ? fetch(url, { headers: { accept: 'application/json' }, credentials: 'same-origin', cache: 'no-store' })
+            .then(async (r) => (r.ok ? parsePrefill(await r.json()) : null))
+            .catch(() => null)
+        : Promise.resolve(null)
+      void read.then((prefill) => {
+        if (!live) return
+        if (!prefill) {
+          setAgainFailed(true)
+          return setPhase(draft ? 'draftFound' : 'choose')
+        }
+        const start = prefillValues(prefill, offered.services, MAX_SERVICES)
+        setValues(start)
+        const first = offered.services.find((x) => x.id === start.services[0])
+        if (first) setOpenCategory(first.category)
+        setAgain(prefill.reference)
+        setPhase('form')
+        requestFocus('heading')
+      })
     })
     return () => {
       live = false
@@ -485,6 +526,13 @@ export default function RequestWizard() {
       return
     }
     if (outcome.kind === 'fields') {
+      // TSK-0113: the account's link to the earlier project is gone (signed out, or access was removed): the request
+      // is not sent as a repeat; the customer sees why and sends it as a new request.
+      if (outcome.fieldErrors.some((f) => f.field === 'body.repeatOf' && f.code === 'unavailable')) {
+        setValues((v) => ({ ...v, repeatOf: '', detailsConfirmed: false }))
+        setBanner({ kind: 'error', message: t('request.again.unlinked'), retry: false })
+        return requestFocus('heading')
+      }
       const found = fromServer(outcome.fieldErrors)
       return show(found, stepOf(found[0]?.field ?? '') as StepId)
     }
@@ -539,6 +587,7 @@ export default function RequestWizard() {
         </Button>
       }
     >
+      {againFailed ? <p role="status">{t('request.again.unavailable')}</p> : null}
       <p>{t('request.continue.guestText')}</p>
       <div className="hh-request__choice">
         {/* TSK-0036 (HH-ID-10): an account is created from the request's verified contact, so Create an Account
@@ -565,6 +614,7 @@ export default function RequestWizard() {
   if (phase === 'draftFound')
     return (
       <section className="hh-card" aria-labelledby="hh-draft-title">
+        {againFailed ? <p role="status">{t('request.again.unavailable')}</p> : null}
         <h2 id="hh-draft-title" className="hh-h3">
           {t('request.draft.found')}
         </h2>
@@ -807,6 +857,12 @@ export default function RequestWizard() {
     ),
     property: (
       <>
+        {values.repeatOf ? (
+          <div className="hh-request__again" role="note">
+            <p>{t('request.again.notice', { reference: values.repeatOf })}</p>
+            <p className="hh-small hh-muted">{t('request.again.review')}</p>
+          </div>
+        ) : null}
         {text('property.street', 'street', 'request.property.street', {
           required: true,
           autoComplete: 'address-line1',
@@ -835,6 +891,21 @@ export default function RequestWizard() {
             radio('propertyType', p, t(PROPERTY_LABEL[p]), values.propertyType, (v) => set('propertyType', v)),
           ),
         )}
+        {/* TSK-0113: the details of Request This Service Again are confirmed for every new job (HH-ID-12). */}
+        {values.repeatOf ? (
+          <div
+            className="hh-request__question"
+            data-field="repeatOf.detailsConfirmed"
+            aria-invalid={errorFor('repeatOf.detailsConfirmed') ? true : undefined}
+          >
+            {check('detailsConfirmed', t('request.again.confirm'), values.detailsConfirmed, (on) =>
+              set('detailsConfirmed', on),
+            )}
+            {errorFor('repeatOf.detailsConfirmed') ? (
+              <p className="hh-field__error">{errorFor('repeatOf.detailsConfirmed')}</p>
+            ) : null}
+          </div>
+        ) : null}
         {settings.visitHours ? (
           <p className="hh-small hh-muted">
             {t('request.timing.visitHours', {

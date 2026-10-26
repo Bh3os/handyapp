@@ -8,8 +8,10 @@ describe('listing scopes (TSK-0041, HH-OPS-01)', () => {
     expect(listingScope(['worker'], [], 'request.view')).toBe('none')
     expect(listingScope(['estimator'], [], 'message.reply')).toBe('own')
     // Assignment-scoped grants are reached from the record, never listed.
-    expect(heldScopes(['worker'], [], 'message.reply')).toEqual(['assigned'])
-    expect(listingScope(['worker'], [], 'message.reply')).toBe('none')
+    expect(heldScopes(['worker'], [], 'message.propose_reply')).toEqual(['assigned'])
+    expect(listingScope(['worker'], [], 'message.propose_reply')).toBe('none')
+    // TSK-0155: a worker's own proposals are listed as their own.
+    expect(listingScope(['worker'], [], 'message.follow_own_proposal')).toBe('own')
     // A capability-bound grant needs the capability.
     expect(heldScopes(['worker'], [], 'payment.view')).toEqual([])
     expect(heldScopes(['worker'], ['collect'], 'payment.view')).toEqual(['assigned'])

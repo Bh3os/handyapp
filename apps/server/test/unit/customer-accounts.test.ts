@@ -19,10 +19,13 @@ import { messageType, messageTypeProblems } from '../../src/modules/notification
 const all = MODULES.find((m) => m.name === 'accounts')?.routes ?? []
 const SECURITY_TEST = 'test/integration/account-security.test.ts'
 const CLAIM_TEST = 'test/integration/customer-dashboard.test.ts'
-// TSK-0036's routes; TSK-0149's account security routes and TSK-0124's claim routes are covered by their own files.
-const routes = all.filter((r) => r.test !== SECURITY_TEST && r.test !== CLAIM_TEST)
+const SAVED_TEST = 'test/integration/customer-saved-properties.test.ts'
+// TSK-0036's routes; TSK-0149's account security routes, TSK-0124's claim routes and TSK-0113's saved properties and
+// preferences are covered by their own files.
+const routes = all.filter((r) => r.test !== SECURITY_TEST && r.test !== CLAIM_TEST && r.test !== SAVED_TEST)
 const security = all.filter((r) => r.test === SECURITY_TEST)
 const claims = all.filter((r) => r.test === CLAIM_TEST)
+const saved = all.filter((r) => r.test === SAVED_TEST)
 const route = (id: string) => {
   const r = all.find((x) => x.operationId === id)
   if (!r) throw new Error(id)
@@ -121,6 +124,38 @@ describe('the project claim routes (TSK-0124, HH-ID-14, HH-ID-03)', () => {
     expect(codes.schema.response[202]).toMatchObject({ required: ['accepted', 'codeMinutes'] })
     // A claim code proves one project for one account, by one channel.
     expect(claimSubject('a-1', 'p-1', 'email')).toBe('claim:a-1:p-1:email')
+  })
+})
+
+describe('the saved properties and preferences routes (TSK-0113, HH-ID-12)', () => {
+  it('[HH-ID-12][HH-ID-03][RULE-SERVER-AUTHZ] only an account session reaches them; every change is audited and limited per network', () => {
+    expect(saved.map((r) => `${r.method} ${r.path}`).sort()).toEqual(
+      [
+        'GET /customer/account/preferences',
+        'GET /customer/account/projects/:reference/request-again',
+        'GET /customer/account/properties',
+        'GET /customer/account/properties/:id/request',
+        'POST /customer/account/permissions',
+        'POST /customer/account/preferences',
+        'POST /customer/account/properties',
+        'POST /customer/account/properties/:id',
+        'POST /customer/account/properties/:id/remove',
+      ].sort(),
+    )
+    for (const r of saved) {
+      expect(routeProblems(r), r.operationId).toEqual([])
+      expect(r.permission, r.operationId).toBe(AUTHENTICATION)
+      expect(r.actors, r.operationId).toEqual(['customer'])
+      // A session that is not an account's (or none) never reaches the handler.
+      expect(r.resource, r.operationId).toBeTypeOf('function')
+      if (r.kind === 'write') {
+        expect(r.rateLimit, r.operationId).not.toBe('none')
+        expect(r.audit, r.operationId).toMatch(/^customer_account\./)
+      }
+    }
+    // A text permission is never given from the portal: the schema still takes the choice, the handler refuses it.
+    const permission = route('setAccountPermission').schema.body as { properties: Record<string, unknown> }
+    expect(permission.properties['granted']).toEqual({ enum: [true, false] })
   })
 })
 

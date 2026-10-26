@@ -20,3 +20,5 @@ source: "guide 14.3 HH-SCH-10; OWN-DEC-78, OWN-DEC-113"
 - The customer can change or stop the recurring schedule and its reminders from the project workspace. A change applies to visits more than 24 hours away; a visit within 24 hours follows the cancellation rules ([[FACT-CANCELLATION-RULES]], [[OWN-DEC-148]]). The same 24-hour rule applies to the P1 series.
 - "Request This Service Again" follows [[HH-ID-12]] and creates a new request linked to the customer and property.
 - Channel permissions, marketing consent and opt-outs are checked before any send.
+
+**Built by [[TSK-0113]] (2026-10-26):** "Request This Service Again" creates a new request with its own records, like every submission, linked to the earlier project (and through it to that customer and property); staff merge or relink records through the reviewed merge ([[HH-CRM-04]]). PROPOSED details in [[OQ-SAVED-PROPERTIES-DETAILS]]. The schedule and its reminders stay with [[TSK-0114]].

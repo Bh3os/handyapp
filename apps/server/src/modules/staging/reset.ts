@@ -44,6 +44,8 @@ export const CLEARED_CATEGORIES = {
     'crm.candidate_match_events',
     'crm.record_links',
     'platform.consent_records',
+    // TSK-0113 (0121): the contact method a customer account starts new requests with.
+    'identity.customer_account_preferences',
   ],
   properties: [
     'crm.properties',
@@ -59,11 +61,15 @@ export const CLEARED_CATEGORIES = {
     // TSK-0126 (0106): the site contacts and coverage acceptances of first-visit confirmation.
     'crm.project_site_contacts',
     'crm.project_coverage_acceptances',
+    // TSK-0113 (0121): customer accounts' names for properties of their history.
+    'identity.customer_saved_properties',
   ],
   requests: [
     'crm.projects',
     'intake.requests',
     'intake.request_services',
+    // TSK-0113 (0121): the earlier project each Request This Service Again repeats.
+    'intake.request_repeats',
     'intake.request_answers',
     'intake.request_assignments',
     'intake.request_conversations',
@@ -177,6 +183,9 @@ export const CLEARED_CATEGORIES = {
   ],
   conversations: [
     'comms.conversations',
+    // TSK-0155 (0122): workers' proposed replies and their review history.
+    'comms.reply_proposal_events',
+    'comms.reply_proposals',
     'comms.messages',
     'comms.message_links',
     'comms.project_reply_tokens',

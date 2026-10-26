@@ -78,6 +78,8 @@ export type RequestDetail = {
   privacyNoticeVersion: string
   spam: { suspected: boolean; signals: string[] }
   project: { id: string; reference: string; state: string }
+  /** TSK-0113: sent with Request This Service Again from the customer's account; null for any other request. */
+  repeatOf: { projectId: string; reference: string; detailsConfirmedAt: string; sameAddress: boolean } | null
   original: {
     services: { serviceId: string; code: string; notes: string | null }[]
     notSure: boolean
@@ -314,6 +316,17 @@ export function RequestRecord({
             {t('inbox.openProjectConversation')}
           </a>
         </dd>
+        {view.repeatOf ? (
+          <>
+            <dt>{t('request.repeatOf')}</dt>
+            <dd data-testid="request-repeat-of">
+              {t(view.repeatOf.sameAddress ? 'request.repeatOf.sameAddress' : 'request.repeatOf.changedAddress', {
+                reference: view.repeatOf.reference,
+                at: when(view.repeatOf.detailsConfirmedAt),
+              })}
+            </dd>
+          </>
+        ) : null}
         <dt>{t('request.nextStep')}</dt>
         <dd>{codeLabel(t, 'requestNextStep', view.nextStep)}</dd>
         <dt>{t('record.request.responsible')}</dt>

@@ -83,6 +83,12 @@ export type FormValues = {
   marketingOptIn: boolean
   /** TSK-0125 (HH-EST-15): the one reduction the customer asks for, or '' for none (the default). */
   requestedDiscount: string
+  /**
+   * TSK-0113 (HH-ID-12, OWN-DEC-113): Request This Service Again, the earlier project's reference ('' for a new request),
+   * and the customer's confirmation that the property details are still current (unchecked until they check it).
+   */
+  repeatOf: string
+  detailsConfirmed: boolean
 }
 
 export const EMPTY_VALUES: FormValues = {
@@ -110,13 +116,15 @@ export const EMPTY_VALUES: FormValues = {
   smsOptIn: false,
   marketingOptIn: false,
   requestedDiscount: '',
+  repeatOf: '',
+  detailsConfirmed: false,
 }
 
 /** Which step shows each field (body paths without the `body.` prefix, matched by their first segments). */
 const FIELD_STEP: [RegExp, StepId][] = [
   [/^(services|notSure|otherServicesText)(\.|$)/, 'services'],
   [/^(description|answers)(\.|$)/, 'job'],
-  [/^(property|timing)(\.|$)/, 'property'],
+  [/^(property|timing|repeatOf)(\.|$)/, 'property'],
   [/^(contact|estimatePreference|smsOptIn|smsDisclosureVersion|marketingOptIn|requestedDiscount)(\.|$)/, 'contact'],
 ]
 
@@ -197,6 +205,8 @@ export function toBody(v: FormValues, meta: FormMeta, services: readonly FormSer
   // TSK-0125: pending verification until staff confirm it; only the categories the form offers can be chosen.
   if ((REDUCTION_CATEGORIES as readonly string[]).includes(v.requestedDiscount))
     body.requestedDiscount = v.requestedDiscount as NonNullable<SubmitBody['requestedDiscount']>
+  // TSK-0113: the earlier project and the confirmation as checked; an unchecked confirmation fails validation.
+  if (v.repeatOf) body.repeatOf = { reference: v.repeatOf, detailsConfirmed: v.detailsConfirmed as true }
   if (meta.startedAt !== undefined) body.startedAt = meta.startedAt
   if (meta.website) body.website = meta.website
   return body
@@ -233,6 +243,8 @@ export function validate(
   // An empty value is "required", not "too short", "wrong format" or "choose one of the options".
   for (const p of problems)
     if (['enum', 'minLength', 'pattern'].includes(p.code) && valueAt(body, p.field) === '') p.code = 'required'
+  // TSK-0113: the property details of Request This Service Again are confirmed, not chosen from options.
+  for (const p of problems) if (p.field === 'repeatOf.detailsConfirmed') p.code = 'detailsNotConfirmed'
   // The semantic checks run on every step, not only once the whole form passes the schema, so a step's own
   // problems (a date before tomorrow, Weekends with a weekday date) show when leaving that step (TSK-0028). The
   // body always has the schema's types, only possibly empty values; a schema problem wins for the same field.
@@ -287,6 +299,9 @@ export function problemKey(code: string): CustomerKey {
     // Text as the preferred contact method without the SMS opt-in (HH-INT-22): the message says what to do.
     case 'smsOptInRequired':
       return 'request.contact.textNeedsOptIn'
+    // TSK-0113: Request This Service Again until the customer confirms the property details are still current.
+    case 'detailsNotConfirmed':
+      return 'request.again.confirmRequired'
     default:
       return 'error.field.invalid'
   }

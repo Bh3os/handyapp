@@ -213,6 +213,17 @@ export const TABLES = {
     categories: [R, J, NS],
     vendors: ['bird', 'resend'],
   },
+  // TSK-0155 (0122): workers' proposed replies (internal, never sent as written) and their review history.
+  'comms.reply_proposal_events': {
+    holds: "A proposed reply's history: submission, clarification questions and answers, rejection reason, sending",
+    classes: ['request_details'],
+    categories: [R, J, NS],
+  },
+  'comms.reply_proposals': {
+    holds: 'Customer replies workers proposed (Spanish or English) for Owner or Office review, with the sent reply',
+    classes: ['request_details'],
+    categories: [R, J, NS],
+  },
   'comms.project_reply_tokens': {
     holds: "A project's reply token for the plus-addressed reply-to of its emails (grants no access)",
     classes: ['technical'],
@@ -549,6 +560,18 @@ export const TABLES = {
     classes: ['contact'],
     categories: [NS],
   },
+  // TSK-0113 (0121): the account's own contact-method preference and its names for properties of its history.
+  'identity.customer_account_preferences': {
+    holds: 'The contact method a customer account starts new requests with',
+    classes: ['contact'],
+    categories: [NS],
+  },
+  'identity.customer_saved_properties': {
+    holds:
+      "A customer account's own names for properties of its verified history (the property record holds the address)",
+    classes: ['service_address'],
+    categories: [NS],
+  },
   'identity.customer_account_changes': {
     holds: "Changes to a customer account's sign-in contact",
     classes: ['contact'],
@@ -694,6 +717,15 @@ export const TABLES = {
   },
   'intake.request_services': {
     holds: 'The services a request asks about',
+    classes: ['request_details'],
+    categories: [R, J],
+  },
+  // TSK-0113 (0121): Request This Service Again: the earlier project a request repeats, from which account, when the
+  // customer confirmed the property details and whether the address was the earlier one.
+  'intake.request_repeats': {
+    holds:
+      'The earlier project a request was sent again from, the account that sent it, when the property details were ' +
+      'confirmed and whether the address was unchanged',
     classes: ['request_details'],
     categories: [R, J],
   },

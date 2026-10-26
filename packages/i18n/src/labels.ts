@@ -83,6 +83,8 @@ export const LABEL_FAMILIES = {
     'candidate_match',
     'inbox_needs_linking',
     'customer_replied',
+    // TSK-0155: a worker's proposed customer reply waiting for the Owner or Office.
+    'reply_proposal',
     'question_replied',
     'question_reminder',
     'deposit_due',
@@ -201,6 +203,9 @@ export const LABEL_FAMILIES = {
     'possible_duplicate',
     'message_needs_linking',
     'customer_replied',
+    // TSK-0155: a proposed reply submitted, or the worker answered the reviewer's question.
+    'reply_proposed',
+    'clarification_answered',
     'question_replied',
     'reopened_by_reply',
     'question_reminder_first',
@@ -298,8 +303,20 @@ export const LABEL_FAMILIES = {
     'review_permissions',
     'help_access',
     'close_job',
+    // TSK-0155: review a worker's proposed reply.
+    'review_proposal',
   ],
   // TSK-0078 (HH-SCH-09): the outcomes a worker records on a visit, and why one is refused.
+  /** TSK-0155 (HH-COM-16): a worker's proposed reply as the worker and the reviewer see it. */
+  proposalStatus: ['draft', 'awaiting_review', 'sent', 'rejected'],
+  proposalEvent: ['submitted', 'clarification_requested', 'clarification_answered', 'rejected', 'sent'],
+  proposalRefusal: [
+    'empty',
+    'PROPOSAL_NOT_DRAFT',
+    'NO_OPEN_CLARIFICATION',
+    'PROPOSAL_NOT_AWAITING_REVIEW',
+    'CLARIFICATION_OPEN',
+  ],
   visitOutcomeKind: ['delay', 'no_access', 'customer_absent', 'weather', 'missing_resources', 'readiness_issue'],
   visitOutcomeRefusal: ['VISIT_NOT_OPEN', 'WORK_STARTED', 'NOTE_REQUIRED', 'NOTE_TOO_LONG', 'ALREADY_FOLLOWED_UP'],
   /**

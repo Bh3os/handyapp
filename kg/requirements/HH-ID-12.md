@@ -19,3 +19,5 @@ source: "guide 8.3 HH-ID-12; OWN-DEC-113, OWN-DEC-71"
 - Account closure is separate from record retention: closing login access never silently deletes financial, approval or incident evidence that the retention schedule requires, and an unpaid balance never automatically prevents closing login access. Deletion requests follow [[HH-PRIV-03]].
 
 **Changed by [[OWN-DEC-160]] (2026-10-21):** history is the permanent dashboard of [[HH-ID-14]].
+
+**Built by [[TSK-0113]] (2026-10-26):** saved properties are names the customer gives the addresses of their linked projects (the address stays the property record's); preferences are the contact method new requests start with and the account's own permissions as consent records (stopped in the portal; texts agreed to on the request form only); Request This Service Again starts the form from the services still offered, the address and the contact, the customer confirms the property details are still current, and the new request is linked to the earlier project for staff review. Repeat-service reminders have no schedule to change or stop until [[TSK-0114]]. Details PROPOSED in [[OQ-SAVED-PROPERTIES-DETAILS]].

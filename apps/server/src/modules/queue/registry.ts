@@ -61,6 +61,8 @@ export const QUEUE_ACTIONS = [
   'help_access',
   // TSK-0092: close a job once nothing is left open (or see what still is).
   'close_job',
+  // TSK-0155: review a worker's proposed reply (ask for clarification, reject, or write and send the English reply).
+  'review_proposal',
 ] as const
 export type QueueAction = (typeof QUEUE_ACTIONS)[number]
 
@@ -314,6 +316,22 @@ export const QUEUE_ITEM_TYPES = [
     reasons: ['customer_replied'],
     action: 'open_conversation',
     screen: 'inbox',
+  },
+  // TSK-0155 (HH-COM-16, OWN-DEC-211): a worker's proposed customer reply waits for the Owner or Office, who are
+  // notified by this item; one item per proposal while it waits for them: opened when the worker submits it (or
+  // answers the reviewer's clarification question), resolved when the reviewer asks for clarification (the worker acts
+  // next), rejects it or sends the English reply. The reason never quotes the worker's text. Seen by the roles that
+  // review proposals; the link opens the proposal's review page. Band PROPOSED.
+  {
+    id: 'reply_proposal',
+    section: 'queue',
+    subject: 'reply_proposal',
+    band: 'time_sensitive',
+    view: 'message.review_proposal',
+    reasons: ['reply_proposed', 'clarification_answered'],
+    action: 'review_proposal',
+    screen: 'inbox',
+    path: 'reply-proposals',
   },
   // TSK-0051 (HH-LEAD-03, OWN-DEC-98): a customer replied to a question, or the reply reopened a "Closed—no response"
   // request; one item per request until staff review it (or act on the request). Assigned to the responsible staff
