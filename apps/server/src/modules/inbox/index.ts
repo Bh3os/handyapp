@@ -11,6 +11,9 @@
 // - TSK-0050 (HH-COM-08, HH-COM-09): staff reply from the project (replies.ts): the reply options, the project's
 //   conversation and Send. A conversation lists each staff reply with its delivery state (queued until the contact
 //   hours open, sent, delivered where reported, failed with Retry, suppressed).
+// - TSK-0155 (HH-COM-16, OWN-DEC-211): workers' internal notes and proposed replies from an assigned job, and the
+//   Owner/Office review that writes and sends the English reply (proposals.ts). A reply sent from a proposal carries
+//   the worker's original text in the staff conversation only.
 import { looksLikeCardNumber } from '@handyhub/domain'
 import { listingScope, type StaffActor } from '@handyhub/policy'
 import { sql } from 'kysely'
@@ -31,6 +34,7 @@ import {
 import { stopProjectEstimateReminders } from '../estimates/reminders.js'
 import { SUPPORTED_INBOUND } from './intake.js'
 import { contactOf } from './matching.js'
+import { proposalRoutes } from './proposals.js'
 import { replyRoutes } from './replies.js'
 import {
   CONVERSATION,
@@ -337,6 +341,10 @@ type MessageRow = {
   delivery_error: string | null
   delivery_send_at: Date | null
   delivery_issue: boolean | null
+  proposal_id: string | null
+  proposal_text: string | null
+  proposal_author_id: string | null
+  proposal_author_name: string | null
 }
 
 const attachmentsOf = (v: unknown) =>
@@ -381,6 +389,15 @@ function threadMessage(m: MessageRow) {
           retry: m.delivery_state === 'failed' && Boolean(m.delivery_issue) && !isOutcomeUnknown(m.delivery_error),
         }
       : null,
+    // TSK-0155: the worker's original proposal is kept with the reply sent from it (staff view only).
+    proposal:
+      m.proposal_id && m.proposal_text !== null
+        ? {
+            id: m.proposal_id,
+            originalText: m.proposal_text,
+            author: { id: m.proposal_author_id as string, name: m.proposal_author_name },
+          }
+        : null,
   }
 }
 
@@ -390,6 +407,8 @@ const messagesOf = (ctx: ApiContext, conversationId: string) =>
     .leftJoin('crm.contacts as c', 'c.id', 'm.contact_id')
     .leftJoin('identity.staff_users as su', 'su.id', 'm.author_staff_id')
     .leftJoin('platform.message_deliveries as d', 'd.id', 'm.delivery_id')
+    .leftJoin('comms.reply_proposals as rp', 'rp.sent_message_id', 'm.id')
+    .leftJoin('identity.staff_users as pa', 'pa.id', 'rp.author_staff_id')
     .select([
       'm.id',
       'm.direction',
@@ -416,6 +435,10 @@ const messagesOf = (ctx: ApiContext, conversationId: string) =>
         AND j.target_id = d.id::text AND j.state = 'queued')`.as('delivery_send_at'),
       sql<boolean>`EXISTS (SELECT 1 FROM ops.queue_items q WHERE q.type = 'delivery_failed'
         AND q.subject_id = d.id::text AND q.resolved_at IS NULL)`.as('delivery_issue'),
+      'rp.id as proposal_id',
+      'rp.original_text as proposal_text',
+      'rp.author_staff_id as proposal_author_id',
+      'pa.display_name as proposal_author_name',
     ])
     .where('m.conversation_id', '=', conversationId)
     .orderBy('m.received_at')
@@ -975,6 +998,8 @@ export function inboxModule(deps: InboxDeps = {}): ApiModule {
       getMessage,
       linkMessage,
       ...replyRoutes(deps.now ? { now: deps.now } : {}),
+      // TSK-0155: workers' notes and proposed replies, and the Owner/Office review that sends the English reply.
+      ...proposalRoutes(deps.now ? { now: deps.now } : {}),
     ],
   }
 }

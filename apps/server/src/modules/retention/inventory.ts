@@ -207,6 +207,17 @@ export const TABLES = {
     categories: [R, J, NS],
     vendors: ['bird', 'resend'],
   },
+  // TSK-0155 (0122): workers' proposed replies (internal, never sent as written) and their review history.
+  'comms.reply_proposal_events': {
+    holds: "A proposed reply's history: submission, clarification questions and answers, rejection reason, sending",
+    classes: ['request_details'],
+    categories: [R, J, NS],
+  },
+  'comms.reply_proposals': {
+    holds: 'Customer replies workers proposed (Spanish or English) for Owner or Office review, with the sent reply',
+    classes: ['request_details'],
+    categories: [R, J, NS],
+  },
   'comms.project_reply_tokens': {
     holds: "A project's reply token for the plus-addressed reply-to of its emails (grants no access)",
     classes: ['technical'],

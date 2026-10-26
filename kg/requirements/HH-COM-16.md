@@ -20,3 +20,5 @@ source: "OWN-DEC-211 (new behaviour; no guide id)"
 - The original Spanish text stays internal and is kept with the sent English message for context and audit.
 - Internal notes and customer-visible messages are stored and shown separately; no internal note can reach an email, a text, a portal conversation or a customer document.
 - Customer-facing text is English only. No translation feature exists in wave 1; wave 2 AI drafts stay disabled ([[RULE-AI-WAVE2]]).
+
+**Built by [[TSK-0155]] (2026-10-26):** notes and proposals are written from an assigned job (linked from My Day) and followed on My Day; the Owner/Office review item `reply_proposal`; the reviewer's English reply is sent with explicit approval as their own staff reply; the original is kept with the proposal and shown to staff beside the sent reply. PROPOSED details: [[OQ-SPANISH-NOTES-DETAILS]].

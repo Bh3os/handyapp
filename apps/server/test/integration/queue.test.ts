@@ -132,6 +132,8 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
       // TSK-0049: the private Needs Linking list (message.view_unmatched) and customer replies.
       'inbox_needs_linking',
       'customer_replied',
+      // TSK-0155: workers' proposed replies to review (message.review_proposal: the Owner and Office).
+      'reply_proposal',
       // TSK-0051: replies to staff questions and question reminders to release.
       'question_replied',
       'question_reminder',

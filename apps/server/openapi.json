@@ -82350,7 +82350,8 @@
                           "linkState",
                           "matchRule",
                           "author",
-                          "delivery"
+                          "delivery",
+                          "proposal"
                         ],
                         "properties": {
                           "id": {
@@ -82499,6 +82500,45 @@
                                 "type": "boolean"
                               }
                             }
+                          },
+                          "proposal": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "originalText",
+                              "author"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "originalText": {
+                                "type": "string"
+                              },
+                              "author": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            }
                           }
                         }
                       }
@@ -82569,7 +82609,8 @@
                               "linkState",
                               "matchRule",
                               "author",
-                              "delivery"
+                              "delivery",
+                              "proposal"
                             ],
                             "properties": {
                               "id": {
@@ -82716,6 +82757,45 @@
                                   },
                                   "retry": {
                                     "type": "boolean"
+                                  }
+                                }
+                              },
+                              "proposal": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "originalText",
+                                  "author"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "originalText": {
+                                    "type": "string"
+                                  },
+                                  "author": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "id",
+                                      "name"
+                                    ],
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
                                   }
                                 }
                               }
@@ -121924,6 +122004,527 @@
         }
       }
     },
+    "/api/v1/staff/jobs/{jobId}/notes": {
+      "post": {
+        "operationId": "addJobNote",
+        "summary": "Add an internal note from a job",
+        "description": "Staff assigned to the job, inside its access window (job.add_note). Adds a staff-only note, in Spanish or English as written, to the project’s internal conversation: separate from the customer conversation, it never reaches an email, a text, the portal or a customer document (OWN-DEC-211). Card numbers are refused; never write passwords or access codes in a note. The audit event names the project, never the text.",
+        "tags": [
+          "inbox"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "body"
+                ],
+                "properties": {
+                  "body": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 5000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "body",
+                    "at"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "body": {
+                      "type": "string"
+                    },
+                    "at": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "job.add_note",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "inbox.worker_note_added",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/reply-proposals.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/jobs/{jobId}/notes-and-replies": {
+      "get": {
+        "operationId": "getJobNotesAndReplies",
+        "summary": "The caller's own notes and proposed replies on a job",
+        "description": "Workers assigned to the job, inside its access window (message.propose_reply; otherwise refused). The caller’s own internal notes on the job’s project (staff-only, never sent) and their own proposed customer replies on it with their status (draft, awaiting review, sent, rejected), any open clarification question and the reason of a rejection; never the English message a reviewer sent, and nobody else’s notes.",
+        "tags": [
+          "inbox"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "jobId",
+                    "reference",
+                    "notes",
+                    "proposals",
+                    "maxLength"
+                  ],
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "notes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "body",
+                          "at"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "body": {
+                            "type": "string"
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "proposals": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "version",
+                          "jobId",
+                          "reference",
+                          "status",
+                          "text",
+                          "clarification",
+                          "rejectReason",
+                          "createdAt",
+                          "submittedAt",
+                          "decidedAt",
+                          "events",
+                          "actions"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "jobId": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "draft",
+                              "awaiting_review",
+                              "sent",
+                              "rejected"
+                            ]
+                          },
+                          "text": {
+                            "type": "string"
+                          },
+                          "clarification": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "additionalProperties": false,
+                            "required": [
+                              "question",
+                              "askedAt"
+                            ],
+                            "properties": {
+                              "question": {
+                                "type": "string"
+                              },
+                              "askedAt": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "rejectReason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "submittedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "decidedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "events": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "by",
+                                "text",
+                                "at"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "submitted",
+                                    "clarification_requested",
+                                    "clarification_answered",
+                                    "rejected",
+                                    "sent"
+                                  ]
+                                },
+                                "by": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "text": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "at": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "actions": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "edit",
+                              "submit",
+                              "answer"
+                            ],
+                            "properties": {
+                              "edit": {
+                                "type": "boolean"
+                              },
+                              "submit": {
+                                "type": "boolean"
+                              },
+                              "answer": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "maxLength": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.propose_reply",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/reply-proposals.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/jobs/{jobId}/packet": {
       "get": {
         "operationId": "getJobPacket",
@@ -127440,6 +128041,346 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/invoices.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/jobs/{jobId}/reply-proposals": {
+      "post": {
+        "operationId": "proposeReply",
+        "summary": "Propose a customer reply for review",
+        "description": "Workers assigned to the job, inside its access window (message.propose_reply). A proposed customer reply in Spanish or English, kept exactly as written and never sent as written (OWN-DEC-211). submit false keeps it a draft the worker may change; submit true sends it for review: the Owner and Office get a review item (reply_proposal) and one of them writes the English message and sends it, asks for clarification or rejects it. Card numbers are refused. The audit event names the proposal and the project, never the text.",
+        "tags": [
+          "inbox"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "text",
+                  "submit"
+                ],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "pattern": "\\S"
+                  },
+                  "submit": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "version",
+                    "jobId",
+                    "reference",
+                    "status",
+                    "text",
+                    "clarification",
+                    "rejectReason",
+                    "createdAt",
+                    "submittedAt",
+                    "decidedAt",
+                    "events",
+                    "actions"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "draft",
+                        "awaiting_review",
+                        "sent",
+                        "rejected"
+                      ]
+                    },
+                    "text": {
+                      "type": "string"
+                    },
+                    "clarification": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "question",
+                        "askedAt"
+                      ],
+                      "properties": {
+                        "question": {
+                          "type": "string"
+                        },
+                        "askedAt": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "rejectReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "submittedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "decidedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "by",
+                          "text",
+                          "at"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "submitted",
+                              "clarification_requested",
+                              "clarification_answered",
+                              "rejected",
+                              "sent"
+                            ]
+                          },
+                          "by": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "text": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "edit",
+                        "submit",
+                        "answer"
+                      ],
+                      "properties": {
+                        "edit": {
+                          "type": "boolean"
+                        },
+                        "submit": {
+                          "type": "boolean"
+                        },
+                        "answer": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.propose_reply",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "inbox.reply_proposed",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/reply-proposals.test.ts"
         }
       }
     },
@@ -167653,6 +168594,7 @@
                 "candidate_match",
                 "inbox_needs_linking",
                 "customer_replied",
+                "reply_proposal",
                 "question_replied",
                 "question_reminder",
                 "deposit_due",
@@ -167804,6 +168746,7 @@
                               "candidate_match",
                               "inbox_needs_linking",
                               "customer_replied",
+                              "reply_proposal",
                               "question_replied",
                               "question_reminder",
                               "deposit_due",
@@ -168060,7 +169003,8 @@
                               "reconcile",
                               "review_permissions",
                               "help_access",
-                              "close_job"
+                              "close_job",
+                              "review_proposal"
                             ]
                           },
                           "link": {
@@ -168115,6 +169059,7 @@
                           "candidate_match",
                           "inbox_needs_linking",
                           "customer_replied",
+                          "reply_proposal",
                           "question_replied",
                           "question_reminder",
                           "deposit_due",
@@ -168286,6 +169231,7 @@
                 "candidate_match",
                 "inbox_needs_linking",
                 "customer_replied",
+                "reply_proposal",
                 "question_replied",
                 "question_reminder",
                 "deposit_due",
@@ -168437,6 +169383,7 @@
                               "candidate_match",
                               "inbox_needs_linking",
                               "customer_replied",
+                              "reply_proposal",
                               "question_replied",
                               "question_reminder",
                               "deposit_due",
@@ -168693,7 +169640,8 @@
                               "reconcile",
                               "review_permissions",
                               "help_access",
-                              "close_job"
+                              "close_job",
+                              "review_proposal"
                             ]
                           },
                           "link": {
@@ -168748,6 +169696,7 @@
                           "candidate_match",
                           "inbox_needs_linking",
                           "customer_replied",
+                          "reply_proposal",
                           "question_replied",
                           "question_reminder",
                           "deposit_due",
@@ -172856,6 +173805,2762 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/invoices.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/reply-proposals/{proposalId}": {
+      "get": {
+        "operationId": "getReplyProposal",
+        "summary": "A proposed reply for review",
+        "description": "Owner and Office (message.review_proposal), inside their scope; a draft, an unknown or an out-of-scope proposal is NOT_FOUND. The proposal’s project and customer, the worker, the original text exactly as written (internal, for context; never sent), its history (submission, clarification questions and answers, rejection, sending), who decided and when, the reply sent from it, and what the reviewer may do now.",
+        "tags": [
+          "inbox"
+        ],
+        "parameters": [
+          {
+            "name": "proposalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "version",
+                    "status",
+                    "clarificationOpen",
+                    "project",
+                    "customer",
+                    "jobId",
+                    "author",
+                    "originalText",
+                    "createdAt",
+                    "submittedAt",
+                    "rejectReason",
+                    "decided",
+                    "sentMessage",
+                    "events",
+                    "actions",
+                    "maxLength"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "draft",
+                        "awaiting_review",
+                        "sent",
+                        "rejected"
+                      ]
+                    },
+                    "clarificationOpen": {
+                      "type": "boolean"
+                    },
+                    "project": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "reference",
+                        "state"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "reference": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "customer": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "displayName"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "displayName": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "author": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "originalText": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "submittedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "rejectReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "decided": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "by",
+                        "at"
+                      ],
+                      "properties": {
+                        "by": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        },
+                        "at": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "sentMessage": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "conversationId"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "conversationId": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "by",
+                          "text",
+                          "at"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "submitted",
+                              "clarification_requested",
+                              "clarification_answered",
+                              "rejected",
+                              "sent"
+                            ]
+                          },
+                          "by": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "text": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "clarify",
+                        "reject",
+                        "send"
+                      ],
+                      "properties": {
+                        "clarify": {
+                          "type": "boolean"
+                        },
+                        "reject": {
+                          "type": "boolean"
+                        },
+                        "send": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "maxLength": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.review_proposal",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/reply-proposals.test.ts"
+        }
+      },
+      "put": {
+        "operationId": "editReplyProposal",
+        "summary": "Change the text of a draft proposed reply",
+        "description": "The author only (message.follow_own_proposal), with If-Match. Only a draft changes (CONFLICT PROPOSAL_NOT_DRAFT otherwise): once submitted, the text is kept exactly as submitted. Card numbers are refused.",
+        "tags": [
+          "inbox"
+        ],
+        "parameters": [
+          {
+            "name": "proposalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(W/)?\"[0-9]+\"$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "text"
+                ],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "version",
+                    "jobId",
+                    "reference",
+                    "status",
+                    "text",
+                    "clarification",
+                    "rejectReason",
+                    "createdAt",
+                    "submittedAt",
+                    "decidedAt",
+                    "events",
+                    "actions"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "draft",
+                        "awaiting_review",
+                        "sent",
+                        "rejected"
+                      ]
+                    },
+                    "text": {
+                      "type": "string"
+                    },
+                    "clarification": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "question",
+                        "askedAt"
+                      ],
+                      "properties": {
+                        "question": {
+                          "type": "string"
+                        },
+                        "askedAt": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "rejectReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "submittedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "decidedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "by",
+                          "text",
+                          "at"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "submitted",
+                              "clarification_requested",
+                              "clarification_answered",
+                              "rejected",
+                              "sent"
+                            ]
+                          },
+                          "by": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "text": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "edit",
+                        "submit",
+                        "answer"
+                      ],
+                      "properties": {
+                        "edit": {
+                          "type": "boolean"
+                        },
+                        "submit": {
+                          "type": "boolean"
+                        },
+                        "answer": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.follow_own_proposal",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "required",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "inbox.reply_proposal_edited",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/reply-proposals.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/reply-proposals/{proposalId}/clarification": {
+      "post": {
+        "operationId": "requestReplyProposalClarification",
+        "summary": "Ask the worker for clarification",
+        "description": "Owner and Office (message.review_proposal), inside their scope; a draft, an unknown or an out-of-scope proposal is NOT_FOUND. While the proposal awaits review (CONFLICT PROPOSAL_NOT_AWAITING_REVIEW otherwise) and no question is open (CONFLICT CLARIFICATION_OPEN). The question (internal, never sent) is shown to the worker on My Day and the job’s page; the review item resolves until the worker answers. Nothing reaches the customer.",
+        "tags": [
+          "inbox"
+        ],
+        "parameters": [
+          {
+            "name": "proposalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "text"
+                ],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "version",
+                    "status",
+                    "clarificationOpen",
+                    "project",
+                    "customer",
+                    "jobId",
+                    "author",
+                    "originalText",
+                    "createdAt",
+                    "submittedAt",
+                    "rejectReason",
+                    "decided",
+                    "sentMessage",
+                    "events",
+                    "actions",
+                    "maxLength"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "draft",
+                        "awaiting_review",
+                        "sent",
+                        "rejected"
+                      ]
+                    },
+                    "clarificationOpen": {
+                      "type": "boolean"
+                    },
+                    "project": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "reference",
+                        "state"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "reference": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "customer": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "displayName"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "displayName": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "author": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "originalText": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "submittedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "rejectReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "decided": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "by",
+                        "at"
+                      ],
+                      "properties": {
+                        "by": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        },
+                        "at": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "sentMessage": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "conversationId"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "conversationId": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "by",
+                          "text",
+                          "at"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "submitted",
+                              "clarification_requested",
+                              "clarification_answered",
+                              "rejected",
+                              "sent"
+                            ]
+                          },
+                          "by": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "text": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "clarify",
+                        "reject",
+                        "send"
+                      ],
+                      "properties": {
+                        "clarify": {
+                          "type": "boolean"
+                        },
+                        "reject": {
+                          "type": "boolean"
+                        },
+                        "send": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "maxLength": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.review_proposal",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "inbox.reply_proposal_clarification_requested",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/reply-proposals.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/reply-proposals/{proposalId}/clarification-answer": {
+      "post": {
+        "operationId": "answerReplyProposalClarification",
+        "summary": "Answer the reviewer's clarification question",
+        "description": "The author only (message.follow_own_proposal), while the reviewer’s question is open (CONFLICT NO_OPEN_CLARIFICATION otherwise). The answer, in Spanish or English, is kept with the proposal (internal, never sent) and the proposal returns to the Owner and Office (review item reason clarification_answered).",
+        "tags": [
+          "inbox"
+        ],
+        "parameters": [
+          {
+            "name": "proposalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "text"
+                ],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "version",
+                    "jobId",
+                    "reference",
+                    "status",
+                    "text",
+                    "clarification",
+                    "rejectReason",
+                    "createdAt",
+                    "submittedAt",
+                    "decidedAt",
+                    "events",
+                    "actions"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "draft",
+                        "awaiting_review",
+                        "sent",
+                        "rejected"
+                      ]
+                    },
+                    "text": {
+                      "type": "string"
+                    },
+                    "clarification": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "question",
+                        "askedAt"
+                      ],
+                      "properties": {
+                        "question": {
+                          "type": "string"
+                        },
+                        "askedAt": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "rejectReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "submittedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "decidedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "by",
+                          "text",
+                          "at"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "submitted",
+                              "clarification_requested",
+                              "clarification_answered",
+                              "rejected",
+                              "sent"
+                            ]
+                          },
+                          "by": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "text": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "edit",
+                        "submit",
+                        "answer"
+                      ],
+                      "properties": {
+                        "edit": {
+                          "type": "boolean"
+                        },
+                        "submit": {
+                          "type": "boolean"
+                        },
+                        "answer": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.follow_own_proposal",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "inbox.reply_proposal_clarified",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/reply-proposals.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/reply-proposals/{proposalId}/reject": {
+      "post": {
+        "operationId": "rejectReplyProposal",
+        "summary": "Reject a proposed reply",
+        "description": "Owner and Office (message.review_proposal), inside their scope; a draft, an unknown or an out-of-scope proposal is NOT_FOUND. While the proposal awaits review (CONFLICT PROPOSAL_NOT_AWAITING_REVIEW otherwise). The reason (internal, shown to the worker) is kept; a rejected proposal is final and never sends. The review item resolves. The audit event names the proposal and the project, never the texts.",
+        "tags": [
+          "inbox"
+        ],
+        "parameters": [
+          {
+            "name": "proposalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "version",
+                    "status",
+                    "clarificationOpen",
+                    "project",
+                    "customer",
+                    "jobId",
+                    "author",
+                    "originalText",
+                    "createdAt",
+                    "submittedAt",
+                    "rejectReason",
+                    "decided",
+                    "sentMessage",
+                    "events",
+                    "actions",
+                    "maxLength"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "draft",
+                        "awaiting_review",
+                        "sent",
+                        "rejected"
+                      ]
+                    },
+                    "clarificationOpen": {
+                      "type": "boolean"
+                    },
+                    "project": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "reference",
+                        "state"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "reference": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "customer": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "displayName"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "displayName": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "author": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "originalText": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "submittedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "rejectReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "decided": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "by",
+                        "at"
+                      ],
+                      "properties": {
+                        "by": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        },
+                        "at": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "sentMessage": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "conversationId"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "conversationId": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "by",
+                          "text",
+                          "at"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "submitted",
+                              "clarification_requested",
+                              "clarification_answered",
+                              "rejected",
+                              "sent"
+                            ]
+                          },
+                          "by": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "text": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "clarify",
+                        "reject",
+                        "send"
+                      ],
+                      "properties": {
+                        "clarify": {
+                          "type": "boolean"
+                        },
+                        "reject": {
+                          "type": "boolean"
+                        },
+                        "send": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "maxLength": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.review_proposal",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "inbox.reply_proposal_rejected",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/reply-proposals.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/reply-proposals/{proposalId}/send": {
+      "post": {
+        "operationId": "sendReplyProposal",
+        "summary": "Send the reviewed English reply",
+        "description": "Owner and Office (message.review_proposal), inside their scope; a draft, an unknown or an out-of-scope proposal is NOT_FOUND. While the proposal awaits review (CONFLICT PROPOSAL_NOT_AWAITING_REVIEW otherwise; a rejected or sent proposal never sends). The reviewer writes the English customer message and approves it explicitly (approveEnglish); it is sent as the reviewer’s own staff reply, exactly like Send on the project (the customer’s preferred permitted channel or a permitted one the reviewer chose, never switched silently; the English reply template; an email at once, a text inside the recipient’s permitted hours; the same refusals: CONFLICT PREFERRED_CHANNEL_AVAILABLE, CHANNEL_UNAVAILABLE, NO_PERMITTED_CHANNEL, NO_CONTACT; card numbers refused). The worker’s original text is never sent: it stays with the proposal, which names the sent message, for context and audit. The review item resolves. With the same Idempotency-Key a retried submission returns the first answer and sends nothing more. The audit event names the proposal, the project, the channel and the message, never a text.",
+        "tags": [
+          "inbox"
+        ],
+        "parameters": [
+          {
+            "name": "proposalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "body",
+                  "channel",
+                  "approveEnglish"
+                ],
+                "properties": {
+                  "body": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "pattern": "\\S"
+                  },
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "email",
+                      "sms"
+                    ]
+                  },
+                  "approveEnglish": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "conversationId",
+                    "delivery"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "conversationId": {
+                      "type": "string"
+                    },
+                    "delivery": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "id",
+                        "channel",
+                        "state",
+                        "sendAt",
+                        "heldForTextHours"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "channel": {
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": "string"
+                        },
+                        "sendAt": {
+                          "type": "string"
+                        },
+                        "heldForTextHours": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.review_proposal",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "inbox.reply_proposal_sent",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/reply-proposals.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/reply-proposals/{proposalId}/submit": {
+      "post": {
+        "operationId": "submitReplyProposal",
+        "summary": "Send a draft proposed reply for review",
+        "description": "The author only (message.follow_own_proposal). The draft becomes Awaiting Review and its text is frozen; the Owner and Office get the review item (reply_proposal). A proposal already submitted, sent or rejected is CONFLICT PROPOSAL_NOT_DRAFT.",
+        "tags": [
+          "inbox"
+        ],
+        "parameters": [
+          {
+            "name": "proposalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [],
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "version",
+                    "jobId",
+                    "reference",
+                    "status",
+                    "text",
+                    "clarification",
+                    "rejectReason",
+                    "createdAt",
+                    "submittedAt",
+                    "decidedAt",
+                    "events",
+                    "actions"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "draft",
+                        "awaiting_review",
+                        "sent",
+                        "rejected"
+                      ]
+                    },
+                    "text": {
+                      "type": "string"
+                    },
+                    "clarification": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false,
+                      "required": [
+                        "question",
+                        "askedAt"
+                      ],
+                      "properties": {
+                        "question": {
+                          "type": "string"
+                        },
+                        "askedAt": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "rejectReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "submittedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "decidedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "by",
+                          "text",
+                          "at"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "submitted",
+                              "clarification_requested",
+                              "clarification_answered",
+                              "rejected",
+                              "sent"
+                            ]
+                          },
+                          "by": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "text": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "actions": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "edit",
+                        "submit",
+                        "answer"
+                      ],
+                      "properties": {
+                        "edit": {
+                          "type": "boolean"
+                        },
+                        "submit": {
+                          "type": "boolean"
+                        },
+                        "answer": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.follow_own_proposal",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "inbox.reply_proposal_submitted",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/reply-proposals.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/reply-proposals/mine": {
+      "get": {
+        "operationId": "listOwnReplyProposals",
+        "summary": "The caller's own proposed replies",
+        "description": "A worker’s own proposed replies (message.follow_own_proposal), newest first, with the project reference, the status (draft, awaiting review, sent, rejected), an open clarification question, the reason of a rejection and their history; nobody else’s, and never the English message a reviewer sent. At most the latest 100 (PROPOSED).",
+        "tags": [
+          "inbox"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "items",
+                    "limit",
+                    "maxLength"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "version",
+                          "jobId",
+                          "reference",
+                          "status",
+                          "text",
+                          "clarification",
+                          "rejectReason",
+                          "createdAt",
+                          "submittedAt",
+                          "decidedAt",
+                          "events",
+                          "actions"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "jobId": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "draft",
+                              "awaiting_review",
+                              "sent",
+                              "rejected"
+                            ]
+                          },
+                          "text": {
+                            "type": "string"
+                          },
+                          "clarification": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "additionalProperties": false,
+                            "required": [
+                              "question",
+                              "askedAt"
+                            ],
+                            "properties": {
+                              "question": {
+                                "type": "string"
+                              },
+                              "askedAt": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "rejectReason": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "submittedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "decidedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "events": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "kind",
+                                "by",
+                                "text",
+                                "at"
+                              ],
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "submitted",
+                                    "clarification_requested",
+                                    "clarification_answered",
+                                    "rejected",
+                                    "sent"
+                                  ]
+                                },
+                                "by": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "text": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "at": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "actions": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "edit",
+                              "submit",
+                              "answer"
+                            ],
+                            "properties": {
+                              "edit": {
+                                "type": "boolean"
+                              },
+                              "submit": {
+                                "type": "boolean"
+                              },
+                              "answer": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "limit": {
+                      "type": "integer"
+                    },
+                    "maxLength": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "message.follow_own_proposal",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/reply-proposals.test.ts"
         }
       }
     },
