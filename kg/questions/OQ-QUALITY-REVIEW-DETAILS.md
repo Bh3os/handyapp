@@ -23,3 +23,5 @@ source: "TSK-0084 (2026-10-23): OWN-DEC-64 and OWN-DEC-109 state the rules; the 
   - Correction evidence is the worker's written note; correction photos come with the return visit ([[TSK-0094]]).
 - **Waiting for later tasks:** the worker's Finished that moves a job to "Awaiting quality review" and opens the review, the checklist and the walkthrough record ([[TSK-0083]], [[TSK-0075]]); the job-complete message (MESSAGE 16), which [[OWN-DEC-152]] sends only after the walkthrough and punch-list checks ([[TSK-0083]]); closing and reopening the job ([[TSK-0092]]); return visits and their linked punch work ([[TSK-0094]]).
 - **Until answered:** the PROPOSED details above are used; each is a small change to the nodes or the code.
+
+**Updated by [[TSK-0094]] (2026-10-25):** a later problem after a passed review is return work of a case, with its own return-visit punch items re-checked by the Owner; the passed review is never changed. Details in [[OQ-RETURN-WORK-DETAILS]].

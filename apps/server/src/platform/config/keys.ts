@@ -3,7 +3,7 @@
 // 0005 from the fact and decision nodes they cite. Every row read from the database is validated strictly against
 // its key's shape; an unknown key, an unknown field or a wrong type fails closed. Money is integer cents.
 
-import { isSupportedZone, LAUNCH_PHASES } from '@handyhub/domain'
+import { CALENDAR_WEEKDAYS, FEDERAL_HOLIDAYS, isLocalDate, isSupportedZone, LAUNCH_PHASES } from '@handyhub/domain'
 
 export class ConfigShapeError extends Error {
   override name = 'ConfigShapeError'
@@ -55,6 +55,16 @@ const shape =
     }
     return out as { readonly [K in keyof S]: ReturnType<S[K]> }
   }
+/** A list that may be empty, without duplicates (listOf refuses an empty one). */
+const anyListOf =
+  <T>(item: Parser<T>, max: number): Parser<T[]> =>
+  (v, p) => {
+    if (!Array.isArray(v) || v.length > max) return fail(p, `expected a list of at most ${max}`)
+    const out = v.map((x, i) => item(x, `${p}[${i}]`))
+    if (new Set(out.map((x) => JSON.stringify(x))).size !== out.length) fail(p, 'duplicate entries')
+    return out
+  }
+const localDate: Parser<string> = (v, p) => (isLocalDate(v) ? v : fail(p, 'expected a date YYYY-MM-DD'))
 const hours = int(0, 24 * 366)
 const messageCode: Parser<string> = (v, p) =>
   typeof v === 'string' && /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/.test(v) ? v : fail(p, 'expected a message type code')
@@ -147,6 +157,27 @@ export const CONFIG_KEYS = {
   'cancellation.rules': shape({ rescheduleFree: bool, noticeHours: hours, lateCancellationCents: int() }),
   'contact.hours': shape({ days: exactly('every_day'), open: clock, close: clock }),
   'business.timezone': shape({ zone: text }),
+  // TSK-0136 (OWN-DEC-205, FACT-BUSINESS-CALENDAR; migration 0103): the internal business-day calendar: the weekdays that
+  // are business days, the US federal holidays it excludes on their observed dates (Saturday -> Friday before, Sunday
+  // -> Monday after) and further closed dates the Owner adds. Internal service targets only (the substantive privacy
+  // acknowledgment); never a statutory deadline. The Owner changes it (policy_values.change, audited).
+  'business.calendar': shape({
+    workdays: listOf(oneOf(CALENDAR_WEEKDAYS)),
+    holidays: anyListOf(oneOf(FEDERAL_HOLIDAYS), FEDERAL_HOLIDAYS.length),
+    observance: exactly('federal_weekend_rule'),
+    closedDates: anyListOf(localDate, 366),
+  }),
+  // TSK-0136 (OWN-DEC-175, FACT-PRIVACY-REQUEST-TARGETS; migration 0103): a privacy request is acknowledged on
+  // submission, substantively within these business days (business.calendar) and completed within these calendar days
+  // of receipt (an internal target, not the law). The legal deadline is tracked separately, never derived from these;
+  // nothing closes automatically when a date passes (only `false` is accepted).
+  'privacy.request_targets': shape({
+    acknowledgment: exactly('on_submission'),
+    substantiveAcknowledgmentBusinessDays: int(1, 30),
+    completionCalendarDays: int(1, 366),
+    legalDeadline: exactly('tracked_separately'),
+    automaticClosure: exactly(false),
+  }),
   // TSK-0121 (OWN-DEC-153, OWN-DEC-157, FACT-REMINDER-CADENCES; migration 0075): the routine reminders send automatically:
   // one estimate reminder a number of hours after the version was successfully delivered, one question reminder after
   // the notice was delivered ("Closed—no response" the configured hours after that reminder was actually sent), and

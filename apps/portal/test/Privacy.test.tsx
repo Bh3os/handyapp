@@ -1,5 +1,6 @@
-// Your data and privacy requests, and document downloads (TSK-0100; HH-PRIV-03, HH-PRIV-06, T68, RULE-LANGUAGES). The
-// API is a synthetic stand-in; every reference and text is invented for the test (RULE-SYNTHETIC-DATA).
+// Your data and privacy requests, and document downloads (TSK-0100; HH-PRIV-03, HH-PRIV-06, T68, RULE-LANGUAGES;
+// TSK-0136: HH-PRIV-07, the acknowledgment and the dates). The API is a synthetic stand-in; every reference and text is
+// invented for the test (RULE-SYNTHETIC-DATA).
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { App, routeOf } from '../src/App'
@@ -49,6 +50,11 @@ const decided = {
     exportReady: false,
     accessClosed: false,
   },
+  acknowledgedAt: NOW,
+  acknowledgmentDueOn: '2026-10-26',
+  reviewStartedAt: NOW,
+  targetOn: '2026-11-20',
+  extensions: [],
 }
 
 function api(fresh: boolean, requests: unknown[] = [], answers: Record<string, (init?: RequestInit) => Response> = {}) {
@@ -122,12 +128,57 @@ describe('your data and privacy requests (TSK-0100, HH-PRIV-03)', () => {
     ).toBeTruthy()
   })
 
+  it('[HH-PRIV-07] an open request shows its acknowledgment, the follow-up date, the target and an extension with its reason', async () => {
+    const open = {
+      ...decided,
+      reference: 'PR-000003',
+      kind: 'export',
+      state: 'received',
+      decidedAt: null,
+      outcome: null,
+      reviewStartedAt: null,
+    }
+    const extended = {
+      ...open,
+      reference: 'PR-000004',
+      state: 'under_review',
+      reviewStartedAt: NOW,
+      targetOn: '2026-12-10',
+      extensions: [{ targetOn: '2026-12-10', reason: 'Synthetic: an archived job.', decidedAt: NOW }],
+    }
+    render(<App path={`/portal/p/${REF}/privacy`} fetchImpl={api(true, [open, extended]) as unknown as Fetch} />)
+    const mine = await screen.findByRole('list', { name: 'Your requests' })
+    const first = within(mine).getByText('Copy of my data (PR-000003)').closest('li') as HTMLElement
+    expect(within(first).getByText(/^We received this request on /)).toBeTruthy()
+    expect(within(first).getByText("We'll follow up on it by October 26, 2026.")).toBeTruthy()
+    expect(within(first).getByText('We aim to complete it by November 20, 2026.')).toBeTruthy()
+    const second = within(mine).getByText('Copy of my data (PR-000004)').closest('li') as HTMLElement
+    expect(within(second).getByText(/^HandyHub's owner started reviewing it on/)).toBeTruthy()
+    expect(within(second).queryByText(/follow up on it by/)).toBeNull()
+    expect(
+      within(second).getByText(
+        'We need more time: we now aim to complete it by December 10, 2026. Why: Synthetic: an archived job.',
+      ),
+    ).toBeTruthy()
+  })
+
   it('[HH-PRIV-03] only well-formed answers are shown', () => {
     expect(parsePrivacyList({ reference: REF, freshVerification: true, requests: [decided] })).not.toBeNull()
     expect(
       parsePrivacyList({ reference: REF, freshVerification: true, requests: [{ ...decided, kind: 'x' }] }),
     ).toBeNull()
     expect(parsePrivacyList({ reference: REF, requests: [] })).toBeNull()
+    // TSK-0136: a target that is not a calendar date, or an extension without its reason, is refused.
+    expect(
+      parsePrivacyList({ reference: REF, freshVerification: true, requests: [{ ...decided, targetOn: NOW }] }),
+    ).toBeNull()
+    expect(
+      parsePrivacyList({
+        reference: REF,
+        freshVerification: true,
+        requests: [{ ...decided, extensions: [{ targetOn: '2026-12-10', decidedAt: NOW }] }],
+      }),
+    ).toBeNull()
   })
 })
 

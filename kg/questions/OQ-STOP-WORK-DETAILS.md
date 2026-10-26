@@ -34,3 +34,5 @@ source: "TSK-0077 (2026-10-22): HH-WORK-08, HH-WORK-09, HH-WORK-13 and HH-CHG-04
 - **Until answered:** the PROPOSED details above are used; each is a small change to the nodes or the code.
 
 **Updated by [[TSK-0129]] (2026-10-24):** Call Owner is built: the Stop Work panel and its guidance dial the number the Owner entered on their own account, NOT CONFIGURED (call 911 in an emergency) only while there is none; Call 911 stays first. Its PROPOSED details are in [[OQ-ESCALATION-DETAILS]].
+
+**Updated by [[TSK-0094]] (2026-10-25):** resuming after a hold is built: once the Owner released the critical hold through its own path, each worker who started before the pause resumes through the Start Work gate again (a site check after the pause, the new packet version reviewed); the first resumption moves the job and its blocked work packages back to in progress. Details in [[OQ-RETURN-WORK-DETAILS]].
