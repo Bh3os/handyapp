@@ -6,6 +6,8 @@
 //   on a small dataset would not see it); the large measurement is test/perf/measure.test.ts (docs/perf/README.md).
 // Timings on a shared CI runner are noisy; the budgets are far above what this small dataset needs, so only a real
 // regression (or a pathological runner) fails them.
+import { withTx } from '@handyhub/db'
+import { sql } from 'kysely'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { loadBudgets, verdicts } from '../perf/budgets.js'
 import { generateDataset, proposedMix, type Generated } from '../perf/dataset.js'
@@ -82,4 +84,18 @@ describe('performance budgets on a small fixed synthetic dataset (TSK-0105, HH-N
     expect(grown).toEqual([])
     expect(after.size).toBeGreaterThanOrEqual(15)
   }, 180_000)
+
+  it('[HH-NFR-01] a job’s work packages are found through an index, not a scan of every package (0134)', async () => {
+    const job = data.jobs[0]?.jobId as string
+    const plan = await withTx(perf.db, async (tx) => {
+      // The planner is told to avoid scans so the small dataset shows what 10,000 jobs make it choose.
+      await sql`SET LOCAL enable_seqscan = off`.execute(tx)
+      return (
+        await sql<{ 'QUERY PLAN': string }>`EXPLAIN SELECT id FROM work.work_packages WHERE job_id = ${job}`.execute(tx)
+      ).rows
+        .map((r) => r['QUERY PLAN'])
+        .join('\n')
+    })
+    expect(plan).toMatch(/work_packages_job/)
+  })
 })
