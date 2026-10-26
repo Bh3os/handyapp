@@ -11,6 +11,30 @@ const NULLABLE_INSTANT = { anyOf: [INSTANT, { type: 'null' }] } as const
 const NULLABLE_STRING = { type: ['string', 'null'] } as const
 const STATUS = { type: 'string', enum: ['invited', 'active', 'disabled'] } as const
 const REASON = { type: 'string', minLength: 1, maxLength: 2000 } as const
+const DATE = { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' } as const
+
+/** The training a collect grant records (TSK-0151, OWN-DEC-200 H4; PROPOSED: the date and what it covered). */
+const TRAINING_PROPERTIES = {
+  completedOn: DATE,
+  description: { type: 'string', minLength: 1, maxLength: 2000 },
+} as const
+const TRAINING_INPUT = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['completedOn', 'description'],
+  properties: TRAINING_PROPERTIES,
+} as const
+const TRAINING = {
+  anyOf: [
+    {
+      type: 'object',
+      additionalProperties: false,
+      required: ['completedOn', 'description'],
+      properties: { completedOn: DATE, description: { type: 'string' } },
+    },
+    { type: 'null' },
+  ],
+} as const
 
 export const MEMBER_PARAMS = {
   type: 'object',
@@ -52,6 +76,7 @@ const SUMMARY_PROPERTIES = {
   liveSessions: { type: 'integer' },
   upcomingAssignments: { type: 'integer' },
   flaggedAssignments: { type: 'integer' },
+  permissionReviewOpen: { type: 'boolean' },
   version: { type: 'integer' },
 } as const
 
@@ -76,7 +101,7 @@ const DETAIL_PROPERTIES = {
     items: {
       type: 'object',
       additionalProperties: false,
-      required: ['id', 'kind', 'name', 'issuedBy', 'reason', 'effectiveFrom', 'endedAt', 'endedBy'],
+      required: ['id', 'kind', 'name', 'issuedBy', 'reason', 'effectiveFrom', 'endedAt', 'endedBy', 'training'],
       properties: {
         id: UUID,
         kind: { type: 'string', enum: ['role', 'capability'] },
@@ -86,8 +111,55 @@ const DETAIL_PROPERTIES = {
         effectiveFrom: INSTANT,
         endedAt: NULLABLE_INSTANT,
         endedBy: BY,
+        training: TRAINING,
       },
     },
+  },
+  // TSK-0151 (OWN-DEC-200 H1, H3): the open permission review of a reactivated account, each earlier grant with the
+  // Owner's decision so far.
+  permissionReview: {
+    anyOf: [
+      {
+        type: 'object',
+        additionalProperties: false,
+        required: ['id', 'openedAt', 'openedBy', 'items'],
+        properties: {
+          id: UUID,
+          openedAt: INSTANT,
+          openedBy: BY,
+          items: {
+            type: 'array',
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              required: [
+                'id',
+                'earlierGrantId',
+                'kind',
+                'name',
+                'decision',
+                'decidedAt',
+                'decidedBy',
+                'reason',
+                'grantId',
+              ],
+              properties: {
+                id: UUID,
+                earlierGrantId: UUID,
+                kind: { type: 'string', enum: ['role', 'capability'] },
+                name: { type: 'string' },
+                decision: { anyOf: [{ type: 'string', enum: ['restored', 'declined'] }, { type: 'null' }] },
+                decidedAt: NULLABLE_INSTANT,
+                decidedBy: BY,
+                reason: NULLABLE_STRING,
+                grantId: { anyOf: [UUID, { type: 'null' }] },
+              },
+            },
+          },
+        },
+      },
+      { type: 'null' },
+    ],
   },
   statusHistory: {
     type: 'array',
@@ -151,7 +223,23 @@ export const GRANT_BODY = {
   type: 'object',
   additionalProperties: false,
   required: ['kind', 'name', 'reason'],
-  properties: { ...GRANT_PROPERTIES, reason: REASON },
+  properties: { ...GRANT_PROPERTIES, reason: REASON, training: TRAINING_INPUT },
+} as const
+
+/** Restores one earlier grant of a permission review (TSK-0151); a collect grant records the training again. */
+export const RESTORE_BODY = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['itemId', 'reason'],
+  properties: { itemId: UUID, reason: REASON, training: TRAINING_INPUT },
+} as const
+
+/** Declines one earlier grant of a permission review (TSK-0151); the reason is optional (protective). */
+export const DECLINE_BODY = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['itemId'],
+  properties: { itemId: UUID, reason: REASON },
 } as const
 
 export const END_GRANT_BODY = {
@@ -198,6 +286,26 @@ export const MFA_RESET = {
     member: MEMBER,
     sessionsRevoked: { type: 'integer' },
     recoveryCodesRemoved: { type: 'integer' },
+  },
+} as const
+
+/** Re-enabling (TSK-0151): the link sent and the earlier grants now waiting for the Owner's permission review. */
+export const ENABLED = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['member', 'linkSent', 'grantsEnded'],
+  properties: {
+    member: MEMBER,
+    linkSent: { type: 'string', enum: ['reset', 'invite'] },
+    grantsEnded: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['kind', 'name'],
+        properties: { kind: { type: 'string', enum: ['role', 'capability'] }, name: { type: 'string' } },
+      },
+    },
   },
 } as const
 

@@ -161,6 +161,8 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
     expect(queue.items.map((i) => i.type)).not.toContain('deposit_waiver')
     const decisions = await list('owner', '', 'owner-decisions')
     expect(decisions.types).toEqual([
+      // TSK-0151: a re-enabled account's permission review (staff.grant_role).
+      'permission_review',
       'deposit_waiver',
       // TSK-0084: a job awaiting the Owner's quality review (quality.review).
       'quality_review',

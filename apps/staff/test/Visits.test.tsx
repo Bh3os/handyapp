@@ -304,3 +304,75 @@ describe('[HH-SCH-06][HH-SCH-05][T36][T40] a tentative visit says what stops its
     expect(screen.queryByTestId('visit-blockers')).toBeNull()
   })
 })
+
+describe('[HH-STAFF-03][HH-STAFF-07] the Owner keeps an appointment as it is despite a discretionary flag (TSK-0151)', () => {
+  const assignment = (id: string, flags: string[]) => ({
+    id,
+    resource: 'worker',
+    worker: { id: 'staff-2', name: 'Synthetic Worker' },
+    equipment: null,
+    role: 'lead',
+    kind: 'confirmed',
+    startsAt: '2026-11-01T06:00:00.000Z',
+    endsAt: '2026-11-01T08:30:00.000Z',
+    holdExpiresAt: null,
+    endedAt: null,
+    endedReason: null,
+    flags,
+    offerNumber: null,
+    offerPosition: null,
+  })
+  const flagged = (dismissFlags: boolean) =>
+    data({
+      dismissFlags,
+      visits: [
+        visit({
+          state: 'confirmed',
+          assignments: [
+            assignment('a1111111-1111-4111-8111-111111111111', ['working_hours_changed']),
+            assignment('a2222222-2222-4222-8222-222222222222', ['time_off_recorded']),
+          ],
+        }),
+      ],
+    })
+
+  it('[HH-STAFF-03] a working-hours flag offers Keep as is with a reason; time off never does', async () => {
+    const calls: { url: string; init?: RequestInit }[] = []
+    const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push({ url, ...(init ? { init } : {}) })
+      if (url.endsWith('/flags/dismiss'))
+        return json(200, {
+          reservationId: 'a1111111-1111-4111-8111-111111111111',
+          visitId: VISIT,
+          dismissed: 1,
+          flags: [],
+        })
+      return json(200, flagged(true))
+    })
+    renderSection(fetchImpl)
+    const list = await screen.findByTestId('visit-assignments')
+    // Only the working-hours assignment offers it.
+    const keep = within(list).getAllByRole('button', { name: 'Keep the appointment as it is' })
+    expect(keep).toHaveLength(1)
+    expect(keep[0]?.closest('li')?.textContent).toContain('Review: working hours changed')
+    fireEvent.click(keep[0] as HTMLElement)
+    const form = within(list).getByTestId('keep-as-is')
+    fireEvent.change(within(form).getByLabelText(/^Why the appointment stays as it is/), {
+      target: { value: 'Synthetic: the worker agreed to the late start' },
+    })
+    fireEvent.click(within(form).getByRole('button', { name: 'Keep as is' }))
+    await waitFor(() => expect(calls.some((c) => c.url.endsWith('/flags/dismiss'))).toBe(true))
+    const sent = calls.find((c) => c.url.endsWith('/flags/dismiss'))
+    expect(sent?.url).toBe('/api/v1/staff/reservations/a1111111-1111-4111-8111-111111111111/flags/dismiss')
+    expect(JSON.parse(String(sent?.init?.body))).toEqual({
+      cause: 'working_hours_changed',
+      reason: 'Synthetic: the worker agreed to the late start',
+    })
+  })
+
+  it('[RULE-SERVER-AUTHZ] without the Owner action nothing is offered', async () => {
+    renderSection(vi.fn(async () => json(200, flagged(false))))
+    const list = await screen.findByTestId('visit-assignments')
+    expect(within(list).queryAllByRole('button', { name: 'Keep the appointment as it is' })).toEqual([])
+  })
+})

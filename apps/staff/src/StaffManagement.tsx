@@ -7,6 +7,9 @@
 //   so the person sets up a new one at the next sign-in), disable the account (offboarding: sessions end at once, the
 //   authenticator is removed, upcoming assignments go to the action queue for reassignment, nothing is cancelled,
 //   history stays) and re-enable it (fresh sign-in and a reason);
+// - TSK-0151 (OWN-DEC-200 H1, H3, H4): a re-enabled person holds nothing until the Owner restores (fresh sign-in and a
+//   reason) or declines each earlier role or permission in the permission review; the collect permission records the
+//   worker's training (the date and what it covered), and the record shows it;
 // - inviting a person by email with a role;
 // - working days, hours and time off, and equipment, stay the capacity screen below (TSK-0062).
 // The server decides every request; a refusal is written out. A sensitive action that needs a fresh sign-in asks for
@@ -42,8 +45,11 @@ export type MemberSummary = {
   liveSessions: number
   upcomingAssignments: number
   flaggedAssignments: number
+  permissionReviewOpen: boolean
   version: number
 }
+
+type Training = { completedOn: string; description: string }
 
 export type MemberDetail = MemberSummary & {
   grants: {
@@ -55,7 +61,24 @@ export type MemberDetail = MemberSummary & {
     effectiveFrom: string
     endedAt: string | null
     endedBy: By
+    training: Training | null
   }[]
+  permissionReview: {
+    id: string
+    openedAt: string
+    openedBy: By
+    items: {
+      id: string
+      earlierGrantId: string
+      kind: 'role' | 'capability'
+      name: string
+      decision: 'restored' | 'declined' | null
+      decidedAt: string | null
+      decidedBy: By
+      reason: string | null
+      grantId: string | null
+    }[]
+  } | null
   statusHistory: { id: string; from: string; to: string; by: By; reason: string | null; at: string }[]
   assignments: {
     reservationId: string
@@ -101,6 +124,36 @@ function problems(t: T, error: ApiErrorBody): string[] {
 }
 
 const TONE = { invited: 'info', active: 'success', disabled: 'danger' } as const
+
+const isCollect = (kind: string, name: string) => kind === 'capability' && name === 'collect'
+
+/** The training a collect grant records (TSK-0151, OWN-DEC-200 H4): when it was completed and what it covered. */
+function TrainingFields({ t, value, onChange }: { t: T; value: Training; onChange: (v: Training) => void }) {
+  return (
+    <div data-testid="staff-training">
+      <p className="staff-request__hint">{t('staffAdmin.training.hint')}</p>
+      <Field
+        label={t('staffAdmin.training.completedOn')}
+        type="date"
+        required
+        value={value.completedOn}
+        onChange={(e) => onChange({ ...value, completedOn: e.target.value })}
+      />
+      <Field
+        label={t('staffAdmin.training.description')}
+        required
+        value={value.description}
+        onChange={(e) => onChange({ ...value, description: e.target.value })}
+      />
+    </div>
+  )
+}
+
+const NO_TRAINING: Training = { completedOn: '', description: '' }
+const trainingBody = (kind: string, name: string, training: Training) =>
+  isCollect(kind, name)
+    ? { training: { completedOn: training.completedOn, description: training.description.trim() } }
+    : {}
 
 /**
  * Sends one staff-management write: an idempotency key per attempt; FRESH_AUTH_REQUIRED asks for the password
@@ -218,14 +271,15 @@ function GrantForm({
   ]
   const [choice, setChoice] = useState(options[0]?.value ?? '')
   const [reason, setReason] = useState('')
+  const [training, setTraining] = useState<Training>(NO_TRAINING)
   if (!options.length) return null
+  const [kind = '', name = ''] = choice.split(':')
   async function submit(e: FormEvent) {
     e.preventDefault()
-    const [kind, name] = choice.split(':')
     await w.send<MemberDetail>(
       `/staff/members/${encodeURIComponent(member.id)}/grants`,
-      { kind, name, reason },
-      (m) => (setReason(''), onDone(m)),
+      { kind, name, reason, ...trainingBody(kind, name, training) },
+      (m) => (setReason(''), setTraining(NO_TRAINING), onDone(m)),
     )
   }
   return (
@@ -242,6 +296,7 @@ function GrantForm({
           ))}
         </select>
       </div>
+      {isCollect(kind, name) ? <TrainingFields t={t} value={training} onChange={setTraining} /> : null}
       <Field
         label={t('staffAdmin.reasonRequired')}
         required
@@ -254,6 +309,100 @@ function GrantForm({
         </Button>
       </div>
     </form>
+  )
+}
+
+/**
+ * The permission review of a re-enabled account (TSK-0151, OWN-DEC-200 H1, H3): each earlier role or permission is
+ * restored (a new grant: fresh sign-in and a reason; collect records the training again) or declined (protective, the
+ * reason optional). Nothing comes back by itself.
+ */
+function PermissionReview({
+  t,
+  locale,
+  member,
+  w,
+  onDone,
+}: {
+  t: T
+  locale: StaffLocale
+  member: MemberDetail
+  w: Write
+  onDone: (m: MemberDetail, message: string) => void
+}) {
+  const [reason, setReason] = useState('')
+  const [training, setTraining] = useState<Training>(NO_TRAINING)
+  const review = member.permissionReview
+  if (!review) return null
+  const path = (action: string) => `/staff/members/${encodeURIComponent(member.id)}/permission-review/${action}`
+  const pending = review.items.filter((i) => i.decision === null)
+  const earlier = (grantId: string) => member.grants.find((g) => g.id === grantId)
+  return (
+    <Section title={t('staffAdmin.review.title')} testId="staff-permission-review">
+      <StateView kind="stale" title={t('staffAdmin.review.intro')} reasons={[t('staffAdmin.review.hint')]} />
+      <ul className="staff-request__list">
+        {review.items.map((i) => {
+          const name = grantName(t, i.kind, i.name)
+          const before = earlier(i.earlierGrantId)?.training ?? null
+          return (
+            <li key={i.id} data-testid="staff-review-item">
+              <strong>{name}</strong>{' '}
+              {i.decision === null ? (
+                <span>{t('staffAdmin.review.waiting')}</span>
+              ) : (
+                <span>
+                  {t(i.decision === 'restored' ? 'staffAdmin.review.restored' : 'staffAdmin.review.declined', {
+                    by: byName(t, i.decidedBy),
+                    at: when(i.decidedAt as string, locale),
+                  })}
+                  {i.reason ? ` ${t('staffAdmin.history.reason', { reason: i.reason })}` : ''}
+                </span>
+              )}
+              {before ? (
+                <p className="staff-request__hint">
+                  {t('staffAdmin.training.earlier', { date: before.completedOn, description: before.description })}
+                </p>
+              ) : null}
+              {i.decision === null ? (
+                <div className="hh-button-row">
+                  <Button
+                    pending={w.pending}
+                    onClick={() =>
+                      void w.send<MemberDetail>(
+                        path('restore'),
+                        { itemId: i.id, reason: reason.trim(), ...trainingBody(i.kind, i.name, training) },
+                        (m) => (setReason(''), setTraining(NO_TRAINING), onDone(m, t('staffAdmin.review.restoreDone'))),
+                      )
+                    }
+                  >
+                    {t('staffAdmin.review.restore', { name })}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    pending={w.pending}
+                    onClick={() =>
+                      void w.send<MemberDetail>(
+                        path('decline'),
+                        { itemId: i.id, ...(reason.trim() ? { reason: reason.trim() } : {}) },
+                        (m) => (setReason(''), onDone(m, t('staffAdmin.review.declineDone'))),
+                      )
+                    }
+                  >
+                    {t('staffAdmin.review.decline', { name })}
+                  </Button>
+                </div>
+              ) : null}
+            </li>
+          )
+        })}
+      </ul>
+      {pending.some((i) => isCollect(i.kind, i.name)) ? (
+        <TrainingFields t={t} value={training} onChange={setTraining} />
+      ) : null}
+      {pending.length ? (
+        <Field label={t('staffAdmin.review.reason')} value={reason} onChange={(e) => setReason(e.target.value)} />
+      ) : null}
+    </Section>
   )
 }
 
@@ -311,7 +460,10 @@ function MemberRecord({
                 name: grantName(t, g.kind, g.name),
                 by: byName(t, g.issuedBy),
                 at: when(g.effectiveFrom, locale),
-              })}{' '}
+              })}
+              {g.training
+                ? ` ${t('staffAdmin.training.recorded', { date: g.training.completedOn, description: g.training.description })}`
+                : ''}{' '}
               <Button
                 variant="secondary"
                 pending={w.pending}
@@ -343,6 +495,14 @@ function MemberRecord({
           </ul>
         ) : null}
       </Section>
+      <PermissionReview
+        key={`review-${m.version}`}
+        t={t}
+        locale={locale}
+        member={m}
+        w={w}
+        onDone={(next, message) => changed(next, message)}
+      />
       {m.status !== 'disabled' ? (
         <GrantForm
           key={m.version}
@@ -395,8 +555,14 @@ function MemberRecord({
             <Button
               pending={w.pending}
               onClick={() =>
-                void w.send<{ member: MemberDetail; linkSent: string }>(path('enable'), { reason }, (out) =>
-                  changed(out.member, t('staffAdmin.enable.done')),
+                void w.send<{ member: MemberDetail; linkSent: string; grantsEnded: unknown[] }>(
+                  path('enable'),
+                  { reason },
+                  (out) =>
+                    changed(
+                      out.member,
+                      out.grantsEnded.length ? t('staffAdmin.enable.doneReview') : t('staffAdmin.enable.done'),
+                    ),
                 )
               }
             >
@@ -594,14 +760,17 @@ export function StaffScreen({
   locale,
   fetchImpl,
   onSession,
+  openId,
 }: {
   t: T
   locale: StaffLocale
   fetchImpl: Fetch
   onSession: (s: Session) => void
+  /** TSK-0151: the person the deep link opens (an Owner Decisions permission review). */
+  openId?: string
 }) {
   const [members, setMembers] = useState<MemberSummary[] | null | undefined>(undefined)
-  const [open, setOpen] = useState<string | null>(null)
+  const [open, setOpen] = useState<string | null>(openId ?? null)
   const [hoursKey, setHoursKey] = useState(0)
   const load = useCallback(async () => {
     const r = await call<{ members: MemberSummary[] }>(fetchImpl, '/staff/members')
@@ -627,6 +796,11 @@ export function StaffScreen({
               <p>
                 <StatusBadge tone={TONE[m.status]}>{codeLabel(t, 'staffStatus', m.status)}</StatusBadge> {m.email}
               </p>
+              {m.permissionReviewOpen ? (
+                <p>
+                  <StatusBadge tone="warning">{t('staffAdmin.review.badge')}</StatusBadge>
+                </p>
+              ) : null}
               <p data-testid="staff-member-roles">
                 {t('staffAdmin.roles', {
                   roles:

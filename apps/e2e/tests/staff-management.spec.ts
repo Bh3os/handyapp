@@ -2,7 +2,9 @@
 // opens the Staff screen, gives this spec's synthetic worker the Office role (the change needs a fresh sign-in, so
 // the screen asks for the password and then sends it), and disables the worker while the worker is signed in in
 // another browser: the worker's next request finds no session, the worker's confirmed appointment stays booked and
-// appears in the action queue for reassignment. The worker, their working hours (every day 08:00-18:00) and the
+// appears in the action queue for reassignment. TSK-0151 (OWN-DEC-200 H1, H3): re-enabling the worker gives nothing
+// back by itself; the Owner restores the Worker role and declines the Office role in the permission review. The
+// worker, their working hours (every day 08:00-18:00) and the
 // request are this spec's own synthetic fixtures (RULE-SYNTHETIC-DATA), not the business's. The Owner account is the
 // one the staff sign-in spec creates (staff-auth runs first): this spec only sets a password for it with a reset link.
 import { execFileSync } from 'node:child_process'
@@ -10,7 +12,7 @@ import { fileURLToPath } from 'node:url'
 import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { addLocalDays, localDateOf } from '@handyhub/domain/local-time'
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
+import { expect, test, type APIRequestContext, type Locator, type Page } from '@playwright/test'
 import { verifyCountyOf } from '../county.js'
 import { verifyPropertyZone } from '../zones.js'
 import { passSecondFactor } from '../mfa.js'
@@ -58,6 +60,17 @@ async function setPasswordAndSignIn(page: Page, email: string, password: string)
   await page.getByRole('button', { name: 'Sign in' }).click()
   // MFA is mandatory (TSK-0154): enrol on the account's first sign-in, the code afterwards.
   await passSecondFactor(page)
+}
+
+/** A write that needs a fresh sign-in asks for the password when the last entry is older than the window. */
+async function confirmIfAsked(record: Locator, done: Locator, password: string) {
+  const prompt = record.getByTestId('staff-reauth')
+  await expect(prompt.or(done).first()).toBeVisible()
+  if (await prompt.isVisible()) {
+    await prompt.getByLabel('Password').fill(password)
+    await prompt.getByRole('button', { name: 'Confirm password' }).click()
+  }
+  await expect(done).toBeVisible()
 }
 
 async function axe(page: Page) {
@@ -271,6 +284,26 @@ test.describe('Staff management: roles and offboarding (TSK-0097)', () => {
           .execute(),
       )
       expect(rows).toEqual([{ state: 'confirmed', ended_at: null }])
+
+      // TSK-0151: re-enabling gives nothing back by itself; each earlier role waits for the Owner's review.
+      await page.getByRole('link', { name: 'Staff', exact: true }).click()
+      await card.getByRole('button', { name: `Manage ${LEAVER.name}` }).click()
+      await record.getByTestId('staff-access').getByLabel('Reason', { exact: true }).fill('E2E: came back')
+      await record.getByRole('button', { name: 'Re-enable account' }).click()
+      await confirmIfAsked(record, record.getByText('Re-enabled with no access.', { exact: false }), pw(1))
+      await expect(card.getByTestId('staff-member-roles')).toHaveText('Roles: none')
+      await expect(card.getByText('Permission review waiting')).toBeVisible()
+      const review = record.getByTestId('staff-permission-review')
+      await expect(review.getByTestId('staff-review-item')).toHaveCount(2)
+      await axe(page)
+      await review.getByLabel('Reason for restoring or declining').fill('E2E: back on the crew')
+      await review.getByRole('button', { name: 'Restore Worker' }).click()
+      await confirmIfAsked(record, record.getByText('Restored. It applies', { exact: false }), pw(1))
+      await expect(card.getByTestId('staff-member-roles')).toHaveText('Roles: Worker')
+      await review.getByRole('button', { name: 'Decline Office / Dispatcher' }).click()
+      await expect(record.getByTestId('staff-permission-review')).toHaveCount(0)
+      await expect(card.getByText('Permission review waiting')).toHaveCount(0)
+      await expect(record.getByTestId('staff-grants-ended')).toContainText('Office / Dispatcher')
     } finally {
       await context.close()
     }

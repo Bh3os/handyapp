@@ -55,6 +55,8 @@ export const QUEUE_ACTIONS = [
   'clear_check',
   // TSK-0090: match or resolve unmatched or uncertain money.
   'reconcile',
+  // TSK-0151: restore or decline each earlier grant of a reactivated account.
+  'review_permissions',
 ] as const
 export type QueueAction = (typeof QUEUE_ACTIONS)[number]
 
@@ -69,6 +71,8 @@ export type QueueScreen =
   | 'estimates'
   // TSK-0123: a property record (below the customer records in the menu).
   | 'properties'
+  // TSK-0151: a staff member's record on the Staff screen.
+  | 'staff'
 
 export type QueueItemType = {
   readonly id: string
@@ -499,6 +503,20 @@ export const QUEUE_ITEM_TYPES = [
     path: 'quality-reviews',
   },
   // Owner Decisions (HH-OPS-01 "Owner, additionally"): each decision is owner-only in the matrix.
+  // TSK-0151 (OWN-DEC-200 H1, H3): a reactivated account holds no grant until the Owner restores or declines each
+  // earlier one; one item per account while its permission review is open, opened with the re-enabling and resolved
+  // when the review closes (reviewed, or the account disabled again). Seen by the Owner (staff.grant_role); the link
+  // opens the person on the Staff screen. Band PROPOSED.
+  {
+    id: 'permission_review',
+    section: 'owner_decisions',
+    subject: 'staff_user',
+    band: 'time_sensitive',
+    view: 'staff.grant_role',
+    reasons: ['account_reenabled'],
+    action: 'review_permissions',
+    screen: 'staff',
+  },
   {
     id: 'deposit_waiver',
     section: 'owner_decisions',

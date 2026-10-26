@@ -1,5 +1,6 @@
-// Staff management against PostgreSQL 16 (TSK-0097; HH-STAFF-02, HH-STAFF-03, HH-STAFF-07, T26, T27, T38, T64,
-// ENT-StaffUser, ENT-RoleGrant, ENT-QueueItem, OWN-DEC-114, OWN-DEC-123, RULE-SERVER-AUTHZ). Every account, request,
+// Staff management against PostgreSQL 16 (TSK-0097, TSK-0151; HH-STAFF-02, HH-STAFF-03, HH-STAFF-07, HH-FIN-11, T26,
+// T27, T38, T64, ENT-StaffUser, ENT-RoleGrant, ENT-QueueItem, OWN-DEC-114, OWN-DEC-123, OWN-DEC-200,
+// RULE-SERVER-AUTHZ, RULE-SAFETY-GATES). Every account, request,
 // address and working-hours set is synthetic (RULE-SYNTHETIC-DATA): the hours are test fixtures, never the business's
 // hours. Nothing reaches a provider: links and emails stay in the outbox.
 import { randomUUID } from 'node:crypto'
@@ -11,6 +12,7 @@ import { sql } from 'kysely'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildApp } from '../../src/app.js'
 import { createStaffUser, setPasswordHash } from '../../src/modules/identity/accounts.js'
+import { issueLinkNow } from '../../src/modules/identity/links.js'
 import { hashPassword } from '../../src/modules/identity/passwords.js'
 import { disable } from '../../src/modules/staff/members.js'
 import { runWithContext } from '../../src/platform/request-context.js'
@@ -197,7 +199,7 @@ type VisitView = {
   id: string
   version: number
   state: string
-  assignments: { endedAt: string | null; flags: string[] }[]
+  assignments: { id: string; endedAt: string | null; flags: string[] }[]
 }
 const day = (n: number) => addLocalDays(localDateOf(new Date(), ZONE), n)
 
@@ -348,13 +350,47 @@ describe('[HH-STAFF-03] role and capability grants', () => {
       reason: 'Synthetic',
     })
     expect(codes(collectOffice.body)).toEqual(['CAPABILITY_NEEDS_WORKER'])
-    const collect = await send(owner, 'POST', `/staff/members/${ids.worker2}/grants`, {
+    // TSK-0151 (OWN-DEC-200 H4): the collect grant records the worker's training; the Worker role alone is not enough.
+    const untrained = await send(owner, 'POST', `/staff/members/${ids.worker2}/grants`, {
       kind: 'capability',
       name: 'collect',
       reason: 'Takes payments on site',
     })
+    expect(untrained.statusCode, untrained.body).toBe(400)
+    expect(codes(untrained.body)).toEqual(['TRAINING_REQUIRED'])
+    const training = { completedOn: addLocalDays(day(0), -3), description: 'Synthetic: cash handling and receipts' }
+    const future = await send(owner, 'POST', `/staff/members/${ids.worker2}/grants`, {
+      kind: 'capability',
+      name: 'collect',
+      reason: 'Takes payments on site',
+      training: { ...training, completedOn: addLocalDays(day(0), 3) },
+    })
+    expect(codes(future.body)).toEqual(['TRAINING_DATE_FUTURE'])
+    const roleWithTraining = await send(owner, 'POST', `/staff/members/${ids.worker2}/grants`, {
+      kind: 'role',
+      name: 'estimator',
+      reason: 'Synthetic',
+      training,
+    })
+    expect(codes(roleWithTraining.body)).toEqual(['TRAINING_NOT_USED'])
+    expect((await get(owner, `/staff/members/${ids.worker2}`)).json().capabilities).toEqual([])
+    const collect = await send(owner, 'POST', `/staff/members/${ids.worker2}/grants`, {
+      kind: 'capability',
+      name: 'collect',
+      reason: 'Takes payments on site',
+      training,
+    })
     expect(collect.statusCode, collect.body).toBe(201)
     expect(collect.json().capabilities).toEqual(['collect'])
+    expect(collect.json().grants.find((g: { name: string }) => g.name === 'collect').training).toEqual(training)
+    expect((await auditOf('staff.grant_role', ids.worker2))[0]).toMatchObject({
+      summary: { change: 'granted', name: 'collect', trainedOn: training.completedOn },
+    })
+    // The database refuses a live collect grant without the training on any path.
+    await expect(
+      sql`INSERT INTO identity.role_grants (staff_user_id, kind, name, issued_by)
+          VALUES (${ids.worker}, 'capability', 'collect', 'test')`.execute(t.db),
+    ).rejects.toThrow(/role_grants_collect_trained/)
     const last = await send(owner, 'POST', `/staff/members/${ids.office2}/grants/end`, { kind: 'role', name: 'office' })
     expect(codes(last.body)).toEqual(['LAST_ROLE'])
   })
@@ -536,7 +572,12 @@ describe('[HH-STAFF-02][T27] offboarding', () => {
     const owner = await fresh('owner')
     const back = await send(owner, 'POST', `/staff/members/${ids.leaver}/enable`, { reason: 'Came back' })
     expect(back.statusCode, back.body).toBe(200)
-    expect(back.json()).toMatchObject({ linkSent: 'reset', member: { status: 'active', passwordSet: false } })
+    // TSK-0151 (OWN-DEC-200 H3): nothing held before comes back by itself; it waits for the Owner's review.
+    expect(back.json()).toMatchObject({
+      linkSent: 'reset',
+      grantsEnded: [{ kind: 'role', name: 'worker' }],
+      member: { status: 'active', passwordSet: false, roles: [], permissionReviewOpen: true },
+    })
     expect(await queueOf(auth.office, project.reference)).toEqual([])
     const resolved = await t.db
       .selectFrom('ops.queue_items')
@@ -663,6 +704,294 @@ describe('[HH-STAFF-07] availability changes flag appointments in the action que
       visits: VisitView[]
     }>().visits
     expect(visits.find((v) => v.id === visit.id)?.state).toBe('confirmed')
+  })
+})
+
+describe('[HH-STAFF-07][HH-STAFF-03] the Owner keeps an appointment as it is despite a discretionary flag (TSK-0151)', () => {
+  it('[HH-STAFF-03][HH-STAFF-07] a working-hours flag is dismissed with a reason; time off and a disabled account never are', async () => {
+    await setHours('worker2')
+    const { project, visit } = await bookedVisit('worker2', 8)
+    // New hours that no longer cover the 09:00 visit flag it; so does time off over it.
+    const view = (await get(auth.owner, '/staff/availability')).json<{
+      workers: { id: string; schedule: { version: number } | null }[]
+    }>()
+    const version = view.workers.find((w) => w.id === ids.worker2)?.schedule?.version ?? 0
+    const later = WEEK.map((p) => ({ ...p, start: '12:00' }))
+    const hours = await send(
+      auth.owner,
+      'PUT',
+      `/staff/workers/${ids.worker2}/working-hours`,
+      { periods: later },
+      version,
+    )
+    expect(hours.statusCode, hours.body).toBe(200)
+    const off = await send(auth.owner, 'POST', `/staff/workers/${ids.worker2}/time-off`, {
+      startDate: day(8),
+      startTime: null,
+      endDate: day(8),
+      endTime: null,
+    })
+    expect(off.statusCode, off.body).toBe(201)
+    const assignment = async () =>
+      (
+        (await get(auth.office, `/staff/projects/${project.projectId}/visits`))
+          .json<{ visits: VisitView[] }>()
+          .visits.find((v) => v.id === visit.id) as VisitView
+      ).assignments.find((a) => a.endedAt === null) as VisitView['assignments'][number]
+    const reservationId = (await assignment()).id
+    expect((await assignment()).flags.sort()).toEqual(['time_off_recorded', 'working_hours_changed'])
+    const path = `/staff/reservations/${reservationId}/flags/dismiss`
+
+    // Owner only, with a reason.
+    for (const p of ['office', 'estimator', 'worker2'] as const)
+      expect(
+        (await send(auth[p], 'POST', path, { cause: 'working_hours_changed', reason: 'Synthetic' })).statusCode,
+      ).toBe(403)
+    expect((await send(auth.owner, 'POST', path, { cause: 'working_hours_changed' })).statusCode).toBe(400)
+    expect((await send(auth.owner, 'POST', path, { cause: 'working_hours_changed', reason: '  ' })).statusCode).toBe(
+      400,
+    )
+    // Employee protection and a disabled account are mandatory restrictions: never waived by an override.
+    const timeOff = await send(auth.owner, 'POST', path, { cause: 'time_off_recorded', reason: 'Needed that day' })
+    expect(timeOff.statusCode, timeOff.body).toBe(409)
+    expect(codes(timeOff.body)).toEqual(['MANDATORY_RESTRICTION'])
+    const disabledFlag = await send(auth.owner, 'POST', path, { cause: 'account_disabled', reason: 'Synthetic' })
+    expect(codes(disabledFlag.body)).toEqual(['MANDATORY_RESTRICTION'])
+    const flagId = (cause: string) =>
+      sql`SELECT id FROM work.reservation_flags WHERE reservation_id = ${reservationId} AND cause = ${cause}`
+    await expect(
+      sql`INSERT INTO work.reservation_flag_dismissals (flag_id, dismissed_by, reason)
+          SELECT id, ${ids.owner}, 'Synthetic' FROM (${flagId('time_off_recorded')}) f`.execute(t.db),
+    ).rejects.toThrow(/mandatory restriction is never waived/)
+
+    // The discretionary flag is dismissed; the appointment stays as it is and the time off still flags it.
+    const kept = await send(auth.owner, 'POST', path, {
+      cause: 'working_hours_changed',
+      reason: 'Synthetic: the worker agreed to start early that day',
+    })
+    expect(kept.statusCode, kept.body).toBe(200)
+    expect(kept.json()).toMatchObject({ reservationId, visitId: visit.id, dismissed: 1, flags: ['time_off_recorded'] })
+    expect((await assignment()).flags).toEqual(['time_off_recorded'])
+    expect(await queueOf(auth.owner, project.reference)).toEqual([
+      expect.objectContaining({ subjectId: visit.id, reason: 'availability_changed' }),
+    ])
+    expect(
+      codes((await send(auth.owner, 'POST', path, { cause: 'working_hours_changed', reason: 'Twice' })).body),
+    ).toEqual(['FLAG_NOT_OPEN'])
+    const [event] = await auditOf('visit.dismiss_flag', visit.id)
+    expect(event).toMatchObject({
+      actor_id: ids.owner,
+      reason: 'Synthetic: the worker agreed to start early that day',
+      summary: { reservationId, cause: 'working_hours_changed', dismissed: 1 },
+    })
+    await expect(sql`DELETE FROM work.reservation_flag_dismissals`.execute(t.db)).rejects.toThrow(/APPEND_ONLY/)
+
+    // Once the time off is withdrawn nothing flags the visit: its item resolves, and it was never cancelled.
+    const timeOffId = (
+      await t.db
+        .selectFrom('work.time_off')
+        .select('id')
+        .where('staff_user_id', '=', ids.worker2)
+        .where('withdrawn_at', 'is', null)
+        .executeTakeFirstOrThrow()
+    ).id
+    expect((await send(auth.owner, 'POST', `/staff/time-off/${timeOffId}/withdraw`, {})).statusCode).toBe(200)
+    expect(await queueOf(auth.owner, project.reference)).toEqual([])
+    const visits = (await get(auth.office, `/staff/projects/${project.projectId}/visits`)).json<{
+      visits: VisitView[]
+    }>().visits
+    expect(visits.find((v) => v.id === visit.id)?.state).toBe('confirmed')
+  })
+})
+
+describe('[HH-STAFF-02][HH-STAFF-03] reactivation with the Owner’s permission review (TSK-0151, OWN-DEC-200 H1, H3)', () => {
+  it('[HH-STAFF-02][HH-STAFF-03][T27][T26] reactivation without review grants nothing; each earlier grant is restored or declined', async () => {
+    const returner = 'returner-management@example.test'
+    const training = { completedOn: addLocalDays(day(0), -3), description: 'Synthetic: cash handling refresher' }
+    const id = await withTx(t.db, async (tx) => {
+      const user = await createStaffUser(tx, {
+        email: returner,
+        displayName: 'Synthetic returner',
+        locale: 'en',
+        role: 'worker',
+        issuedBy: 'test',
+      })
+      await setPasswordHash(tx, user.id, await hashPassword(pw(1)))
+      await tx
+        .insertInto('identity.role_grants')
+        .values([
+          { staff_user_id: user.id, kind: 'role', name: 'office', issued_by: 'test' },
+          {
+            staff_user_id: user.id,
+            kind: 'capability',
+            name: 'collect',
+            issued_by: 'test',
+            trained_on: addLocalDays(day(0), -30),
+            training: 'Synthetic: cash handling',
+          },
+        ])
+        .execute()
+      return user.id
+    })
+    expect(
+      (await send(auth.owner, 'POST', `/staff/members/${id}/disable`, { reason: 'Synthetic leave' })).statusCode,
+    ).toBe(200)
+    const owner = await fresh('owner')
+    const back = await send(owner, 'POST', `/staff/members/${id}/enable`, { reason: 'Synthetic return' })
+    expect(back.statusCode, back.body).toBe(200)
+    expect(back.json().member).toMatchObject({
+      status: 'active',
+      roles: [],
+      capabilities: [],
+      permissionReviewOpen: true,
+    })
+    type Item = { id: string; kind: string; name: string; decision: string | null }
+    const review = back.json<{ member: { permissionReview: { id: string; items: Item[] } } }>().member.permissionReview
+    expect(review.items.map((i) => `${i.kind}:${i.name}:${i.decision}`).sort()).toEqual([
+      'capability:collect:null',
+      'role:office:null',
+      'role:worker:null',
+    ])
+    const item = (name: string) => (review.items.find((i) => i.name === name) as Item).id
+    // The earlier grants are history now, ended by the Owner who re-enabled the account.
+    const earlier = await t.db
+      .selectFrom('identity.role_grants')
+      .select(['ended_at', 'ended_by'])
+      .where('staff_user_id', '=', id)
+      .execute()
+    expect(earlier).toHaveLength(3)
+    expect(earlier.every((g) => g.ended_at !== null && g.ended_by === `staff:${ids.owner}`)).toBe(true)
+    // The person sets a new password and enrols a new authenticator, and still reaches nothing.
+    const link = await withTx(t.db, (tx) => issueLinkNow(tx, { staffUserId: id, purpose: 'reset', issuedBy: 'test' }))
+    const set = await app.inject({
+      method: 'POST',
+      url: '/api/v1/staff/auth/password/set',
+      payload: { token: link.token, password: pw(2) },
+    })
+    expect(set.statusCode, set.body).toBe(200)
+    const signedIn = await signInWithMfa(app, {
+      method: 'POST',
+      url: '/api/v1/staff/auth/sign-in',
+      headers: { 'x-forwarded-for': '198.51.100.197' },
+      payload: { email: returner, password: pw(2) },
+    })
+    expect(signedIn.statusCode, signedIn.body).toBe(200)
+    const person: Auth = {
+      cookie: String(signedIn.headers['set-cookie']).split(';')[0] as string,
+      csrf: signedIn.json().csrfToken as string,
+    }
+    expect(signedIn.json().roles).toEqual([])
+    for (const url of ['/staff/requests', '/staff/my/day', '/staff/queue', '/staff/members'])
+      expect((await get(person, url)).statusCode, url).toBe(403)
+    // The database refuses any path that re-enables an account with an earlier grant still live.
+    await expect(
+      sql`UPDATE identity.staff_users SET status = 'active', disabled_at = NULL WHERE id = ${ids.office4}`.execute(
+        t.db,
+      ),
+    ).rejects.toThrow(/keeps no earlier grant/)
+
+    // The review waits in the Owner Decisions, for the Owner only.
+    const decisions = await get(auth.owner, '/staff/queue/owner-decisions?type=permission_review')
+    expect(decisions.statusCode, decisions.body).toBe(200)
+    expect(decisions.json().items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          subjectId: id,
+          reason: 'account_reenabled',
+          action: 'review_permissions',
+          link: `/staff/${id}`,
+        }),
+      ]),
+    )
+    expect((await get(auth.office, '/staff/queue/owner-decisions')).statusCode).toBe(403)
+
+    const path = `/staff/members/${id}/permission-review`
+    // Office never reviews permissions; nobody reviews their own.
+    expect((await send(auth.office, 'POST', `${path}/decline`, { itemId: item('office') })).statusCode).toBe(403)
+    // The collect permission needs the Worker role back first.
+    const tooEarly = await send(owner, 'POST', `${path}/restore`, {
+      itemId: item('collect'),
+      reason: 'Collects again',
+      training,
+    })
+    expect(codes(tooEarly.body)).toEqual(['CAPABILITY_NEEDS_WORKER'])
+    const declined = await send(owner, 'POST', `${path}/decline`, { itemId: item('office'), reason: 'Desk is covered' })
+    expect(declined.statusCode, declined.body).toBe(200)
+    expect(declined.json()).toMatchObject({ roles: [], permissionReviewOpen: true })
+    // PROPOSED: the last role is not declined while the person holds none.
+    expect(codes((await send(owner, 'POST', `${path}/decline`, { itemId: item('worker') })).body)).toEqual([
+      'LAST_ROLE',
+    ])
+    // Restoring is a grant: a fresh sign-in and a reason.
+    await stale('owner')
+    const notFresh = await send(auth.owner, 'POST', `${path}/restore`, { itemId: item('worker'), reason: 'Back' })
+    expect(errorCode(notFresh.body)).toBe('FRESH_AUTH_REQUIRED')
+    const again = await fresh('owner')
+    expect((await send(again, 'POST', `${path}/restore`, { itemId: item('worker') })).statusCode).toBe(400)
+    const worker = await send(again, 'POST', `${path}/restore`, { itemId: item('worker'), reason: 'Back on the crew' })
+    expect(worker.statusCode, worker.body).toBe(200)
+    expect(worker.json()).toMatchObject({ roles: ['worker'], capabilities: [], permissionReviewOpen: true })
+    expect((await get(person, '/staff/auth/session')).json().roles).toEqual(['worker'])
+    expect(
+      codes((await send(again, 'POST', `${path}/restore`, { itemId: item('worker'), reason: 'Twice' })).body),
+    ).toEqual(['REVIEW_ITEM_DECIDED'])
+    // The collect permission records the training again.
+    expect(
+      codes((await send(again, 'POST', `${path}/restore`, { itemId: item('collect'), reason: 'Collects' })).body),
+    ).toEqual(['TRAINING_REQUIRED'])
+    const collect = await send(again, 'POST', `${path}/restore`, {
+      itemId: item('collect'),
+      reason: 'Collects on site again',
+      training,
+    })
+    expect(collect.statusCode, collect.body).toBe(200)
+    expect(collect.json()).toMatchObject({
+      roles: ['worker'],
+      capabilities: ['collect'],
+      permissionReviewOpen: false,
+      permissionReview: null,
+    })
+    // The review is closed and its Owner Decisions item resolved.
+    expect(
+      await t.db
+        .selectFrom('ops.queue_items')
+        .select('resolution')
+        .where('type', '=', 'permission_review')
+        .where('subject_id', '=', id)
+        .execute(),
+    ).toEqual([{ resolution: 'reviewed' }])
+    expect(codes((await send(again, 'POST', `${path}/decline`, { itemId: item('office') })).body)).toEqual([
+      'NO_OPEN_REVIEW',
+    ])
+    // Every step is audited; the decisions are kept as made.
+    expect((await auditOf('staff.enable', id))[0]).toMatchObject({
+      actor_id: ids.owner,
+      step_up_used: true,
+      summary: { change: 'enabled', permissionReview: review.id },
+    })
+    expect((await auditOf('staff.restore_grant', id)).map((e) => e.summary)).toEqual([
+      expect.objectContaining({ change: 'restored', kind: 'role', name: 'worker' }),
+      expect.objectContaining({
+        change: 'restored',
+        name: 'collect',
+        trainedOn: training.completedOn,
+        reviewClosed: true,
+      }),
+    ])
+    expect((await auditOf('staff.restore_grant', id))[0]).toMatchObject({
+      reason: 'Back on the crew',
+      step_up_used: true,
+    })
+    expect((await auditOf('staff.decline_grant', id))[0]).toMatchObject({
+      reason: 'Desk is covered',
+      summary: { change: 'declined', kind: 'role', name: 'office' },
+    })
+    await expect(
+      sql`UPDATE identity.permission_review_items SET reason = 'Changed' WHERE review_id = ${review.id}`.execute(t.db),
+    ).rejects.toThrow(/once/)
+    await expect(sql`DELETE FROM identity.permission_reviews WHERE id = ${review.id}`.execute(t.db)).rejects.toThrow(
+      /never deleted/,
+    )
   })
 })
 

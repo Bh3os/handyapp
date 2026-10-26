@@ -32,6 +32,7 @@ import { scopeIncludesProject, type DataScope, type StaffActor } from '@handyhub
 import { ApiError, type FieldError } from '../../api/errors.js'
 import { loadConfig } from '../../platform/config/index.js'
 import { eligibility } from '../capacity/availability.js'
+import { notDismissed } from '../capacity/flags.js'
 import { freeOfWorker, rolesOf, schedulesOf, timeOffOf } from '../capacity/resources.js'
 import { changeFacts } from './changes.js'
 import { WORK_VISIT_GATES, type WorkVisitGate } from './gates.js'
@@ -186,6 +187,7 @@ export async function scheduleBoard(
           'in',
           reservations.map((r) => r.id),
         )
+        .where(notDismissed)
         .execute()
     : []
   const flagsOf = (id: string) => [...new Set(flags.filter((f) => f.reservation_id === id).map((f) => f.cause))]

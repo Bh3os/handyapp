@@ -1,4 +1,5 @@
-// Staff management in the staff app (TSK-0097; HH-STAFF-02, HH-STAFF-03, HH-STAFF-07, OWN-DEC-123). The API is a
+// Staff management in the staff app (TSK-0097, TSK-0151; HH-STAFF-02, HH-STAFF-03, HH-STAFF-07, HH-FIN-11, OWN-DEC-123,
+// OWN-DEC-200). The API is a
 // synthetic stand-in (RULE-SYNTHETIC-DATA): names, emails and appointments are test inputs, not business facts.
 import { staffTranslator } from '@handyhub/i18n'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
@@ -40,6 +41,7 @@ const summary = (over: Partial<MemberSummary> = {}): MemberSummary => ({
   liveSessions: 1,
   upcomingAssignments: 1,
   flaggedAssignments: 0,
+  permissionReviewOpen: false,
   version: 2,
   ...over,
 })
@@ -55,8 +57,10 @@ const detail = (over: Partial<MemberDetail> = {}): MemberDetail => ({
       effectiveFrom: '2026-10-01T15:00:00.000Z',
       endedAt: null,
       endedBy: null,
+      training: null,
     },
   ],
+  permissionReview: null,
   statusHistory: [],
   assignments: [
     {
@@ -198,6 +202,118 @@ describe('[HH-STAFF-07][HH-STAFF-02] the Staff screen', () => {
     })
     // Nothing to reset any more: the button is gone until the person enrols again.
     expect(within(record).queryByRole('button', { name: 'Restablecer autenticador' })).toBeNull()
+  })
+
+  it('[HH-FIN-11][HH-STAFF-03] the collect permission asks for the training and sends it with the grant (TSK-0151)', async () => {
+    const { calls, fetchImpl } = api((url, init) =>
+      url === `/api/v1/staff/members/${ANN}/grants` && init?.method === 'POST'
+        ? json(201, detail({ capabilities: ['collect'], version: 3 }))
+        : undefined,
+    )
+    const { t } = staffTranslator('en')
+    render(<StaffScreen t={t} locale="en" fetchImpl={fetchImpl} onSession={() => {}} />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Manage Synthetic Ann' }))
+    const record = await screen.findByTestId('staff-member-record')
+    expect(within(record).queryByTestId('staff-training')).toBeNull()
+    fireEvent.change(within(record).getByLabelText('Role or permission'), {
+      target: { value: 'capability:collect' },
+    })
+    const training = within(record).getByTestId('staff-training')
+    fireEvent.change(within(training).getByLabelText(/^Training completed on/), { target: { value: '2026-10-20' } })
+    fireEvent.change(within(training).getByLabelText(/^What the training covered/), {
+      target: { value: 'Synthetic: cash handling and receipts' },
+    })
+    fireEvent.change(within(record).getAllByLabelText(/^Reason/)[0] as HTMLElement, {
+      target: { value: 'Collects on site' },
+    })
+    fireEvent.click(within(record).getByRole('button', { name: 'Give' }))
+    await waitFor(() => expect(calls.some((c) => c.url.endsWith('/grants'))).toBe(true))
+    expect(JSON.parse(String(calls.find((c) => c.url.endsWith('/grants'))?.init?.body))).toEqual({
+      kind: 'capability',
+      name: 'collect',
+      reason: 'Collects on site',
+      training: { completedOn: '2026-10-20', description: 'Synthetic: cash handling and receipts' },
+    })
+  })
+
+  it('[HH-STAFF-02][HH-STAFF-03] a re-enabled person waits for the permission review; each grant is restored or declined (TSK-0151)', async () => {
+    const earlier = {
+      id: '77777777-7777-4777-8777-777777777777',
+      kind: 'role' as const,
+      name: 'office',
+      issuedBy: { staffUserId: OWNER, name: 'Synthetic Owner', system: false },
+      reason: 'Synthetic desk',
+      effectiveFrom: '2026-09-01T15:00:00.000Z',
+      endedAt: '2026-10-20T15:00:00.000Z',
+      endedBy: { staffUserId: OWNER, name: 'Synthetic Owner', system: false },
+      training: null,
+    }
+    const item = (id: string, name: string, grantId: string) => ({
+      id,
+      earlierGrantId: grantId,
+      kind: 'role' as const,
+      name,
+      decision: null,
+      decidedAt: null,
+      decidedBy: null,
+      reason: null,
+      grantId: null,
+    })
+    const reviewing = detail({
+      roles: [],
+      permissionReviewOpen: true,
+      grants: [{ ...earlier, id: '55555555-5555-4555-8555-555555555555', name: 'worker' }, earlier],
+      permissionReview: {
+        id: '88888888-8888-4888-8888-888888888888',
+        openedAt: '2026-10-20T15:00:00.000Z',
+        openedBy: { staffUserId: OWNER, name: 'Synthetic Owner', system: false },
+        items: [
+          item('99999999-9999-4999-8999-999999999991', 'worker', '55555555-5555-4555-8555-555555555555'),
+          item('99999999-9999-4999-8999-999999999992', 'office', earlier.id),
+        ],
+      },
+    })
+    const { calls, fetchImpl } = api((url, init) => {
+      if (url === '/api/v1/staff/members')
+        return json(200, { members: [summary({ roles: [], permissionReviewOpen: true })] })
+      if (url === `/api/v1/staff/members/${ANN}`) return json(200, reviewing)
+      if (url.endsWith('/permission-review/restore') && init?.method === 'POST') return json(200, reviewing)
+      if (url.endsWith('/permission-review/decline') && init?.method === 'POST') return json(200, reviewing)
+      return undefined
+    })
+    const { t } = staffTranslator('en')
+    render(<StaffScreen t={t} locale="en" fetchImpl={fetchImpl} onSession={() => {}} openId={ANN} />)
+    const card = await screen.findByTestId('staff-member')
+    expect(within(card).getByText('Permission review waiting')).toBeTruthy()
+    expect(within(card).getByTestId('staff-member-roles').textContent).toBe('Roles: none')
+    // The deep link opened the record: the review lists each earlier grant, nothing restored by itself.
+    const review = await screen.findByTestId('staff-permission-review')
+    expect(
+      within(review)
+        .getAllByTestId('staff-review-item')
+        .map((i) => i.textContent),
+    ).toEqual([
+      expect.stringContaining('Worker waiting for your review'),
+      expect.stringContaining('Office / Dispatcher waiting for your review'),
+    ])
+    fireEvent.change(within(review).getByLabelText(/^Reason for restoring or declining/), {
+      target: { value: 'Back on the crew' },
+    })
+    fireEvent.click(within(review).getByRole('button', { name: 'Restore Worker' }))
+    await waitFor(() => expect(calls.some((c) => c.url.endsWith('/restore'))).toBe(true))
+    expect(JSON.parse(String(calls.find((c) => c.url.endsWith('/restore'))?.init?.body))).toEqual({
+      itemId: '99999999-9999-4999-8999-999999999991',
+      reason: 'Back on the crew',
+    })
+    fireEvent.click(
+      await within(screen.getByTestId('staff-permission-review')).findByRole('button', {
+        name: 'Decline Office / Dispatcher',
+      }),
+    )
+    await waitFor(() => expect(calls.some((c) => c.url.endsWith('/decline'))).toBe(true))
+    expect(JSON.parse(String(calls.find((c) => c.url.endsWith('/decline'))?.init?.body))).toEqual({
+      itemId: '99999999-9999-4999-8999-999999999992',
+    })
   })
 
   it('[HH-STAFF-03] a refusal is written out (the last active Owner stays)', async () => {

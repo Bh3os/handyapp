@@ -413,12 +413,15 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
               />
               <LegalDocumentsView t={t} fetchImpl={doFetch} />
             </>
-          ) : route.page === 'screen' && shown === 'staff' && allowed ? (
+          ) : (route.page === 'screen' || route.page === 'record') && shown === 'staff' && allowed ? (
+            // TSK-0151: an Owner Decisions permission review opens the person's record (/staff/<id>).
             <StaffScreen
+              key={route.page === 'record' ? route.id : 'staff'}
               t={t}
               locale={locale}
               fetchImpl={doFetch}
               onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
+              {...(route.page === 'record' ? { openId: route.id } : {})}
             />
           ) : route.page === 'screen' && shown === 'audit' && allowed ? (
             <AuditLogScreen t={t} locale={locale} fetchImpl={doFetch} />
