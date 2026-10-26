@@ -373,9 +373,9 @@ function freshDataKit(deps: FreshDataDeps) {
   }
 
   /**
-   * Staff's property checks before a visit, through the property routes (audited like any staff change): the
-   * property's time zone (TSK-0123, OWN-DEC-159: an unknown zone plans nothing) and the address-and-county check a
-   * first confirmation needs (TSK-0127, OWN-DEC-167). The fictional property lies in the county the coverage rules
+   * Staff's property checks before a visit, through the property and site-check routes (audited like any staff
+   * change): the property's time zone (TSK-0123, OWN-DEC-159: an unknown zone plans nothing) and the three site checks
+   * a first confirmation needs (TSK-0127, TSK-0126, OWN-DEC-167). The fictional property lies in the county the coverage rules
    * name for its ZIP, in the business zone (PROPOSED for test data only, never a statement about a real address).
    */
   async function propertyChecked(tx: Tx, projectId: string, zone: string) {
@@ -418,6 +418,48 @@ function freshDataKit(deps: FreshDataDeps) {
             note: `${FICTIONAL}: the county of the test property's ZIP code in the coverage rules.`,
           },
           version: p.version,
+          as: owner,
+        }),
+      )
+    // TSK-0126 (OWN-DEC-167): the other two site checks. The fictional customer is their own site contact, with both
+    // authorities, and the SERVED coverage of the verified county is accepted.
+    const contact = await tx
+      .selectFrom('crm.project_site_contacts')
+      .select('version')
+      .where('project_id', '=', projectId)
+      .orderBy('version', 'desc')
+      .executeTakeFirst()
+    if (!contact)
+      await step('record_site_contact', () =>
+        invoke(tx, 'recordSiteContact', {
+          params: { projectId },
+          body: {
+            currentVersion: 0,
+            designation: 'customer',
+            authority: ['property_access', 'visit_coordination'],
+            source: 'office_record',
+            note: `${FICTIONAL}: the test customer is their own site contact.`,
+          },
+          as: owner,
+        }),
+      )
+    const county = await tx
+      .selectFrom('crm.property_county_verifications as v')
+      .innerJoin('crm.properties as pr', (j) =>
+        j.onRef('pr.id', '=', 'v.property_id').onRef('pr.address_version', '=', 'v.address_version'),
+      )
+      .leftJoin('crm.project_coverage_acceptances as a', (j) =>
+        j.onRef('a.county_verification_id', '=', 'v.id').on('a.project_id', '=', projectId),
+      )
+      .select(['v.id', 'a.id as accepted'])
+      .where('v.property_id', '=', p.id)
+      .orderBy('v.seq', 'desc')
+      .executeTakeFirstOrThrow()
+    if (!county.accepted)
+      await step('accept_coverage', () =>
+        invoke(tx, 'acceptProjectCoverage', {
+          params: { projectId },
+          body: { countyVerificationId: county.id },
           as: owner,
         }),
       )

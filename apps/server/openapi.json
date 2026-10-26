@@ -135989,6 +135989,404 @@
         }
       }
     },
+    "/api/v1/staff/projects/{projectId}/coverage-acceptance": {
+      "post": {
+        "operationId": "acceptProjectCoverage",
+        "summary": "Accept the service-area coverage of the verified county",
+        "description": "Staff with visit.confirm (Owner, Office). Confirms that the county verified for the property’s current address version (countyVerificationId, as shown; COUNTY_CHECK_CHANGED otherwise; COUNTY_NOT_VERIFIED before any) lies in the service area: SERVED, with no owner approval (OWN-DEC-179). A county outside the area needs the Owner’s exception instead (COUNTY_OUTSIDE_AREA). Once per county check (COVERAGE_ACCEPTED); a new address version or county check needs it again.",
+        "tags": [
+          "visits"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "countyVerificationId"
+                ],
+                "properties": {
+                  "countyVerificationId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "outcome"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "served",
+                        "outside"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "visit.confirm",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "visit.accept_coverage",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/confirmation-preconditions.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/projects/{projectId}/coverage-exception": {
+      "post": {
+        "operationId": "approveCoverageException",
+        "summary": "Approve a coverage exception for a county outside the service area",
+        "description": "The Owner only (visit.approve_coverage_exception), with a written reason (REASON_REQUIRED). Approves serving a property whose verified county (countyVerificationId, as shown; COUNTY_CHECK_CHANGED otherwise) lies outside the service area: OUTSIDE (OWN-DEC-167). A county inside the area needs no exception (EXCEPTION_NOT_NEEDED). The exception lifts the coverage check only: the approval, the deposit gate and every blocking hold (legal, licensing, safety) still apply. Once per county check (COVERAGE_ACCEPTED).",
+        "tags": [
+          "visits"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "countyVerificationId",
+                  "reason"
+                ],
+                "properties": {
+                  "countyVerificationId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "outcome"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "served",
+                        "outside"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "visit.approve_coverage_exception",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "visit.coverage_exception",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/confirmation-preconditions.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/projects/{projectId}/estimates": {
       "get": {
         "operationId": "listProjectEstimates",
@@ -136647,6 +137045,268 @@
         }
       }
     },
+    "/api/v1/staff/projects/{projectId}/site-contact": {
+      "post": {
+        "operationId": "recordSiteContact",
+        "summary": "Record the authorized site contact of a project",
+        "description": "Staff with visit.confirm (Owner, Office). The person the customer designated as site contact (OWN-DEC-167): the customer themselves (designation customer: name, phone and email come from their contact record and are not typed again; NOT_FOR_CUSTOMER otherwise) or a person they named (designation other: fullName, role and a phone or email; NAME_REQUIRED, ROLE_REQUIRED, CONTACT_REQUIRED, PHONE_INVALID, EMAIL_INVALID), with what staff confirmed the person may do: authority property_access and/or visit_coordination, nothing else (never money or contract changes). An empty authority records the designation with the check still unmet (SITE_CONTACT_NOT_AUTHORIZED). Recorded as the next version with its source and an optional note; currentVersion is the version the caller saw (0 for none; STALE_VERSION otherwise). A confirmation needs the current version authorized, and for the customer their contact record unchanged since (SITE_CONTACT_CHANGED).",
+        "tags": [
+          "visits"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "currentVersion",
+                  "designation",
+                  "authority",
+                  "source"
+                ],
+                "properties": {
+                  "currentVersion": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "designation": {
+                    "type": "string",
+                    "enum": [
+                      "customer",
+                      "other"
+                    ]
+                  },
+                  "fullName": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 200
+                  },
+                  "role": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 100
+                  },
+                  "phone": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 40
+                  },
+                  "email": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 254
+                  },
+                  "authority": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "maxItems": 2,
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "property_access",
+                        "visit_coordination"
+                      ]
+                    }
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "customer_call",
+                      "customer_message",
+                      "site_visit",
+                      "office_record"
+                    ]
+                  },
+                  "note": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 1000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "version",
+                    "authorized"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "authorized": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "visit.confirm",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "visit.site_contact",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/confirmation-preconditions.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/projects/{projectId}/uploaded-estimates": {
       "post": {
         "operationId": "uploadEstimate",
@@ -136847,7 +137507,7 @@
       "get": {
         "operationId": "listProjectVisits",
         "summary": "A project's visits",
-        "description": "Staff with schedule.view_board (Owner, Office; Estimator PROPOSED). The visits of one project (estimate visits and the job's work visits), each with its purpose, state, version, current window (local date, arrival window, IANA zone, UTC offsets and instants, and whether it lies inside the daily visit hours of contact.hours in the business zone; null while NOT CONFIGURED) and every earlier window version. Beside them, kept apart, the project's job with its scope version and its scheduling task (never a booking), the property's zone, the business zone with its PROPOSED mark, and what the caller may plan now. Each tentative visit lists its confirmationBlockers (TSK-0064): every unmet confirmation precondition and missing visit fact, as field and code; Confirm is offered only when the list is empty (the team's capacity is checked on confirming). A timing preference on the request is never listed here.",
+        "description": "Staff with schedule.view_board (Owner, Office; Estimator PROPOSED). The visits of one project (estimate visits and the job's work visits), each with its purpose, state, version, current window (local date, arrival window, IANA zone, UTC offsets and instants, and whether it lies inside the daily visit hours of contact.hours in the business zone; null while NOT CONFIGURED) and every earlier window version. Beside them, kept apart, the project's job with its scope version and its scheduling task (never a booking), the property's zone, the business zone with its PROPOSED mark, and what the caller may plan now. Each tentative visit lists its confirmationBlockers (TSK-0064): every unmet confirmation precondition and missing visit fact, as field and code; Confirm is offered only when the list is empty (the team's capacity is checked on confirming). A timing preference on the request is never listed here. siteChecks (TSK-0126, OWN-DEC-167): the three site checks a confirmation needs, each with what it rests on: the current address with its pre-validation problems and its address-and-county check; the site contact with its authority and the customer’s contact to prefill it; the coverage outcome of the verified county (SERVED or OUTSIDE) with its acceptance or the Owner’s exception; and which of them the caller may record.",
         "tags": [
           "visits"
         ],
@@ -136875,6 +137535,7 @@
                     "projectState",
                     "timeZone",
                     "coverage",
+                    "siteChecks",
                     "businessTimeZone",
                     "visitHours",
                     "windowOffers",
@@ -136974,6 +137635,423 @@
                               "type": "null"
                             }
                           ]
+                        }
+                      }
+                    },
+                    "siteChecks": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "property",
+                        "address",
+                        "siteContact",
+                        "coverage",
+                        "actions"
+                      ],
+                      "properties": {
+                        "property": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "version",
+                            "addressVersion",
+                            "address"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "version": {
+                              "type": "integer"
+                            },
+                            "addressVersion": {
+                              "type": "integer"
+                            },
+                            "address": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "street",
+                                "unit",
+                                "city",
+                                "state",
+                                "zip"
+                              ],
+                              "properties": {
+                                "street": {
+                                  "type": "string"
+                                },
+                                "unit": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "city": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string"
+                                },
+                                "zip": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "address": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "problems",
+                            "verification"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "problems": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "ADDRESS_PO_BOX",
+                                  "ADDRESS_MAILING_ZIP",
+                                  "ADDRESS_ZIP_STATE_MISMATCH"
+                                ]
+                              }
+                            },
+                            "verification": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "state",
+                                    "county",
+                                    "inArea",
+                                    "addressVersion",
+                                    "verifiedBy",
+                                    "verifiedAt"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "state": {
+                                      "type": "string"
+                                    },
+                                    "county": {
+                                      "type": "string"
+                                    },
+                                    "inArea": {
+                                      "type": "boolean"
+                                    },
+                                    "addressVersion": {
+                                      "type": "integer"
+                                    },
+                                    "verifiedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "verifiedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "siteContact": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "problem",
+                            "current",
+                            "customer"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "problem": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "SITE_CONTACT_MISSING",
+                                "SITE_CONTACT_NOT_AUTHORIZED",
+                                "SITE_CONTACT_CHANGED",
+                                null
+                              ]
+                            },
+                            "current": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "version",
+                                    "designation",
+                                    "name",
+                                    "role",
+                                    "phone",
+                                    "email",
+                                    "authority",
+                                    "source",
+                                    "note",
+                                    "recordedBy",
+                                    "recordedAt"
+                                  ],
+                                  "properties": {
+                                    "version": {
+                                      "type": "integer"
+                                    },
+                                    "designation": {
+                                      "type": "string",
+                                      "enum": [
+                                        "customer",
+                                        "other"
+                                      ]
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "role": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "phone": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "email": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "authority": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "property_access",
+                                          "visit_coordination"
+                                        ]
+                                      }
+                                    },
+                                    "source": {
+                                      "type": "string"
+                                    },
+                                    "note": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "recordedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "recordedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "customer": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "name",
+                                    "phone",
+                                    "email"
+                                  ],
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "phone": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "email": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "coverage": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "outcome",
+                            "countyVerificationId",
+                            "acceptance"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "outcome": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "served",
+                                "outside",
+                                null
+                              ]
+                            },
+                            "countyVerificationId": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "acceptance": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "outcome",
+                                    "exceptionReason",
+                                    "acceptedBy",
+                                    "acceptedAt"
+                                  ],
+                                  "properties": {
+                                    "outcome": {
+                                      "type": "string",
+                                      "enum": [
+                                        "served",
+                                        "outside"
+                                      ]
+                                    },
+                                    "exceptionReason": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "acceptedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "acceptedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "actions": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "verifyAddress",
+                            "recordSiteContact",
+                            "acceptCoverage",
+                            "approveException"
+                          ],
+                          "properties": {
+                            "verifyAddress": {
+                              "type": "boolean"
+                            },
+                            "recordSiteContact": {
+                              "type": "boolean"
+                            },
+                            "acceptCoverage": {
+                              "type": "boolean"
+                            },
+                            "approveException": {
+                              "type": "boolean"
+                            }
+                          }
                         }
                       }
                     },
@@ -138618,6 +139696,7 @@
                     "projectState",
                     "timeZone",
                     "coverage",
+                    "siteChecks",
                     "businessTimeZone",
                     "visitHours",
                     "windowOffers",
@@ -138717,6 +139796,423 @@
                               "type": "null"
                             }
                           ]
+                        }
+                      }
+                    },
+                    "siteChecks": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "property",
+                        "address",
+                        "siteContact",
+                        "coverage",
+                        "actions"
+                      ],
+                      "properties": {
+                        "property": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "version",
+                            "addressVersion",
+                            "address"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "version": {
+                              "type": "integer"
+                            },
+                            "addressVersion": {
+                              "type": "integer"
+                            },
+                            "address": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "street",
+                                "unit",
+                                "city",
+                                "state",
+                                "zip"
+                              ],
+                              "properties": {
+                                "street": {
+                                  "type": "string"
+                                },
+                                "unit": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "city": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string"
+                                },
+                                "zip": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "address": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "problems",
+                            "verification"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "problems": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "ADDRESS_PO_BOX",
+                                  "ADDRESS_MAILING_ZIP",
+                                  "ADDRESS_ZIP_STATE_MISMATCH"
+                                ]
+                              }
+                            },
+                            "verification": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "state",
+                                    "county",
+                                    "inArea",
+                                    "addressVersion",
+                                    "verifiedBy",
+                                    "verifiedAt"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "state": {
+                                      "type": "string"
+                                    },
+                                    "county": {
+                                      "type": "string"
+                                    },
+                                    "inArea": {
+                                      "type": "boolean"
+                                    },
+                                    "addressVersion": {
+                                      "type": "integer"
+                                    },
+                                    "verifiedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "verifiedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "siteContact": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "problem",
+                            "current",
+                            "customer"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "problem": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "SITE_CONTACT_MISSING",
+                                "SITE_CONTACT_NOT_AUTHORIZED",
+                                "SITE_CONTACT_CHANGED",
+                                null
+                              ]
+                            },
+                            "current": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "version",
+                                    "designation",
+                                    "name",
+                                    "role",
+                                    "phone",
+                                    "email",
+                                    "authority",
+                                    "source",
+                                    "note",
+                                    "recordedBy",
+                                    "recordedAt"
+                                  ],
+                                  "properties": {
+                                    "version": {
+                                      "type": "integer"
+                                    },
+                                    "designation": {
+                                      "type": "string",
+                                      "enum": [
+                                        "customer",
+                                        "other"
+                                      ]
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "role": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "phone": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "email": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "authority": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "property_access",
+                                          "visit_coordination"
+                                        ]
+                                      }
+                                    },
+                                    "source": {
+                                      "type": "string"
+                                    },
+                                    "note": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "recordedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "recordedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "customer": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "name",
+                                    "phone",
+                                    "email"
+                                  ],
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "phone": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "email": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "coverage": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "outcome",
+                            "countyVerificationId",
+                            "acceptance"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "outcome": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "served",
+                                "outside",
+                                null
+                              ]
+                            },
+                            "countyVerificationId": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "acceptance": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "outcome",
+                                    "exceptionReason",
+                                    "acceptedBy",
+                                    "acceptedAt"
+                                  ],
+                                  "properties": {
+                                    "outcome": {
+                                      "type": "string",
+                                      "enum": [
+                                        "served",
+                                        "outside"
+                                      ]
+                                    },
+                                    "exceptionReason": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "acceptedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "acceptedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "actions": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "verifyAddress",
+                            "recordSiteContact",
+                            "acceptCoverage",
+                            "approveException"
+                          ],
+                          "properties": {
+                            "verifyAddress": {
+                              "type": "boolean"
+                            },
+                            "recordSiteContact": {
+                              "type": "boolean"
+                            },
+                            "acceptCoverage": {
+                              "type": "boolean"
+                            },
+                            "approveException": {
+                              "type": "boolean"
+                            }
+                          }
                         }
                       }
                     },
@@ -142559,7 +144055,7 @@
       "post": {
         "operationId": "verifyPropertyCounty",
         "summary": "Record the verified address and county of a property",
-        "description": "Staff with visit.confirm (Owner, Office). Records that staff checked the complete address of the current address version (addressChecked) and the county it lies in, with an optional note on how. The county is compared with the service area (coverage.area): inArea. A first visit is confirmed only after this, with the county inside the area; a later address change needs a new verification. If-Match is the property version; addressVersion must be the current one (ADDRESS_VERSION_CHANGED). The property version does not change.",
+        "description": "Staff with visit.confirm (Owner, Office). Records that staff checked the complete address of the current address version (addressChecked) and the county it lies in, with an optional note on how. The county is compared with the service area (coverage.area): inArea. A first visit is confirmed only after this (the address check of the three site checks, TSK-0126), with its coverage accepted (inside the area) or the Owner’s exception (outside it); a later address change needs a new verification. The address is pre-validated first (TSK-0126, PROPOSED; address: ADDRESS_PO_BOX, ADDRESS_MAILING_ZIP, ADDRESS_ZIP_STATE_MISMATCH): corrected on the address before it can be verified. If-Match is the property version; addressVersion must be the current one (ADDRESS_VERSION_CHANGED). The property version does not change.",
         "tags": [
           "properties"
         ],
@@ -170807,6 +172303,7 @@
                     "projectState",
                     "timeZone",
                     "coverage",
+                    "siteChecks",
                     "businessTimeZone",
                     "visitHours",
                     "windowOffers",
@@ -170906,6 +172403,423 @@
                               "type": "null"
                             }
                           ]
+                        }
+                      }
+                    },
+                    "siteChecks": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "property",
+                        "address",
+                        "siteContact",
+                        "coverage",
+                        "actions"
+                      ],
+                      "properties": {
+                        "property": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "version",
+                            "addressVersion",
+                            "address"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "version": {
+                              "type": "integer"
+                            },
+                            "addressVersion": {
+                              "type": "integer"
+                            },
+                            "address": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "street",
+                                "unit",
+                                "city",
+                                "state",
+                                "zip"
+                              ],
+                              "properties": {
+                                "street": {
+                                  "type": "string"
+                                },
+                                "unit": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "city": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string"
+                                },
+                                "zip": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "address": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "problems",
+                            "verification"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "problems": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "ADDRESS_PO_BOX",
+                                  "ADDRESS_MAILING_ZIP",
+                                  "ADDRESS_ZIP_STATE_MISMATCH"
+                                ]
+                              }
+                            },
+                            "verification": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "state",
+                                    "county",
+                                    "inArea",
+                                    "addressVersion",
+                                    "verifiedBy",
+                                    "verifiedAt"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "state": {
+                                      "type": "string"
+                                    },
+                                    "county": {
+                                      "type": "string"
+                                    },
+                                    "inArea": {
+                                      "type": "boolean"
+                                    },
+                                    "addressVersion": {
+                                      "type": "integer"
+                                    },
+                                    "verifiedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "verifiedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "siteContact": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "problem",
+                            "current",
+                            "customer"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "problem": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "SITE_CONTACT_MISSING",
+                                "SITE_CONTACT_NOT_AUTHORIZED",
+                                "SITE_CONTACT_CHANGED",
+                                null
+                              ]
+                            },
+                            "current": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "version",
+                                    "designation",
+                                    "name",
+                                    "role",
+                                    "phone",
+                                    "email",
+                                    "authority",
+                                    "source",
+                                    "note",
+                                    "recordedBy",
+                                    "recordedAt"
+                                  ],
+                                  "properties": {
+                                    "version": {
+                                      "type": "integer"
+                                    },
+                                    "designation": {
+                                      "type": "string",
+                                      "enum": [
+                                        "customer",
+                                        "other"
+                                      ]
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "role": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "phone": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "email": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "authority": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "property_access",
+                                          "visit_coordination"
+                                        ]
+                                      }
+                                    },
+                                    "source": {
+                                      "type": "string"
+                                    },
+                                    "note": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "recordedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "recordedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "customer": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "name",
+                                    "phone",
+                                    "email"
+                                  ],
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "phone": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "email": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "coverage": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "outcome",
+                            "countyVerificationId",
+                            "acceptance"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "outcome": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "served",
+                                "outside",
+                                null
+                              ]
+                            },
+                            "countyVerificationId": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "acceptance": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "outcome",
+                                    "exceptionReason",
+                                    "acceptedBy",
+                                    "acceptedAt"
+                                  ],
+                                  "properties": {
+                                    "outcome": {
+                                      "type": "string",
+                                      "enum": [
+                                        "served",
+                                        "outside"
+                                      ]
+                                    },
+                                    "exceptionReason": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "acceptedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "acceptedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "actions": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "verifyAddress",
+                            "recordSiteContact",
+                            "acceptCoverage",
+                            "approveException"
+                          ],
+                          "properties": {
+                            "verifyAddress": {
+                              "type": "boolean"
+                            },
+                            "recordSiteContact": {
+                              "type": "boolean"
+                            },
+                            "acceptCoverage": {
+                              "type": "boolean"
+                            },
+                            "approveException": {
+                              "type": "boolean"
+                            }
+                          }
                         }
                       }
                     },
@@ -173897,6 +175811,7 @@
                     "projectState",
                     "timeZone",
                     "coverage",
+                    "siteChecks",
                     "businessTimeZone",
                     "visitHours",
                     "windowOffers",
@@ -173996,6 +175911,423 @@
                               "type": "null"
                             }
                           ]
+                        }
+                      }
+                    },
+                    "siteChecks": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "property",
+                        "address",
+                        "siteContact",
+                        "coverage",
+                        "actions"
+                      ],
+                      "properties": {
+                        "property": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "version",
+                            "addressVersion",
+                            "address"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "version": {
+                              "type": "integer"
+                            },
+                            "addressVersion": {
+                              "type": "integer"
+                            },
+                            "address": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "street",
+                                "unit",
+                                "city",
+                                "state",
+                                "zip"
+                              ],
+                              "properties": {
+                                "street": {
+                                  "type": "string"
+                                },
+                                "unit": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "city": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string"
+                                },
+                                "zip": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "address": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "problems",
+                            "verification"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "problems": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "ADDRESS_PO_BOX",
+                                  "ADDRESS_MAILING_ZIP",
+                                  "ADDRESS_ZIP_STATE_MISMATCH"
+                                ]
+                              }
+                            },
+                            "verification": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "state",
+                                    "county",
+                                    "inArea",
+                                    "addressVersion",
+                                    "verifiedBy",
+                                    "verifiedAt"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "state": {
+                                      "type": "string"
+                                    },
+                                    "county": {
+                                      "type": "string"
+                                    },
+                                    "inArea": {
+                                      "type": "boolean"
+                                    },
+                                    "addressVersion": {
+                                      "type": "integer"
+                                    },
+                                    "verifiedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "verifiedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "siteContact": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "problem",
+                            "current",
+                            "customer"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "problem": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "SITE_CONTACT_MISSING",
+                                "SITE_CONTACT_NOT_AUTHORIZED",
+                                "SITE_CONTACT_CHANGED",
+                                null
+                              ]
+                            },
+                            "current": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "version",
+                                    "designation",
+                                    "name",
+                                    "role",
+                                    "phone",
+                                    "email",
+                                    "authority",
+                                    "source",
+                                    "note",
+                                    "recordedBy",
+                                    "recordedAt"
+                                  ],
+                                  "properties": {
+                                    "version": {
+                                      "type": "integer"
+                                    },
+                                    "designation": {
+                                      "type": "string",
+                                      "enum": [
+                                        "customer",
+                                        "other"
+                                      ]
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "role": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "phone": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "email": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "authority": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "property_access",
+                                          "visit_coordination"
+                                        ]
+                                      }
+                                    },
+                                    "source": {
+                                      "type": "string"
+                                    },
+                                    "note": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "recordedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "recordedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "customer": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "name",
+                                    "phone",
+                                    "email"
+                                  ],
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "phone": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "email": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "coverage": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "outcome",
+                            "countyVerificationId",
+                            "acceptance"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "outcome": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "served",
+                                "outside",
+                                null
+                              ]
+                            },
+                            "countyVerificationId": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "acceptance": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "outcome",
+                                    "exceptionReason",
+                                    "acceptedBy",
+                                    "acceptedAt"
+                                  ],
+                                  "properties": {
+                                    "outcome": {
+                                      "type": "string",
+                                      "enum": [
+                                        "served",
+                                        "outside"
+                                      ]
+                                    },
+                                    "exceptionReason": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "acceptedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "acceptedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "actions": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "verifyAddress",
+                            "recordSiteContact",
+                            "acceptCoverage",
+                            "approveException"
+                          ],
+                          "properties": {
+                            "verifyAddress": {
+                              "type": "boolean"
+                            },
+                            "recordSiteContact": {
+                              "type": "boolean"
+                            },
+                            "acceptCoverage": {
+                              "type": "boolean"
+                            },
+                            "approveException": {
+                              "type": "boolean"
+                            }
+                          }
                         }
                       }
                     },
@@ -175609,6 +177941,7 @@
                     "projectState",
                     "timeZone",
                     "coverage",
+                    "siteChecks",
                     "businessTimeZone",
                     "visitHours",
                     "windowOffers",
@@ -175708,6 +178041,423 @@
                               "type": "null"
                             }
                           ]
+                        }
+                      }
+                    },
+                    "siteChecks": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "property",
+                        "address",
+                        "siteContact",
+                        "coverage",
+                        "actions"
+                      ],
+                      "properties": {
+                        "property": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "version",
+                            "addressVersion",
+                            "address"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "version": {
+                              "type": "integer"
+                            },
+                            "addressVersion": {
+                              "type": "integer"
+                            },
+                            "address": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "street",
+                                "unit",
+                                "city",
+                                "state",
+                                "zip"
+                              ],
+                              "properties": {
+                                "street": {
+                                  "type": "string"
+                                },
+                                "unit": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "city": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string"
+                                },
+                                "zip": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "address": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "problems",
+                            "verification"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "problems": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "ADDRESS_PO_BOX",
+                                  "ADDRESS_MAILING_ZIP",
+                                  "ADDRESS_ZIP_STATE_MISMATCH"
+                                ]
+                              }
+                            },
+                            "verification": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "state",
+                                    "county",
+                                    "inArea",
+                                    "addressVersion",
+                                    "verifiedBy",
+                                    "verifiedAt"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "state": {
+                                      "type": "string"
+                                    },
+                                    "county": {
+                                      "type": "string"
+                                    },
+                                    "inArea": {
+                                      "type": "boolean"
+                                    },
+                                    "addressVersion": {
+                                      "type": "integer"
+                                    },
+                                    "verifiedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "verifiedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "siteContact": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "problem",
+                            "current",
+                            "customer"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "problem": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "SITE_CONTACT_MISSING",
+                                "SITE_CONTACT_NOT_AUTHORIZED",
+                                "SITE_CONTACT_CHANGED",
+                                null
+                              ]
+                            },
+                            "current": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "version",
+                                    "designation",
+                                    "name",
+                                    "role",
+                                    "phone",
+                                    "email",
+                                    "authority",
+                                    "source",
+                                    "note",
+                                    "recordedBy",
+                                    "recordedAt"
+                                  ],
+                                  "properties": {
+                                    "version": {
+                                      "type": "integer"
+                                    },
+                                    "designation": {
+                                      "type": "string",
+                                      "enum": [
+                                        "customer",
+                                        "other"
+                                      ]
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "role": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "phone": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "email": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "authority": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "property_access",
+                                          "visit_coordination"
+                                        ]
+                                      }
+                                    },
+                                    "source": {
+                                      "type": "string"
+                                    },
+                                    "note": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "recordedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "recordedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "customer": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "name",
+                                    "phone",
+                                    "email"
+                                  ],
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "phone": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "email": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "coverage": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "outcome",
+                            "countyVerificationId",
+                            "acceptance"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "outcome": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "served",
+                                "outside",
+                                null
+                              ]
+                            },
+                            "countyVerificationId": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "acceptance": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "outcome",
+                                    "exceptionReason",
+                                    "acceptedBy",
+                                    "acceptedAt"
+                                  ],
+                                  "properties": {
+                                    "outcome": {
+                                      "type": "string",
+                                      "enum": [
+                                        "served",
+                                        "outside"
+                                      ]
+                                    },
+                                    "exceptionReason": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "acceptedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "acceptedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "actions": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "verifyAddress",
+                            "recordSiteContact",
+                            "acceptCoverage",
+                            "approveException"
+                          ],
+                          "properties": {
+                            "verifyAddress": {
+                              "type": "boolean"
+                            },
+                            "recordSiteContact": {
+                              "type": "boolean"
+                            },
+                            "acceptCoverage": {
+                              "type": "boolean"
+                            },
+                            "approveException": {
+                              "type": "boolean"
+                            }
+                          }
                         }
                       }
                     },
@@ -178238,6 +180988,7 @@
                     "projectState",
                     "timeZone",
                     "coverage",
+                    "siteChecks",
                     "businessTimeZone",
                     "visitHours",
                     "windowOffers",
@@ -178337,6 +181088,423 @@
                               "type": "null"
                             }
                           ]
+                        }
+                      }
+                    },
+                    "siteChecks": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "property",
+                        "address",
+                        "siteContact",
+                        "coverage",
+                        "actions"
+                      ],
+                      "properties": {
+                        "property": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "version",
+                            "addressVersion",
+                            "address"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "version": {
+                              "type": "integer"
+                            },
+                            "addressVersion": {
+                              "type": "integer"
+                            },
+                            "address": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "street",
+                                "unit",
+                                "city",
+                                "state",
+                                "zip"
+                              ],
+                              "properties": {
+                                "street": {
+                                  "type": "string"
+                                },
+                                "unit": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "city": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string"
+                                },
+                                "zip": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "address": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "problems",
+                            "verification"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "problems": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "ADDRESS_PO_BOX",
+                                  "ADDRESS_MAILING_ZIP",
+                                  "ADDRESS_ZIP_STATE_MISMATCH"
+                                ]
+                              }
+                            },
+                            "verification": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "state",
+                                    "county",
+                                    "inArea",
+                                    "addressVersion",
+                                    "verifiedBy",
+                                    "verifiedAt"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "state": {
+                                      "type": "string"
+                                    },
+                                    "county": {
+                                      "type": "string"
+                                    },
+                                    "inArea": {
+                                      "type": "boolean"
+                                    },
+                                    "addressVersion": {
+                                      "type": "integer"
+                                    },
+                                    "verifiedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "verifiedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "siteContact": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "problem",
+                            "current",
+                            "customer"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "problem": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "SITE_CONTACT_MISSING",
+                                "SITE_CONTACT_NOT_AUTHORIZED",
+                                "SITE_CONTACT_CHANGED",
+                                null
+                              ]
+                            },
+                            "current": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "version",
+                                    "designation",
+                                    "name",
+                                    "role",
+                                    "phone",
+                                    "email",
+                                    "authority",
+                                    "source",
+                                    "note",
+                                    "recordedBy",
+                                    "recordedAt"
+                                  ],
+                                  "properties": {
+                                    "version": {
+                                      "type": "integer"
+                                    },
+                                    "designation": {
+                                      "type": "string",
+                                      "enum": [
+                                        "customer",
+                                        "other"
+                                      ]
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "role": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "phone": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "email": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "authority": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "property_access",
+                                          "visit_coordination"
+                                        ]
+                                      }
+                                    },
+                                    "source": {
+                                      "type": "string"
+                                    },
+                                    "note": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "recordedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "recordedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "customer": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "name",
+                                    "phone",
+                                    "email"
+                                  ],
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "phone": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "email": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "coverage": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "outcome",
+                            "countyVerificationId",
+                            "acceptance"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "outcome": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "served",
+                                "outside",
+                                null
+                              ]
+                            },
+                            "countyVerificationId": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "acceptance": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "outcome",
+                                    "exceptionReason",
+                                    "acceptedBy",
+                                    "acceptedAt"
+                                  ],
+                                  "properties": {
+                                    "outcome": {
+                                      "type": "string",
+                                      "enum": [
+                                        "served",
+                                        "outside"
+                                      ]
+                                    },
+                                    "exceptionReason": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "acceptedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "acceptedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "actions": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "verifyAddress",
+                            "recordSiteContact",
+                            "acceptCoverage",
+                            "approveException"
+                          ],
+                          "properties": {
+                            "verifyAddress": {
+                              "type": "boolean"
+                            },
+                            "recordSiteContact": {
+                              "type": "boolean"
+                            },
+                            "acceptCoverage": {
+                              "type": "boolean"
+                            },
+                            "approveException": {
+                              "type": "boolean"
+                            }
+                          }
                         }
                       }
                     },
@@ -181138,6 +184306,7 @@
                     "projectState",
                     "timeZone",
                     "coverage",
+                    "siteChecks",
                     "businessTimeZone",
                     "visitHours",
                     "windowOffers",
@@ -181237,6 +184406,423 @@
                               "type": "null"
                             }
                           ]
+                        }
+                      }
+                    },
+                    "siteChecks": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "property",
+                        "address",
+                        "siteContact",
+                        "coverage",
+                        "actions"
+                      ],
+                      "properties": {
+                        "property": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "version",
+                            "addressVersion",
+                            "address"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "version": {
+                              "type": "integer"
+                            },
+                            "addressVersion": {
+                              "type": "integer"
+                            },
+                            "address": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "street",
+                                "unit",
+                                "city",
+                                "state",
+                                "zip"
+                              ],
+                              "properties": {
+                                "street": {
+                                  "type": "string"
+                                },
+                                "unit": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "city": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string"
+                                },
+                                "zip": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "address": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "problems",
+                            "verification"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "problems": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "ADDRESS_PO_BOX",
+                                  "ADDRESS_MAILING_ZIP",
+                                  "ADDRESS_ZIP_STATE_MISMATCH"
+                                ]
+                              }
+                            },
+                            "verification": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "state",
+                                    "county",
+                                    "inArea",
+                                    "addressVersion",
+                                    "verifiedBy",
+                                    "verifiedAt"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "state": {
+                                      "type": "string"
+                                    },
+                                    "county": {
+                                      "type": "string"
+                                    },
+                                    "inArea": {
+                                      "type": "boolean"
+                                    },
+                                    "addressVersion": {
+                                      "type": "integer"
+                                    },
+                                    "verifiedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "verifiedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "siteContact": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "problem",
+                            "current",
+                            "customer"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "problem": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "SITE_CONTACT_MISSING",
+                                "SITE_CONTACT_NOT_AUTHORIZED",
+                                "SITE_CONTACT_CHANGED",
+                                null
+                              ]
+                            },
+                            "current": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "version",
+                                    "designation",
+                                    "name",
+                                    "role",
+                                    "phone",
+                                    "email",
+                                    "authority",
+                                    "source",
+                                    "note",
+                                    "recordedBy",
+                                    "recordedAt"
+                                  ],
+                                  "properties": {
+                                    "version": {
+                                      "type": "integer"
+                                    },
+                                    "designation": {
+                                      "type": "string",
+                                      "enum": [
+                                        "customer",
+                                        "other"
+                                      ]
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "role": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "phone": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "email": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "authority": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "property_access",
+                                          "visit_coordination"
+                                        ]
+                                      }
+                                    },
+                                    "source": {
+                                      "type": "string"
+                                    },
+                                    "note": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "recordedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "recordedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "customer": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "name",
+                                    "phone",
+                                    "email"
+                                  ],
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "phone": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "email": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "coverage": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "outcome",
+                            "countyVerificationId",
+                            "acceptance"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "outcome": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "served",
+                                "outside",
+                                null
+                              ]
+                            },
+                            "countyVerificationId": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "acceptance": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "outcome",
+                                    "exceptionReason",
+                                    "acceptedBy",
+                                    "acceptedAt"
+                                  ],
+                                  "properties": {
+                                    "outcome": {
+                                      "type": "string",
+                                      "enum": [
+                                        "served",
+                                        "outside"
+                                      ]
+                                    },
+                                    "exceptionReason": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "acceptedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "acceptedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "actions": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "verifyAddress",
+                            "recordSiteContact",
+                            "acceptCoverage",
+                            "approveException"
+                          ],
+                          "properties": {
+                            "verifyAddress": {
+                              "type": "boolean"
+                            },
+                            "recordSiteContact": {
+                              "type": "boolean"
+                            },
+                            "acceptCoverage": {
+                              "type": "boolean"
+                            },
+                            "approveException": {
+                              "type": "boolean"
+                            }
+                          }
                         }
                       }
                     },
@@ -185775,6 +189361,7 @@
                     "projectState",
                     "timeZone",
                     "coverage",
+                    "siteChecks",
                     "businessTimeZone",
                     "visitHours",
                     "windowOffers",
@@ -185874,6 +189461,423 @@
                               "type": "null"
                             }
                           ]
+                        }
+                      }
+                    },
+                    "siteChecks": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "property",
+                        "address",
+                        "siteContact",
+                        "coverage",
+                        "actions"
+                      ],
+                      "properties": {
+                        "property": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "version",
+                            "addressVersion",
+                            "address"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "version": {
+                              "type": "integer"
+                            },
+                            "addressVersion": {
+                              "type": "integer"
+                            },
+                            "address": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "street",
+                                "unit",
+                                "city",
+                                "state",
+                                "zip"
+                              ],
+                              "properties": {
+                                "street": {
+                                  "type": "string"
+                                },
+                                "unit": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "city": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string"
+                                },
+                                "zip": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "address": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "problems",
+                            "verification"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "problems": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "ADDRESS_PO_BOX",
+                                  "ADDRESS_MAILING_ZIP",
+                                  "ADDRESS_ZIP_STATE_MISMATCH"
+                                ]
+                              }
+                            },
+                            "verification": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "state",
+                                    "county",
+                                    "inArea",
+                                    "addressVersion",
+                                    "verifiedBy",
+                                    "verifiedAt"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "state": {
+                                      "type": "string"
+                                    },
+                                    "county": {
+                                      "type": "string"
+                                    },
+                                    "inArea": {
+                                      "type": "boolean"
+                                    },
+                                    "addressVersion": {
+                                      "type": "integer"
+                                    },
+                                    "verifiedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "verifiedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "siteContact": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "problem",
+                            "current",
+                            "customer"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "problem": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "SITE_CONTACT_MISSING",
+                                "SITE_CONTACT_NOT_AUTHORIZED",
+                                "SITE_CONTACT_CHANGED",
+                                null
+                              ]
+                            },
+                            "current": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "version",
+                                    "designation",
+                                    "name",
+                                    "role",
+                                    "phone",
+                                    "email",
+                                    "authority",
+                                    "source",
+                                    "note",
+                                    "recordedBy",
+                                    "recordedAt"
+                                  ],
+                                  "properties": {
+                                    "version": {
+                                      "type": "integer"
+                                    },
+                                    "designation": {
+                                      "type": "string",
+                                      "enum": [
+                                        "customer",
+                                        "other"
+                                      ]
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "role": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "phone": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "email": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "authority": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "property_access",
+                                          "visit_coordination"
+                                        ]
+                                      }
+                                    },
+                                    "source": {
+                                      "type": "string"
+                                    },
+                                    "note": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "recordedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "recordedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "customer": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "name",
+                                    "phone",
+                                    "email"
+                                  ],
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "phone": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "email": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "coverage": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "outcome",
+                            "countyVerificationId",
+                            "acceptance"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "outcome": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "served",
+                                "outside",
+                                null
+                              ]
+                            },
+                            "countyVerificationId": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "acceptance": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "outcome",
+                                    "exceptionReason",
+                                    "acceptedBy",
+                                    "acceptedAt"
+                                  ],
+                                  "properties": {
+                                    "outcome": {
+                                      "type": "string",
+                                      "enum": [
+                                        "served",
+                                        "outside"
+                                      ]
+                                    },
+                                    "exceptionReason": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "acceptedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "acceptedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "actions": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "verifyAddress",
+                            "recordSiteContact",
+                            "acceptCoverage",
+                            "approveException"
+                          ],
+                          "properties": {
+                            "verifyAddress": {
+                              "type": "boolean"
+                            },
+                            "recordSiteContact": {
+                              "type": "boolean"
+                            },
+                            "acceptCoverage": {
+                              "type": "boolean"
+                            },
+                            "approveException": {
+                              "type": "boolean"
+                            }
+                          }
                         }
                       }
                     },
@@ -187471,6 +191475,7 @@
                     "projectState",
                     "timeZone",
                     "coverage",
+                    "siteChecks",
                     "businessTimeZone",
                     "visitHours",
                     "windowOffers",
@@ -187570,6 +191575,423 @@
                               "type": "null"
                             }
                           ]
+                        }
+                      }
+                    },
+                    "siteChecks": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "property",
+                        "address",
+                        "siteContact",
+                        "coverage",
+                        "actions"
+                      ],
+                      "properties": {
+                        "property": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "version",
+                            "addressVersion",
+                            "address"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "version": {
+                              "type": "integer"
+                            },
+                            "addressVersion": {
+                              "type": "integer"
+                            },
+                            "address": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "street",
+                                "unit",
+                                "city",
+                                "state",
+                                "zip"
+                              ],
+                              "properties": {
+                                "street": {
+                                  "type": "string"
+                                },
+                                "unit": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "city": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string"
+                                },
+                                "zip": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "address": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "problems",
+                            "verification"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "problems": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "ADDRESS_PO_BOX",
+                                  "ADDRESS_MAILING_ZIP",
+                                  "ADDRESS_ZIP_STATE_MISMATCH"
+                                ]
+                              }
+                            },
+                            "verification": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "state",
+                                    "county",
+                                    "inArea",
+                                    "addressVersion",
+                                    "verifiedBy",
+                                    "verifiedAt"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "state": {
+                                      "type": "string"
+                                    },
+                                    "county": {
+                                      "type": "string"
+                                    },
+                                    "inArea": {
+                                      "type": "boolean"
+                                    },
+                                    "addressVersion": {
+                                      "type": "integer"
+                                    },
+                                    "verifiedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "verifiedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "siteContact": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "problem",
+                            "current",
+                            "customer"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "problem": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "SITE_CONTACT_MISSING",
+                                "SITE_CONTACT_NOT_AUTHORIZED",
+                                "SITE_CONTACT_CHANGED",
+                                null
+                              ]
+                            },
+                            "current": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "version",
+                                    "designation",
+                                    "name",
+                                    "role",
+                                    "phone",
+                                    "email",
+                                    "authority",
+                                    "source",
+                                    "note",
+                                    "recordedBy",
+                                    "recordedAt"
+                                  ],
+                                  "properties": {
+                                    "version": {
+                                      "type": "integer"
+                                    },
+                                    "designation": {
+                                      "type": "string",
+                                      "enum": [
+                                        "customer",
+                                        "other"
+                                      ]
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "role": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "phone": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "email": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "authority": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "enum": [
+                                          "property_access",
+                                          "visit_coordination"
+                                        ]
+                                      }
+                                    },
+                                    "source": {
+                                      "type": "string"
+                                    },
+                                    "note": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "recordedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "recordedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "customer": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "name",
+                                    "phone",
+                                    "email"
+                                  ],
+                                  "properties": {
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "phone": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "email": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "coverage": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "done",
+                            "outcome",
+                            "countyVerificationId",
+                            "acceptance"
+                          ],
+                          "properties": {
+                            "done": {
+                              "type": "boolean"
+                            },
+                            "outcome": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "served",
+                                "outside",
+                                null
+                              ]
+                            },
+                            "countyVerificationId": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "acceptance": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "outcome",
+                                    "exceptionReason",
+                                    "acceptedBy",
+                                    "acceptedAt"
+                                  ],
+                                  "properties": {
+                                    "outcome": {
+                                      "type": "string",
+                                      "enum": [
+                                        "served",
+                                        "outside"
+                                      ]
+                                    },
+                                    "exceptionReason": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    },
+                                    "acceptedBy": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "acceptedAt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        "actions": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "verifyAddress",
+                            "recordSiteContact",
+                            "acceptCoverage",
+                            "approveException"
+                          ],
+                          "properties": {
+                            "verifyAddress": {
+                              "type": "boolean"
+                            },
+                            "recordSiteContact": {
+                              "type": "boolean"
+                            },
+                            "acceptCoverage": {
+                              "type": "boolean"
+                            },
+                            "approveException": {
+                              "type": "boolean"
+                            }
+                          }
                         }
                       }
                     },

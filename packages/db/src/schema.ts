@@ -262,6 +262,35 @@ export interface CrmCustomersTable {
   version: Generated<number>
 }
 
+export interface CrmProjectCoverageAcceptancesTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  project_id: string
+  county_verification_id: string
+  outcome: string
+  exception_reason: string | null
+  accepted_by: string
+  accepted_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CrmProjectSiteContactsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  project_id: string
+  version: number
+  designation: string
+  contact_id: string | null
+  full_name: string
+  role: string | null
+  phone_e164: string | null
+  email: string | null
+  authority: string[]
+  source: string
+  note: string | null
+  recorded_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface CrmProjectsTable {
   id: Generated<string>
   reference: string
@@ -2802,6 +2831,8 @@ export interface WorkVisitsTable {
   updated_at: ColumnType<Date, Date | string | undefined, Date | string>
   number: Generated<number>
   county_verification_id: string | null
+  site_contact_id: string | null
+  coverage_acceptance_id: string | null
 }
 
 export interface WorkWalkthroughsTable {
@@ -2960,6 +2991,8 @@ export interface Database {
   'crm.customer_notes': CrmCustomerNotesTable
   'crm.customer_properties': CrmCustomerPropertiesTable
   'crm.customers': CrmCustomersTable
+  'crm.project_coverage_acceptances': CrmProjectCoverageAcceptancesTable
+  'crm.project_site_contacts': CrmProjectSiteContactsTable
   'crm.projects': CrmProjectsTable
   'crm.properties': CrmPropertiesTable
   'crm.property_addresses': CrmPropertyAddressesTable

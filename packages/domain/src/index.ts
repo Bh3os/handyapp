@@ -447,3 +447,5 @@ export * from './overrides.js'
 export * from './escalation.js'
 // TSK-0094 (HH-QA-07, HH-QA-08, HH-INC-03, FACT-WARRANTY): return work, the warranty window and resuming.
 export * from './return-work.js'
+// TSK-0126 (OWN-DEC-167): the three first-visit site checks, site-contact authority and address pre-validation.
+export * from './site-checks.js'

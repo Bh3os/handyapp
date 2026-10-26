@@ -842,6 +842,25 @@ export const LABEL_FAMILIES = {
     'COUNTY_NOT_VERIFIED',
     'COUNTY_OUTSIDE_AREA',
     'ADDRESS_VERSION_CHANGED',
+    // TSK-0126 (OWN-DEC-167): the three first-visit site checks (apps/server/src/modules/visits/site-checks.ts).
+    'SITE_CONTACT_MISSING',
+    'SITE_CONTACT_NOT_AUTHORIZED',
+    'SITE_CONTACT_CHANGED',
+    'COVERAGE_NOT_ACCEPTED',
+    'COVERAGE_ACCEPTED',
+    'COUNTY_CHECK_CHANGED',
+    'EXCEPTION_NOT_NEEDED',
+    'ADDRESS_PO_BOX',
+    'ADDRESS_MAILING_ZIP',
+    'ADDRESS_ZIP_STATE_MISMATCH',
+    'NAME_REQUIRED',
+    'ROLE_REQUIRED',
+    'CONTACT_REQUIRED',
+    'PHONE_INVALID',
+    'EMAIL_INVALID',
+    'NOT_FOR_CUSTOMER',
+    'NO_CUSTOMER_CONTACT',
+    'sensitive_content',
     // TSK-0066: reschedule, reassign, cancel and the customer's change requests (apps/server/src/modules/visits/changes.ts).
     'INITIATOR_REQUIRED',
     'CAUSE_REQUIRED',
@@ -2182,6 +2201,9 @@ export const LABEL_FAMILIES = {
     'REASON_REQUIRED',
     'INVALID_STATE',
   ],
+  /** TSK-0126 (OWN-DEC-167): what staff confirm a site contact may do, and who the customer designated. */
+  siteContactAuthority: ['property_access', 'visit_coordination'],
+  siteContactDesignation: ['customer', 'other'],
 } as const satisfies Record<string, readonly string[]>
 
 export type LabelFamily = keyof typeof LABEL_FAMILIES
