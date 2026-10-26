@@ -20393,6 +20393,221 @@
         }
       }
     },
+    "/api/v1/staff/accounting/exports": {
+      "post": {
+        "operationId": "exportAccountingRecords",
+        "summary": "The accountant's CSV of one kind of record",
+        "description": "Staff with export.accounting (the Owner, with a fresh sign-in and a reason). One CSV file of the records of `dataset` in the period (dates in the business time zone, both included, at most 366 days): invoices (issued in it, with their ledger), payments (tenders received in it, every state), payment_allocations (made in it), refunds_credits_write_offs (requested in it, every state, as recorded), deposits (set in it), provider_fees (Square fees by date incurred), payouts (Square payouts by date paid out), job_costs (cost entries by date incurred, voided ones kept) and arrived_finished (the Arrived and Finished times of visits dated in it). Amounts in exact US dollars from integer cents. Only what the Owner reads on the staff screens: no access code, token, message text or case detail. Records only: no revenue recognition, tax treatment or write-off presentation is applied (NOT CONFIGURED), and the file never replaces an accounting system or the accountant's tax review. Audited with the dataset, period, row count and reason. PROPOSED limit: 30 per staff member per hour.",
+        "tags": [
+          "dashboard"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "dataset",
+                  "from",
+                  "to",
+                  "reason"
+                ],
+                "properties": {
+                  "dataset": {
+                    "type": "string",
+                    "enum": [
+                      "invoices",
+                      "payments",
+                      "payment_allocations",
+                      "refunds_credits_write_offs",
+                      "deposits",
+                      "provider_fees",
+                      "payouts",
+                      "job_costs",
+                      "arrived_finished"
+                    ]
+                  },
+                  "from": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
+                  "to": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "filename",
+                    "contentType",
+                    "rows",
+                    "csv"
+                  ],
+                  "properties": {
+                    "filename": {
+                      "type": "string"
+                    },
+                    "contentType": {
+                      "type": "string",
+                      "enum": [
+                        "text/csv"
+                      ]
+                    },
+                    "rows": {
+                      "type": "integer"
+                    },
+                    "csv": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "export.accounting",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "owner-export",
+            "limit": 30,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "accounting.export",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/owner-dashboard.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/audit-events": {
       "get": {
         "operationId": "listAuditEvents",
@@ -41006,6 +41221,1176 @@
           "pagination": false,
           "cache": "private, no-store",
           "test": "test/integration/customers.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/dashboard": {
+      "get": {
+        "operationId": "getOwnerDashboard",
+        "summary": "The Owner Dashboard",
+        "description": "Staff with dashboard.view (the Owner). The figures of the period from `from` to `to` (dates in the business time zone, both included, at most 366 days, PROPOSED) beside the previous period of the same length, and the figures as things stand now: Overview, Customer response, Estimates, Job quality, Payments, Job costs and Cases (S11). Every money figure names its report definition (basis, included and excluded states: GET /staff/reports/sources); figures of two bases are never added together. Invoiced revenue is final invoices issued (the deposit invoice left out: counted once, on the final invoice); money received is verified payments once each, by method; pending checks, refunds and credits, Square fees and payouts are apart. A value is known, incomplete (the part known so far), unavailable (nothing to measure) or not configured; never a zero for missing data. Job costs are incomplete while labor and burden cost are NOT CONFIGURED; the accounting treatments (deposit revenue recognition, tax, write-off presentation) are NOT CONFIGURED. generatedAt is the last-updated time. Refusals: VALIDATION_FAILED RANGE_INVALID / RANGE_TOO_LONG, NOT_CONFIGURED BUSINESS_TIMEZONE_NOT_CONFIGURED.",
+        "tags": [
+          "dashboard"
+        ],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "period",
+                    "zone",
+                    "generatedAt",
+                    "figures",
+                    "accounting"
+                  ],
+                  "properties": {
+                    "period": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "from",
+                        "to",
+                        "days",
+                        "previous"
+                      ],
+                      "properties": {
+                        "from": {
+                          "type": "string",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                        },
+                        "to": {
+                          "type": "string",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                        },
+                        "days": {
+                          "type": "integer"
+                        },
+                        "previous": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "from",
+                            "to"
+                          ],
+                          "properties": {
+                            "from": {
+                              "type": "string",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                            },
+                            "to": {
+                              "type": "string",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "zone": {
+                      "type": "string"
+                    },
+                    "generatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "figures": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "section",
+                          "unit",
+                          "scope",
+                          "report",
+                          "detail",
+                          "current",
+                          "previous"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "enum": [
+                              "overview.new_requests",
+                              "overview.estimates_awaiting",
+                              "overview.owner_approvals",
+                              "overview.scheduled_jobs",
+                              "overview.awaiting_review",
+                              "overview.overdue_invoices",
+                              "overview.overdue_decisions",
+                              "overview.open_cases",
+                              "overview.privacy_open",
+                              "overview.privacy_overdue",
+                              "overview.privacy_legal_overdue",
+                              "response.received",
+                              "response.answered",
+                              "response.awaiting",
+                              "response.within_target",
+                              "response.within_target_share",
+                              "response.average_minutes",
+                              "response.median_minutes",
+                              "response.not_configured",
+                              "estimates.sent",
+                              "estimates.approved",
+                              "estimates.declined",
+                              "estimates.expired",
+                              "estimates.withdrawn",
+                              "estimates.awaiting",
+                              "quality.completed_jobs",
+                              "quality.reviews_decided",
+                              "quality.reviews_passed_first",
+                              "quality.pass_rate",
+                              "quality.open_punch_items",
+                              "quality.return_visits",
+                              "payments.invoices_issued",
+                              "payments.invoiced",
+                              "payments.received.square_payment_link",
+                              "payments.received.square_tap_to_pay",
+                              "payments.received.cash",
+                              "payments.received.check",
+                              "payments.received.zelle",
+                              "payments.received.cash_app",
+                              "payments.received.chime",
+                              "payments.received",
+                              "payments.pending_checks_count",
+                              "payments.pending_checks",
+                              "payments.refunds",
+                              "payments.credits",
+                              "payments.fees",
+                              "payments.payouts",
+                              "payments.outstanding",
+                              "payments.overdue",
+                              "payments.write_offs",
+                              "costs.jobs",
+                              "costs.complete",
+                              "costs.incomplete",
+                              "costs.recorded",
+                              "costs.return_work",
+                              "cases.open_complaints",
+                              "cases.open_damage_injury",
+                              "cases.open_unassigned",
+                              "cases.overdue_follow_ups",
+                              "cases.open_by_assignee"
+                            ]
+                          },
+                          "section": {
+                            "type": "string",
+                            "enum": [
+                              "overview",
+                              "response",
+                              "estimates",
+                              "quality",
+                              "payments",
+                              "costs",
+                              "cases"
+                            ]
+                          },
+                          "unit": {
+                            "type": "string",
+                            "enum": [
+                              "count",
+                              "cents",
+                              "minutes",
+                              "basis_points"
+                            ]
+                          },
+                          "scope": {
+                            "type": "string",
+                            "enum": [
+                              "period",
+                              "now"
+                            ]
+                          },
+                          "report": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "basis",
+                                  "unknown"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "enum": [
+                                      "estimates_sent",
+                                      "invoiced",
+                                      "payments_received",
+                                      "pending_checks",
+                                      "refunds_and_credits",
+                                      "provider_fees",
+                                      "payouts",
+                                      "outstanding_balances",
+                                      "job_costs",
+                                      "return_work_costs"
+                                    ]
+                                  },
+                                  "basis": {
+                                    "type": "string",
+                                    "enum": [
+                                      "estimates",
+                                      "invoiced_revenue",
+                                      "cash_received",
+                                      "pending_payments",
+                                      "refunds_and_credits",
+                                      "provider_fees",
+                                      "settlement",
+                                      "balances",
+                                      "job_costs",
+                                      "estimated_profit"
+                                    ]
+                                  },
+                                  "unknown": {
+                                    "type": "string",
+                                    "enum": [
+                                      "incomplete",
+                                      "unavailable"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "detail": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "name"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "current": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "state",
+                              "value"
+                            ],
+                            "properties": {
+                              "state": {
+                                "type": "string",
+                                "enum": [
+                                  "known",
+                                  "incomplete",
+                                  "unavailable",
+                                  "not_configured"
+                                ]
+                              },
+                              "value": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              }
+                            }
+                          },
+                          "previous": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "state",
+                                  "value"
+                                ],
+                                "properties": {
+                                  "state": {
+                                    "type": "string",
+                                    "enum": [
+                                      "known",
+                                      "incomplete",
+                                      "unavailable",
+                                      "not_configured"
+                                    ]
+                                  },
+                                  "value": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "accounting": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "depositRevenueRecognition",
+                        "taxTreatment",
+                        "writeOffPresentation"
+                      ],
+                      "properties": {
+                        "depositRevenueRecognition": {
+                          "type": "string",
+                          "enum": [
+                            "not_configured"
+                          ]
+                        },
+                        "taxTreatment": {
+                          "type": "string",
+                          "enum": [
+                            "not_configured"
+                          ]
+                        },
+                        "writeOffPresentation": {
+                          "type": "string",
+                          "enum": [
+                            "not_configured"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "dashboard.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/owner-dashboard.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/dashboard/exports": {
+      "post": {
+        "operationId": "exportOwnerDashboard",
+        "summary": "The Owner Dashboard as CSV",
+        "description": "Staff with dashboard.export_csv (the Owner) and a sign-in within the last minutes (FRESH_AUTH_REQUIRED). One row per figure of the dashboard for the period, in screen order, with the same values: section, figure, report and basis, unit, scope, the period, state, value (integer cents, counts, minutes or basis points), the amount in US dollars, and the previous period beside it. Its totals equal the dashboard. Cells are protected against spreadsheet formulas. Audited with the period and row count. PROPOSED limit: 30 per staff member per hour.",
+        "tags": [
+          "dashboard"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "from",
+                  "to"
+                ],
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
+                  "to": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "filename",
+                    "contentType",
+                    "rows",
+                    "csv"
+                  ],
+                  "properties": {
+                    "filename": {
+                      "type": "string"
+                    },
+                    "contentType": {
+                      "type": "string",
+                      "enum": [
+                        "text/csv"
+                      ]
+                    },
+                    "rows": {
+                      "type": "integer"
+                    },
+                    "csv": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "dashboard.export_csv",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "owner-export",
+            "limit": 30,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": 5,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "dashboard.export_csv",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/owner-dashboard.test.ts"
+        }
+      }
+    },
+    "/api/v1/staff/dashboard/records": {
+      "get": {
+        "operationId": "getOwnerDashboardRecords",
+        "summary": "The records behind one dashboard figure",
+        "description": "Staff with dashboard.view (the Owner). The supporting records of one figure for the period (or, with `previous`, the previous period; a figure counted as things stand has none): a count is its records and an amount the sum of their cents, so the list always matches the figure. At most 500 records are listed (PROPOSED); `total` and `totalCents` count every one. Each record gives its reference, date, state, cents or minutes and the staff screen that opens it; cases show their number, kind and state only (sensitive details stay on the case). `detail` is the staff member of the per-assignee figure. Refusals: VALIDATION_FAILED RANGE_INVALID / RANGE_TOO_LONG / UNKNOWN_FIGURE / NOT_A_PERIOD_FIGURE.",
+        "tags": [
+          "dashboard"
+        ],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            }
+          },
+          {
+            "name": "figure",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "overview.new_requests",
+                "overview.estimates_awaiting",
+                "overview.owner_approvals",
+                "overview.scheduled_jobs",
+                "overview.awaiting_review",
+                "overview.overdue_invoices",
+                "overview.overdue_decisions",
+                "overview.open_cases",
+                "overview.privacy_open",
+                "overview.privacy_overdue",
+                "overview.privacy_legal_overdue",
+                "response.received",
+                "response.answered",
+                "response.awaiting",
+                "response.within_target",
+                "response.within_target_share",
+                "response.average_minutes",
+                "response.median_minutes",
+                "response.not_configured",
+                "estimates.sent",
+                "estimates.approved",
+                "estimates.declined",
+                "estimates.expired",
+                "estimates.withdrawn",
+                "estimates.awaiting",
+                "quality.completed_jobs",
+                "quality.reviews_decided",
+                "quality.reviews_passed_first",
+                "quality.pass_rate",
+                "quality.open_punch_items",
+                "quality.return_visits",
+                "payments.invoices_issued",
+                "payments.invoiced",
+                "payments.received.square_payment_link",
+                "payments.received.square_tap_to_pay",
+                "payments.received.cash",
+                "payments.received.check",
+                "payments.received.zelle",
+                "payments.received.cash_app",
+                "payments.received.chime",
+                "payments.received",
+                "payments.pending_checks_count",
+                "payments.pending_checks",
+                "payments.refunds",
+                "payments.credits",
+                "payments.fees",
+                "payments.payouts",
+                "payments.outstanding",
+                "payments.overdue",
+                "payments.write_offs",
+                "costs.jobs",
+                "costs.complete",
+                "costs.incomplete",
+                "costs.recorded",
+                "costs.return_work",
+                "cases.open_complaints",
+                "cases.open_damage_injury",
+                "cases.open_unassigned",
+                "cases.overdue_follow_ups",
+                "cases.open_by_assignee"
+              ]
+            }
+          },
+          {
+            "name": "detail",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          },
+          {
+            "name": "previous",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "figure",
+                    "unit",
+                    "scope",
+                    "report",
+                    "detail",
+                    "period",
+                    "generatedAt",
+                    "value",
+                    "total",
+                    "totalCents",
+                    "truncated",
+                    "rows"
+                  ],
+                  "properties": {
+                    "figure": {
+                      "type": "string",
+                      "enum": [
+                        "overview.new_requests",
+                        "overview.estimates_awaiting",
+                        "overview.owner_approvals",
+                        "overview.scheduled_jobs",
+                        "overview.awaiting_review",
+                        "overview.overdue_invoices",
+                        "overview.overdue_decisions",
+                        "overview.open_cases",
+                        "overview.privacy_open",
+                        "overview.privacy_overdue",
+                        "overview.privacy_legal_overdue",
+                        "response.received",
+                        "response.answered",
+                        "response.awaiting",
+                        "response.within_target",
+                        "response.within_target_share",
+                        "response.average_minutes",
+                        "response.median_minutes",
+                        "response.not_configured",
+                        "estimates.sent",
+                        "estimates.approved",
+                        "estimates.declined",
+                        "estimates.expired",
+                        "estimates.withdrawn",
+                        "estimates.awaiting",
+                        "quality.completed_jobs",
+                        "quality.reviews_decided",
+                        "quality.reviews_passed_first",
+                        "quality.pass_rate",
+                        "quality.open_punch_items",
+                        "quality.return_visits",
+                        "payments.invoices_issued",
+                        "payments.invoiced",
+                        "payments.received.square_payment_link",
+                        "payments.received.square_tap_to_pay",
+                        "payments.received.cash",
+                        "payments.received.check",
+                        "payments.received.zelle",
+                        "payments.received.cash_app",
+                        "payments.received.chime",
+                        "payments.received",
+                        "payments.pending_checks_count",
+                        "payments.pending_checks",
+                        "payments.refunds",
+                        "payments.credits",
+                        "payments.fees",
+                        "payments.payouts",
+                        "payments.outstanding",
+                        "payments.overdue",
+                        "payments.write_offs",
+                        "costs.jobs",
+                        "costs.complete",
+                        "costs.incomplete",
+                        "costs.recorded",
+                        "costs.return_work",
+                        "cases.open_complaints",
+                        "cases.open_damage_injury",
+                        "cases.open_unassigned",
+                        "cases.overdue_follow_ups",
+                        "cases.open_by_assignee"
+                      ]
+                    },
+                    "unit": {
+                      "type": "string",
+                      "enum": [
+                        "count",
+                        "cents",
+                        "minutes",
+                        "basis_points"
+                      ]
+                    },
+                    "scope": {
+                      "type": "string",
+                      "enum": [
+                        "period",
+                        "now"
+                      ]
+                    },
+                    "report": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "id",
+                            "basis",
+                            "unknown"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "enum": [
+                                "estimates_sent",
+                                "invoiced",
+                                "payments_received",
+                                "pending_checks",
+                                "refunds_and_credits",
+                                "provider_fees",
+                                "payouts",
+                                "outstanding_balances",
+                                "job_costs",
+                                "return_work_costs"
+                              ]
+                            },
+                            "basis": {
+                              "type": "string",
+                              "enum": [
+                                "estimates",
+                                "invoiced_revenue",
+                                "cash_received",
+                                "pending_payments",
+                                "refunds_and_credits",
+                                "provider_fees",
+                                "settlement",
+                                "balances",
+                                "job_costs",
+                                "estimated_profit"
+                              ]
+                            },
+                            "unknown": {
+                              "type": "string",
+                              "enum": [
+                                "incomplete",
+                                "unavailable"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "detail": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "period": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "from",
+                        "to"
+                      ],
+                      "properties": {
+                        "from": {
+                          "type": "string",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                        },
+                        "to": {
+                          "type": "string",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                        }
+                      }
+                    },
+                    "generatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "value": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "state",
+                        "value"
+                      ],
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "known",
+                            "incomplete",
+                            "unavailable",
+                            "not_configured"
+                          ]
+                        },
+                        "value": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "totalCents": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "truncated": {
+                      "type": "boolean"
+                    },
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "reference",
+                          "on",
+                          "state",
+                          "cents",
+                          "minutes",
+                          "link"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "on": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "state": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "cents": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "minutes": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "link": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "screen",
+                                  "id"
+                                ],
+                                "properties": {
+                                  "screen": {
+                                    "type": "string"
+                                  },
+                                  "id": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "dashboard.view",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/owner-dashboard.test.ts"
         }
       }
     },
