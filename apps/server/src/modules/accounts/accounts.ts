@@ -46,6 +46,7 @@ import {
   type StartedSession,
 } from '../identity/index.js'
 import { automaticPolicy, currentConsent, liveTextsEnabled, templateReadiness } from '../notifications/index.js'
+import { endMembershipsOfClosedAccount } from './organizations.js'
 
 export type AccountChannel = 'email' | 'phone'
 export type ContactValue = { channel: AccountChannel; value: string }
@@ -703,11 +704,12 @@ export async function changeEmail(
 // ---------------------------------------------------------------------------------------------------------------
 // Closing (OWN-DEC-71; the Owner's reviewed deletion is TSK-0100)
 
-export type CloseResult = { closed: boolean; sessions: number; links: number; grants: number }
+export type CloseResult = { closed: boolean; sessions: number; links: number; grants: number; memberships: number }
 
 /**
  * Closes the login account: sign-in ends (its sign-in values are cleared), every session and project link is revoked,
- * and so are the guest links of its linked projects (reason account_deleted; their sessions end). Requests, projects,
+ * and so are the guest links of its linked projects (reason account_deleted; their sessions end); TSK-0118: its
+ * organization memberships end, and so do the memberships of the organizations it administers. Requests, projects,
  * contacts, estimates, invoices and every other business record stay exactly as they are.
  */
 export async function closeCustomerAccount(
@@ -732,7 +734,7 @@ export async function closeCustomerAccount(
     .where('id', '=', input.accountId)
     .where('state', '=', 'active')
     .executeTakeFirst()
-  if (Number(closed.numUpdatedRows) === 0) return { closed: false, sessions: 0, links: 0, grants: 0 }
+  if (Number(closed.numUpdatedRows) === 0) return { closed: false, sessions: 0, links: 0, grants: 0, memberships: 0 }
   const sessions = await revokeAccountSessions(tx, input.accountId, 'account_closed', { now })
   const links = await tx
     .updateTable('identity.customer_identity_links')
@@ -770,5 +772,7 @@ export async function closeCustomerAccount(
     .where('account_id', '=', input.accountId)
     .where('old_value', 'is not', null)
     .execute()
-  return { closed: true, sessions, links: links.length, grants }
+  // TSK-0118 (HH-ID-13): its organization memberships end, and so do those of the organizations it administers.
+  const memberships = await endMembershipsOfClosedAccount(tx, input.accountId, now)
+  return { closed: true, sessions, links: links.length, grants, memberships }
 }

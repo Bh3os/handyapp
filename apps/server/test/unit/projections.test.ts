@@ -88,6 +88,17 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
         'getAccountPreferences',
         'setAccountPreferences',
         'setAccountPermission',
+        // TSK-0118: organization accounts with explicit memberships and scopes.
+        'getAccountOrganizations',
+        'createOrganization',
+        'shareOrganizationProject',
+        'unshareOrganizationProject',
+        'inviteOrganizationMember',
+        'changeOrganizationMember',
+        'removeOrganizationMember',
+        'leaveOrganization',
+        'acceptOrganizationInvitation',
+        'declineOrganizationInvitation',
         // TSK-0039: the workspace tabs beside the Overview.
         'getCustomerProjectMessages',
         'getCustomerProjectDocuments',
@@ -244,6 +255,7 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
           status: { ...status, since: '2026-10-21T12:00:00.000Z' },
           section: 'active',
           documents: 2,
+          organization: null,
         },
       ],
       access: 'account',
@@ -252,6 +264,33 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
     })
     for (const schema of [PROJECT_OVERVIEW.schema, PROJECT_LIST.schema])
       expect(fieldNames(schema).filter(forbiddenForCustomer)).toEqual([])
+    // TSK-0118 (HH-ID-13): a project shared through an organization names it and the membership's privileges only;
+    // a member without the pay privilege is told payments are not shared, with no amount.
+    const shared = PROJECT_LIST.project({
+      projects: [
+        {
+          ...record,
+          status: { ...status, since: at },
+          section: 'active',
+          documents: 1,
+          organization: { name: 'Synthetic Rentals', approve: true, pay: false, organizationId: 'org-1' },
+        },
+      ],
+      access: 'account',
+      refreshedAt: at,
+      refreshSeconds: 30,
+    } as unknown as Parameters<typeof PROJECT_LIST.project>[0])
+    expect((shared.projects as { organization: unknown }[])[0]?.organization).toEqual({
+      name: 'Synthetic Rentals',
+      approve: true,
+      pay: false,
+    })
+    expect(
+      PROJECT_OVERVIEW.project({
+        ...record,
+        payment: { state: 'not_shared', amountCents: 5000 },
+      } as unknown as Parameters<typeof PROJECT_OVERVIEW.project>[0]).payment,
+    ).toEqual({ state: 'not_shared' })
   })
 
   it('[TSK-0039][HH-PORT-09][HH-ARC-04][TSK-0050][HH-PORT-08] the tab views send only their state codes or counts, never a record field', () => {

@@ -116,6 +116,7 @@ function columnsOf(actor: Actor): readonly MatrixRole[] {
 
 /** Checks one rule; returns null when it allows, or the first unmet requirement. */
 function check(
+  action: Action,
   rule: Rule,
   role: MatrixRole,
   actor: Actor,
@@ -132,7 +133,7 @@ function check(
       if (!isOwnRecord(actor, resource)) return 'NOT_OWN_RECORD'
       break
     case 'customer_project':
-      if (!hasProjectAccess(actor, resource, ctx.now)) return 'NOT_FOUND'
+      if (!hasProjectAccess(actor, resource, ctx.now, action)) return 'NOT_FOUND'
       break
   }
   if (rule.capability !== undefined && (actor.kind !== 'staff' || !actor.capabilities.includes(rule.capability))) {
@@ -202,7 +203,7 @@ export function decide(actor: Actor, action: Action, resource: Resource, ctx: De
   for (const role of columnsOf(actor)) {
     const rule = row.cells[role].rules[action]
     if (!rule) continue
-    const unmet = check(rule, role, actor, resource, ctx)
+    const unmet = check(action, rule, role, actor, resource, ctx)
     if (unmet === null) {
       return {
         effect: 'allow',

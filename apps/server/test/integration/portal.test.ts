@@ -278,6 +278,8 @@ describe('the projects list and the session’s scope (TSK-0038, HH-PORT-01, T19
         // TSK-0124: its dashboard section and documents count.
         section: 'active',
         documents: 0,
+        // TSK-0118: a guest link's project is never one shared through an organization.
+        organization: null,
       },
     ])
     // TSK-0124: a guest link's session, not an account's dashboard.

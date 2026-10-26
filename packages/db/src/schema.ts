@@ -1165,6 +1165,57 @@ export interface IdentityCustomerSessionsTable {
   sign_in_channel: string | null
 }
 
+export interface IdentityOrganizationEventsTable {
+  id: Generated<string>
+  organization_id: string
+  membership_id: string | null
+  project_id: string | null
+  kind: string
+  actor: string
+  can_approve: boolean | null
+  can_pay: boolean | null
+  scope_projects: number | null
+  at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface IdentityOrganizationMembershipsTable {
+  id: Generated<string>
+  organization_id: string
+  invited_email: string
+  account_id: string | null
+  can_approve: Generated<boolean>
+  can_pay: Generated<boolean>
+  state: Generated<string>
+  end_reason: string | null
+  invited_at: ColumnType<Date, Date | string | undefined, Date | string>
+  accepted_at: Timestamp | null
+  ended_at: Timestamp | null
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
+}
+
+export interface IdentityOrganizationProjectsTable {
+  organization_id: string
+  project_id: string
+  added_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface IdentityOrganizationScopesTable {
+  membership_id: string
+  organization_id: string
+  project_id: string
+  added_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface IdentityOrganizationsTable {
+  id: Generated<string>
+  name: string
+  administrator_account_id: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
+}
+
 export interface IdentityPermissionReviewItemsTable {
   id: Generated<string>
   review_id: string
@@ -3333,6 +3384,11 @@ export interface Database {
   'identity.customer_identity_links': IdentityCustomerIdentityLinksTable
   'identity.customer_saved_properties': IdentityCustomerSavedPropertiesTable
   'identity.customer_sessions': IdentityCustomerSessionsTable
+  'identity.organization_events': IdentityOrganizationEventsTable
+  'identity.organization_memberships': IdentityOrganizationMembershipsTable
+  'identity.organization_projects': IdentityOrganizationProjectsTable
+  'identity.organization_scopes': IdentityOrganizationScopesTable
+  'identity.organizations': IdentityOrganizationsTable
   'identity.permission_review_items': IdentityPermissionReviewItemsTable
   'identity.permission_reviews': IdentityPermissionReviewsTable
   'identity.project_access_grants': IdentityProjectAccessGrantsTable
