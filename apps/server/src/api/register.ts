@@ -3,7 +3,8 @@
 // - validates params, query and body against the route's schemas (unknown fields are refused) and serializes the
 //   response through the route's explicit response schema (undeclared fields are stripped);
 // - resolves the caller, checks the route's actor kinds and asks the policy (deny by default); a customer or guest
-//   outside their scope gets the same NOT_FOUND as a missing record (T19);
+//   outside their scope gets the same NOT_FOUND as a missing record (T19); a caller the route never serves (its kind,
+//   or staff roles with no rule at all for its action) is refused before validation and any record read (TSK-0108);
 // - runs reads without a transaction and writes inside one, with the idempotency record and the audit events
 //   committing together with the write;
 // - answers every error in the one safe envelope, in the audience's language, and sets Cache-Control: private,
@@ -15,7 +16,7 @@ import { timingSafeEqual } from 'node:crypto'
 import type { Db, Tx } from '@handyhub/db'
 import { withTx } from '@handyhub/db'
 import type { StaffLocale } from '@handyhub/i18n'
-import { dataScope, decide, type Actor, type Allow, type Resource } from '@handyhub/policy'
+import { actionsFor, dataScope, decide, type Action, type Actor, type Allow, type Resource } from '@handyhub/policy'
 import type { FastifyError, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import type { HostConfig } from '../config.js'
 import { hostSide, surfaceAllowed, surfaceOf } from '../hosts.js'
@@ -64,7 +65,11 @@ export interface ApiOptions {
 const GUEST: RequestActor = { actor: { kind: 'guest' } }
 
 /** What the request hooks read from a registered route (Fastify route config). */
-type RouteConfig = { beforeSecondFactor: boolean }
+type RouteConfig = {
+  beforeSecondFactor: boolean
+  actors: readonly ActorKind[]
+  permission: RouteDef['permission']
+}
 
 /** The session readers per side: `staff` for /staff routes, `public` for /public and /customer routes. */
 export interface SurfaceResolvers {
@@ -192,6 +197,27 @@ function refuseKind(kind: ActorKind | 'ai'): ApiError {
   if (kind === 'guest') return new ApiError('UNAUTHENTICATED')
   if (kind === 'customer') return new ApiError('NOT_FOUND')
   return new ApiError('FORBIDDEN')
+}
+
+/**
+ * TSK-0108 (HH-STAFF-04, HH-ARC-03, T19, T26): refuses, before the input is validated and before any record is read,
+ * a caller whose kind the route never serves and a staff member none of whose roles has any rule for the route's
+ * action (a Worker on an Owner-only route). Such a call is refused whatever it sends, so a hidden route requested
+ * directly learns neither its input schema nor whether a record exists. The full decision on the record follows in
+ * runRoute; this only answers early what no record could change.
+ */
+function refuseBeforeInput(req: FastifyRequest, route: RouteConfig, actor: Actor): void {
+  const kind = actorKind(actor)
+  if (kind === 'ai' || !route.actors.includes(kind)) throw refuseKind(kind)
+  // A customer or guest outside the matrix is answered in runRoute, after the record is read, so the refusal is the
+  // same NOT_FOUND as a missing record and is kept as a security event (T19).
+  if (route.permission === AUTHENTICATION || actor.kind !== 'staff') return
+  const permission: Action = route.permission
+  if (actionsFor(actor.roles).includes(permission)) return
+  const d = decide(actor, permission, {}, { now: new Date() })
+  if (d.effect === 'allow') return
+  req.log.warn({ action: d.action, reason: d.reason }, 'AUTHZ_DENIED')
+  throw new ApiError('FORBIDDEN')
 }
 
 /**
@@ -382,11 +408,8 @@ export async function registerApi(app: FastifyInstance, options: ApiOptions): Pr
         // TSK-0154 (OWN-DEC-202): a staff session before its second factor reaches only the routes declared
         // beforeSecondFactor, refused here before validation so a malformed request learns nothing either (runRoute
         // checks again).
-        if (
-          req.staffPendingSession &&
-          (req.routeOptions.config as unknown as RouteConfig | undefined)?.beforeSecondFactor !== true
-        )
-          throw mfaRequired()
+        const config = req.routeOptions.config as unknown as Partial<RouteConfig> | undefined
+        if (req.staffPendingSession && config?.beforeSecondFactor !== true) throw mfaRequired()
         // CSRF token (TSK-0015): an unsafe request authenticated by a cookie session carries the session's token.
         if (resolved.csrfToken !== undefined && !SAFE_METHODS.has(req.method)) {
           const sent = req.headers['x-csrf-token']
@@ -394,6 +417,8 @@ export async function registerApi(app: FastifyInstance, options: ApiOptions): Pr
           const b = Buffer.from(resolved.csrfToken)
           if (a.length !== b.length || !timingSafeEqual(a, b)) throw new ApiError('CSRF_TOKEN_INVALID')
         }
+        // TSK-0108: the caller's kind and roles against the route, before validation (the catch-all has no contract).
+        if (config?.actors && config.permission) refuseBeforeInput(req, config as RouteConfig, resolved.actor)
       })
 
       api.addHook('onSend', async (_req, reply, payload) => {
@@ -433,7 +458,11 @@ export async function registerApi(app: FastifyInstance, options: ApiOptions): Pr
             ...(route.binaryBody ? { bodyLimit: route.binaryBody.maxBytes } : {}),
             method: route.method,
             url: route.path,
-            config: { beforeSecondFactor: route.beforeSecondFactor === true } satisfies RouteConfig,
+            config: {
+              beforeSecondFactor: route.beforeSecondFactor === true,
+              actors: route.actors,
+              permission: route.permission,
+            } satisfies RouteConfig,
             schema: {
               ...(route.schema.params ? { params: route.schema.params } : {}),
               ...(querySchema(route) ? { querystring: querySchema(route) } : {}),
