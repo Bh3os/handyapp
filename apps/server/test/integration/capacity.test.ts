@@ -534,8 +534,16 @@ describe('[HH-SCH-04][T38] two confirmations for the same worker cannot both suc
     const results = await Promise.all(vs.map((v, i) => confirm(i % 2 ? 'owner' : 'office', v, ['ann'])))
     expect(results.filter((r) => r.statusCode === 200)).toHaveLength(1)
     expect(results.filter((r) => r.statusCode === 409)).toHaveLength(5)
+    // A loser that reaches the database guard while the winner has not committed yet is refused as CAPACITY_TAKEN;
+    // one that sees the winner's reservation is refused as WORKER_BOOKED. Which one happens depends on timing.
     for (const r of results.filter((x) => x.statusCode === 409))
-      expect(codes(r.body)).toContainEqual([`workers.${ids.ann}`, 'WORKER_BOOKED'])
+      expect(codes(r.body)).toSatisfy((c: string[][]) =>
+        c.some(
+          ([f, code]) =>
+            (f === `workers.${ids.ann}` && code === 'WORKER_BOOKED') ||
+            (f === 'reservation' && code === 'CAPACITY_TAKEN'),
+        ),
+      )
     const reserved = (await activeOf(ids.ann)).filter((r) => vs.some((v) => v.id === r.visit_id))
     expect(reserved).toHaveLength(1)
     const confirmed = await t.db
