@@ -105,7 +105,7 @@ describe('LaunchPhaseSetting (TSK-0142, HH-OPS-06)', () => {
     const fetchImpl = vi.fn().mockResolvedValue(json(200, PHASE1))
     const { t } = staffTranslator('es')
     render(<LaunchPhaseSetting t={t} locale="es" fetchImpl={fetchImpl as unknown as typeof fetch} />)
-    expect(await screen.findByText('Fase 1: Pruebas de aceptación del Dueño')).toBeTruthy()
+    expect(await screen.findByText('Fase 1: Pruebas de aceptación del Propietario')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Aprobar Clientes invitados' })).toBeTruthy()
   })
 })

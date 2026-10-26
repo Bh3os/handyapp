@@ -109,8 +109,9 @@ describe('who sees the queue (TSK-0041, HH-STAFF-06, HH-OPS-01, T26)', () => {
   it('[HH-STAFF-06][HH-OPS-01][T26] a worker never sees the queue, Owner Decisions or a request record', async () => {
     for (const url of ['/api/v1/staff/queue', '/api/v1/staff/queue/owner-decisions'])
       expect((await get('worker', url)).statusCode).toBe(403)
-    // An unknown record answers NOT_FOUND to everyone; an existing one is refused to the worker (below).
-    expect((await get('worker', `/api/v1/staff/requests/${subject()}/summary`)).statusCode).toBe(404)
+    // TSK-0108: the worker holds no request action at all, so an unknown record is refused like an existing one,
+    // before it is looked up: the worker learns nothing about which records exist.
+    expect((await get('worker', `/api/v1/staff/requests/${subject()}/summary`)).statusCode).toBe(403)
   })
 
   it('[HH-OPS-01][T26] office never sees Owner Decisions items, in either list', async () => {

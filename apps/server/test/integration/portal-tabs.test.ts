@@ -188,7 +188,7 @@ describe('the workspace tabs (TSK-0039, HH-PORT-09, OWN-DEC-106)', () => {
       expect(res.headers['cache-control']).toBe('private, no-store')
       const body = res.json<{ reference: string; refreshedAt: string; refreshSeconds: number }>()
       expect(body.reference).toBe(p.reference)
-      // portal.refresh (PROPOSED 30 seconds, migration 0036), the same interval as the Overview.
+      // portal.refresh (30 seconds, OWN-DEC-192 F7; version 2, migration 0135), the same interval as the Overview.
       expect(body.refreshSeconds).toBe(30)
       expect(Date.parse(body.refreshedAt)).toBeGreaterThanOrEqual(before - 1000)
       answers[tab] = Object.fromEntries(

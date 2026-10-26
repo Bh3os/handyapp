@@ -1,0 +1,33 @@
+{
+  "$comment": "TSK-0105 performance budgets. Values come only from HH-NFR-01 (engineering targets of the functionality guide, configured values per OWN-DEC-59 and OWN-DEC-122); they are internal engineering targets, never customer promises. A null value is NOT CONFIGURED: it is measured and reported, never enforced; the PROPOSED values wait in OQ-PERF-BUDGET-DETAILS. apps/server/test/integration/performance-budgets.test.ts (CI) and apps/server/test/perf/measure.test.ts read this file; tools/perf-bundles.mjs reads the bundle section.",
+  "api": {
+    "staff_read": {
+      "p95Ms": 800,
+      "source": "HH-NFR-01: staff key reads p95 <= 800 ms excluding third-party calls, on representative staging (10,000 jobs, 20 concurrent active users, paginated queries)"
+    },
+    "core_write": {
+      "p95Ms": 1500,
+      "source": "HH-NFR-01: core writes p95 <= 1.5 s excluding provider waiting (submission, acceptance, schedule and start)"
+    },
+    "customer_read": {
+      "p95Ms": null,
+      "source": "NOT CONFIGURED: HH-NFR-01 sets page targets for customer pages (LCP, INP, CLS at field p75), not an API latency; see OQ-PERF-BUDGET-DETAILS"
+    },
+    "export": {
+      "p95Ms": null,
+      "source": "NOT CONFIGURED: HH-NFR-01 does not name exports; see OQ-PERF-BUDGET-DETAILS"
+    }
+  },
+  "pages": {
+    "$comment": "Field targets at p75 (mobile and desktop) once enough real samples exist. Lab results are a proxy, reported as lab, never as field.",
+    "lcpMs": { "value": 2500, "source": "HH-NFR-01" },
+    "inpMs": { "value": 200, "source": "HH-NFR-01" },
+    "cls": { "value": 0.1, "source": "HH-NFR-01" }
+  },
+  "bundles": {
+    "$comment": "Gzip bytes per app build. NOT CONFIGURED: HH-NFR-01 asks for no large hero assets or heavy scripts but gives no number; the PROPOSED limits are in OQ-PERF-BUDGET-DETAILS.",
+    "site": { "jsGzipBytes": null, "cssGzipBytes": null, "largestPageGzipBytes": null },
+    "portal": { "jsGzipBytes": null, "cssGzipBytes": null },
+    "staff": { "jsGzipBytes": null, "cssGzipBytes": null }
+  }
+}

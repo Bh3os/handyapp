@@ -30,6 +30,12 @@ export const typeParsers = {
 export type PoolOptions = {
   max?: number
   applicationName?: string
+  /**
+   * TSK-0107: told when an idle pooled connection is lost (a PostgreSQL restart or failover, pg_terminate_backend). The
+   * pool has already dropped it; the next query opens a new one. Only the error's code should be logged: pg attaches
+   * the client, with its connection settings, to the error.
+   */
+  onConnectionLost?: (err: Error & { code?: string }) => void
   /** How long a caller waits for a free connection before failing; unset: forever (pg's default). */
   connectionTimeoutMillis?: number
 }
@@ -43,8 +49,15 @@ export type PoolOptions = {
  */
 export const SERVER_POOL_CONNECT_TIMEOUT_MS = 10_000
 
+/**
+ * A pg pool that survives lost connections (TSK-0107, HH-NFR-03): without a listener, the 'error' event of a pool or
+ * a client whose server process ended is thrown, and ends the whole Node process.
+ * - An idle connection: pg-pool removes it and emits 'error' on the pool, reported to onConnectionLost.
+ * - A connection in use: its running or next query fails (so its transaction never commits) and the connection is
+ *   removed when it is released; its client's own 'error' event only needs a listener, the caller sees the failure.
+ */
 export function createPool(databaseUrl: string, options: PoolOptions = {}): pg.Pool {
-  return new pg.Pool({
+  const pool = new pg.Pool({
     connectionString: databaseUrl,
     max: options.max ?? 10,
     ...(options.connectionTimeoutMillis !== undefined
@@ -54,6 +67,9 @@ export function createPool(databaseUrl: string, options: PoolOptions = {}): pg.P
     options: '-c TimeZone=UTC',
     types: typeParsers as pg.CustomTypesConfig,
   })
+  pool.on('error', (err) => options.onConnectionLost?.(err))
+  pool.on('connect', (client) => client.on('error', () => undefined))
+  return pool
 }
 
 export function createDb(databaseUrl: string, options: PoolOptions = {}): Db {

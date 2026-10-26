@@ -154,7 +154,7 @@ describe('[HH-EST-15][OWN-DEC-165] the discount request panel', () => {
     )
     const panel = await screen.findByTestId('request-discount')
     expect(within(panel).getByRole('heading', { name: 'Solicitud de descuento' })).toBeTruthy()
-    expect(within(panel).getByTestId('discount-revision-needed').textContent).toContain('Revise el estimado sin él')
+    expect(within(panel).getByTestId('discount-revision-needed').textContent).toContain('Revise el presupuesto sin él')
     expect(within(panel).getByText('No verificado')).toBeTruthy()
   })
 

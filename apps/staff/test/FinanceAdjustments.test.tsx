@@ -94,14 +94,14 @@ describe('FinanceAdjustments (TSK-0089)', () => {
     fireEvent.change(screen.getByLabelText(/Importe/), { target: { value: '50.00' } })
     fireEvent.change(screen.getByLabelText(/Motivo/), { target: { value: 'Sintético: pagó de más' } })
     fireEvent.click(screen.getByRole('button', { name: 'Registrar' }))
-    await waitFor(() => expect(screen.getByRole('status').textContent).toMatch(/Decisiones del dueño/))
+    await waitFor(() => expect(screen.getByRole('status').textContent).toMatch(/Decisiones del propietario/))
     expect(posts).toEqual([
       [
         `/api/v1/staff/jobs/${JOB}/finance-adjustment-requests`,
         { type: 'refund', paymentId: PAY, amountCents: 5_000, reason: 'Sintético: pagó de más' },
       ],
     ])
-    expect(screen.getByTestId('finance-items').textContent).toContain('Solicitado: espera al dueño')
+    expect(screen.getByTestId('finance-items').textContent).toContain('Solicitado: espera al propietario')
     expect(screen.queryByRole('button', { name: 'Aprobar' })).toBeNull()
   })
 })

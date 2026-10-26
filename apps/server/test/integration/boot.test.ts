@@ -1,7 +1,8 @@
 // Boot, health checks and the access gate over real HTTP against PostgreSQL 16 (TSK-0003; OWN-DEC-73,
 // RULE-SYNTHETIC-DATA). A fresh migrated database per file comes from @handyhub/db/testing.
-import { createTestDatabase, type TestDatabase } from '@handyhub/db/testing'
+import { createTestDatabase, testDatabaseUrl, type TestDatabase } from '@handyhub/db/testing'
 import type { FastifyInstance } from 'fastify'
+import pg from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { boot } from '../../src/boot.js'
 import { ConfigError } from '../../src/config.js'
@@ -62,6 +63,36 @@ describe('staging boot behind the gate (TSK-0003, OWN-DEC-73)', () => {
           (await testDb.db.selectFrom('platform.jobs').select('job_key').where('job_key', '=', key).execute()).length,
       )
       .toBe(1)
+  })
+
+  it('[HH-NFR-03] the server survives its database connections being ended (a PostgreSQL restart) (TSK-0107)', async () => {
+    // As a restart ends them: every server process of this server's pool (API and job worker) on this file's own
+    // database is terminated, never another agent's or test's.
+    const ended = async () => {
+      const admin = new pg.Client({ connectionString: testDatabaseUrl(), application_name: 'handyapp-tsk0107-admin' })
+      await admin.connect()
+      try {
+        const { rows } = await admin.query(
+          `SELECT pg_terminate_backend(pid, 5000) FROM pg_stat_activity
+            WHERE datname = $1 AND application_name = 'handyapp-server'`,
+          [testDb.name],
+        )
+        return rows.length
+      } finally {
+        await admin.end()
+      }
+    }
+    const ready = async () =>
+      (await fetch(`${base}/readyz`, { headers: { authorization: basic('owner', gatePassword(1)) } })).status
+    expect(await ready()).toBe(200)
+    await expect.poll(ended).toBeGreaterThan(0)
+    // The worker keeps ticking on the same pool; the API answers from new connections.
+    await new Promise((r) => setTimeout(r, 1500))
+    await expect.poll(ready).toBe(200)
+    const signIn = await fetch(`${base}/api/v1/staff/auth/session`, {
+      headers: { authorization: basic('owner', gatePassword(1)) },
+    })
+    expect(signIn.status).toBe(401)
   })
 
   it('[RULE-SYNTHETIC-DATA] robots.txt disallows everything on staging', async () => {

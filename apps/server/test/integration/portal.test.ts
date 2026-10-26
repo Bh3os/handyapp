@@ -170,7 +170,7 @@ describe('the Overview follows the shared records (TSK-0038, HH-PORT-02, HH-PORT
       status: { situation: 'received', step: 'review_details', waitingOn: 'handyhub', nextAction: 'none', text: null },
       appointment: null,
       payment: { state: 'none' },
-      // portal.refresh (PROPOSED 30 seconds, migration 0036).
+      // portal.refresh (30 seconds, OWN-DEC-192 F7; version 2, migration 0135).
       refreshSeconds: 30,
     })
     expect(o.timeline).toEqual([{ kind: 'received', at: o.submittedAt, text: null }])

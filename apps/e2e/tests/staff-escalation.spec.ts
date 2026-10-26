@@ -450,7 +450,7 @@ test.describe('Call Owner and Call 911 in every job packet (TSK-0129)', () => {
       expect(await main.locator('a, button').first().getAttribute('href')).toBe('tel:911')
       // The Owner's number is missing: Call Owner says NOT CONFIGURED and to call 911; nothing else waits for it.
       await expect(main.getByTestId('packet-escalation')).toHaveText(
-        'NO CONFIGURADO: el Propietario aún no ha ingresado un número de teléfono en su perfil. En una emergencia, llama al 911.',
+        'NO CONFIGURADO: el Propietario aún no ha ingresado un número de teléfono en su perfil del personal. En una emergencia, llama al 911.',
       )
       await expect(main.getByRole('link', { name: 'Llamar al propietario — Reportar un problema' })).toHaveCount(0)
       // The packet states the owner's Spanish instruction exactly as given.

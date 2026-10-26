@@ -22,21 +22,37 @@ type Reader = Db | Tx
 
 /** The active assignments on a job's live work visits, each with its access window. */
 export async function jobAssignments(db: Reader, jobId: string): Promise<Assignment[]> {
+  return (await jobAssignmentsOf(db, [jobId])).get(jobId) ?? []
+}
+
+/** jobAssignments() for several jobs in one statement, by job (TSK-0105, My job packets). */
+export async function jobAssignmentsOf(db: Reader, jobIds: readonly string[]): Promise<Map<string, Assignment[]>> {
+  const out = new Map<string, Assignment[]>()
+  if (jobIds.length === 0) return out
   const rows = await db
     .selectFrom('work.reservations as r')
     .innerJoin('work.visits as v', 'v.id', 'r.visit_id')
-    .select(['r.staff_user_id', 'r.created_at', DAY_ENDS.as('access_ends'), EXTENDED().as('extended_until')])
-    .where('v.job_id', '=', jobId)
+    .select([
+      'v.job_id',
+      'r.staff_user_id',
+      'r.created_at',
+      DAY_ENDS.as('access_ends'),
+      EXTENDED().as('extended_until'),
+    ])
+    .where('v.job_id', 'in', [...jobIds])
     .where('r.resource', '=', 'worker')
     .where('r.kind', '=', 'confirmed')
     .where('r.ended_at', 'is', null)
     .where('v.state', 'in', [...PACKET_VISIT_STATES])
     .execute()
-  return rows.map((r) => {
+  for (const r of rows) {
     const ends = new Date(r.access_ends).getTime()
     const extended = r.extended_until ? new Date(r.extended_until).getTime() : 0
-    return { staffUserId: r.staff_user_id as string, from: r.created_at, to: new Date(Math.max(ends, extended)) }
-  })
+    const list = out.get(r.job_id as string) ?? []
+    out.set(r.job_id as string, list)
+    list.push({ staffUserId: r.staff_user_id as string, from: r.created_at, to: new Date(Math.max(ends, extended)) })
+  }
+  return out
 }
 
 /**

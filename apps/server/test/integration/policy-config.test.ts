@@ -49,6 +49,8 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
     // decided 24-hour guest link and the reissue limit (OWN-DEC-160, OWN-DEC-198 F5) as access.grants and
     // access.recovery version 2. TSK-0133 (migration 0126) recorded the request form's SMS opt-in in the owner's wording
     // (OWN-DEC-190) and the SMS terms with the real message types: legal.sms_disclosure and legal.sms_terms version 2.
+    // TSK-0153 (migration 0135) recorded the 30-second refresh approved as built (OWN-DEC-192 F7) as portal.refresh
+    // version 2.
     const expected: Record<string, number> = {
       'access.grants': 2,
       'access.recovery': 2,
@@ -62,6 +64,7 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
       'discount.eligibility_verification': 2,
       'legal.sms_disclosure': 2,
       'legal.sms_terms': 2,
+      'portal.refresh': 2,
     }
     for (const e of entries) expect(e.version, e.key).toBe(expected[e.key] ?? 1)
   })
@@ -72,6 +75,37 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
       expect(r.source_ids.length, r.key).toBeGreaterThan(0)
       for (const id of r.source_ids) expect(nodeFile(id), `${r.key} cites ${id}`).toBeDefined()
     }
+  })
+
+  it('[HH-EST-05][OWN-DEC-192] no key approved as built is still PROPOSED; only keys no decision covers are', async () => {
+    const config = await loadConfig(t.db)
+    // The Rules Review approved F7 as built (OWN-DEC-192) and decided the link values in F5 (OWN-DEC-198).
+    for (const key of ['portal.refresh', 'access.grants', 'access.recovery'] as const) {
+      const entry = config.get(key)
+      expect(entry, key).toMatchObject({ state: 'CONFIGURED', proposed: false })
+      expect(
+        entry.sourceIds.some((id) => id === 'OWN-DEC-192' || id === 'OWN-DEC-198'),
+        key,
+      ).toBe(true)
+    }
+    expect(config.get('portal.refresh')).toMatchObject({ version: 2, value: { pollSeconds: 30 } })
+    expect(await policyVersion(t.db, 'portal.refresh', 1)).toMatchObject({ version: 1, proposed: true })
+    // What stays PROPOSED: values no rule of the Rules Review covers, and the legal drafts awaiting the attorney.
+    expect(
+      config
+        .entries()
+        .filter((e) => e.state === 'CONFIGURED' && e.proposed)
+        .map((e) => e.key)
+        .sort(),
+    ).toEqual([
+      'legal.privacy_notice',
+      'legal.sms_disclosure',
+      'legal.sms_terms',
+      'legal.website_terms',
+      'owner_approval.discretionary_credit',
+      'payment.square_link_hosts',
+      'verification.limits',
+    ])
   })
 
   it('seeds every fact the task names, and an open fact only as NOT CONFIGURED', async () => {

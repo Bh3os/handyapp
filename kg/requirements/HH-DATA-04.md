@@ -25,3 +25,5 @@ Each operation below commits all of its work atomically or none of it:
 | Provider receipt (webhook) | Authenticated receipt with its unique key and a durable processing job | A duplicate is acknowledged safely; ordering is never assumed |
 
 A critical hold is written in the same transaction as its hazard report, under the job lock ([[RULE-SAFETY-GATES]]).
+
+**Built by [[TSK-0107]] (2026-10-26):** a provider status processed before its send committed is applied when the delivery records the provider message ID (it was ignored for good); a lost database connection fails its transaction whole and no longer ends the server. Tests: `robustness.test.ts` (half-way failures, connection loss, retries under one key, races), `delivery-states.test.ts`, `start-work.test.ts` (concurrent Start: one start per worker).

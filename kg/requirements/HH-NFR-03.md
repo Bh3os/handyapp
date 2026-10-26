@@ -41,3 +41,5 @@ Release and rollback (guide 29.2, 29.3):
 - Each release records the deployed commit, schema version, feature flags, migration and backfill progress, affected providers and templates, smoke checks and rollback constraints.
 - A rollback keeps newly accepted and paid records: never drop new finance tables or restore an older backup over live transactions as a routine rollback. Prefer disabling a broken action while keeping read access; pause dangerous automation and reconcile external transactions before retries; where a schema rollback is unsafe, correct forward.
 - Production exposes no debug tools, sample credentials, fake reviews, test staff or private seed records; domain, certificate and cookie settings are verified for the real origins, `handyhub247.com` and `staff.handyhub247.com` ([[FACT-DOMAIN]]).
+
+**Built by [[TSK-0107]] (2026-10-26):** database unavailable mid-operation: the server keeps running when PostgreSQL ends its connections (a restart, a failover); the lost connection is replaced, the interrupted write commits nothing and answers a retryable error, and the retry under the same key succeeds once.

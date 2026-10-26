@@ -9,6 +9,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run test/unit",
     "test:int": "vitest run test/integration --no-file-parallelism",
+    "perf": "vitest run test/perf --no-file-parallelism --silent=false",
     "start": "node dist/main.js",
     "openapi": "pnpm --filter '@handyhub/server...' run build && node dist/cli/openapi.js",
     "data-inventory": "pnpm --filter '@handyhub/server...' run build && node dist/cli/data-inventory.js"

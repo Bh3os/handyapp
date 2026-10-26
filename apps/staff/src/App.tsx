@@ -150,6 +150,9 @@ function useT(locale: StaffLocale) {
   return staffTranslator(locale).t
 }
 
+/** TSK-0102 (OWN-DEC-208 reading 13, OWN-DEC-162): the Owner Dashboard is English for every staff locale. */
+const ownerDashboardT = staffTranslator('en').t
+
 function errorText(t: ReturnType<typeof useT>, error: ApiErrorBody): string {
   const key = `error.${error.code}` as StaffKey
   try {
@@ -418,23 +421,24 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
             />
           ) : route.page === 'screen' && shown === 'dashboard' && allowed ? (
             // TSK-0096: the Owner Dashboard; TSK-0141: with Staging Tools, shown only where the server has them (never
-            // in production, where the staging routes do not exist).
-            <>
+            // in production, where the staging routes do not exist). TSK-0102 (OWN-DEC-208 reading 13): the Owner
+            // Dashboard is English whatever the staff locale; the menu around it keeps the person's language.
+            <div lang="en">
               <OwnerDashboard
-                t={t}
-                locale={locale}
+                t={ownerDashboardT}
+                locale="en"
                 fetchImpl={doFetch}
                 go={go}
                 href={href}
                 onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
               />
               <StagingTools
-                t={t}
-                locale={locale}
+                t={ownerDashboardT}
+                locale="en"
                 fetchImpl={doFetch}
                 onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
               />
-            </>
+            </div>
           ) : route.page === 'screen' && shown === 'health' && allowed ? (
             <HealthScreen t={t} locale={locale} fetchImpl={doFetch} go={go} href={href} />
           ) : route.page === 'screen' && shown === 'settings' && allowed ? (

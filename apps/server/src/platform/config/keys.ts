@@ -281,12 +281,14 @@ export const CONFIG_KEYS = {
     maxFailedAttemptsPerClientPerHour: int(1, 10_000),
     freshVerificationMinutes: int(1, 24 * 60),
   }),
-  // TSK-0034: how long a single-project guest link works (HH-ID-06, ENT-ProjectAccessGrant; PROPOSED 24 hours).
+  // TSK-0034: how long a single-project guest link works (HH-ID-06, ENT-ProjectAccessGrant). Decided: 24 hours
+  // (OWN-DEC-160, OWN-DEC-198 F5; version 2, migration 0119).
   'access.grants': shape({ linkHours: int(1, 24 * 366) }),
-  // TSK-0035: how many new links one project may be sent per day on request (HH-ID-09, HH-INT-11; PROPOSED 3).
+  // TSK-0035: how many new links one project may be sent per day on request (HH-ID-09, HH-INT-11). Decided: 3
+  // (OWN-DEC-198 F5; version 2, migration 0119).
   'access.recovery': shape({ maxReissuesPerProjectPerDay: int(1, 100) }),
-  // TSK-0038 (HH-ARC-10, OWN-DEC-59): how often an open customer project view refreshes itself, in seconds. PROPOSED
-  // 30, inside the guide's "30-60 seconds by default"; no owner decision sets it.
+  // TSK-0038 (HH-ARC-10, OWN-DEC-59): how often an open customer project view refreshes itself, in seconds. Decided:
+  // 30, rule F7 approved as built (OWN-DEC-192, OWN-DEC-198; TSK-0153 recorded version 2, migration 0135).
   'portal.refresh': shape({ pollSeconds: int(10, 3600) }),
   // TSK-0076 (HH-PRIV-02, ENT-ConsentPreference): the version of the photo publication notice a customer's consent to
   // publish a field photo is recorded under. Its wording is legal text no node gives: NOT CONFIGURED (migration 0080,
