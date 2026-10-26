@@ -16,7 +16,7 @@
 //   the uploads themselves and the before and after photos staff shared, paired where possible, each ready one with a
 //   short-lived signed URL (field-photos/photos.ts customerPhotos). Internal and restricted photos are never read.
 import type { Db, Tx } from '@handyhub/db'
-import type { DataScope } from '@handyhub/policy'
+import { scopeIncludesProject, type DataScope } from '@handyhub/policy'
 import { customerEstimateList, type CustomerEstimateListItem } from '../estimates/customer.js'
 import type { ObjectStorage } from '../../providers/index.js'
 import { customerPhotos, type CustomerUpload, type SharedGroup } from '../field-photos/photos.js'
@@ -25,7 +25,7 @@ import { customerInvoiceList, type CustomerInvoiceItem } from '../finance/invoic
 import { PHOTO_URL_SECONDS } from '../photos/photos.js'
 import { findProject, type ConversationMessageRecord, type PhotoCounts } from '../records/index.js'
 import { appointmentsOf, type CustomerAppointment, type CustomerOffer } from '../visits/offers.js'
-import { refreshSeconds } from './overview.js'
+import { refreshSeconds, type PortalView } from './overview.js'
 
 type Reader = Db | Tx
 
@@ -101,6 +101,7 @@ export async function projectTab(
   tab: WorkspaceTab,
   now = new Date(),
   storage: ObjectStorage | null = null,
+  view: PortalView = {},
 ): Promise<TabAnswer | null> {
   const project = await findProject(db, scope, { reference })
   if (!project) return null
@@ -115,13 +116,28 @@ export async function projectTab(
     case 'documents': {
       const estimates = (await customerEstimateList(db, scope, project.reference, now)) ?? []
       // TSK-0085: the issued invoices (never a draft), with their balance.
-      const invoices = await customerInvoiceList(db, project.id)
+      // TSK-0118: an organization member without the pay privilege is shown no invoice.
+      const invoices =
+        view.payments === undefined || scopeIncludesProject(view.payments, project.id)
+          ? await customerInvoiceList(db, project.id)
+          : []
       return estimates.length || invoices.length
         ? { ...head, tab, state: 'listed', estimates, invoices }
         : { ...head, tab, state: 'none' }
     }
     case 'appointments': {
-      const a = await appointmentsOf(db, project.id, now)
+      const listed = await appointmentsOf(db, project.id, now)
+      // TSK-0118: an organization member without the approve privilege is offered no appointment request.
+      const a =
+        view.decisions === undefined || scopeIncludesProject(view.decisions, project.id)
+          ? listed
+          : {
+              ...listed,
+              appointments: listed.appointments.map((x) => ({
+                ...x,
+                actions: { requestReschedule: false, requestCancellation: false },
+              })),
+            }
       return a.offers.length || a.appointments.length
         ? { ...head, tab, state: 'listed', ...a }
         : { ...head, tab, state: 'none' }

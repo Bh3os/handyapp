@@ -513,6 +513,10 @@ export async function requestErasurePlan(
     },
     { kind: 'message_deliveries', table: 'platform.message_deliveries', where: anyOf('id', deliveries) },
     { kind: 'message_deliveries', table: 'platform.webhook_receipts', where: anyOf('id', receipts) },
+    // TSK-0118: the project's shares with organizations, the member scopes naming it and the history naming it.
+    { kind: 'access_links', table: 'identity.organization_scopes', where: eq('project_id', P) },
+    { kind: 'access_links', table: 'identity.organization_projects', where: eq('project_id', P) },
+    { kind: 'access_links', table: 'identity.organization_events', where: eq('project_id', P) },
     { kind: 'access_links', table: 'identity.customer_identity_links', where: anyOf('id', links) },
     { kind: 'sessions', table: 'identity.customer_sessions', where: anyOf('id', sessions) },
     { kind: 'access_links', table: 'identity.project_access_grants', where: anyOf('id', grants) },

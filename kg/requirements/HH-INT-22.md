@@ -25,3 +25,5 @@ source: "OWN-DEC-147 (new behaviour; no guide id)"
 **Changed by [[OWN-DEC-190]] (2026-10-21):** the checkbox wording and disclosure are the owner's ([[OWN-DEC-190]], opt-in point A).
 
 **Built by [[TSK-0134]] (2026-10-26, [[OWN-DEC-178]]):** the one exception to "no text without a current SMS opt-in" is the verification code itself, after the guest agreed on the receipt to a one-time verification code by text: a consent of its own purpose that permits that code only, is never the SMS opt-in or marketing permission, and ends with STOP. PROPOSED details: [[OQ-PHONE-OPT-IN-DETAILS]].
+
+**Built by [[TSK-0133]] (2026-10-26):** the checkbox label and the disclosure beside it are opt-in point A of [[OWN-DEC-190]], word for word (legal text `sms-disclosure-2`, migration 0126), with the support contact and links to the Privacy Policy and the SMS Terms. Consents recorded under `sms-disclosure-1` keep naming it, and it stays a published version. PROPOSED details: [[OQ-10DLC-PACKAGE-DETAILS]].

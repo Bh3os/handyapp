@@ -18,3 +18,5 @@ source: "OWN-DEC-129; coordinator request 2026-10-20"
 - **2026-10-21 ([[OWN-DEC-190]]):** the owner asked for the complete registration package now ([[TSK-0133]]); the EIN, registered address and authorized contact come from the secure business configuration or the Owner types them into Bird; nothing is submitted and no fee is incurred without the owner's explicit confirmation; submission also waits for the domain ([[OWN-DEC-184]]) and the real support contact ([[FACT-PUBLIC-CONTACT]]).
 
 - **2026-10-22 ([[TSK-0143]]):** review packet ready: `docs/review-packets/attorney.md` questions A-12 (consent wording, [[OWN-DEC-190]]) and A-13 (text-message hours, [[OWN-DEC-154]]).
+
+- **2026-10-26 ([[TSK-0133]]):** the registration package is ready, not submitted: `docs/10dlc/registration.md` (brand and campaign fields from Bird's registry forms, opt-in evidence, samples, keyword replies, the Owner's steps). PROPOSED choices are in [[OQ-10DLC-PACKAGE-DETAILS]].

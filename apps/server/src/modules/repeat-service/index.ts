@@ -24,7 +24,7 @@ import {
   SERIES_UNITS,
   type SeriesInterval,
 } from '@handyhub/domain'
-import type { StaffActor } from '@handyhub/policy'
+import { dataScope, type StaffActor } from '@handyhub/policy'
 import { ApiError } from '../../api/errors.js'
 import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
 import { loadConfig } from '../../platform/config/index.js'
@@ -655,11 +655,16 @@ export function repeatServiceModule(): ApiModule {
       'its next dates in the property’s zone (each with whether its request was sent), how often, whether reminders ' +
       'are on, and the notice a change needs (OWN-DEC-148); the latest stopped one when none runs; null when there ' +
       'is none. Never how staff heard the agreement, a staff note or the reminder drafts. Any other project is ' +
-      'NOT_FOUND (T19).',
+      'NOT_FOUND (T19); TSK-0118: so is a project an organization member reaches (the schedule stays the ' +
+      'customer’s own).',
     permission: 'request.view',
     schema: { params: CUSTOMER_PARAMS, response: { 200: PROJECT_REPEAT_SERVICE.schema } },
     handler: async (ctx) => {
-      const p = await findProject(ctx.db, ctx.scope, { reference: (ctx.req.params as { reference: string }).reference })
+      // TSK-0118 (HH-ID-13): the schedule is the project customer's own agreement, read inside the scope of the row
+      // that changes it (service_series.change), so an organization member, whatever their privileges, finds it
+      // NOT_FOUND like the changes themselves; the project's own customer reaches the same projects as before.
+      const scope = dataScope(ctx.actor, 'service_series.change', new Date())
+      const p = await findProject(ctx.db, scope, { reference: (ctx.req.params as { reference: string }).reference })
       if (!p) throw new ApiError('NOT_FOUND')
       return { body: await customerSchedule(ctx.db, p.id, p.reference) }
     },

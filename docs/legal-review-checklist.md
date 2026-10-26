@@ -5,7 +5,7 @@ Goes with the drafts of TSK-0024 (HH-PRIV-04, HH-COM-12, OWN-DEC-72, OWN-DEC-147
 | Document | Page | Version (document ID) | Wording source |
 | --- | --- | --- | --- |
 | Privacy Policy (with the SMS section) | `/privacy` | 1 (`privacy-notice-1`) | `packages/domain/src/legal.ts` + `legal.privacy.*`, `legal.common.*` in `packages/i18n/src/catalogs/customer.en.json` |
-| SMS Terms | `/sms-terms` | 1 (`sms-terms-1`) | `legal.sms.*`, `legal.common.*` |
+| SMS Terms | `/sms-terms` | 2 (`sms-terms-2`, TSK-0133; version 1 `sms-terms-1` superseded) | `legal.sms.*`, `legal.common.*` |
 | Website Terms | `/terms` | 1 (`website-terms-1`) | `legal.terms.*`, `legal.common.*` |
 
 Each version is a policy version (`legal.privacy_notice`, `legal.sms_terms`, `legal.website_terms`, migration 0021) with the SHA-256 of its exact wording. Any wording change is a new version; requests keep the privacy policy version they were sent with.
@@ -25,7 +25,8 @@ Each version is a policy version (`legal.privacy_notice`, `legal.sms_terms`, `le
 ## 3. SMS terms and the SMS section (OWN-DEC-147, OQ-BIRD-10DLC)
 - [ ] Program name "HandyHub Service Texts" (PROPOSED by Claude; the graph names no program).
 - [ ] The no-sharing sentence: "Mobile numbers and SMS opt-in data are never shared with or sold to third parties for marketing purposes." (privacy SMS section and SMS terms, word for word).
-- [ ] The message list follows FACT-AUTOMATIC-MESSAGES and FACT-REMINDER-CADENCES; the frequency statement states only those cadences ("varies with your request and project", "up to two" reminders).
+- [ ] The message list follows FACT-AUTOMATIC-MESSAGES and FACT-REMINDER-CADENCES, as the message registry may text them (version 2: one automatic estimate and one question reminder; the email-only messages are not listed). The frequency statement states only those cadences ("varies with your request and project").
+- [ ] Version 2 adds the receipt's separate consent to a one-time verification code (OWN-DEC-178). The request form's checkbox and its disclosure are the owner's wording of OWN-DEC-190 (`sms-disclosure-2`). The A2P 10DLC package is `docs/10dlc/registration.md` (attorney packet A-12).
 - [ ] "Message and data rates may apply.", "Reply STOP to opt out.", "Reply HELP for help.", "Reply START to receive texts again."
 - [ ] Carrier disclaimers (for example "carriers are not liable for delayed or undelivered messages") are not included: the graph has no such decision. Needed?
 - [ ] Whether a STOP confirmation text is sent is not stated (depends on the Bird keyword setup).

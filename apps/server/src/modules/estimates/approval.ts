@@ -43,7 +43,7 @@ import { ApiError, type FieldError } from '../../api/errors.js'
 import { loadConfig, policyVersion } from '../../platform/config/index.js'
 import { outbox } from '../../platform/outbox.js'
 import { currentContext } from '../../platform/request-context.js'
-import type { CustomerSession } from '../identity/index.js'
+import { organizationAccessOf, type CustomerSession } from '../identity/index.js'
 import { currentVersion } from './lifecycle.js'
 import { discountProblem, projectDiscount } from './discounts.js'
 import { customerVersionContent, type CustomerVersionContent } from './projections.js'
@@ -388,14 +388,21 @@ export async function termsForApproval(db: Reader, pinned: string | null): Promi
 
 const PAYMENT_TERM_TEXT: Record<string, CustomerKey> = { due_on_receipt: 'estimatePdf.paymentTerm.due_on_receipt' }
 
-/** The access a session came through, read again at the moment of the write (HH-ID-07). */
+/**
+ * The access a session came through, read again at the moment of the write (HH-ID-07). TSK-0118 (HH-ID-13): an
+ * account that reaches the project through an organization membership holds it only while a membership with the
+ * approve privilege still names it (read again, locked).
+ */
 export async function accessStillValid(
   tx: Tx,
   session: CustomerSession,
   projectId: string,
   now: Date,
 ): Promise<boolean> {
-  if (!session.projectIds.includes(projectId)) return false
+  const viaOrganization =
+    !session.projectIds.includes(projectId) &&
+    session.organizationAccess.some((a) => a.projectId === projectId && a.privileges.includes('approve'))
+  if (!session.projectIds.includes(projectId) && !viaOrganization) return false
   if (session.via === 'grant' && !session.grantId) return false
   // The guest grant before the session: TSK-0046's access recheck locks grants, then sessions.
   const grant =
@@ -416,6 +423,10 @@ export async function accessStillValid(
   if (!live || live.revoked_at !== null || live.expires_at <= now) return false
   if (session.via === 'grant') return grant?.project_id === projectId && grant.revoked_at === null
   if (!session.accountId) return false
+  if (viaOrganization) {
+    const access = await organizationAccessOf(tx, session.accountId, { projectId, lock: true })
+    return access.some((a) => a.privileges.includes('approve'))
+  }
   const link = await tx
     .selectFrom('identity.customer_identity_links as l')
     .innerJoin('identity.customer_accounts as a', 'a.id', 'l.account_id')

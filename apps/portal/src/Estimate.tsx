@@ -94,6 +94,7 @@ const APPROVAL_REASON: Record<ApprovalReason, CustomerKey> = {
   not_published: 'portal.estimate.approval.reason.not_published',
   reduction_pending_verification: 'portal.estimate.approval.reason.reduction_pending_verification',
   reduction_not_verified: 'portal.estimate.approval.reason.reduction_not_verified',
+  no_approval_privilege: 'portal.estimate.approval.reason.no_approval_privilege',
 }
 const APPROVAL_FAILURE: Record<ApprovalFailure, CustomerKey> = {
   ...FAILURE,
