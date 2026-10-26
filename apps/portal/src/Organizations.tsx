@@ -205,7 +205,10 @@ function Member({
               setBusy('remove')
               void act(
                 () => portalApi.removeMember(fetchImpl, org.id, m.id),
-                t('portal.organizations.done.removed', { email: m.email }),
+                // TSK-0150 (OWN-DEC-199): an invitee never had access, so withdrawing says the invitation is withdrawn.
+                t(invited ? 'portal.organizations.done.withdrawn' : 'portal.organizations.done.removed', {
+                  email: m.email,
+                }),
               ).then(() => setBusy(null))
             }}
           >

@@ -189,6 +189,26 @@ accountant.
 | J6  | Export CSV                                | Asks for your password if you signed in a while ago; the file has the same values as the screen.        |
 | J7  | Files for the accountant                  | Needs a reason; each file lists its records in dollars; Office and the other roles are refused.        |
 
+### K. Offline controls, before you turn on more offline actions (HH-OFF-08, OWN-DEC-121)
+
+Built by TSK-0079, TSK-0080 and TSK-0115. Walk these as a Worker on a phone (or a browser in offline mode) with a test
+job of today. Only after every row passes, turn on an action in `<staging>/staff/settings` → **Offline actions** (your
+password and a reason). Nothing beyond On my way, Arrived, Finished and Stop Work works offline until then. The list of
+actions and the details are PROPOSED in OQ-OFFLINE-ACTIONS-DETAILS.
+
+| #   | Control                      | Do                                                                                | Expect                                                                                                      |
+| --- | ---------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| K1  | Freshness                    | Open My Day online, then the job packet with the connection off.                  | "Ready for offline use" only after the copy is saved; offline the copy shows its version and last sync.     |
+| K2  | Expiry                       | Look at the phone after the visit's service day ended.                            | The copy is gone; the address and site contact left at the end of the visit day.                            |
+| K3  | Start Work stays online      | Offline, open the Start Work briefing.                                            | "Start Work needs an online check"; no Start button. Finished, payments and approvals say "Needs a connection". |
+| K4  | Drafts and sync              | Offline, tap Arrived; come back online.                                           | "Saved on this phone", then "Synced" by itself; recorded once.                                               |
+| K5  | Reassignment                 | Offline, tap Finished; reassign the visit to another worker; come back online.    | The tap is not applied: "Phone update to review" in your queue; the packet leaves the old worker's phone.     |
+| K6  | A hold raised while offline  | Offline, record a step (once K10 is on) while Office places a Hold; come online.  | The step is not applied and goes to your review; the checklist shows the Hold.                                |
+| K7  | Lost phone and sign-out      | Sign out with a draft not uploaded; then disable a worker with drafts.            | A warning offers to upload first; a disabled worker's phone cannot upload; you can upload it for review only. |
+| K8  | Stop Work offline            | Offline, press Stop Work.                                                          | It shows at once as saved on this phone; it is sent once when the connection returns.                        |
+| K9  | A phone without storage      | Open the app in a private window that refuses storage.                            | No "Ready for offline use" claim; nothing says the copy survives closing the app.                            |
+| K10 | Turn on checklist steps      | Settings → Offline actions: check "Checklist steps", give the reason, save.       | Offline, the checklist opens on its copy; steps saved there show "Saved on this phone" and sync once online. |
+
 ## 4. Results
 
 | Walk                                    | Date | By  | Result                                                                                          |

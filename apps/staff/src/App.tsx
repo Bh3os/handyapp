@@ -54,6 +54,7 @@ import { JobSafety, SafetyHoldPage, flushPendingStops } from './StopWork'
 import { OwnerEscalationPhone, flushPendingEscalations, rememberOwnerContact } from './Escalation'
 import { StagingTools } from './StagingTools'
 import { LaunchPhaseSetting } from './LaunchPhase'
+import { OfflineActionsSetting } from './OfflineActions'
 import { PreparationDefaultsSetting } from './PreparationDefaults'
 import { ConfigurationScreen, HealthScreen } from './System'
 import { VisitTimesPage } from './VisitTimes'
@@ -449,6 +450,12 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
                 onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
               />
               <LaborRatesSetting t={t} fetchImpl={doFetch} />
+              {/* TSK-0115: the offline actions beyond the minimal set (nothing on until the Owner turns it on). */}
+              <OfflineActionsSetting
+                t={t}
+                fetchImpl={doFetch}
+                onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
+              />
               {/* TSK-0142: the launch phase and its switches (the Owner only; phase 1 until the Owner approves more). */}
               <LaunchPhaseSetting
                 t={t}

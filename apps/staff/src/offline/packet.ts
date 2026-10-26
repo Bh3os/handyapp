@@ -101,7 +101,10 @@ export async function storeOfflineCopy<V extends PacketLike>(
   const expires = copyExpiresAt(visits, now)
   if (!expires) return { state: 'not_stored' }
   try {
+    // TSK-0115: a newer packet copy keeps the checklist copy the checklist screen took (offline/checklist.ts).
+    const kept = (await store.getPacket(view.job.id))?.checklist ?? null
     const record: StoredPacket = {
+      ...(kept ? { checklist: kept } : {}),
       jobId: view.job.id,
       projectReference: view.job.projectReference,
       version: view.packet.version,

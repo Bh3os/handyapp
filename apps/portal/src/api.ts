@@ -47,6 +47,8 @@ export const STEPS = [
   'choose_work_appointment',
   'view_appointment',
   'arrival_update',
+  // TSK-0150: "Arrived" recorded, work not started.
+  'arrival_recorded',
   'view_updates',
   'safety_review',
   'update_pending',
@@ -131,6 +133,8 @@ export type ProjectOverview = {
   /** TSK-0063: the next confirmed visit, or none. */
   appointment: Appointment | null
   payment: Payment
+  /** TSK-0150: the balance still owed on the issued final invoices; 0 while none. */
+  invoiceBalanceCents: number
   refreshedAt: string
   refreshSeconds: number
 }
@@ -244,7 +248,7 @@ export function parseOverview(v: unknown): ProjectOverview | null {
   const timeline = v['timeline'].map(entry)
   if (timeline.some((e) => e === null)) return null
   const payment = paymentOf(v['payment'])
-  if (!payment) return null
+  if (!payment || !isCents(v['invoiceBalanceCents'])) return null
   if (!isDate(v['refreshedAt']) || !isSeconds(v['refreshSeconds'])) return null
   return {
     ...head,
@@ -252,6 +256,7 @@ export function parseOverview(v: unknown): ProjectOverview | null {
     timeline: timeline as TimelineEntry[],
     appointment,
     payment,
+    invoiceBalanceCents: v['invoiceBalanceCents'],
     refreshedAt: v['refreshedAt'],
     refreshSeconds: v['refreshSeconds'],
   }
@@ -275,6 +280,8 @@ export type EstimateListItem = {
   totalCents: number
   /** TSK-0058 (HH-PORT-10): an approved version's approval receipt PDF, issued or being prepared; null otherwise. */
   receipt: ReceiptState | null
+  /** TSK-0150: the zone the end of validity is shown in, as on the estimate; null shows the date only. */
+  validUntilZone: { zone: string; business: boolean } | null
 }
 // TSK-0085 (HH-PORT-10, HH-FIN-04): an issued invoice of the Documents tab, never a draft.
 export const INVOICE_STATUSES = ['current', 'superseded'] as const
@@ -744,6 +751,14 @@ const isCents = (v: unknown): v is number => isInt(v) && v >= 0
 const isNullableStr = (v: unknown): v is string | null => v === null || isStr(v)
 const isNullableDate = (v: unknown): v is string | null => v === null || isDate(v)
 
+/** TSK-0150: a display zone; absent or null is no zone (the date alone), anything malformed is undefined. */
+function zoneOf(v: unknown): { zone: string; business: boolean } | null | undefined {
+  if (v === undefined || v === null) return null
+  return isObj(v) && isStr(v['zone']) && typeof v['business'] === 'boolean'
+    ? { zone: v['zone'], business: v['business'] }
+    : undefined
+}
+
 function listItem(v: unknown): EstimateListItem | null {
   if (!isObj(v)) return null
   const { number, version, status, publishedAt, validUntil, totalCents } = v
@@ -752,7 +767,9 @@ function listItem(v: unknown): EstimateListItem | null {
   // The estimate view carries its receipt under approval; a list item names it (null when not approved).
   const receipt = v['receipt'] === undefined ? null : v['receipt']
   if (receipt !== null && !oneOf(RECEIPT_STATES)(receipt)) return null
-  return { number, version, status, publishedAt, validUntil, totalCents, receipt }
+  const validUntilZone = zoneOf(v['validUntilZone'])
+  if (validUntilZone === undefined) return null
+  return { number, version, status, publishedAt, validUntil, totalCents, receipt, validUntilZone }
 }
 
 function invoiceItem(v: unknown): InvoiceListItem | null {
@@ -780,6 +797,8 @@ export type TermsState = (typeof TERMS_STATES)[number]
 export const APPROVAL_REASONS = [
   'terms_not_configured',
   'terms_not_in_effect',
+  // TSK-0150: the terms changed after this version was sent.
+  'terms_not_current',
   'superseded',
   'expired',
   'not_published',
@@ -1286,6 +1305,8 @@ export type ChangeOrders = {
   reference: string
   original: { estimateNumber: string; version: number; totalCents: number } | null
   currentTotalCents: number | null
+  /** TSK-0150: the zone each "Valid until" is shown in, as on the estimate; null shows the date only. */
+  validUntilZone: { zone: string; business: boolean } | null
   changeOrders: ChangeOrder[]
   refreshedAt: string
   refreshSeconds: number
@@ -1405,11 +1426,13 @@ export function parseChangeOrders(v: unknown): ChangeOrders | null {
         ? { estimateNumber: o['estimateNumber'], version: o['version'], totalCents: o['totalCents'] }
         : undefined
   const changeOrders = v['changeOrders'].map(parseChangeOrder)
-  if (original === undefined || changeOrders.some((c) => c === null)) return null
+  const validUntilZone = zoneOf(v['validUntilZone'])
+  if (original === undefined || validUntilZone === undefined || changeOrders.some((c) => c === null)) return null
   return {
     reference: v['reference'],
     original,
     currentTotalCents: v['currentTotalCents'],
+    validUntilZone,
     changeOrders: changeOrders as ChangeOrder[],
     refreshedAt: v['refreshedAt'],
     refreshSeconds: v['refreshSeconds'],

@@ -18,7 +18,8 @@ const CLAIM =
   /\$|\bbooked\b|\bslot\b|scheduled for|appointment is (set|booked|on|at)|confirmed for|visit fee|same-day (charge|fee)/i
 const SENT = '**/api/v1/public/requests'
 const DRAFT_PHOTOS = '**/api/v1/public/request-drafts/photos'
-const SMS_LABEL = 'I agree to receive HandyHub Service Texts at the phone number above.'
+const SMS_LABEL =
+  'I agree to receive text messages from HandyHub about my service requests, estimates, appointments, and project updates at the phone number provided.'
 const MARKETING_LABEL = 'Yes, HandyHub may send me marketing messages.'
 const UNCERTAIN =
   'We could not confirm that your request arrived. Try again: sending it again never creates a second request.'

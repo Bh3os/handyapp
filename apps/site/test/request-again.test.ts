@@ -45,6 +45,9 @@ describe('the starting point (TSK-0113, HH-ID-12)', () => {
     expect(prefillUrl('?again=../../staff')).toBeNull()
     expect(prefillUrl('?property=1')).toBeNull()
     expect(prefillUrl('?service=SVC-DW-01')).toBeNull()
+    // TSK-0150 (OWN-DEC-199, portal.preferences.channel.text): only Request This Service Again and a request for a
+    // saved property start from the account (and its contact preference); a plain new request reads nothing.
+    expect(prefillUrl('')).toBeNull()
     expect(asksForPrefill('?again=nonsense')).toBe(true)
     expect(asksForPrefill('?service=SVC-DW-01')).toBe(false)
     expect(parsePrefill({ ...prefill, reference: 'nope' })).toBeNull()

@@ -47,7 +47,8 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
     // discount.eligibility_verification version 2. TSK-0140 (migration 0115) recorded the cancellation rules of
     // OWN-DEC-161, OWN-DEC-163 and OWN-DEC-195 as cancellation.rules version 2. TSK-0124 (migration 0119) recorded the
     // decided 24-hour guest link and the reissue limit (OWN-DEC-160, OWN-DEC-198 F5) as access.grants and
-    // access.recovery version 2.
+    // access.recovery version 2. TSK-0133 (migration 0126) recorded the request form's SMS opt-in in the owner's wording
+    // (OWN-DEC-190) and the SMS terms with the real message types: legal.sms_disclosure and legal.sms_terms version 2.
     const expected: Record<string, number> = {
       'access.grants': 2,
       'access.recovery': 2,
@@ -59,6 +60,8 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
       'request.window_hours': 2,
       'discount.rule': 2,
       'discount.eligibility_verification': 2,
+      'legal.sms_disclosure': 2,
+      'legal.sms_terms': 2,
     }
     for (const e of entries) expect(e.version, e.key).toBe(expected[e.key] ?? 1)
   })
@@ -170,6 +173,8 @@ describe('seeded configuration (TSK-0007, RULE-DECIDED-VALUES-ACTIVE)', () => {
     expect(v('messages.delivery_hours')).toEqual({ email: 'any_hour', text: 'recipient_permitted_hours' })
     expect(v('sms.unknown_zone_hours')).toEqual({ open: '09:00', close: '21:00', zone: 'America/Kentucky/Louisville' })
     expect(v('sms.live_delivery')).toEqual({ enabled: false })
+    // TSK-0115 (HH-OFF-08): no offline action beyond the minimal set until the Owner turns one on.
+    expect(v('field.offline_actions')).toEqual({ actions: [] })
     expect(v('request.reopen_period')).toEqual({ days: 30 })
     // TSK-0131 (FACT-MARGIN-TARGET, OWN-DEC-189): the advisory target gross margin per job, 30%.
     expect(v('job_margin.target')).toEqual({ targetBps: 3000 })

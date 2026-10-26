@@ -1359,7 +1359,14 @@ export function overviewVisitFacts(a: CustomerAppointments, projectApproved: boo
   return {
     visitWindowsOffered: a.offers.some((o) => o.status === 'open' && o.purpose === 'estimate_visit'),
     workWindowsOffered: a.offers.some((o) => o.status === 'open' && o.purpose === 'work_visit'),
-    visit: current ? (current.status === 'confirmed' ? ('confirmed' as const) : ('on_the_way' as const)) : undefined,
+    // TSK-0150 (OWN-DEC-199): a recorded "Arrived" is its own fact, so the step never says the visit is on the way.
+    visit: current
+      ? current.status === 'confirmed'
+        ? ('confirmed' as const)
+        : current.status === 'arrived'
+          ? ('arrived' as const)
+          : ('on_the_way' as const)
+      : undefined,
     appointment: a.appointments.find(live) ?? null,
   }
 }

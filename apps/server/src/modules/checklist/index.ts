@@ -11,6 +11,8 @@ import { CHECKLIST_STEP_MACHINE, type ChecklistStepEvent } from '@handyhub/domai
 import type { StaffActor } from '@handyhub/policy'
 import { ApiError } from '../../api/errors.js'
 import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
+import { loadConfig } from '../../platform/config/index.js'
+import { offlineChecklistEvents } from '../field/offline-actions.js'
 import { jobAssignments } from '../packets/assignments.js'
 import {
   CHECKLIST_VIEW,
@@ -70,14 +72,27 @@ export function checklistModule(): ApiModule {
       'asks for and the controls quoted before it; each step’s state, evidence, skip reason, worker and the actions ' +
       'the caller may take now; the current stage and the summary (required steps open or skipped). Also the job’s ' +
       'field photos to attach as evidence, the handoff notes, and what blocks the caller (JOB_NOT_IN_PROGRESS, ' +
-      'HOLD_OPEN, WORK_NOT_STARTED).',
+      'HOLD_OPEN, WORK_NOT_STARTED). TSK-0115: the step events the phone may save offline (none until the Owner ' +
+      'turns offline checklist steps on, field.offline_actions) and the visit of the caller’s latest Start Work.',
     permission: 'job.record_checklist_step',
     resource: jobFacts,
     schema: { params: JOB_PARAMS, querystring: NO_QUERY, response: { 200: CHECKLIST_VIEW } },
     handler: async (ctx) => {
-      const v = await checklistView(ctx.db, staff(ctx), (ctx.req.params as { jobId: string }).jobId)
+      const actor = staff(ctx)
+      const { jobId } = ctx.req.params as { jobId: string }
+      const v = await checklistView(ctx.db, actor, jobId)
       if (!v) throw new ApiError('NOT_FOUND')
-      return { body: v, headers: { 'cache-control': 'no-store' } }
+      // TSK-0115: what the phone may save offline, and the visit those drafts name (the caller's latest start).
+      const started = await ctx.db
+        .selectFrom('work.work_starts')
+        .select('visit_id')
+        .where('job_id', '=', jobId)
+        .where('staff_user_id', '=', actor.userId)
+        .orderBy('started_at', 'desc')
+        .limit(1)
+        .executeTakeFirst()
+      const offline = { events: offlineChecklistEvents(await loadConfig(ctx.db)), visitId: started?.visit_id ?? null }
+      return { body: { ...v, offline }, headers: { 'cache-control': 'no-store' } }
     },
   }
 

@@ -811,6 +811,20 @@ describe('[HH-FIN-04][HH-FIN-05][T58] the issued invoice matches the approved sc
   })
 })
 
+/** TSK-0150: the customer Overview's status and invoice balance, as the portal reads them. */
+const customerOverview = async (job: { reference: string; customerCookie: string }) => {
+  const res = await app.inject({
+    method: 'GET',
+    url: `/api/v1/customer/projects/${job.reference}/overview`,
+    headers: { cookie: job.customerCookie },
+  })
+  expect(res.statusCode, res.body).toBe(200)
+  return res.json<{
+    status: { situation: string; waitingOn: string; nextAction: string }
+    invoiceBalanceCents: number
+  }>()
+}
+
 describe('[HH-FIN-07][HH-FIN-12][T59] partial, pending, deposit and overpayment never double-credit; Paid only at $0.00', () => {
   it('confirmed, pending and remaining show apart; allocations never exceed the invoice; the overpayment waits for the Owner', async () => {
     const job = await scopedJob()
@@ -831,6 +845,12 @@ describe('[HH-FIN-07][HH-FIN-12][T59] partial, pending, deposit and overpayment 
       confirmedCents: 30_000,
       pendingCents: 0,
       remainingCents: 60_000,
+    })
+    // TSK-0150 (OWN-DEC-199, T23): the Overview never says "Nothing is needed from you" while the issued invoice has a
+    // balance; it asks for the payment and names the balance beside the deposit.
+    expect(await customerOverview(job)).toMatchObject({
+      status: { waitingOn: 'customer', nextAction: 'pay_invoice' },
+      invoiceBalanceCents: 60_000,
     })
 
     // An uncleared check is pending: it never counts, and never makes the invoice paid.
@@ -868,6 +888,12 @@ describe('[HH-FIN-07][HH-FIN-12][T59] partial, pending, deposit and overpayment 
     f = view.final as Invoice
     expect(f.money).toMatchObject({ confirmedCents: 70_000, pendingCents: 20_000, remainingCents: 20_000 })
     expect(f.state).toBe('partially_paid')
+    // TSK-0150: a pending check covers the rest, so nothing more is asked of the customer; the balance still shows
+    // until the check clears.
+    expect(await customerOverview(job)).toMatchObject({
+      status: { nextAction: 'none' },
+      invoiceBalanceCents: 20_000,
+    })
     // The overpayment is unallocated money for the Owner's credit or refund decision, never a negative balance.
     expect(view.unallocatedCents).toBe(zelleFirst ? 40_000 : 10_000)
     const item = await t.db
@@ -899,6 +925,10 @@ describe('[HH-FIN-07][HH-FIN-12][T59] partial, pending, deposit and overpayment 
     expect(f.state).toBe('paid')
     expect(f.money).toMatchObject({ confirmedCents: 90_000, pendingCents: 0, remainingCents: 0 })
     expect(f.actions.recordPayment).toBe(false)
+    expect(await customerOverview(job)).toMatchObject({
+      status: { nextAction: 'none' },
+      invoiceBalanceCents: 0,
+    })
     expect(await outboxOf('invoice.paid', id)).toHaveLength(1)
     expect(codes(await payInvoice('office', id, { method: 'cash', amountCents: 100 }))).toContain('INVOICE_PAID')
     expect(await outboxOf('invoice.paid', id)).toHaveLength(1)
@@ -1961,6 +1991,7 @@ describe('[HH-FIN-13][HH-FIN-14][T63] returned checks, failed and disputed payme
     expect(reopened).toMatchObject({ state: 'issued', money: { confirmedCents: 0, remainingCents: 50_000 } })
     expect(await item('payment_dispute', job.jobId)).toMatchObject({ resolution: 'decided' })
     tab = await paymentsTab(job.reference, job.customerCookie)
+    // TSK-0150 (OWN-DEC-199, portal.payments.receiptVoided): a returned payment's receipt no longer counts.
     expect(tab.payments[0]).toMatchObject({ state: 'returned', receipt: expect.objectContaining({ voided: true }) })
     expect((await adjustments(id)).map((a) => [a.kind, a.from_state, a.to_state])).toEqual([
       ['dispute_opened', 'recorded', 'recorded'],

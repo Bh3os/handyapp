@@ -28,14 +28,14 @@ import { draftId, offlineStore, type DraftState, type StoredDraft } from './offl
 import { currentStaff, DRAFTS_CHANGED } from './offline/sync'
 
 // TSK-0080 (HH-OFF-07): what each draft shows as it moves through the sync queue.
-const DRAFT_STATE: Record<DraftState, StaffKey> = {
+export const DRAFT_STATE: Record<DraftState, StaffKey> = {
   saved_on_phone: 'offline.savedOnPhone',
   pending_upload: 'sync.pendingUpload',
   synced: 'sync.synced',
   failed: 'sync.failedLabel',
   needs_review: 'sync.reviewLabel',
 }
-const DRAFT_TONE: Record<DraftState, 'warning' | 'success' | 'danger' | 'info'> = {
+export const DRAFT_TONE: Record<DraftState, 'warning' | 'success' | 'danger' | 'info'> = {
   saved_on_phone: 'warning',
   pending_upload: 'warning',
   synced: 'success',

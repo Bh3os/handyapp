@@ -79,10 +79,15 @@ const NO_CODE_KEY: CodeKeySettings = { state: 'not_configured', missing: ['CODE_
  * membership's privileges (as the session read them on this request).
  */
 async function portalView(db: Db, actor: Actor, now: Date): Promise<PortalView> {
-  const payments = dataScope(actor, 'payment.view', now)
-  if (actor.kind !== 'customer' || !actor.contactId.startsWith('account:')) return { payments }
+  // TSK-0150: the same scopes as the Overview, so a summary never names an action the member is refused.
+  const scopes = {
+    payments: dataScope(actor, 'payment.view', now),
+    decisions: dataScope(actor, 'visit.request_reschedule', now),
+    replies: dataScope(actor, 'request.reply', now),
+  }
+  if (actor.kind !== 'customer' || !actor.contactId.startsWith('account:')) return scopes
   const shared = new Set(actor.projectAccess.filter((g) => g.via === 'organization').map((g) => g.projectId))
-  if (shared.size === 0) return { payments }
+  if (shared.size === 0) return scopes
   const access = await organizationAccessOf(db, actor.contactId.slice('account:'.length))
   const organizations = new Map<string, SharedThrough>()
   for (const a of access)
@@ -92,7 +97,7 @@ async function portalView(db: Db, actor: Actor, now: Date): Promise<PortalView> 
         approve: a.privileges.includes('approve'),
         pay: a.privileges.includes('pay'),
       })
-  return { payments, organizations }
+  return { ...scopes, organizations }
 }
 
 export { WINDOW_ANSWER_RATE_LIMIT, type PortalAppointmentDeps } from './appointments.js'
@@ -175,6 +180,7 @@ export function portalModule(
       const o = await projectOverview(ctx.db, ctx.scope, (ctx.req.params as { reference: string }).reference, now, {
         payments: dataScope(ctx.actor, 'payment.view', now),
         decisions: dataScope(ctx.actor, 'visit.request_reschedule', now),
+        replies: dataScope(ctx.actor, 'request.reply', now),
       })
       if (!o) throw new ApiError('NOT_FOUND')
       return { body: PROJECT_OVERVIEW.project(o) }

@@ -417,6 +417,7 @@ describe('[HH-EST-12][T33][FACT-AUTOMATIC-MESSAGES] the approval receipt: one PD
     // Before the worker runs: the receipt is being prepared; the Documents tab says so too.
     const before = await detail(e, cookie)
     expect(before.approval.nextStep).toBe('deposit_due')
+    // TSK-0150 (OWN-DEC-199, portal.estimate.receipt.preparing): "preparing" until the receipt job has stored it.
     expect(before.approval.receipt).toEqual({ state: 'preparing', issuedAt: null, byteSize: null, url: null })
     const docsBefore = await customerGet(`/api/v1/customer/projects/${e.reference}/documents`, cookie)
     expect(docsBefore.json<{ estimates: { receipt: string | null }[] }>().estimates[0]?.receipt).toBe('preparing')

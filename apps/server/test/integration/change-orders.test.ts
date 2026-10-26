@@ -1066,6 +1066,16 @@ describe('[HH-CHG-02][HH-CHG-03][T53][T44] the identified customer approves or r
     return res.json<CustomerList>()
   }
   const coOf = async (n: number) => (await list()).changeOrders.find((c) => c.number === n) as CustomerCO
+  /** TSK-0150: who the customer Overview says is waiting, and the one next action. */
+  const overviewStatus = async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/v1/customer/projects/${p.reference}/overview`,
+      headers: { cookie: p.cookie },
+    })
+    expect(res.statusCode, res.body).toBe(200)
+    return res.json<{ status: { waitingOn: string; nextAction: string } }>().status
+  }
   const customerPost = (url: string, payload: unknown, cookie = p.cookie) =>
     app.inject({
       method: 'POST',
@@ -1144,6 +1154,7 @@ describe('[HH-CHG-02][HH-CHG-03][T53][T44] the identified customer approves or r
     const before = await list()
     expect(before).toMatchObject({ original: { version: 1, totalCents: 80_000 }, currentTotalCents: 80_000 })
     expect(before.changeOrders).toEqual([])
+    expect((await overviewStatus()).nextAction).not.toBe('review_change')
     const co = await issued(
       [{ kind: 'charge', description: 'Synthetic extra trim', quantity: '1', unit: 'ea', unitPriceCents: 9_000 }],
       { affectedSteps: [{ workPackageId: wp, stepId: '1.2' }], hazards: 'Synthetic: ladder work above 6 ft' },
@@ -1165,6 +1176,15 @@ describe('[HH-CHG-02][HH-CHG-03][T53][T44] the identified customer approves or r
       revisedTotalCents: 89_000,
       decision: null,
       approval: { canDecide: true, blockedBy: null, termsDocumentId: ESTIMATE_TERMS.documentId },
+    })
+    // TSK-0150 (OWN-DEC-199, HH-PORT-02): an issued change order waits on the customer's decision, so the Overview
+    // asks them to review it instead of saying HandyHub has the next step; "Valid until" is shown in the estimate's zone.
+    expect(await overviewStatus()).toEqual(
+      expect.objectContaining({ waitingOn: 'customer', nextAction: 'review_change' }),
+    )
+    expect((after as CustomerList & { validUntilZone: unknown }).validUntilZone).toEqual({
+      zone: expect.any(String),
+      business: expect.any(Boolean),
     })
     // Another project's customer never reaches it (T19).
     const other = await project()
@@ -1298,6 +1318,9 @@ describe('[HH-CHG-02][HH-CHG-03][T53][T44] the identified customer approves or r
       status: 'issued',
       approval: { canDecide: false, blockedBy: 'APPROVED_SCOPE_CHANGED' },
     })
+    // TSK-0150 (OWN-DEC-199, portal.changeOrders.failure.scope_changed / waitingForUpdate): no new version is made
+    // by itself; only a version staff revise against the new approved scope can be decided.
+    expect((await coOf(loserNumber)).version).toBe(1)
     // Staff revise it against the new approved scope.
     const order = await orderOf('estimator', jobId, loserNumber)
     expect(order.actions.revise).toBe(true)

@@ -454,6 +454,7 @@ export const LABEL_FAMILIES = {
     'sms.unknown_zone_hours',
     'launch.phase',
     'sms.live_delivery',
+    'field.offline_actions',
     'ai.module',
   ],
   /** A property's time-zone state and what it rests on (TSK-0123; @handyhub/domain zones.ts). */
@@ -2288,7 +2289,14 @@ export const LABEL_FAMILIES = {
     'WAITS_FOR_CHANGE_ORDER',
     // TSK-0094 (HH-INC-03): after a pause, resume through the Start Work gate first.
     'RESUME_REQUIRED',
+    // TSK-0115 (HH-OFF-08): a step saved offline that the server kept for review, and the phone's own refusals.
+    'STALE_VERSION',
+    'STEP_NOT_FOUND',
+    'OFFLINE_ACTION_NOT_ENABLED',
+    'STOP_SAVED_ON_PHONE',
   ],
+  /** TSK-0115 (HH-OFF-08): the offline actions beyond the minimal set the Owner may turn on. */
+  offlineAction: ['checklist_step'],
   // TSK-0081 (HH-CHG-01, OWN-DEC-203): change orders.
   changeOrderState: ['draft', 'reviewed', 'issued', 'approved', 'rejected', 'expired', 'superseded', 'withdrawn'],
   changeOrderOrigin: ['worker_proposal', 'customer_request', 'estimator', 'emergency_follow_up'],

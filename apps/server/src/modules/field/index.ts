@@ -19,16 +19,23 @@
 //                                                      decided again (schedule.view_my_day: anyone with a My Day)
 //   GET  /staff/field-events/:clientId                 one event as received (visit.correct_timestamps: the Owner)
 //   POST /staff/field-events/:clientId/review          the Owner's review of an event not applied, once
+// TSK-0115 (HH-OFF-08): the offline actions beyond the minimal set (offline-actions.ts).
+//   GET  /staff/settings/offline-actions               what the Owner turned on (policy_values.change: the Owner)
+//   PUT  /staff/settings/offline-actions               the Owner turns actions on or off (fresh sign-in, a reason)
 // - A tap is decided by the policy (ROLE-MATRIX "Tap On my way, Arrived, Finished": Owner and Worker A, assigned to
 //   this visit until the end of its service day) and again inside its transaction from the visit's records (taps.ts).
 //   A worker assigned to someone else's visit, or reassigned away, is refused.
 // - Nothing here starts work or touches the Start Work gate, a hold or stop-work rights (RULE-SAFETY-GATES); nothing
 //   computes an ETA, a location or pay.
 import type { Tx } from '@handyhub/db'
+import type { OfflineAction } from '@handyhub/domain'
 import type { FieldTap } from '@handyhub/domain'
 import type { StaffActor } from '@handyhub/policy'
+import { sql } from 'kysely'
 import { ApiError } from '../../api/errors.js'
 import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
+import { recordPolicyVersion } from '../../platform/config/index.js'
+import { FRESH_AUTH_MINUTES } from '../identity/sessions.js'
 import { holdsAction } from '../visits/changes.js'
 import { myDayItems, onMyWayRule } from './my-day.js'
 import {
@@ -42,6 +49,8 @@ import {
   FIELD_EVENT_VIEW,
   FOLLOW_UP_BODY,
   MY_DAY,
+  OFFLINE_ACTIONS_BODY,
+  OFFLINE_ACTIONS_SETTING,
   OUTCOME_BODY,
   OUTCOME_PARAMS,
   OUTCOME_RESULT,
@@ -51,6 +60,7 @@ import {
   VISIT_PARAMS,
   VISIT_TIMES,
 } from './schemas.js'
+import { offlineActionsSetting } from './offline-actions.js'
 import { followUpVisitOutcome, recordVisitOutcome, visitOutcomeView } from './outcomes.js'
 import { fieldEventView, ingestFieldEvent, reviewFieldEvent, type FieldEventInput } from './sync.js'
 import { recordTap, visitAssignments } from './taps.js'
@@ -61,6 +71,7 @@ export { onTheWayAutomation, ON_THE_WAY_NOTICE } from './notice.js'
 export { ON_MY_WAY_EVENT, recordTap } from './taps.js'
 export { openVisitOutcome, VISIT_OUTCOME_QUEUE_TYPE } from './outcomes.js'
 export { FIELD_EVENT_QUEUE_TYPE, FIELD_EVENT_TYPES, ingestFieldEvent } from './sync.js'
+export { offlineActions, offlineChecklistEvents } from './offline-actions.js'
 export { csvCell, timestampsCsv, visitTimes } from './timestamps.js'
 
 const TEST = 'test/integration/my-day.test.ts'
@@ -473,7 +484,12 @@ export function fieldModule(): ApiModule {
       "as an online tap would be (applied, or already_recorded), the phone's time kept beside the server's; one the " +
       "visit's newer state refuses is kept for review, never applied over it (conflict, with the refusal code). The " +
       "Owner may upload the events another account's phone holds (actorId): kept for review only (recovered). Each " +
-      "event in review opens the Owner's queue item field_event_review.",
+      "event in review opens the Owner's queue item field_event_review. TSK-0115: a checklist_step event (with " +
+      'step: the work package, step, event start/pause/resume/complete, the version the phone saw and the evidence) ' +
+      'is taken only while the Owner has turned it on (field.offline_actions; OFFLINE_ACTION_NOT_ENABLED otherwise, ' +
+      'nothing kept), then decided as above with job.record_checklist_step and applied through the checklist ' +
+      "route's own checks (the worker's own Start Work, no open hold, the step's version); what they refuse now is " +
+      'kept for review with the refusal code, never applied.',
     actors: ['staff'],
     permission: 'schedule.view_my_day',
     kind: 'write',
@@ -498,6 +514,11 @@ export function fieldModule(): ApiModule {
           outcome: out.outcome,
           detail: out.detail,
           ingested: out.ingested,
+          // TSK-0115: identifiers only; no note or measurement enters the audit summary.
+          ...((b) =>
+            b.step ? { workPackageId: b.step.workPackageId, stepId: b.step.stepId, event: b.step.event } : {})(
+            ctx.req.body as FieldEventInput,
+          ),
         },
       })
       return {
@@ -574,6 +595,82 @@ export function fieldModule(): ApiModule {
     },
   }
 
+  // TSK-0115 (HH-OFF-08): the offline actions beyond the minimal set, the Owner's switch.
+  const OFFLINE_TEST = 'test/integration/checklist.test.ts'
+  const offlineSetting: RouteDef = {
+    method: 'GET',
+    path: '/staff/settings/offline-actions',
+    operationId: 'getOfflineActions',
+    summary: 'The offline actions turned on',
+    description:
+      'The Owner (visit.correct_timestamps: the role that reviews what phones upload). The actions a phone may save ' +
+      'offline beyond the minimal set (On my way, Arrived, Finished, Stop Work): field.offline_actions, its version, ' +
+      'what it turns on, the actions available (PROPOSED: checklist_step) and the reason of the last change. Nothing ' +
+      'is on until the Owner turns it on after walking the offline controls on staging (HH-OFF-08). ETag: the ' +
+      'configuration version.',
+    actors: ['staff'],
+    permission: 'visit.correct_timestamps',
+    kind: 'read',
+    idempotency: 'none',
+    expectedVersion: 'none',
+    rateLimit: 'none',
+    audit: 'none',
+    pagination: false,
+    test: OFFLINE_TEST,
+    schema: { response: { 200: OFFLINE_ACTIONS_SETTING } },
+    handler: async (ctx) => {
+      const body = await offlineActionsSetting(ctx.db)
+      return { body, version: body.version, headers: { 'cache-control': 'no-store' } }
+    },
+  }
+  const setOfflineActions: RouteDef = {
+    method: 'PUT',
+    path: '/staff/settings/offline-actions',
+    operationId: 'setOfflineActions',
+    summary: 'Turn offline actions on or off (Owner only)',
+    description:
+      `The Owner only (policy_values.change: a fresh sign-in within ${FRESH_AUTH_MINUTES} minutes and a written ` +
+      'reason), with If-Match: the configuration version shown. Records the next version of field.offline_actions ' +
+      'with the actions listed (an empty list turns every one off). Turning one on says the offline controls were ' +
+      'proven on staging (HH-OFF-08); it never moves Start Work, a hold, an approval or a payment offline. The ' +
+      'database accepts the change only from a live Owner with a reason. Audited with the old and new list.',
+    actors: ['staff'],
+    permission: 'policy_values.change',
+    freshAuthMinutes: FRESH_AUTH_MINUTES,
+    kind: 'write',
+    idempotency: 'required',
+    expectedVersion: 'required',
+    rateLimit: 'none',
+    audit: 'field_event.offline_actions_change',
+    pagination: false,
+    test: OFFLINE_TEST,
+    schema: { body: OFFLINE_ACTIONS_BODY, response: { 200: OFFLINE_ACTIONS_SETTING } },
+    handler: async (ctx) => {
+      const tx = ctx.tx as Tx
+      const actor = staff(ctx)
+      const { actions, reason } = ctx.req.body as { actions: OfflineAction[]; reason: string }
+      // The same lock recordPolicyVersion takes, so the version compared is the one superseded.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'policy_version:field.offline_actions'}))`.execute(tx)
+      const before = await offlineActionsSetting(tx)
+      if (ctx.expectedVersion() !== before.version)
+        throw new ApiError('STALE_VERSION', { current: { version: before.version } })
+      const version = await recordPolicyVersion(tx, {
+        key: 'field.offline_actions',
+        value: { actions: before.available.filter((a) => actions.includes(a)) },
+        sourceIds: ['HH-OFF-08', 'OWN-DEC-121', 'OQ-OFFLINE-ACTIONS-DETAILS'],
+        changedBy: actor.userId,
+        reason: reason.trim(),
+      })
+      await ctx.audit({
+        target: { type: 'policy_version', id: 'field.offline_actions', version },
+        summary: { from: before.actions, to: actions, previousVersion: before.version },
+        reason: reason.trim(),
+        stepUpUsed: true,
+      })
+      return { body: await offlineActionsSetting(tx), version }
+    },
+  }
+
   return {
     name: 'field',
     routes: [
@@ -588,6 +685,8 @@ export function fieldModule(): ApiModule {
       syncEvent,
       fieldEvent,
       review,
+      offlineSetting,
+      setOfflineActions,
     ],
   }
 }
