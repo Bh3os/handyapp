@@ -142,6 +142,12 @@ function staffWrite(who: Person, method: 'POST' | 'PUT', url: string, payload: u
 const staffGet = (who: Person, url: string) => app.inject({ method: 'GET', url, headers: { cookie: cookies[who] } })
 const codes = (body: string): [string, string][] =>
   JSON.parse(body).error.fieldErrors.map((f: { field: string; code: string }) => [f.field, f.code])
+/**
+ * The loser of a race on the same capacity: refused as `field code` when it sees the winner's reservation, or as
+ * `reservation CAPACITY_TAKEN` when it reaches the database guard before the winner commits. Both are correct.
+ */
+const raceRefused = (body: string, field: string, code: string) =>
+  codes(body).some(([f, c]) => (f === field && c === code) || (f === 'reservation' && c === 'CAPACITY_TAKEN'))
 
 async function setHours(crew: Crew, periods: { weekday: number; start: string; end: string }[]) {
   const before = (await staffGet('owner', '/api/v1/staff/availability')).json<Availability>()
@@ -511,7 +517,7 @@ describe('[HH-SCH-04][T38] two confirmations for the same worker cannot both suc
     expect(statuses).toEqual([200, 409])
     const loser = ra.statusCode === 409 ? ra : rb
     expect(loser.json().error.code).toBe('CONFLICT')
-    expect(codes(loser.body)).toContainEqual([`workers.${ids.ann}`, 'WORKER_BOOKED'])
+    expect(raceRefused(loser.body, `workers.${ids.ann}`, 'WORKER_BOOKED'), loser.body).toBe(true)
     // The loser is offered alternatives: ben is free for that range; free periods of the day are listed.
     const alt = loser.json<{ error: { alternatives: Alternatives } }>().error.alternatives
     expect(alt.workers.map((w) => w.id)).toContain(ids.ben)
@@ -534,16 +540,8 @@ describe('[HH-SCH-04][T38] two confirmations for the same worker cannot both suc
     const results = await Promise.all(vs.map((v, i) => confirm(i % 2 ? 'owner' : 'office', v, ['ann'])))
     expect(results.filter((r) => r.statusCode === 200)).toHaveLength(1)
     expect(results.filter((r) => r.statusCode === 409)).toHaveLength(5)
-    // A loser that reaches the database guard while the winner has not committed yet is refused as CAPACITY_TAKEN;
-    // one that sees the winner's reservation is refused as WORKER_BOOKED. Which one happens depends on timing.
     for (const r of results.filter((x) => x.statusCode === 409))
-      expect(codes(r.body)).toSatisfy((c: string[][]) =>
-        c.some(
-          ([f, code]) =>
-            (f === `workers.${ids.ann}` && code === 'WORKER_BOOKED') ||
-            (f === 'reservation' && code === 'CAPACITY_TAKEN'),
-        ),
-      )
+      expect(raceRefused(r.body, `workers.${ids.ann}`, 'WORKER_BOOKED'), r.body).toBe(true)
     const reserved = (await activeOf(ids.ann)).filter((r) => vs.some((v) => v.id === r.visit_id))
     expect(reserved).toHaveLength(1)
     const confirmed = await t.db
@@ -898,10 +896,13 @@ describe('[HH-SCH-03][HH-SCH-04] equipment reservations', () => {
     ])
     expect([rx.statusCode, ry.statusCode].sort()).toEqual([200, 409])
     const loser = rx.statusCode === 409 ? rx : ry
-    expect(codes(loser.body)).toContainEqual([`equipment.${ladderA}`, 'EQUIPMENT_BOOKED'])
-    expect(
-      loser.json<{ error: { alternatives: Alternatives } }>().error.alternatives.equipment.map((e) => e.id),
-    ).toEqual([ladderB])
+    expect(raceRefused(loser.body, `equipment.${ladderA}`, 'EQUIPMENT_BOOKED'), loser.body).toBe(true)
+    const offered = loser
+      .json<{ error: { alternatives: Alternatives } }>()
+      .error.alternatives.equipment.map((e) => e.id)
+    // A loser refused at the database guard reads its alternatives before the winner's reservation is visible.
+    if (codes(loser.body).some(([f]) => f === `equipment.${ladderA}`)) expect(offered).toEqual([ladderB])
+    else expect(offered).toContain(ladderB)
     const cap = (await staffGet('office', `/api/v1/staff/capacity?date=${day(18)}`)).json<CapacityDay>()
     expect(cap.equipment.find((e) => e.id === ladderA)?.reservations).toHaveLength(1)
     // Retiring flags the item's upcoming reservation; a retired item is never reserved.
