@@ -165,6 +165,9 @@ export const CLEARED_CATEGORIES = {
     'finance.refunds',
     'finance.payouts',
     'finance.provider_fees',
+    // TSK-0095 (0109): a job's actual costs and their history.
+    'finance.job_costs',
+    'finance.job_cost_events',
   ],
   conversations: [
     'comms.conversations',

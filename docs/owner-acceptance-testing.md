@@ -161,6 +161,18 @@ from the decisions; the details no decision gives are PROPOSED in OQ-CLOSEOUT-DE
 | H5  | A complaint is open on the project           | The follow-up and review requests wait; they are offered again once every case is closed.               |
 | H6  | Review request                               | Not sendable yet: its wording and where reviews are left are NOT CONFIGURED. Never automatic.           |
 
+### I. Job costs, estimated versus actual (OWN-DEC-189, OWN-DEC-125)
+
+Built by TSK-0095. Open `<staging>/staff/job-costs/<job>` (also from the job's closeout page). The details no decision
+gives are PROPOSED in OQ-JOB-COST-DETAILS; job margin and the 30% flag come later (TSK-0131).
+
+| #   | Scenario                                  | Expected outcome                                                                                      |
+| --- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| I1  | A new job with internal costs on the line | Estimated materials and labor from the approved estimate; every actual cost "Not recorded", never $0.00. |
+| I2  | Record a materials cost                   | Shown as "so far (incomplete)" until you confirm the category; then final, with its variance.          |
+| I3  | Labor and burden                          | "Not configured": no labor cost rate exists yet, so the actual total stays incomplete and no margin.   |
+| I4  | Office or an Estimator opens the page     | Refused: job costs are yours only (PROPOSED).                                                          |
+
 ## 4. Results
 
 | Walk                                    | Date | By  | Result                                                                                          |

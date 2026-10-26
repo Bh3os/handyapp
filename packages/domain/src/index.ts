@@ -451,3 +451,6 @@ export * from './return-work.js'
 export * from './site-checks.js'
 // TSK-0128 (HH-PKT-08, OWN-DEC-171): the visit-day data access of the assigned workers and Owner extensions.
 export * from './visit-access.js'
+// TSK-0095 (HH-FIN-17, HH-DATA-10): estimated versus actual job costs; report definitions with their source states.
+export * from './job-costs.js'
+export * from './report-sources.js'
