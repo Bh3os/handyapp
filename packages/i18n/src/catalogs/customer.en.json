@@ -91,7 +91,7 @@
   "request.timing.visitHours": "Visits every day, {open}–{close}, by appointment.",
   "request.timing.weekendsCombined": "Weekends with Mornings, Afternoons or Evenings means those times on a Saturday or Sunday.",
   "request.timing.weekendDate": "Weekends needs a Saturday or Sunday date. Choose a weekend date, choose I'm flexible, or clear Weekends.",
-  "request.timing.note": "These are your preferences. Your appointment is confirmed only after we send a date and arrival window.",
+  "request.timing.note": "These are your preferred times only. Your appointment is not confirmed until HandyHub sends you a confirmed date and arrival window.",
   "request.contact.fullName": "Full name",
   "request.contact.email": "Email",
   "request.contact.phone": "Phone",

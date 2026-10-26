@@ -489,6 +489,8 @@
   "request.spamFlagged": "Flagged for review",
   "request.spamHint": "The quiet spam controls flagged this request. Review it like any other; nothing was discarded.",
   "request.timing": "Timing preferences",
+  "request.windowHours": "{window} ({hours})",
+  "request.windowZone": "Hours in the property's time zone:",
   "request.visitExplanation": "Short explanation for the customer",
   "request.visitExplanationHint": "Why a site visit is needed, in English.",
   "request.visitHint": "No visit is booked and no message is sent now; the visit windows are offered next.",

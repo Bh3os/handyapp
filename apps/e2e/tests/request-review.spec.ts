@@ -164,7 +164,7 @@ test.describe('final review and Send Estimate Request (TSK-0030)', () => {
     await expect(region('Preferred timing')).toContainText(futureText)
     await expect(region('Preferred timing')).toContainText('Mornings')
     await expect(region('Preferred timing')).toContainText(
-      'These are your preferences. Your appointment is confirmed only after we send a date and arrival window.',
+      'These are your preferred times only. Your appointment is not confirmed until HandyHub sends you a confirmed date and arrival window.',
     )
     for (const text of ['Test Customer', email, '(502) 555-0181', 'Phone call', 'Let HandyHub decide'])
       await expect(region('Contact')).toContainText(text)

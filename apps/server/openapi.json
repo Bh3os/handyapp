@@ -144588,6 +144588,7 @@
                     "customer",
                     "original",
                     "contactVerification",
+                    "preferredWindows",
                     "coverage",
                     "responsibleStaff",
                     "assignments",
@@ -144948,6 +144949,86 @@
                             },
                             "phone": {
                               "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "preferredWindows": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "timeZone",
+                        "family",
+                        "windows"
+                      ],
+                      "properties": {
+                        "timeZone": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "family": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "eastern",
+                            "central",
+                            null
+                          ]
+                        },
+                        "windows": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "code",
+                              "start",
+                              "end",
+                              "startsAt",
+                              "endsAt"
+                            ],
+                            "properties": {
+                              "code": {
+                                "type": "string",
+                                "enum": [
+                                  "mornings",
+                                  "afternoons",
+                                  "evenings",
+                                  "weekends",
+                                  "any_time"
+                                ]
+                              },
+                              "start": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "end": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "startsAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              },
+                              "endsAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "format": "date-time"
+                              }
                             }
                           }
                         }

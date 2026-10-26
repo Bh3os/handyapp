@@ -1329,6 +1329,7 @@ export interface IntakeRequestsTable {
   responsible_staff_id: string | null
   coverage_rule_set: number | null
   coverage_reason: string | null
+  time_window_hours: ColumnType<JsonValue, string | undefined, string>
 }
 
 export interface IntakeResponseClocksTable {
