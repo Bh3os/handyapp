@@ -498,6 +498,8 @@
   "request.spamFlagged": "Marcada para revisión",
   "request.spamHint": "Los controles silenciosos de spam marcaron esta solicitud. Revísela como cualquier otra; no se descartó nada.",
   "request.timing": "Preferencias de horario",
+  "request.windowHours": "{window} ({hours})",
+  "request.windowZone": "Horas en la zona horaria de la propiedad:",
   "request.visitExplanation": "Explicación breve para el cliente",
   "request.visitExplanationHint": "Por qué se necesita una visita, en inglés.",
   "request.visitHint": "Ahora no se reserva ninguna visita ni se envía ningún mensaje; luego se ofrecen los horarios de visita.",

@@ -276,8 +276,9 @@ export const CONFIG_KEYS = {
   // this build: NOT CONFIGURED, so the active rule set answers from the owner's dataset alone (verification
   // 'not_configured') and `coverage import <file>` verifies it once the Census file is supplied.
   'coverage.verification_source': shape({ zipToCounty: text, addressToCounty: text }),
-  // TSK-0028 (HH-INT-02, OWN-DEC-92): the hours of the preferred windows, inside contact.hours. Not given by the owner:
-  // NOT CONFIGURED (OQ-WINDOW-HOURS), so the form shows the five windows without hours.
+  // TSK-0028 (HH-INT-02, OWN-DEC-92): the hours of the preferred windows, inside contact.hours; while NOT CONFIGURED the
+  // form shows the five windows without hours. TSK-0139 (OWN-DEC-170, FACT-WINDOW-HOURS): migration 0104 records the
+  // decided 8-12, 12-5 and 5-10, wall-clock times of the property's zone.
   'request.window_hours': shape({
     mornings: shape({ start: clock, end: clock }),
     afternoons: shape({ start: clock, end: clock }),

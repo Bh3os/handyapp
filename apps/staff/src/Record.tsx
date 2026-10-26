@@ -13,9 +13,11 @@ import { customerTranslator, type StaffKey, type StaffLocale } from '@handyhub/i
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
+import { spanText } from './Capacity'
 import { ProjectCases } from './Cases'
 import { ConflictBanner, conflictOf, type Conflict } from './ConflictBanner'
 import { ProjectEstimates } from './Estimates'
+import { ZoneText } from './Property'
 import { RequestQuestions } from './Questions'
 import { codeLabel } from './Requests'
 import { clockText, clockTime, type ResponseClock } from './ResponseClock'
@@ -99,6 +101,8 @@ export type RequestDetail = {
   }
   /** The badges describe the contact's current values; a verified Change Contact (TSK-0033) can differ from those sent. */
   contactVerification: { email: string; phone: string; current: { email: string; phone: string } }
+  /** TSK-0139: the chosen windows with the hours the form offered, in the property's zone (null: unknown). */
+  preferredWindows: { timeZone: string | null; family: string | null; windows: PreferredWindow[] }
   coverage: { result: string; code?: string; reason?: string | null; ruleSet: number | null }
   responsibleStaff: StaffRef | null
   assignments: { staff: StaffRef; previous: StaffRef | null; by: StaffRef; at: string }[]
@@ -331,7 +335,7 @@ export function RequestRecord({
           <p>{t('request.spamHint')}</p>
         </StateView>
       ) : null}
-      <Original t={t} view={view} photos={photos} />
+      <Original t={t} locale={locale} view={view} photos={photos} />
       <Responsible t={t} fetchImpl={fetchImpl} view={view} onChanged={load} when={when} />
       <FirstResponse t={t} locale={locale} fetchImpl={fetchImpl} view={view} onChanged={load} when={when} />
       <Qualification t={t} fetchImpl={fetchImpl} view={view} onChanged={load} when={when} />
@@ -423,9 +427,57 @@ function Section({ id, title, children }: { id: string; title: string; children:
   )
 }
 
-function Original({ t, view, photos }: { t: T; view: RequestDetail; photos: Photo[] | null }) {
+type PreferredWindow = {
+  code: string
+  start: string | null
+  end: string | null
+  startsAt: string | null
+  endsAt: string | null
+}
+
+/** "8:00 AM" for a wall-clock "08:00": formatting only, no zone is applied (the time is the property's own). */
+function wallClock(clock: string, locale: StaffLocale): string {
+  const [h = 0, m = 0] = clock.split(':').map(Number)
+  return new Intl.DateTimeFormat(locale === 'es' ? 'es-US' : 'en-US', {
+    timeZone: 'UTC',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(Date.UTC(2000, 0, 1, h, m)))
+}
+
+/**
+ * A chosen window as staff read it (TSK-0139): "Mornings (8:00 AM EST – 12:00 PM EST)" on a preferred date in a known
+ * zone, so the offset is that date's; "Mornings (8:00 AM – 12:00 PM)" otherwise; Weekends and Any time have no hours.
+ */
+function windowText(t: T, locale: StaffLocale, w: PreferredWindow, zone: string | null): string {
+  const label = codeLabel(t, 'timeWindow', w.code)
+  if (w.startsAt && w.endsAt && zone)
+    return t('request.windowHours', {
+      window: label,
+      hours: spanText({ startsAt: w.startsAt, endsAt: w.endsAt }, zone, locale),
+    })
+  if (w.start && w.end)
+    return t('request.windowHours', {
+      window: label,
+      hours: `${wallClock(w.start, locale)} – ${wallClock(w.end, locale)}`,
+    })
+  return label
+}
+
+function Original({
+  t,
+  locale,
+  view,
+  photos,
+}: {
+  t: T
+  locale: StaffLocale
+  view: RequestDetail
+  photos: Photo[] | null
+}) {
   const ids = useId()
   const o = view.original
+  const pw = view.preferredWindows
   const yes = (b: boolean) => (b ? t('request.yes') : t('request.no'))
   const answer = (a: RequestDetail['original']['answers'][number]) => {
     if (a.kind === 'unknown') return t('request.answerUnknown')
@@ -496,8 +548,15 @@ function Original({ t, view, photos }: { t: T; view: RequestDetail; photos: Phot
           {o.timing.flexible || !o.timing.preferredDate
             ? t('request.flexible')
             : t('request.preferredDate', { date: o.timing.preferredDate })}
-          {o.timing.windows.length ? ` · ${o.timing.windows.map((w) => codeLabel(t, 'timeWindow', w)).join(', ')}` : ''}
+          {pw.windows.length ? ` · ${pw.windows.map((w) => windowText(t, locale, w, pw.timeZone)).join(', ')}` : ''}
           {o.timing.needHelpToday ? ` · ${t('request.needHelpToday')}` : ''}
+          {/* OWN-DEC-159 item 6: the hours are the property's own wall-clock times, and the zone is always named. */}
+          {pw.windows.some((w) => w.start) ? (
+            <span className="staff-request__hint" data-testid="request-window-zone">
+              {' '}
+              · {t('request.windowZone')} <ZoneText t={t} zone={pw.timeZone} family={pw.family} />
+            </span>
+          ) : null}
         </dd>
         <dt>{t('request.estimatePreference')}</dt>
         <dd>{codeLabel(t, 'estimatePreference', o.estimatePreference)}</dd>

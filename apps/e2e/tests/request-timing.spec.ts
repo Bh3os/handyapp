@@ -1,5 +1,6 @@
 // The property, timing and estimate-approach steps in a real browser (TSK-0028; HH-INT-16, HH-INT-17, HH-INT-02,
-// HH-INT-03, T09, T24, T37, T41). Preferences only: nothing on the page or the receipt claims a slot, a booking or a
+// HH-INT-03, T09, T24, T37, T41). TSK-0139 (OWN-DEC-170, FACT-WINDOW-HOURS): the decided window hours and the owner's
+// notice below the choices. Preferences only: nothing on the page or the receipt claims a slot, a booking or a
 // fee. Every visitor, address and number is synthetic (RULE-SYNTHETIC-DATA).
 import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
@@ -9,6 +10,13 @@ const databaseUrl = process.env['E2E_DATABASE_URL']
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const ZONE = 'America/Kentucky/Louisville'
 const STREET = '300 Synthetic Court'
+/** The owner's notice below the preferred times, exactly (OWN-DEC-170). */
+const NOTICE =
+  'These are your preferred times only. Your appointment is not confirmed until HandyHub sends you a confirmed date and arrival window.'
+/** The five choices with the decided hours (FACT-WINDOW-HOURS), wall-clock times of the property's zone. */
+const MORNINGS = 'Mornings (8 AM–12 PM)'
+const AFTERNOONS = 'Afternoons (12 PM–5 PM)'
+const EVENINGS = 'Evenings (5 PM–10 PM)'
 
 /** A calendar date in the business time zone, some days from now. */
 function localDate(daysAhead: number): string {
@@ -28,6 +36,13 @@ function weekday(): string {
   return d.toISOString().slice(0, 10)
 }
 
+/** A Saturday at least three days ahead. */
+function saturday(): string {
+  const d = new Date(`${localDate(3)}T12:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + ((6 - d.getUTCDay() + 7) % 7))
+  return d.toISOString().slice(0, 10)
+}
+
 /** Wording that would claim a booking, a slot or a fee; none of it may appear (HH-INT-02, FACT-VISIT-FEE). */
 const SLOT_CLAIM =
   /\$|\bbooked\b|\bslot\b|scheduled for|appointment is (set|booked|on|at)|confirmed for|visit fee|same-day (charge|fee)/i
@@ -44,7 +59,7 @@ test.use({ extraHTTPHeaders: { 'x-forwarded-for': '198.51.100.14' } })
 test.describe('property, timing and estimate approach (TSK-0028)', () => {
   test.skip(!databaseUrl, 'needs E2E_DATABASE_URL (a fresh PostgreSQL 16 database)')
 
-  test('[T09][HH-INT-02][HH-INT-17][HH-INT-16][HH-INT-03][T37] preferences are stored as preferences; nothing claims a slot', async ({
+  test('[T09][HH-INT-02][HH-INT-17][HH-INT-16][HH-INT-03][T37][OWN-DEC-170] preferences are stored as preferences; nothing claims a slot', async ({
     page,
   }) => {
     const urls: string[] = []
@@ -71,20 +86,33 @@ test.describe('property, timing and estimate approach (TSK-0028)', () => {
       await expect(page.getByLabel(name, { exact: true })).toBeVisible()
     await page.getByLabel('Townhouse', { exact: true }).check()
 
-    // The owner's wording, the configured visit hours, and dates from tomorrow in the property's time zone.
-    await expect(
-      page.getByText(
-        'These are your preferences. Your appointment is confirmed only after we send a date and arrival window.',
-      ),
-    ).toBeVisible()
+    // The owner's notice below the choices (OWN-DEC-170), the configured visit hours, and dates from tomorrow in the
+    // property's time zone.
+    const notice = page.getByText(NOTICE, { exact: true })
+    await expect(notice).toBeVisible()
+    expect(
+      await page
+        .locator('[data-field="timing.windows"]')
+        .evaluate(
+          (choices, text) =>
+            [...document.querySelectorAll('p')].some(
+              (p) =>
+                p.textContent === text && !!(choices.compareDocumentPosition(p) & Node.DOCUMENT_POSITION_FOLLOWING),
+            ),
+          NOTICE,
+        ),
+    ).toBe(true)
     await expect(page.getByText('Visits every day, 8 AM–10 PM, by appointment.')).toBeVisible()
     await expect(page.getByLabel('Preferred date')).toHaveAttribute('min', localDate(1))
 
-    // The five windows; Weekends with Mornings is explained, and must agree with the date (HH-INT-02).
-    for (const name of ['Mornings', 'Afternoons', 'Evenings', 'Weekends', 'Any time'])
+    // The five windows with the decided hours; Weekends with Mornings is explained, and must agree with the date
+    // (HH-INT-02, OWN-DEC-170).
+    const windows = page.locator('[data-field="timing.windows"] input[type="checkbox"]')
+    await expect(windows).toHaveCount(5)
+    for (const name of [MORNINGS, AFTERNOONS, EVENINGS, 'Weekends', 'Any time'])
       await expect(page.getByLabel(name, { exact: true })).toBeVisible()
     await page.getByLabel('Preferred date').fill(weekday())
-    await page.getByLabel('Mornings', { exact: true }).check()
+    await page.getByLabel(MORNINGS, { exact: true }).check()
     await page.getByLabel('Weekends', { exact: true }).check()
     await expect(
       page.getByText('Weekends with Mornings, Afternoons or Evenings means those times on a Saturday or Sunday.'),
@@ -98,10 +126,26 @@ test.describe('property, timing and estimate approach (TSK-0028)', () => {
     ).toBeVisible()
     await axe(page)
 
-    // Any time clears the others.
+    // Weekends combines with a time of day on a weekend date (OWN-DEC-170): no problem is left on the windows.
+    await page.getByLabel(EVENINGS, { exact: true }).check()
+    await page.getByLabel('Preferred date').fill(saturday())
+    await expect(page.getByLabel(MORNINGS, { exact: true })).toBeChecked()
+    await expect(page.getByLabel(EVENINGS, { exact: true })).toBeChecked()
+    await expect(page.getByLabel('Weekends', { exact: true })).toBeChecked()
+    await page.getByRole('button', { name: 'Next' }).click()
+    await expect(page.getByRole('heading', { name: 'Step 4 of 5: Contact' })).toBeVisible()
+    await page.getByRole('button', { name: 'Back' }).click()
+    await expect(page.getByLabel(MORNINGS, { exact: true })).toBeChecked()
+    await expect(page.getByLabel('Weekends', { exact: true })).toBeChecked()
+
+    // Any time clears the others; another choice clears Any time.
     await page.getByLabel('Any time', { exact: true }).check()
-    await expect(page.getByLabel('Mornings', { exact: true })).not.toBeChecked()
-    await expect(page.getByLabel('Weekends', { exact: true })).not.toBeChecked()
+    for (const name of [MORNINGS, EVENINGS, 'Weekends'])
+      await expect(page.getByLabel(name, { exact: true })).not.toBeChecked()
+    await page.getByLabel(AFTERNOONS, { exact: true }).check()
+    await expect(page.getByLabel('Any time', { exact: true })).not.toBeChecked()
+    await page.getByLabel('Any time', { exact: true }).check()
+    await expect(page.getByLabel(AFTERNOONS, { exact: true })).not.toBeChecked()
 
     // I'm flexible replaces the date; Need help today is a request for review, never an appointment.
     await page.getByLabel("I'm flexible").check()

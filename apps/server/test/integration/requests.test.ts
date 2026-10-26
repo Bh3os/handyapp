@@ -561,13 +561,13 @@ describe('request form settings (TSK-0026, HH-INT-08)', () => {
       timeZone: 'America/Kentucky/Louisville',
       // TSK-0031: the configured photo limits (FACT-UPLOAD-LIMITS).
       photos: { maxFileBytes: 15 * 1024 * 1024, maxPhotos: 10, types: ['image/jpeg', 'image/png', 'image/webp'] },
-      // TSK-0028: FACT-HOURS; the five windows without hours (request.window_hours is NOT CONFIGURED,
-      // OQ-WINDOW-HOURS); estimates are free (FACT-VISIT-FEE).
+      // TSK-0028: FACT-HOURS; estimates are free (FACT-VISIT-FEE). TSK-0139: the five windows, the day windows with
+      // the decided hours of FACT-WINDOW-HOURS (OWN-DEC-170), wall-clock times of the property's zone.
       visitHours: { open: '08:00', close: '22:00' },
       windows: [
-        { code: 'mornings' },
-        { code: 'afternoons' },
-        { code: 'evenings' },
+        { code: 'mornings', start: '08:00', end: '12:00' },
+        { code: 'afternoons', start: '12:00', end: '17:00' },
+        { code: 'evenings', start: '17:00', end: '22:00' },
         { code: 'weekends' },
         { code: 'any_time' },
       ],
@@ -603,7 +603,7 @@ describe('request form settings (TSK-0026, HH-INT-08)', () => {
   })
 
   it('[HH-INT-02] configured window hours are served, and a window outside the visit hours is neither offered nor accepted', async () => {
-    // Synthetic hours, recorded only in this test database and reset afterwards: the owner has given none.
+    // Synthetic hours past the visit hours, recorded only in this test database, then back to the decided value.
     await recordPolicyVersion(t.db, {
       key: 'request.window_hours',
       value: {
@@ -633,10 +633,14 @@ describe('request form settings (TSK-0026, HH-INT-08)', () => {
     } finally {
       await recordPolicyVersion(t.db, {
         key: 'request.window_hours',
-        value: null,
-        sourceIds: ['OQ-WINDOW-HOURS'],
+        value: {
+          mornings: { start: '08:00', end: '12:00' },
+          afternoons: { start: '12:00', end: '17:00' },
+          evenings: { start: '17:00', end: '22:00' },
+        },
+        sourceIds: ['FACT-WINDOW-HOURS', 'OWN-DEC-170'],
         changedBy: 'test:synthetic',
-        reason: 'back to NOT CONFIGURED',
+        reason: 'back to the decided value',
       })
     }
   })

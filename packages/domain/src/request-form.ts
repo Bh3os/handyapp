@@ -3,6 +3,7 @@
 // One definition for both sides: the server validates submissions with this JSON schema and these checks, and the
 // request wizard validates the same way before sending, so the two never disagree (manipulated data is still
 // rejected by the server). Codes, never labels: the wizard shows the English wording from the i18n catalog.
+import { resolveWindow } from './local-time.js'
 
 export const PROPERTY_TYPES = ['house', 'apartment_condo', 'townhouse', 'rental_short_term'] as const
 export const TIME_WINDOWS = ['mornings', 'afternoons', 'evenings', 'weekends', 'any_time'] as const
@@ -231,7 +232,7 @@ export const DAY_WINDOWS = ['mornings', 'afternoons', 'evenings'] as const
 export type DayWindow = (typeof DAY_WINDOWS)[number]
 /** Hours as HH:MM, 24-hour clock, in the property's local time. */
 export type ClockRange = { readonly start: string; readonly end: string }
-/** The configured hours of each day window (request.window_hours; NOT CONFIGURED until the owner gives them). */
+/** The configured hours of each day window (request.window_hours, FACT-WINDOW-HOURS: 8–12, 12–5 and 5–10). */
 export type WindowHours = Readonly<Record<DayWindow, ClockRange>>
 /** The visit hours (contact.hours, FACT-HOURS). */
 export type VisitHours = { readonly open: string; readonly close: string }
@@ -251,6 +252,38 @@ export function offeredWindows(visit: VisitHours | null, hours: WindowHours | nu
     const fits = h.start < h.end && h.start >= visit.open && h.end <= visit.close
     return fits ? [{ code, start: h.start, end: h.end }] : []
   })
+}
+
+/** The hours a request keeps with the day windows its customer chose (intake.requests.time_window_hours). */
+export type ChosenWindowHours = Partial<Record<DayWindow, ClockRange>>
+
+/**
+ * The hours of the chosen day windows exactly as the form offered them (TSK-0139; OWN-DEC-170 item 5, HH-INT-02): the
+ * request keeps them, so a later change of request.window_hours never changes what "Mornings" meant to this customer.
+ * Weekends and Any time have no hours; a window offered without hours (NOT CONFIGURED) keeps none.
+ */
+export function chosenWindowHours(offered: readonly OfferedWindow[], chosen: readonly string[]): ChosenWindowHours {
+  const out: ChosenWindowHours = {}
+  for (const w of offered)
+    if (chosen.includes(w.code) && w.start && w.end && (DAY_WINDOWS as readonly string[]).includes(w.code))
+      out[w.code as DayWindow] = { start: w.start, end: w.end }
+  return out
+}
+
+/**
+ * A chosen window on the customer's preferred date, as instants (TSK-0139; OWN-DEC-159, OWN-DEC-170 item 4): the
+ * hours are wall-clock times of the property's own zone, resolved for that date by resolveWindow, so the offset is
+ * the one in force that day (EDT or EST, CDT or CST). Null when the zone is unknown or the hours do not resolve to one
+ * unambiguous window: it is never guessed. The decided hours (8 AM to 10 PM) never touch a 2 AM clock change.
+ */
+export function preferredWindowOn(
+  date: string,
+  hours: ClockRange,
+  zone: string | null,
+): { startsAt: Date; endsAt: Date } | null {
+  if (!zone) return null
+  const r = resolveWindow({ date, start: hours.start, end: hours.end, zone })
+  return r.ok ? { startsAt: r.window.startsAt, endsAt: r.window.endsAt } : null
 }
 
 /** "08:00" as "8 AM", "12:30" as "12:30 PM" (US English, the customer language). */
