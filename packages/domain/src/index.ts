@@ -418,3 +418,5 @@ export * from './launch.js'
 export * from './overrides.js'
 // TSK-0129 (HH-PKT-09, OWN-DEC-172): Call Owner and Call 911 in every job packet; the Owner's number format.
 export * from './escalation.js'
+// TSK-0094 (HH-QA-07, HH-QA-08, HH-INC-03, FACT-WARRANTY): return work, the warranty window and resuming.
+export * from './return-work.js'

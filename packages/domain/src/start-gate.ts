@@ -87,6 +87,9 @@ export const START_GATE_CODES = {
   ARRIVED_FIRST: { item: 'assignment', severity: 'attention', owner: 'worker' },
   ALREADY_STARTED: { item: 'assignment', severity: 'blocked', owner: 'worker' },
   JOB_NOT_STARTABLE: { item: 'assignment', severity: 'blocked', owner: 'owner' },
+  // TSK-0094: resuming after a pause is for a worker who started work on the job before it, once per pause.
+  NOT_STARTED_BEFORE: { item: 'assignment', severity: 'blocked', owner: 'worker' },
+  RESUME_NOT_NEEDED: { item: 'assignment', severity: 'blocked', owner: 'worker' },
   // 2. Site identity and access.
   SITE_CHECK_MISSING: { item: 'site_identity', severity: 'attention', owner: 'worker' },
   PROPERTY_NOT_CONFIRMED: { item: 'site_identity', severity: 'review', owner: 'owner' },
