@@ -21,6 +21,12 @@
 //   delivery issue for staff follow-up (OWN-DEC-208).
 // - questionRecordCheck: the send-time recheck of a reminder (HH-COM-05): an answered question, a closed request or a
 //   notice whose delivery no longer stands cancels it (record_changed).
+// - questions.reminder_outcome (TSK-0148, OWN-DEC-197 E4, OWN-DEC-208): every success or failure of a reminder's
+//   delivery, at send time or reported later by the provider (a bounce), keeps the request's question_reminder item in
+//   line: a reminder whose deliveries all failed opens it as "question_reminder_failed" for the responsible staff
+//   member's follow-up (never customer non-response); once a reminder of each unanswered question stands again, that
+//   follow-up resolves. questions.close_available opens "may close" only while the reminder stands, no follow-up is
+//   due and the customer has not responded since.
 import type { Tx } from '@handyhub/db'
 import { sql } from 'kysely'
 import type { Automation, JobOutcome } from '../../platform/automation.js'
@@ -44,7 +50,9 @@ import {
   type ReleaseValues,
 } from '../notifications/index.js'
 import { openQueueItem } from '../queue/items.js'
+import { reminderFollowUpNeeded, syncReminderFollowUp } from './staff-routes.js'
 import {
+  customerResponded,
   HOUR_MS,
   isClosedState,
   noticeSubject,
@@ -55,6 +63,7 @@ import {
   QUESTION_REPLIED,
   questionCadence,
   questionLink,
+  reminderStanding,
   reminderSubject,
   REPLY_STAFF_NOTICE,
   sentNow,
@@ -63,6 +72,7 @@ import {
 } from './model.js'
 
 const DELIVERY_SUCCEEDED = 'message.delivery_succeeded'
+const DELIVERY_FAILED = 'message.delivery_failed'
 
 export type QuestionAutomationDeps = {
   providers: NotificationProviders
@@ -370,6 +380,22 @@ export function closeAvailableAutomation(): Automation {
       if (!q || q.state !== 'published') return 'cancelled'
       const target = await noticeTarget(tx, q.request_id)
       if (!target || target.state !== 'needs_information') return 'cancelled'
+      // TSK-0148: a failed reminder is staff follow-up, never "may close"; a reminder that no longer stands or a
+      // customer response since it was sent says nothing about closing.
+      if (await reminderFollowUpNeeded(tx, target.requestId)) {
+        await syncReminderFollowUp(tx, target.requestId)
+        return 'done'
+      }
+      const standing = await reminderStanding(tx, q.id)
+      if (standing.state !== 'sent') return 'cancelled'
+      if (
+        await customerResponded(tx, {
+          requestId: target.requestId,
+          projectId: target.projectId,
+          since: standing.sentAt,
+        })
+      )
+        return 'cancelled'
       await openQueueItem(tx, {
         type: 'question_reminder',
         subjectId: target.requestId,
@@ -461,6 +487,50 @@ export function questionDeliveryAutomation(): Automation {
 }
 
 /**
+ * A question reminder's delivery succeeded or failed (TSK-0148, OWN-DEC-208): the request's follow-up item is opened
+ * when every delivery of an unanswered question's reminder failed, and resolved when none has any more.
+ */
+export function questionReminderOutcomeAutomation(): Automation {
+  return {
+    name: 'questions.reminder_outcome',
+    trigger: { kind: 'event', eventTypes: [DELIVERY_SUCCEEDED, DELIVERY_FAILED] },
+    identity: 'system.questions',
+    inputs: {
+      description: 'the delivery whose outcome was recorded; the request’s reminders as they are now',
+      version: 1,
+    },
+    idempotency:
+      'one open queue item per request (the queue keeps one item per type and subject), computed from the records',
+    effect: 'opens or resolves the staff follow-up of a question reminder that failed to deliver',
+    retry: SCHEDULE_RETRY,
+    timeoutMs: 10_000,
+    exceptionOwner: 'office',
+    audit: { action: 'question.reminder_outcome' },
+    handle: async ({ tx, job }) => {
+      const id = job.target.id
+      if (!id || !UUID_RE.test(id)) return 'cancelled'
+      const d = await tx
+        .selectFrom('platform.message_deliveries')
+        .select(['message_key', 'record_type', 'record_id'])
+        .where('id', '=', id)
+        .executeTakeFirst()
+      if (!d || d.message_key !== QUESTION_REMINDER || d.record_type !== 'question') return 'cancelled'
+      if (!d.record_id || !UUID_RE.test(d.record_id)) return 'cancelled'
+      const q = await tx
+        .selectFrom('intake.questions')
+        .select('request_id')
+        .where('id', '=', d.record_id)
+        .executeTakeFirst()
+      if (!q) return 'cancelled'
+      // The request row orders this against a reply or a close of the same request.
+      await tx.selectFrom('intake.requests').select('id').where('id', '=', q.request_id).forUpdate().execute()
+      await syncReminderFollowUp(tx, q.request_id)
+      return 'done'
+    },
+  }
+}
+
+/**
  * Send-time recheck of a question reminder (HH-COM-05): an answered question, a closed request or a notice whose
  * delivery no longer stands (a bounce after acceptance: never a customer non-response) cancels it.
  */
@@ -504,6 +574,7 @@ export function questionAutomations(deps: QuestionAutomationDeps): Automation[] 
     questionDeliveryAutomation(),
     questionReminderPlanAutomation(),
     closeAvailableAutomation(),
+    questionReminderOutcomeAutomation(),
   ]
 }
 

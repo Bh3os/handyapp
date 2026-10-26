@@ -24,6 +24,7 @@ const VIEW: QuestionsView = {
     {
       id: 'q-1',
       kind: 'measurement',
+      notSureAllowed: true,
       text: 'Synthetic: how tall is the ceiling?',
       author: { id: 's-1', name: 'Synthetic Office' },
       publishedAt: '2026-10-20T15:00:00.000Z',
@@ -49,6 +50,7 @@ const VIEW: QuestionsView = {
     {
       id: 'q-2',
       kind: 'general',
+      notSureAllowed: false,
       text: 'Synthetic: please send a photo of the stain.',
       author: { id: 's-1', name: 'Synthetic Office' },
       publishedAt: '2026-10-19T15:00:00.000Z',
@@ -92,7 +94,7 @@ const VIEW: QuestionsView = {
   canMarkReviewed: true,
   cadence: { afterDeliveryHours: 72, closeAfterReminderHours: 24 },
   close: { allowed: true, available: false, reasons: ['FINAL_REMINDER_NOT_SENT'], availableAt: null },
-  reopen: { days: 30, closedAt: null, until: null },
+  reopen: { days: 30, closedAt: null, until: null, periodEnded: false, allowed: false },
   maxLength: 2000,
 }
 
@@ -177,6 +179,7 @@ describe('questions to the customer (TSK-0051, HH-LEAD-03, OWN-DEC-98)', () => {
     expect(JSON.parse(String(init.body))).toEqual({
       text: 'Synthetic: which wall is it?',
       kind: 'measurement',
+      notSureAllowed: true,
       noHazardInspection: true,
     })
     // The draft and its key survive the failure (and a reload of the section).
@@ -216,7 +219,13 @@ describe('questions to the customer (TSK-0051, HH-LEAD-03, OWN-DEC-98)', () => {
         view = {
           ...view,
           state: 'closed_no_response',
-          reopen: { days: 30, closedAt: '2026-10-21T15:00:00.000Z', until: '2026-11-20T15:00:00.000Z' },
+          reopen: {
+            days: 30,
+            closedAt: '2026-10-21T15:00:00.000Z',
+            until: '2026-11-20T15:00:00.000Z',
+            periodEnded: false,
+            allowed: true,
+          },
         }
         return json(200, {
           requestId: REQ,
@@ -239,5 +248,111 @@ describe('questions to the customer (TSK-0051, HH-LEAD-03, OWN-DEC-98)', () => {
     expect((init.headers as Record<string, string>)['if-match']).toBe('"4"')
     expect(await within(s).findByText('Request closed: no response.')).toBeTruthy()
     expect(await within(s).findByText(/A customer reply until .+ reopens this request for review\./)).toBeTruthy()
+  })
+
+  it('[HH-LEAD-03][OWN-DEC-197] any question may offer "I\'m not sure"; a measurement always does (TSK-0148, E2)', async () => {
+    const write = vi.fn(() =>
+      json(201, { questionId: 'q-3', requestId: REQ, state: 'needs_information', version: 5, moved: false }),
+    )
+    show(api(() => VIEW, write))
+    const s = await section()
+    // The answered general question did not offer it; the measurement did.
+    const items = within(s).getAllByRole('listitem', { name: /^Question published/ })
+    expect(within(items[0] as HTMLElement).getByText("“I'm not sure” offered")).toBeTruthy()
+    expect(within(items[1] as HTMLElement).queryByText("“I'm not sure” offered")).toBeNull()
+    const form = within(s).getByRole('form', { name: 'Ask the customer a question' })
+    const notSure = within(form).getByLabelText(
+      /The customer may answer “I'm not sure” or “I don't know”/,
+    ) as HTMLInputElement
+    fireEvent.click(within(form).getByLabelText(/Measurement/))
+    expect([notSure.checked, notSure.disabled]).toEqual([true, true])
+    fireEvent.click(within(form).getByLabelText(/Measurement/))
+    expect([notSure.checked, notSure.disabled]).toEqual([false, false])
+    fireEvent.click(notSure)
+    fireEvent.change(within(form).getByLabelText(/^Question/), { target: { value: 'Synthetic: what is above it?' } })
+    fireEvent.click(within(form).getByLabelText('This question does not ask the customer to inspect a hazardous area.'))
+    fireEvent.click(within(form).getByRole('button', { name: 'Publish question' }))
+    await waitFor(() => expect(write).toHaveBeenCalledTimes(1))
+    const [, init] = write.mock.calls[0] as unknown as [string, RequestInit]
+    expect(JSON.parse(String(init.body))).toEqual({
+      text: 'Synthetic: what is above it?',
+      kind: 'general',
+      notSureAllowed: true,
+      noHazardInspection: true,
+    })
+  })
+
+  it('[HH-LEAD-06][OWN-DEC-208] a reminder that was not delivered asks for follow-up instead of closing (TSK-0148, E4)', async () => {
+    const failed: QuestionsView = {
+      ...VIEW,
+      questions: VIEW.questions.map((q) =>
+        q.id === 'q-1' ? { ...q, reminder: { state: 'failed', dueAt: null, sentAt: null, deliveries: [] } } : q,
+      ),
+      close: { allowed: true, available: false, reasons: ['REMINDER_FAILED'], availableAt: null },
+    }
+    show(api(() => failed))
+    const s = await section()
+    expect(within(s).getByText(/The reminder was not delivered\. Follow up with the customer another way/)).toBeTruthy()
+    expect(
+      within(s).getByText('The reminder was not delivered: follow up with the customer instead of closing.'),
+    ).toBeTruthy()
+  })
+
+  it('[HH-LEAD-06][OWN-DEC-197] after the reopen period staff reopen with a written reason and the version (TSK-0148, E5)', async () => {
+    let view: QuestionsView = {
+      ...VIEW,
+      state: 'closed_no_response',
+      projectState: 'closed',
+      canPublish: false,
+      close: { allowed: true, available: false, reasons: ['INVALID_TRANSITION'], availableAt: null },
+      reopen: {
+        days: 30,
+        closedAt: '2026-09-01T15:00:00.000Z',
+        until: '2026-10-01T15:00:00.000Z',
+        periodEnded: true,
+        allowed: true,
+      },
+    }
+    const write = vi.fn((url: string) => {
+      if (!url.endsWith('/actions/reopen')) return json(500, {})
+      view = { ...view, state: 'reviewing', projectState: 'open', reopen: { ...view.reopen, allowed: false } }
+      return json(200, { requestId: REQ, state: 'reviewing', version: 5, projectState: 'open', afterPeriod: true })
+    })
+    const onChanged = vi.fn(async () => {})
+    show(
+      api(() => view, write),
+      'en',
+      onChanged,
+    )
+    const s = await section()
+    expect(
+      within(s).getByText(/The reopen period ended .+: a customer reply no longer reopens this request/),
+    ).toBeTruthy()
+    fireEvent.click(within(s).getByRole('button', { name: 'Reopen request' }))
+    const form = within(s).getByRole('form', { name: 'Reopen request' })
+    expect(within(form).getByText(/Nothing else is restored/)).toBeTruthy()
+    const confirm = within(form).getByRole('button', { name: 'Confirm: Reopen request' }) as HTMLButtonElement
+    expect(confirm.disabled).toBe(true)
+    fireEvent.change(within(form).getByLabelText(/^Why it is reopened/), {
+      target: { value: 'Synthetic: the customer called back.' },
+    })
+    fireEvent.click(within(form).getByRole('button', { name: 'Confirm: Reopen request' }))
+    await waitFor(() => expect(write).toHaveBeenCalledTimes(1))
+    const [, init] = write.mock.calls[0] as unknown as [string, RequestInit]
+    expect((init.headers as Record<string, string>)['if-match']).toBe('"4"')
+    expect(JSON.parse(String(init.body))).toEqual({ reason: 'Synthetic: the customer called back.' })
+    expect(await within(s).findByText('Request reopened for review.')).toBeTruthy()
+    expect(onChanged).toHaveBeenCalled()
+    expect(within(s).queryByRole('button', { name: 'Reopen request' })).toBeNull()
+  })
+
+  it('[RULE-LANGUAGES] the new labels in Spanish (TSK-0148)', async () => {
+    show(
+      api(() => ({ ...VIEW, state: 'closed_no_response', reopen: { ...VIEW.reopen, allowed: true } })),
+      'es',
+    )
+    const s = await screen.findByRole('region', { name: 'Preguntas al cliente' })
+    expect(within(s).getByText('Se ofrece “No estoy seguro”')).toBeTruthy()
+    expect(within(s).getByRole('button', { name: 'Reabrir solicitud' })).toBeTruthy()
   })
 })

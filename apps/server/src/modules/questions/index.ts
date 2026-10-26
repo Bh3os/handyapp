@@ -12,6 +12,7 @@ export {
   questionNoticeAutomation,
   questionRecordCheck,
   questionReminderFailureItem,
+  questionReminderOutcomeAutomation,
   questionReminderPlanAutomation,
   questionReminderValues,
   planQuestionReminder,
@@ -19,7 +20,14 @@ export {
   replyStaffNoticeAutomation,
   type QuestionAutomationDeps,
 } from './automations.js'
-export { cancelOpenReminders, syncReminderItem, REMINDER_STATES, type QuestionStaffDeps } from './staff-routes.js'
+export {
+  cancelOpenReminders,
+  reminderFollowUpNeeded,
+  syncReminderFollowUp,
+  syncReminderItem,
+  REMINDER_STATES,
+  type QuestionStaffDeps,
+} from './staff-routes.js'
 
 export function questionsModule(deps: QuestionStaffDeps = {}): ApiModule {
   return {

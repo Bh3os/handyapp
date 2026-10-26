@@ -1,14 +1,16 @@
 // Questions from HandyHub on the project's Overview (TSK-0051; HH-LEAD-03, HH-LEAD-06, HH-COM-02, HH-SEC-05, C04,
 // OWN-DEC-98, OWN-DEC-101, RULE-LANGUAGES).
 // - Each question exactly as HandyHub wrote it, whether it waits on the customer ("Waiting on you") and a clear Reply
-//   action. A reply takes text, optional photos and, for a measurement, "I'm not sure". After sending: "Reply
-//   received—HandyHub will review it"; the other questions stay open.
+//   action. A reply takes text, optional photos and, where HandyHub offered it, "I'm not sure" (TSK-0148, OWN-DEC-197
+//   E2: any question staff marked, not only a measurement). After sending: "Reply received—HandyHub will review it";
+//   the other questions stay open.
 // - The reply draft (text, "I'm not sure", the photos already received and the upload capability) and its
 //   idempotency key are kept in sessionStorage until the server accepts the reply, so a failed upload, a failed send,
 //   a tab switch or a reload never loses them, and a retried send records one reply.
 // - Photos are checked by the server like request photos; each shows its state (uploading, checking, received, not
 //   accepted). Within the reopen period a "Closed—no response" request takes the reply, which reopens it; after the
-//   period the page says a new request is the way.
+//   period the page says a new request is the way, also when the period ends while the reply is being written
+//   (TSK-0148, OWN-DEC-197 E5).
 // - The notice links to `#question-<id>`: that question is brought into view with its reply form open.
 // English only, from the customer catalog; wording no decision gives is PROPOSED (OQ-PORTAL-WORDING).
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
@@ -84,6 +86,7 @@ function ReplyForm({
   const [draft, setDraft] = useState<Draft>(() => loadDraft(reference, q.id))
   const [pending, setPending] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
+  const [periodEnded, setPeriodEnded] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const latest = useRef(draft)
   latest.current = draft
@@ -190,12 +193,17 @@ function ReplyForm({
     if (r.failure === 'refused') {
       update((d) => ({ ...d, key: null }))
       const codes = r.codes
+      // The reopen period ended: a new request is the way (the draft stays, to copy from).
+      if (codes.includes('REOPEN_PERIOD_ENDED')) {
+        setPeriodEnded(true)
+        return setProblem(t('portal.questions.periodEnded'))
+      }
       return setProblem(
         codes.includes('sensitive_content')
           ? t('portal.questions.cardNumber')
           : codes.includes('ALREADY_ANSWERED')
             ? t('portal.questions.alreadyAnswered')
-            : codes.includes('REOPEN_PERIOD_ENDED') || codes.includes('REQUEST_CLOSED')
+            : codes.includes('REQUEST_CLOSED')
               ? t('portal.questions.closed')
               : t('portal.questions.failed'),
       )
@@ -212,7 +220,7 @@ function ReplyForm({
         value={draft.text}
         onChange={(e) => update((d) => ({ ...d, text: e.target.value }))}
       />
-      {q.kind === 'measurement' ? (
+      {q.notSureAllowed ? (
         <label className="portal-reply__check">
           <input
             type="checkbox"
@@ -256,7 +264,7 @@ function ReplyForm({
       <p className="hh-small hh-muted">{t('portal.questions.safety')}</p>
       {problem ? (
         <p className="portal-reply__problem" role="alert">
-          {problem}
+          {problem} {periodEnded ? <a href="/request">{t('portal.questions.newRequest')}</a> : null}
         </p>
       ) : null}
       <Button

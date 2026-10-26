@@ -202,6 +202,8 @@ export const LABEL_FAMILIES = {
     'question_reminder_first',
     'question_reminder_final',
     'no_response_close_available',
+    // TSK-0148: a question reminder that failed to deliver, for staff follow-up.
+    'question_reminder_failed',
     'assignee_disabled',
     'availability_changed',
     'equipment_retired',
@@ -462,6 +464,8 @@ export const LABEL_FAMILIES = {
     'not_a_fit_owner_review',
     // TSK-0051 (OWN-DEC-101).
     'close_no_response',
+    // TSK-0148 (OWN-DEC-197 E5): staff reopened a "Closed—no response" request.
+    'reopen',
   ],
   /** Project lifecycle states (the project.lifecycle machine, PROPOSED). */
   projectState: ['open', 'approved', 'completed', 'closed', 'cancellation_review', 'canceled'],
@@ -619,6 +623,10 @@ export const LABEL_FAMILIES = {
     'QUESTION_ANSWERED',
     'REQUEST_CLOSED',
     'NO_DRAFT',
+    // TSK-0148 (OWN-DEC-197 E4, E5; OWN-DEC-208).
+    'REMINDER_FAILED',
+    'CUSTOMER_REPLIED',
+    'PROJECT_NOT_CLOSED',
   ],
   /** Staff questions to the customer (TSK-0051; apps/server/src/modules/questions). */
   questionKind: ['general', 'measurement'],
