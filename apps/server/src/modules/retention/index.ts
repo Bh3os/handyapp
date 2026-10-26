@@ -9,6 +9,8 @@
 // expired sessions and links), with periods in years or calendar days, and batch entries.
 // TSK-0135 (OWN-DEC-164, HH-SEC-08): the audit-retention workflow (./audit-routes.ts): the Owner archives or deletes
 // audit entries past their 7 years, with its own protected trail and a hash chain the daily job seals.
+// TSK-0152 (OWN-DEC-201 I5): the review of the table-to-retention mapping (./mapping-routes.ts); in production the
+// Delete actions stay disabled until the Owner records one confirmed by the CPA and the attorney.
 import type { Tx } from '@handyhub/db'
 import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
 import { pageSchema } from '../../api/pagination.js'
@@ -16,6 +18,7 @@ import type { Automation } from '../../platform/automation.js'
 import { scheduleJob } from '../../platform/jobs.js'
 import { sealChain } from './audit-chain.js'
 import { auditRetentionRoutes } from './audit-routes.js'
+import { mappingRoutes } from './mapping-routes.js'
 import { ENTRY_STATES, RETENTION_AUTOMATION, listReviewEntries, retentionOverview } from './reviews.js'
 import { RETENTION_PROCESS, runRetentionScan, type ScanResult } from './scan.js'
 import { HOLD_CHECKS, PERIOD_CATEGORIES, RETENTION_CATEGORIES } from './schedule.js'
@@ -25,6 +28,7 @@ export { RETENTION_AUTOMATION, listReviewEntries, retentionOverview } from './re
 export { RETENTION_PROCESS, SCAN_BATCH, holdChecksFor, runRetentionScan, type ScanResult } from './scan.js'
 export * from './audit-chain.js'
 export * from './audit-retention.js'
+export * from './mapping-review.js'
 
 const TEST = 'test/integration/retention.test.ts'
 
@@ -235,7 +239,13 @@ const ENTRY = {
   },
 } as const
 
-export function retentionModule(): ApiModule {
+export type RetentionDeps = {
+  /** TSK-0152: the environment; production deletion waits for the reviewed mapping. Unset: not production. */
+  environment?: string
+}
+
+export function retentionModule(deps: RetentionDeps = {}): ApiModule {
+  const environment = deps.environment ?? 'local'
   const overview: RouteDef = {
     ...read,
     method: 'GET',
@@ -290,5 +300,8 @@ export function retentionModule(): ApiModule {
     },
   }
 
-  return { name: 'retention', routes: [overview, list, ...auditRetentionRoutes()] }
+  return {
+    name: 'retention',
+    routes: [overview, list, ...auditRetentionRoutes(environment), ...mappingRoutes(environment)],
+  }
 }

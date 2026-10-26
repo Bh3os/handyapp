@@ -20,3 +20,5 @@ source: "OWN-DEC-160 (new behaviour; no guide id)"
 - A guest may create an account at any time; a guest project attaches to the account only after the customer proves control of the project's verified contact. Unverified name, phone or email matches never link a project ([[HH-ID-02]], [[HH-ID-03]]).
 - Guest links last 24 hours ([[HH-ID-06]]); their expiry never closes or deletes a project; every project and document request is authorized on the server; access is logged.
 - English only, mobile-friendly, in the premium design.
+
+**Built by [[TSK-0124]] (2026-10-26):** a signed-in customer adds a guest project with **Add a project**: the request reference and the email or phone on that request, then a one-time code sent only to that request's already verified contact; every code request gets the same answer. Section rules, wording and limits are PROPOSED in [[OQ-CUSTOMER-DASHBOARD-DETAILS]].

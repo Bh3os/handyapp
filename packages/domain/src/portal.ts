@@ -233,3 +233,32 @@ export function customerStatus(f: PortalFacts): CustomerStatus {
       return ours('review_details')
   }
 }
+
+/**
+ * The sections of the customer dashboard (TSK-0124; HH-ID-14, OWN-DEC-160): Active, Completed (Project History) and
+ * Cancelled/Archived. A projection of the project's own lifecycle state (project.ts) and whether its job reached
+ * operational completion, never of a link or a session: a guest link's expiry moves nothing.
+ */
+export const DASHBOARD_SECTIONS = ['active', 'completed', 'archived'] as const
+export type DashboardSection = (typeof DASHBOARD_SECTIONS)[number]
+
+/**
+ * PROPOSED mapping (OQ-CUSTOMER-DASHBOARD-DETAILS): a project is Completed once the Owner's quality review passed
+ * (completed), and stays there after closeout (closed with a completed job); it is Cancelled/Archived when it was
+ * canceled, or closed without a completed job (Not a fit, withdrawn, Closed—no response); everything else, a
+ * cancellation still under the Owner's review included, is Active.
+ */
+export function dashboardSection(projectState: ProjectState, jobCompleted: boolean): DashboardSection {
+  switch (projectState) {
+    case 'completed':
+      return 'completed'
+    case 'closed':
+      return jobCompleted ? 'completed' : 'archived'
+    case 'canceled':
+      return 'archived'
+    case 'open':
+    case 'approved':
+    case 'cancellation_review':
+      return 'active'
+  }
+}

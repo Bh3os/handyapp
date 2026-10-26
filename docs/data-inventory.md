@@ -101,6 +101,13 @@ Data owner for every category: the Owner, who decides each deletion-review entry
   final status remain (`privacy.request_remainders`). Consent evidence of the erased contact moves to a restricted
   compliance record (`privacy.consent_evidence`) with its own review date. Site visits, cases and links between
   customer records block it (OQ-REQUEST-ERASURE-DETAILS).
+- TSK-0152 (OWN-DEC-201 I4): before a deletion the accounting records linked to the record are checked: issued
+  invoices, payments, deposit records, refunds, credits and write-offs and reconciliation items are found (protected
+  evidence) or none found; an unrecorded external payment is not assumed. An unresolved discrepancy (an open
+  reconciliation item, a pending check, an open dispute, an uncertain refund) blocks it until resolved in the
+  reconciliation queue.
+- TSK-0152 (OWN-DEC-201 I5): in production the Delete actions stay disabled until the Owner records a review of the
+  table-to-retention mapping (docs/retention-mapping-review.md) confirmed by the CPA and the attorney.
 - The deletion log (`privacy.deletions`, append-only) keeps actor, time, record reference, reason and counts, never
   the deleted content. Account deletion is separate from business records (OWN-DEC-71).
 - Privacy requests (HH-PRIV-03): the customer's export, correction or deletion request is reviewed and decided by
@@ -251,8 +258,10 @@ Data owner for every category: the Owner, who decides each deletion-review entry
 | `platform.webhook_receipts` | Verified provider webhooks: delivery statuses and inbound messages | Technical records, Contact | `requests_not_converted`, `job_records`, `not_scheduled` | Owner's deletion review after the period; nothing deleted automatically | Render, Bird, Resend |
 | `privacy.consent_evidence` | Consent records of an erased request's contact (destination, purpose, permission, evidence), moved out of the live consent records with their own review date; read by no route | Contact, Logs and audit | `not_scheduled` | Archive, Void or audited correction; never ordinary deletion | Render |
 | `privacy.deletions` | The deletion log (TSK-0100): actor, time, record reference, reason and counts; never the deleted content | Logs and audit | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
+| `privacy.mapping_reviews` | The Owner's reviews of the table-to-retention mapping: its digest, whether the CPA and the attorney confirmed it, and the note | Configuration and content | `settings_history` | Kept while retained records depend on it; unreferenced history only after the Owner's review | Render |
 | `privacy.privacy_request_extensions` | The Owner's extensions of a privacy request's internal target: the dates and the reason the customer is told | Logs and audit | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
-| `privacy.privacy_requests` | Customers' export, correction and deletion requests: the requester, identity confirmation, the customer's words for a correction, the review's counts and the Owner's decision | Contact, Logs and audit | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
+| `privacy.privacy_requests` | Customers' export, correction and deletion requests: the requester, identity confirmation (a fresh code, or the Owner's check and note for a request made outside the portal), the customer's words for a correction, the review's counts and the Owner's decision | Contact, Logs and audit | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
+| `privacy.request_corrections` | Corrections recorded on a correction request beside records that are never rewritten (approvals, invoices, payments, audit entries): the record's kind and reference and the Owner's correction | Contact, Logs and audit | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
 | `privacy.request_remainders` | What remains of an erased request that never became a job: its reference, creation and closure dates and final status | Logs and audit | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
 | `privacy.retention_decisions` | The Owner's Delete, Archive and Keep longer decisions on review entries, with the reason | Logs and audit | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |
 | `privacy.retention_reviews` | The Owner's deletion-review queue: record references and hold checks, never personal content | Logs and audit | `not_scheduled` | NOT CONFIGURED: kept, never deleted automatically | Render |

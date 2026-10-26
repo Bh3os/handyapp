@@ -123,6 +123,8 @@ export {
   CUSTOMER_TIMELINE_KINDS,
   customerSituation,
   customerStatus,
+  DASHBOARD_SECTIONS,
+  dashboardSection,
   WAITING_ON,
 } from './portal.js'
 export type {
@@ -131,6 +133,7 @@ export type {
   CustomerStatus,
   CustomerStep,
   CustomerTimelineKind,
+  DashboardSection,
   PortalFacts,
   WaitingOn,
 } from './portal.js'

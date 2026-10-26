@@ -22,7 +22,9 @@ export async function versionDownloads(
   storage: ObjectStorage | null,
   now = new Date(),
 ): Promise<
-  { reference: string; number: string; version: number; documents: DownloadRecord[] } | 'not_configured' | null
+  | { reference: string; number: string; version: number; documents: DownloadRecord[]; versionId: string }
+  | 'not_configured'
+  | null
 > {
   const v = await customerVersionRow(db, scope, ref)
   if (!v) return null
@@ -61,5 +63,6 @@ export async function versionDownloads(
         expiresAt,
       })
   }
-  return { reference: v.reference, number: v.number, version: v.version, documents }
+  // TSK-0124: the version's ID for the access log only; the customer view never copies it.
+  return { reference: v.reference, number: v.number, version: v.version, documents, versionId: v.id }
 }

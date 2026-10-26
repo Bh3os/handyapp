@@ -296,6 +296,21 @@ describe('customers download their retained, customer-visible documents (TSK-010
     const fields = JSON.stringify(Object.keys(doc ?? {}))
     expect(Object.keys(doc ?? {}).filter(forbiddenForCustomer)).toEqual([])
     expect(fields).not.toContain('objectKey')
+    // TSK-0124 (HH-ID-14, OWN-DEC-160): the issue of the links is in the access log, never the link itself.
+    const logged = await t.db
+      .selectFrom('platform.audit_events')
+      .select(['action', 'actor_kind', 'summary'])
+      .where('target_id', '=', e.versionId)
+      .where('action', '=', 'estimate_document.customer_download')
+      .execute()
+    expect(logged).toEqual([
+      {
+        action: 'estimate_document.customer_download',
+        actor_kind: 'customer',
+        summary: { number: e.number, version: 1, documents: 1 },
+      },
+    ])
+    expect(JSON.stringify(logged)).not.toContain('sig=')
   })
 
   it('[HH-PRIV-06][T68] downloads are limited to the customer’s own retained, customer-visible documents', async () => {

@@ -1845,6 +1845,19 @@ export interface PrivacyDeletionsTable {
   erasure_txid: ColumnType<string, bigint | number | string | undefined, bigint | number | string>
 }
 
+export interface PrivacyMappingReviewsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  digest: string
+  tables: number
+  cpa_confirmed: boolean
+  attorney_confirmed: boolean
+  note: string
+  recorded_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+  request_id: string
+}
+
 export interface PrivacyPrivacyRequestExtensionsTable {
   id: Generated<string>
   seq: GeneratedAlways<string>
@@ -1868,7 +1881,7 @@ export interface PrivacyPrivacyRequestsTable {
   details: string | null
   identity_method: string
   identity_verified_at: Timestamp
-  session_id: string
+  session_id: string | null
   state: Generated<string>
   submitted_at: ColumnType<Date, Date | string | undefined, Date | string>
   review_started_at: Timestamp | null
@@ -1893,6 +1906,23 @@ export interface PrivacyPrivacyRequestsTable {
   legal_deadline_note: string | null
   legal_deadline_recorded_at: Timestamp | null
   legal_deadline_recorded_by: string | null
+  identity_check: string | null
+  identity_note: string | null
+  identity_recorded_by: string | null
+  identity_confirmed_by: string | null
+  identity_confirmed_at: Timestamp | null
+}
+
+export interface PrivacyRequestCorrectionsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  privacy_request_id: string
+  record_kind: string
+  record_ref: string
+  correction: string
+  recorded_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+  request_id: string
 }
 
 export interface PrivacyRequestRemaindersTable {
@@ -3283,8 +3313,10 @@ export interface Database {
   'platform.webhook_receipts': PlatformWebhookReceiptsTable
   'privacy.consent_evidence': PrivacyConsentEvidenceTable
   'privacy.deletions': PrivacyDeletionsTable
+  'privacy.mapping_reviews': PrivacyMappingReviewsTable
   'privacy.privacy_request_extensions': PrivacyPrivacyRequestExtensionsTable
   'privacy.privacy_requests': PrivacyPrivacyRequestsTable
+  'privacy.request_corrections': PrivacyRequestCorrectionsTable
   'privacy.request_remainders': PrivacyRequestRemaindersTable
   'privacy.retention_decisions': PrivacyRetentionDecisionsTable
   'privacy.retention_reviews': PrivacyRetentionReviewsTable

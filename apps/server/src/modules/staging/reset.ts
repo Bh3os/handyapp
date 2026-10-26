@@ -261,6 +261,8 @@ export const CLEARED_CATEGORIES = {
     // TSK-0137 (0112): the remainders of erased requests and the consent evidence moved with them.
     'privacy.request_remainders',
     'privacy.consent_evidence',
+    // TSK-0152 (0118): corrections recorded on correction requests.
+    'privacy.request_corrections',
   ],
 } as const satisfies Record<string, readonly string[]>
 
@@ -351,6 +353,8 @@ export const KEPT_TABLES = [
   // TSK-0135 (0114): the audit hash chain's seals and the retention-operation trail, kept with the audit log.
   'platform.audit_chain_seals',
   'platform.audit_retention_operations',
+  // TSK-0152 (0118): the Owner's reviews of the table-to-retention mapping, kept like configuration.
+  'privacy.mapping_reviews',
 ] as const
 /** Kept categories that may grow during a reset (the reset itself is audited). */
 const MAY_GROW: ReadonlySet<PreservedCategory> = new Set(['audit_events', 'staff_sessions'])
