@@ -1298,6 +1298,7 @@
   "staffAdmin.invite.sent": "Invitation sent.",
   "enum.auditArea.access_code": "Access codes",
   "enum.auditArea.account_offer": "Account offer",
+  "enum.auditArea.ai": "AI assistance",
   "enum.auditArea.approval_receipt": "Approval receipts",
   "enum.auditArea.automation": "Automations",
   "enum.auditArea.check": "Checks",
