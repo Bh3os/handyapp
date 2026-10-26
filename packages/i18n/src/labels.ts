@@ -383,6 +383,11 @@ export const LABEL_FAMILIES = {
     'retention.financial_records',
     'retention.job_records',
     'retention.safety_records',
+    'retention.staff_accounts',
+    'retention.consent_records',
+    'retention.settings_history',
+    'retention.technical_logs',
+    'retention.sessions_and_links',
     'scheduling.window_offers',
     'visit.on_my_way',
     'geo.county_time_zones',
@@ -966,9 +971,13 @@ export const LABEL_FAMILIES = {
     'financial_records',
     'job_records',
     'safety_records',
-    'audit_log',
-    'access_codes',
+    'staff_accounts',
+    'consent_records',
     'sessions_and_links',
+    'audit_log',
+    'settings_history',
+    'technical_logs',
+    'access_codes',
     'regulated_employee_records',
     'not_scheduled',
   ],
@@ -981,10 +990,13 @@ export const LABEL_FAMILIES = {
     'financial_records',
     'job_records',
     'safety_records',
+    'staff_accounts',
+    'consent_records',
+    'sessions_and_links',
     'audit_log',
   ],
   /** The rule of a category without a period (FACT-RETENTION-SCHEDULE; not_scheduled: OQ-RETENTION-UNSCHEDULED). */
-  retentionNoPeriod: ['access_codes', 'sessions_and_links', 'regulated_employee_records', 'not_scheduled'],
+  retentionNoPeriod: ['access_codes', 'regulated_employee_records', 'not_scheduled'],
   /** What starts a period (the `after` field of the retention.* values; audit records: when recorded). */
   retentionStart: [
     'request_closed',
@@ -994,10 +1006,14 @@ export const LABEL_FAMILIES = {
     'tax_return_filed_or_tax_paid',
     'job_closeout',
     'closure',
+    // TSK-0138 (OWN-DEC-177).
+    'staff_departure',
+    'last_relevant_use',
+    'expired_or_ended',
     'recorded',
   ],
-  /** Whether the daily review finds a category's records yet (TSK-0099 ScanState). */
-  retentionScan: ['scanned', 'start_not_recorded', 'no_period'],
+  /** Whether the daily review finds a category's records yet (TSK-0099 ScanState; TSK-0138 the last two). */
+  retentionScan: ['scanned', 'start_not_recorded', 'no_period', 'while_referenced', 'not_stored'],
   /** The hold checks of a deletion-review entry (ENT-RetentionReview "holds found"). */
   retentionHoldCheck: [
     'open_holds',
@@ -1012,7 +1028,21 @@ export const LABEL_FAMILIES = {
   ],
   retentionHoldResult: ['found', 'none_found', 'not_applicable', 'not_recorded'],
   /** The record types the review opens entries for. */
-  retentionRecordType: ['request', 'estimate', 'audit_event'],
+  retentionRecordType: [
+    'request',
+    'estimate',
+    'audit_event',
+    // TSK-0138: a staff account, a consent history, and the batches of expired sessions and links (one per month).
+    'staff_account',
+    'consent_history',
+    'expired_staff_sessions',
+    'expired_customer_sessions',
+    'expired_guest_links',
+    'expired_staff_links',
+    'expired_receipt_links',
+    'expired_upload_links',
+    'expired_verification_codes',
+  ],
   /** TSK-0100: an entry's status from the Owner's latest decision (privacy.retention_decisions). */
   retentionEntryState: ['pending', 'archived', 'kept', 'deleted'],
   /** TSK-0100: the checks of a deletion (apps/server/src/modules/privacy/targets.ts DELETION_CHECKS). */

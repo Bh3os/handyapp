@@ -258,7 +258,9 @@ describe('the retention schedule as configuration (TSK-0099, HH-PRIV-01, FACT-RE
       const entry = config.get(def.configKey as NonNullable<typeof def.configKey>)
       expect(entry.state, category).toBe('CONFIGURED')
       if (entry.state !== 'CONFIGURED') continue
-      expect((entry.value as { years: number }).years, category).toBe(def.decidedYears)
+      // TSK-0138: expired sessions and links count calendar days (OWN-DEC-177).
+      if (def.decidedDays !== undefined) expect((entry.value as { days: number }).days, category).toBe(def.decidedDays)
+      else expect((entry.value as { years: number }).years, category).toBe(def.decidedYears)
       expect(entry.value, category).toMatchObject({ automaticDeletion: false, holdsKeepRecords: true })
       expect(entry.sourceIds, category).toContain('OQ-RETENTION-REVIEW')
       expect(entry.proposed, category).toBe(false)
@@ -553,8 +555,9 @@ describe('the deletion-review queue screen data (TSK-0099, HH-PRIV-01, ROLE-MATR
     expect(o).toMatchObject({ automaticDeletion: false, awaitingConfirmation: true })
     expect(o.categories.map((c) => c.id)).toEqual([
       ...PERIOD_CATEGORIES,
+      'settings_history',
+      'technical_logs',
       'access_codes',
-      'sessions_and_links',
       'regulated_employee_records',
       'not_scheduled',
     ])

@@ -1,0 +1,27 @@
+---
+id: OQ-RETENTION-DEFAULTS-DETAILS
+type: question
+title: The details of the provisional retention defaults no decision gives
+status: open
+area: privacy
+links:
+  related: ["[[OWN-DEC-177]]", "[[OWN-DEC-70]]", "[[FACT-RETENTION-SCHEDULE]]", "[[HH-PRIV-01]]", "[[HH-DATA-09]]", "[[HH-STAFF-02]]", "[[ENT-RetentionReview]]", "[[ENT-StaffUser]]", "[[ENT-ConsentPreference]]", "[[ENT-ProjectAccessGrant]]", "[[INT-Render]]", "[[OQ-RETENTION-REVIEW]]", "[[TSK-0138]]"]
+source: "TSK-0138 (2026-10-26): OWN-DEC-177 states the rules; the details below are PROPOSED or NOT CONFIGURED"
+---
+**Question:** does the owner approve, or change, these PROPOSED details of the provisional retention defaults for staff accounts, consent records, settings and content history, technical logs and expired sessions and links?
+
+- **Who answers:** the owner; the periods themselves and any irreversible deletion also wait for the CPA and the attorney ([[OQ-RETENTION-REVIEW]], [[RULE-HUMAN-REVIEW]]).
+- **Decided, in use:** the five values of [[OWN-DEC-177]] are active configuration (migration 0108): `retention.staff_accounts` 7 years after departure, `retention.consent_records` 5 years after the last relevant use, `retention.settings_history` while retained records depend on it, `retention.technical_logs` 90 days, `retention.sessions_and_links` 30 days after a session or link ended. Their shapes accept no automatic deletion. The daily retention review opens entries in the Owner's deletion-review queue; nothing is deleted, archived or revoked by it. Offboarding disables the account at once and revokes its sessions, invite and reset links, password and authenticator; job history stays ([[HH-STAFF-02]]). Marketing consent, contractual acceptance (signed approvals) and account-security verification (one-time codes) are separate records in separate categories.
+- **PROPOSED, in use on private staging:**
+  - **Staff accounts.** Departure is the time the account was disabled. A re-enabled account is not due (its earlier entry shows it in use); a later departure starts a new period. An open case the staff member reported is found as a hold and blocks deletion. An entry names the account by the first 8 characters of its ID, never by its name or email.
+  - **Consent records.** One entry per permission (purpose, channel and destination) covering its whole history, opened when its latest record is a withdrawal. "The last relevant use" is read as that withdrawal: once withdrawn, nothing may be sent under the permission. A permission granted again is in use. The history is not due while its destination is still on file for a contact, an open customer account, a staff member or the Owner's escalation phone, because the withdrawal is what keeps messages from going to it. The entry names the record number, purpose and channel, never the destination.
+  - **Expired sessions and access links.** The kinds: staff and customer sessions, project (guest) links, staff invite and reset links, request receipt links, upload links and one-time codes. A row ended at the earliest of its expiry, its use, its replacement or its revocation (a staff session nobody used again ends when it went idle under `session.timings`). One entry per kind and calendar month of the end in the business time zone, due once that month ended and the configured days passed, with the number of rows; its reference is the month and the count. Code attempts are reviewed with their codes. Rate-limit buckets and counters are technical records other than logs and stay NOT CONFIGURED.
+  - **Shapes.** Staff accounts and consent records may be extended but not set below the decided years, like the other rows. Technical logs accept 90 to 366 days. Expired sessions and links accept 1 to 30 days ("up to 30 days" read as a maximum).
+  - **Calendar.** The new periods are counted in calendar years or days in the business time zone (`business.timezone`), so a daylight-saving change never moves a period end; the earlier categories keep their UTC years.
+  - **Delete.** Confirm Delete on these entries says the software does not delete this kind of record yet (OWN-DEC-177: no irreversible production deletion before the CPA and the attorney confirm the periods); the Owner archives the entry or keeps the record longer.
+  - **Settings and content history.** The check that finds history nothing references any more is not built: every configuration, service, SOP, loadout and template version is kept and none is listed.
+- **NOT CONFIGURED:**
+  - The retention of the host's logs: the server writes its redacted log lines to its output and Render keeps them under the plan in use; no log is stored in the database. Render's log retention must be set to no more than `retention.technical_logs` (or the logs streamed to a store that applies it) before production, and how security-incident evidence is set aside longer is a documented manual step not yet written ([[INT-Render]]).
+  - The erasure of each new kind (what goes, what stays, backups), after the CPA and the attorney confirm the periods.
+  - The kinds [[OWN-DEC-177]] leaves without a period (the access-code reveal log, action-queue items, unlinked inbound messages and their linking corrections, background jobs, outbox events, idempotency keys, webhook receipts, the deletion-review entries themselves, vendor copies) stay NOT CONFIGURED.
+- **Until answered:** the PROPOSED details above are used; each is a small change to the code or the configuration.
