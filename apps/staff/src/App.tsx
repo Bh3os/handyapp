@@ -22,6 +22,7 @@ import { JobDepositPage } from './JobDeposit'
 import { JobPacketPage } from './JobPacket'
 import { LoadoutPage } from './Loadout'
 import { MyDay } from './MyDay'
+import { OwnerDashboard } from './OwnerDashboard'
 import { QualityReviewPage } from './QualityReview'
 import { ChangeOrdersPage, ChangeOrderVersionLink } from './ChangeOrders'
 import { VisitOutcomePage } from './VisitOutcomes'
@@ -400,10 +401,17 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
               staffUserId={session.staffUserId}
             />
           ) : route.page === 'screen' && shown === 'dashboard' && allowed ? (
-            // TSK-0141: the Owner Dashboard (TSK-0096 builds the rest) with Staging Tools, shown only where the server
-            // has them (never in production, where the staging routes do not exist).
+            // TSK-0096: the Owner Dashboard; TSK-0141: with Staging Tools, shown only where the server has them (never
+            // in production, where the staging routes do not exist).
             <>
-              <Screen t={t} id={shown} allowed={allowed} />
+              <OwnerDashboard
+                t={t}
+                locale={locale}
+                fetchImpl={doFetch}
+                go={go}
+                href={href}
+                onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
+              />
               <StagingTools
                 t={t}
                 locale={locale}

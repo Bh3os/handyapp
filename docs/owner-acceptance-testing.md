@@ -173,6 +173,22 @@ gives are PROPOSED in OQ-JOB-COST-DETAILS; job margin and the 30% flag come late
 | I3  | Labor and burden                          | "Not configured": no labor cost rate exists yet, so the actual total stays incomplete and no margin.   |
 | I4  | Office or an Estimator opens the page     | Refused: job costs are yours only (PROPOSED).                                                          |
 
+### J. Owner Dashboard and files for the accountant (OWN-DEC-125)
+
+Built by TSK-0096. Open `<staging>/staff/dashboard`. The details no decision gives are PROPOSED in
+OQ-DASHBOARD-DETAILS; how deposits count as revenue, tax treatment and write-offs stay NOT CONFIGURED for you and your
+accountant.
+
+| #   | Scenario                                  | Expected outcome                                                                                       |
+| --- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| J1  | Choose dates and press Show               | Every figure for those dates beside the previous period, and the last-updated time.                    |
+| J2  | A job with a deposit, invoiced and paid   | Invoiced counts the final invoice once; money received counts each payment once; the deposit once.    |
+| J3  | A check received but not cleared          | Under "Pending checks", never in money received.                                                       |
+| J4  | Show records on any figure                | The records it counts, with a link to each; their total equals the figure.                             |
+| J5  | A figure with nothing to measure          | "Unavailable" or "Not configured", never $0.00; job costs "so far (incomplete)".                       |
+| J6  | Export CSV                                | Asks for your password if you signed in a while ago; the file has the same values as the screen.        |
+| J7  | Files for the accountant                  | Needs a reason; each file lists its records in dollars; Office and the other roles are refused.        |
+
 ## 4. Results
 
 | Walk                                    | Date | By  | Result                                                                                          |
