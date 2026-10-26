@@ -34,6 +34,7 @@ import { QueueHome } from './Queue'
 import { AccessHelpScreen } from './AccessHelp'
 import { ReconciliationScreen } from './Reconciliation'
 import { InvoiceRemindersPage } from './InvoiceReminders'
+import { CloseoutPage } from './Closeout'
 import { MergeReview, RelinkRequest } from './RecordLinks'
 import { RequestRecord } from './Record'
 import { RequestsScreen } from './Requests'
@@ -323,7 +324,9 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
                   route.screen === 'field-events' ||
                   route.screen === 'start-review' ||
                   route.screen === 'safety-holds' ||
-                  route.screen === 'quality-reviews'
+                  route.screen === 'quality-reviews' ||
+                  // TSK-0092: a job's closeout and follow-ups, from Owner Decisions, the staff queue and the review.
+                  route.screen === 'closeout'
                 ? 'schedule'
                 : // TSK-0090: one reconciliation item, from the staff queue, sits below Payments.
                   // TSK-0091: an invoice's reminders, from the staff queue and Owner Decisions, too.
@@ -521,6 +524,9 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
           ) : route.page === 'record' && route.screen === 'quality-reviews' ? (
             // TSK-0084: a job's quality review and punch items (the Owner), or a worker's own punch items on it.
             <QualityReviewPage key={route.id} t={t} fetchImpl={doFetch} jobId={route.id} href={href} />
+          ) : route.page === 'record' && route.screen === 'closeout' && allowed ? (
+            // TSK-0092: a job's closeout, the Owner's reopen and its follow-ups.
+            <CloseoutPage key={route.id} t={t} fetchImpl={doFetch} jobId={route.id} href={href} />
           ) : route.page === 'record' && route.screen === 'safety-holds' ? (
             // TSK-0077: a safety queue item's link (a critical hold) opens its job's review page.
             <SafetyHoldPage

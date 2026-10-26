@@ -440,7 +440,9 @@ const TYPES: readonly MessageType[] = [
     variables: vars('customerName', 'reference', 'projectLink'),
     sourceIds: ['OWN-DEC-153', 'FACT-REMINDER-CADENCES', 'OWN-DEC-151'],
   },
-  // The service-quality follow-up (customer_follow_up, OWN-DEC-157): staff-released, built by TSK-0092.
+  // The service-quality follow-up (customer_follow_up, OWN-DEC-157): staff-released. TSK-0092 prepares it 48 hours after
+  // the Owner's review passed and reads its values when it sends (closeout/follow-ups.ts): the first name, the job
+  // number and the secure project link to report a concern (version 2 of the wording, migration 0101).
   {
     key: 'reminder.satisfaction_check',
     templateId: 'customer_follow_up',
@@ -448,7 +450,6 @@ const TYPES: readonly MessageType[] = [
     channels: both,
     triggerEvents: [],
     variables: vars('customerName', 'jobNumber', 'projectLink'),
-    supplied: [],
     sourceIds: ['OWN-DEC-78', 'FACT-REMINDER-CADENCES', 'OWN-DEC-157'],
   },
   // TSK-0091 (OWN-DEC-210): the unpaid-invoice reminder sends automatically, 3 and 7 calendar days after the invoice's

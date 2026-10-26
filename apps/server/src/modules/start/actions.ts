@@ -20,6 +20,11 @@
 //   resolved, OWN-DEC-137, including one the Owner set) and the critical safety hold (hold.release_critical: the
 //   Owner, never one they raised, with evidence, the reviewer and their qualification; OWN-DEC-38). The generic hold
 //   routes and the loadout block routes never reach these, and nothing else releases them.
+// - TSK-0094: a return visit (purpose return_work) starts through the same gate but moves neither the job nor its
+//   work packages (HH-QA-08, never a hidden reopening). resumeWork() resumes after an incident (HH-INC-03): one
+//   transaction under the same locks, the gate in its resume mode recorded as an evaluation whatever the outcome, and a
+//   ready one records the worker's resumption (and their start on this visit, when it is a new visit), moves a paused
+//   job back to in_progress and its blocked work packages with it. The hold was released before, through its own path.
 import { createHash, randomUUID } from 'node:crypto'
 import type { Tx } from '@handyhub/db'
 import {
@@ -85,7 +90,14 @@ export type StartOutcome =
       started: true
       facts: GateFacts
       evaluationId: string
-      start: { id: string; startedAt: Date; jobStateBefore: string; jobVersion: number; packagesStarted: string[] }
+      start: {
+        id: string
+        startedAt: Date
+        jobStateBefore: string
+        jobState: string
+        jobVersion: number
+        packagesStarted: string[]
+      }
     }
 
 export async function startWork(
@@ -98,28 +110,11 @@ export async function startWork(
   const facts = await gatherGate(tx, visit, actor.userId, {
     environment: input.environment,
     seenPacketVersion: input.packetVersion,
+    mode: 'start',
   })
   await settleExceptions(tx, facts.exceptions)
   const row = facts.packet
-  const evaluation = await tx
-    .insertInto('work.start_gate_evaluations')
-    .values({
-      job_id: visit.jobId,
-      project_id: visit.projectId,
-      visit_id: visit.id,
-      staff_user_id: actor.userId,
-      outcome: facts.result.outcome,
-      items: JSON.stringify(facts.result.items),
-      packet_version: row?.version ?? null,
-      packet_sha256: row?.contentSha256 ?? null,
-      scope_version: row?.content.scope.version ?? null,
-      sop_version_ids: JSON.stringify(sopVersionIds(row)),
-      acknowledgment_id: facts.acknowledgmentId,
-      exception_ids: [...facts.result.exceptionsUsed],
-      request_id: input.requestId.slice(0, 200),
-    })
-    .returning('id')
-    .executeTakeFirstOrThrow()
+  const evaluation = await recordEvaluation(tx, visit, actor, facts, input.requestId)
   if (facts.result.outcome !== 'ready' || !row || !facts.acknowledgmentId)
     return { started: false, facts, evaluationId: evaluation.id }
 
@@ -128,23 +123,22 @@ export async function startWork(
     .select(['operational_state', 'version'])
     .where('id', '=', visit.jobId)
     .executeTakeFirstOrThrow()
-  const start = await tx
-    .insertInto('work.work_starts')
-    .values({
-      job_id: visit.jobId,
-      project_id: visit.projectId,
-      visit_id: visit.id,
-      staff_user_id: actor.userId,
-      evaluation_id: evaluation.id,
-      packet_version: row.version,
-      scope_version: row.content.scope.version,
-      sop_version_ids: JSON.stringify(sopVersionIds(row)),
-      acknowledgment_id: facts.acknowledgmentId,
-      exception_ids: [...facts.result.exceptionsUsed],
-      job_state_before: job.operational_state,
-    })
-    .returning(['id', 'started_at'])
-    .executeTakeFirstOrThrow()
+  const start = await insertStart(tx, visit, actor, facts, evaluation.id, job.operational_state)
+  // A return visit never moves the original job or its work packages (HH-QA-08): its work is recorded apart.
+  if (visit.purpose === 'return_work')
+    return {
+      started: true,
+      facts,
+      evaluationId: evaluation.id,
+      start: {
+        id: start.id,
+        startedAt: start.started_at,
+        jobStateBefore: job.operational_state,
+        jobState: job.operational_state,
+        jobVersion: job.version,
+        packagesStarted: [],
+      },
+    }
   let jobVersion = job.version
   if (job.operational_state !== 'in_progress') {
     const moved = await tx
@@ -172,8 +166,176 @@ export async function startWork(
       id: start.id,
       startedAt: start.started_at,
       jobStateBefore: job.operational_state,
+      jobState: 'in_progress',
       jobVersion,
       packagesStarted: packages.map((p) => p.id).sort(),
+    },
+  }
+}
+
+/** The immutable record of one gate evaluation (ENT-StartGateEvaluation), a start's or a resumption's. */
+async function recordEvaluation(
+  tx: Tx,
+  visit: GateVisit & { jobId: string },
+  actor: StaffActor,
+  facts: GateFacts,
+  requestId: string,
+) {
+  const row = facts.packet
+  return tx
+    .insertInto('work.start_gate_evaluations')
+    .values({
+      job_id: visit.jobId,
+      project_id: visit.projectId,
+      visit_id: visit.id,
+      staff_user_id: actor.userId,
+      outcome: facts.result.outcome,
+      items: JSON.stringify(facts.result.items),
+      packet_version: row?.version ?? null,
+      packet_sha256: row?.contentSha256 ?? null,
+      scope_version: row?.content.scope.version ?? null,
+      sop_version_ids: JSON.stringify(sopVersionIds(row)),
+      acknowledgment_id: facts.acknowledgmentId,
+      exception_ids: [...facts.result.exceptionsUsed],
+      request_id: requestId.slice(0, 200),
+      purpose: facts.mode,
+    })
+    .returning('id')
+    .executeTakeFirstOrThrow()
+}
+
+/** The worker's start on this visit, naming the passing evaluation of the same transaction. */
+async function insertStart(
+  tx: Tx,
+  visit: GateVisit & { jobId: string },
+  actor: StaffActor,
+  facts: GateFacts,
+  evaluationId: string,
+  jobStateBefore: string,
+) {
+  const row = facts.packet as NonNullable<GateFacts['packet']>
+  return tx
+    .insertInto('work.work_starts')
+    .values({
+      job_id: visit.jobId,
+      project_id: visit.projectId,
+      visit_id: visit.id,
+      staff_user_id: actor.userId,
+      evaluation_id: evaluationId,
+      packet_version: row.version,
+      scope_version: row.content.scope.version,
+      sop_version_ids: JSON.stringify(sopVersionIds(row)),
+      acknowledgment_id: facts.acknowledgmentId as string,
+      exception_ids: [...facts.result.exceptionsUsed],
+      job_state_before: jobStateBefore,
+    })
+    .returning(['id', 'started_at'])
+    .executeTakeFirstOrThrow()
+}
+
+// --- Resuming after an incident (TSK-0094) ------------------------------------------------------------------------
+
+export type ResumeOutcome =
+  | { resumed: false; facts: GateFacts; evaluationId: string }
+  | {
+      resumed: true
+      facts: GateFacts
+      evaluationId: string
+      resumption: {
+        id: string
+        resumedAt: Date
+        pausedAt: Date
+        startId: string | null
+        jobStateBefore: string
+        jobVersion: number
+        packagesResumed: string[]
+      }
+    }
+
+/**
+ * Resumes the caller's work after the job's latest pause (HH-INC-03): the gate in its resume mode, recorded whatever the
+ * outcome; a ready evaluation records the resumption and moves a paused job and its blocked work packages back to
+ * in_progress. Nothing here touches the hold: it was released before, through its own path.
+ */
+export async function resumeWork(
+  tx: Tx,
+  actor: StaffActor,
+  visitId: string,
+  input: { packetVersion: number; requestId: string; environment: GateEnvironment },
+): Promise<ResumeOutcome> {
+  const visit = await lockedVisit(tx, visitId)
+  const facts = await gatherGate(tx, visit, actor.userId, {
+    environment: input.environment,
+    seenPacketVersion: input.packetVersion,
+    mode: 'resume',
+  })
+  await settleExceptions(tx, facts.exceptions)
+  const evaluation = await recordEvaluation(tx, visit, actor, facts, input.requestId)
+  const row = facts.packet
+  const pausedAt = facts.pause.pausedAt
+  if (facts.result.outcome !== 'ready' || !row || !facts.acknowledgmentId || !pausedAt)
+    return { resumed: false, facts, evaluationId: evaluation.id }
+
+  const job = await tx
+    .selectFrom('work.jobs')
+    .select(['operational_state', 'version'])
+    .where('id', '=', visit.jobId)
+    .executeTakeFirstOrThrow()
+  // A resumption on a visit the worker had not started yet is also their start on it (photos and taps need one).
+  const start = facts.started ? null : await insertStart(tx, visit, actor, facts, evaluation.id, job.operational_state)
+  const resumption = await tx
+    .insertInto('work.work_resumptions')
+    .values({
+      job_id: visit.jobId,
+      project_id: visit.projectId,
+      visit_id: visit.id,
+      staff_user_id: actor.userId,
+      evaluation_id: evaluation.id,
+      packet_version: row.version,
+      acknowledgment_id: facts.acknowledgmentId,
+      exception_ids: [...facts.result.exceptionsUsed],
+      job_state_before: job.operational_state,
+      // The database's own instant (microseconds): the pause as work.latest_pause() reads it.
+      paused_at: sql<Date>`work.latest_pause(${visit.jobId}::uuid)`,
+    })
+    .returning(['id', 'resumed_at', 'paused_at'])
+    .executeTakeFirstOrThrow()
+  let jobVersion = job.version
+  let packages: string[] = []
+  if (job.operational_state === 'paused') {
+    const moved = await tx
+      .updateTable('work.jobs')
+      .set({ operational_state: 'in_progress', version: job.version + 1 })
+      .where('id', '=', visit.jobId)
+      .where('version', '=', job.version)
+      .returning('version')
+      .executeTakeFirstOrThrow()
+    jobVersion = moved.version
+    // The work the hazard report blocked resumes with the job; the gate found no hold that still blocks it.
+    packages = (
+      await tx
+        .updateTable('work.work_packages')
+        .set({ state: 'in_progress', version: sql<number>`version + 1` })
+        .where('job_id', '=', visit.jobId)
+        .where('state', '=', 'blocked')
+        .returning('id')
+        .execute()
+    )
+      .map((p) => p.id)
+      .sort()
+  }
+  return {
+    resumed: true,
+    facts,
+    evaluationId: evaluation.id,
+    resumption: {
+      id: resumption.id,
+      resumedAt: resumption.resumed_at,
+      pausedAt: resumption.paused_at,
+      startId: start?.id ?? null,
+      jobStateBefore: job.operational_state,
+      jobVersion,
+      packagesResumed: packages,
     },
   }
 }

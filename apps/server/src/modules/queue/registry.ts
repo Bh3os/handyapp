@@ -59,6 +59,8 @@ export const QUEUE_ACTIONS = [
   'review_permissions',
   // TSK-0149: help a customer who cannot sign in or get a new project link, after verifying their identity.
   'help_access',
+  // TSK-0092: close a job once nothing is left open (or see what still is).
+  'close_job',
 ] as const
 export type QueueAction = (typeof QUEUE_ACTIONS)[number]
 
@@ -403,6 +405,21 @@ export const QUEUE_ITEM_TYPES = [
     screen: 'payments',
     path: 'invoice-reminders',
   },
+  // TSK-0092 (HH-QA-10, OWN-DEC-157, OWN-DEC-113): a job's prepared satisfaction check (48 hours after the Owner's
+  // review passed) or review request waits for staff release; resolved when it is released or cancelled, and while a
+  // case on the project holds it (offered again once every case is closed). Seen by the roles that release drafts; the
+  // link opens the job's closeout page. Band PROPOSED.
+  {
+    id: 'follow_up_release',
+    section: 'queue',
+    subject: 'job',
+    band: 'other',
+    view: 'message.release_draft',
+    reasons: ['satisfaction_check_ready', 'review_request_ready'],
+    action: 'release_reminder',
+    screen: 'schedule',
+    path: 'closeout',
+  },
   // TSK-0149 (OWN-DEC-198 F4, F5): a visitor asked for help signing in or getting a new project link (the secure
   // alternative when texts are not available or the reissue limits are reached), one item per help request until the
   // Owner closes it. The reason is what was asked, never whether anything matched. Seen by the Owner
@@ -559,6 +576,19 @@ export const QUEUE_ITEM_TYPES = [
     action: 'review_quality',
     screen: 'schedule',
     path: 'quality-reviews',
+  },
+  // TSK-0092 (HH-QA-09): a job operationally complete (or reopened) waits for the Owner's close; the screen names what is
+  // still open (the closeout obligations). Resolved when it closes. Seen by the Owner (job.close). Band PROPOSED.
+  {
+    id: 'job_closeout',
+    section: 'owner_decisions',
+    subject: 'job',
+    band: 'other',
+    view: 'job.close',
+    reasons: ['closeout_pending', 'job_reopened'],
+    action: 'close_job',
+    screen: 'schedule',
+    path: 'closeout',
   },
   {
     id: 'start_work_exception',

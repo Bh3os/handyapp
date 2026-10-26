@@ -1905,6 +1905,83 @@ export interface QualityPunchItemsTable {
   version: Generated<number>
 }
 
+export interface QualityReturnWorkTable {
+  id: Generated<string>
+  case_id: string
+  project_id: string
+  job_id: string
+  classification: string
+  reviewed_completion_on: string | null
+  reported_on: string
+  within_warranty: boolean | null
+  classification_note: string | null
+  classified_by: string
+  classified_at: ColumnType<Date, Date | string | undefined, Date | string>
+  coverage: string | null
+  price: string | null
+  decision_note: string | null
+  decided_by: string | null
+  decided_at: Timestamp | null
+  return_job_id: string | null
+  version: Generated<number>
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface QualityReturnWorkCostsTable {
+  id: Generated<string>
+  return_work_id: string
+  kind: string
+  amount_cents: number
+  note: string
+  recorded_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+  void_reason: string | null
+  voided_by: string | null
+  voided_at: Timestamp | null
+}
+
+export interface QualityReturnWorkEventsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  return_work_id: string
+  event: string
+  subject_id: string | null
+  actor_id: string
+  note: string | null
+  at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface QualityReturnWorkItemsTable {
+  id: Generated<string>
+  return_work_id: string
+  job_id: string
+  project_id: string
+  work_package_id: string | null
+  area: string | null
+  description: string
+  required_evidence: string
+  assigned_to: string
+  due_on: string
+  state: Generated<string>
+  created_by: string
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  correction_note: string | null
+  corrected_by: string | null
+  corrected_at: Timestamp | null
+  corrected_on_visit: string | null
+  recheck_note: string | null
+  rechecked_by: string | null
+  rechecked_at: Timestamp | null
+  version: Generated<number>
+}
+
+export interface QualityReturnWorkVisitsTable {
+  visit_id: string
+  return_work_id: string
+  linked_by: string
+  linked_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface QualityReviewEventsTable {
   id: Generated<string>
   seq: GeneratedAlways<string>
@@ -1935,6 +2012,17 @@ export interface QualityReviewsTable {
   decided_at: Timestamp | null
   passed_at: Timestamp | null
   version: Generated<number>
+}
+
+export interface QualitySatisfactionResponsesTable {
+  id: Generated<string>
+  job_id: string
+  project_id: string
+  delivery_id: string | null
+  answer: string
+  note: string | null
+  recorded_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
 export interface StagingEnvironmentMarksTable {
@@ -2300,6 +2388,19 @@ export interface WorkIssueReportsTable {
   device_recorded_at: Timestamp | null
 }
 
+export interface WorkJobCloseoutEventsTable {
+  id: Generated<string>
+  job_id: string
+  project_id: string
+  event: string
+  from_state: string
+  financial_basis: string | null
+  reason: string | null
+  recorded_by: string
+  staff_session_id: string | null
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface WorkJobCompletionsTable {
   id: Generated<string>
   job_id: string
@@ -2510,6 +2611,7 @@ export interface WorkStartGateEvaluationsTable {
   exception_ids: Generated<string[]>
   request_id: string | null
   evaluated_at: ColumnType<Date, Date | string | undefined, Date | string>
+  purpose: Generated<string>
 }
 
 export interface WorkStartSiteChecksTable {
@@ -2772,6 +2874,21 @@ export interface WorkWorkPackagesTable {
   sop_pinned_at: Timestamp | null
 }
 
+export interface WorkWorkResumptionsTable {
+  id: Generated<string>
+  job_id: string
+  project_id: string
+  visit_id: string
+  staff_user_id: string
+  evaluation_id: string
+  packet_version: number
+  acknowledgment_id: string
+  exception_ids: Generated<string[]>
+  job_state_before: string
+  paused_at: Timestamp
+  resumed_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface WorkWorkStartsTable {
   id: Generated<string>
   job_id: string
@@ -2930,8 +3047,14 @@ export interface Database {
   'quality.cases': QualityCasesTable
   'quality.incident_reports': QualityIncidentReportsTable
   'quality.punch_items': QualityPunchItemsTable
+  'quality.return_work': QualityReturnWorkTable
+  'quality.return_work_costs': QualityReturnWorkCostsTable
+  'quality.return_work_events': QualityReturnWorkEventsTable
+  'quality.return_work_items': QualityReturnWorkItemsTable
+  'quality.return_work_visits': QualityReturnWorkVisitsTable
   'quality.review_events': QualityReviewEventsTable
   'quality.reviews': QualityReviewsTable
+  'quality.satisfaction_responses': QualitySatisfactionResponsesTable
   'staging.environment_marks': StagingEnvironmentMarksTable
   'staging.reset_runs': StagingResetRunsTable
   'staging.reusable_test_accounts': StagingReusableTestAccountsTable
@@ -2952,6 +3075,7 @@ export interface Database {
   'work.issue_report_photos': WorkIssueReportPhotosTable
   'work.issue_report_reviews': WorkIssueReportReviewsTable
   'work.issue_reports': WorkIssueReportsTable
+  'work.job_closeout_events': WorkJobCloseoutEventsTable
   'work.job_completions': WorkJobCompletionsTable
   'work.job_packet_acknowledgment_invalidations': WorkJobPacketAcknowledgmentInvalidationsTable
   'work.job_packet_acknowledgments': WorkJobPacketAcknowledgmentsTable
@@ -2984,6 +3108,7 @@ export interface Database {
   'work.work_package_loadouts': WorkWorkPackageLoadoutsTable
   'work.work_package_sop_pins': WorkWorkPackageSopPinsTable
   'work.work_packages': WorkWorkPackagesTable
+  'work.work_resumptions': WorkWorkResumptionsTable
   'work.work_starts': WorkWorkStartsTable
   'work.worker_schedules': WorkWorkerSchedulesTable
   'work.working_hours': WorkWorkingHoursTable

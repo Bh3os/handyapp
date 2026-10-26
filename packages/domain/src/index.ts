@@ -21,6 +21,7 @@ import { GATE_EXCEPTION_MACHINE } from './start-gate.js'
 import { COMPLAINT_CASE_MACHINE, INCIDENT_CASE_MACHINE } from './case.js'
 import { PUNCH_ITEM_MACHINE, QUALITY_REVIEW_MACHINE } from './quality-review.js'
 import { CHECKLIST_STEP_MACHINE } from './checklist.js'
+import { JOB_CLOSEOUT_MACHINE } from './closeout.js'
 
 export const PACKAGE_NAME = '@handyhub/domain'
 
@@ -277,6 +278,9 @@ export type {
   SopStep,
 } from './sop.js'
 
+// TSK-0092: a job's closeout, the Owner's reopen and the follow-ups after completion.
+export * from './closeout.js'
+
 /** Every machine, keyed `<entity>.<dimension>`. One key per state dimension, so dimensions never share a state. */
 export const MACHINES = {
   'request.lifecycle': REQUEST_MACHINE,
@@ -297,6 +301,8 @@ export const MACHINES = {
   'checklist_step.lifecycle': CHECKLIST_STEP_MACHINE,
   // TSK-0081: a change-order version.
   'change_order.lifecycle': CHANGE_ORDER_MACHINE,
+  // TSK-0092: a job's closeout and the Owner's reopen.
+  'job.closeout': JOB_CLOSEOUT_MACHINE,
 } as const
 export type MachineKey = keyof typeof MACHINES
 type M<K extends MachineKey> = (typeof MACHINES)[K]
@@ -420,3 +426,5 @@ export * from './launch.js'
 export * from './overrides.js'
 // TSK-0129 (HH-PKT-09, OWN-DEC-172): Call Owner and Call 911 in every job packet; the Owner's number format.
 export * from './escalation.js'
+// TSK-0094 (HH-QA-07, HH-QA-08, HH-INC-03, FACT-WARRANTY): return work, the warranty window and resuming.
+export * from './return-work.js'
