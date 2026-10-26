@@ -93,7 +93,7 @@ import {
   refuse,
   type ReservationRequest,
 } from '../capacity/resources.js'
-import { depositAmountsOfJob } from '../finance/deposits.js'
+import { depositAmountsOfJobs } from '../finance/deposits.js'
 import { requireOwnerFreshSession } from '../finance/exceptions.js'
 import {
   firstNameOf,
@@ -556,29 +556,50 @@ export function cancellationRules(config: Config) {
  * work started (PROPOSED). Only the third is the start of contracted work.
  */
 export async function workMarkers(db: Reader, v: { id: string; job_id: string | null }): Promise<WorkMarkers> {
-  const job = v.job_id
-  const row = (
-    await sql<{ arrived: Date | null; prepared: Date | null; started: Date | null; completed: Date | null }>`
-      SELECT
-        (SELECT min(recorded_at) FROM work.time_stamps
-          WHERE kind = 'arrived' AND (CASE WHEN ${job}::uuid IS NULL THEN visit_id = ${v.id}::uuid
-                                           ELSE job_id = ${job}::uuid END)) AS arrived,
-        (SELECT min(t) FROM (
-           SELECT recorded_at AS t FROM work.start_site_checks WHERE job_id = ${job}::uuid
-           UNION ALL SELECT uploaded_at FROM work.field_photos WHERE job_id = ${job}::uuid AND phase = 'before') p)
-          AS prepared,
-        (SELECT min(started_at) FROM work.work_starts WHERE job_id = ${job}::uuid) AS started,
-        (SELECT min(ts.recorded_at) FROM work.time_stamps ts
-          WHERE ts.kind = 'finished' AND ts.job_id = ${job}::uuid
-            AND EXISTS (SELECT 1 FROM work.work_starts ws WHERE ws.visit_id = ts.visit_id)) AS completed`.execute(db)
-  ).rows[0]
+  return (await workMarkersOf(db, [v])).get(v.id) as WorkMarkers
+}
+
+/**
+ * The markers of several visits in one statement (TSK-0105: the scheduling board reads a whole week of visits, and
+ * one statement per visit grew with the schedule). Same rules as workMarkers, per visit.
+ */
+export async function workMarkersOf(
+  db: Reader,
+  visits: readonly { id: string; job_id: string | null }[],
+): Promise<Map<string, WorkMarkers>> {
+  const out = new Map<string, WorkMarkers>()
+  if (visits.length === 0) return out
+  const { rows } = await sql<{
+    id: string
+    arrived: Date | null
+    prepared: Date | null
+    started: Date | null
+    completed: Date | null
+  }>`
+    SELECT v.id,
+      (SELECT min(recorded_at) FROM work.time_stamps
+        WHERE kind = 'arrived' AND (CASE WHEN v.job_id IS NULL THEN visit_id = v.id ELSE job_id = v.job_id END))
+        AS arrived,
+      (SELECT min(t) FROM (
+         SELECT recorded_at AS t FROM work.start_site_checks WHERE job_id = v.job_id
+         UNION ALL SELECT uploaded_at FROM work.field_photos WHERE job_id = v.job_id AND phase = 'before') p)
+        AS prepared,
+      (SELECT min(started_at) FROM work.work_starts WHERE job_id = v.job_id) AS started,
+      (SELECT min(ts.recorded_at) FROM work.time_stamps ts
+        WHERE ts.kind = 'finished' AND ts.job_id = v.job_id
+          AND EXISTS (SELECT 1 FROM work.work_starts ws WHERE ws.visit_id = ts.visit_id)) AS completed
+    FROM unnest(${visits.map((v) => v.id)}::uuid[], ${visits.map((v) => v.job_id)}::uuid[]) AS v(id, job_id)`.execute(
+    db,
+  )
   const at = (d: Date | null | undefined) => (d ? new Date(d) : null)
-  return {
-    arrived: at(row?.arrived),
-    preparation_started: at(row?.prepared),
-    contracted_work_started: at(row?.started),
-    completed: at(row?.completed),
-  }
+  for (const row of rows)
+    out.set(row.id, {
+      arrived: at(row.arrived),
+      preparation_started: at(row.prepared),
+      contracted_work_started: at(row.started),
+      completed: at(row.completed),
+    })
+  return out
 }
 
 export type CancellationFactsOf = {
@@ -598,25 +619,58 @@ export async function cancellationFacts(
   db: Reader,
   v: { id: string; purpose: string; job_id: string | null },
 ): Promise<CancellationFactsOf> {
-  const markers = await workMarkers(db, v)
-  if (!isWorkVisitPurpose(v.purpose) || v.job_id === null)
-    return { workStarted: false, depositPaidCents: 0, depositPendingCents: 0, feeDisclosed: false, markers }
-  const job = await db
-    .selectFrom('work.jobs as j')
-    .innerJoin('estimating.approvals as a', 'a.id', 'j.approval_id')
-    .select(['j.operational_state', 'a.terms_document_id'])
-    .where('j.id', '=', v.job_id)
-    .executeTakeFirst()
-  const deposit = await depositAmountsOfJob(db, v.job_id)
-  return {
-    workStarted:
-      contractedWorkStarted(markers) ||
-      (job !== undefined && (WORK_STARTED_JOB_STATES as readonly string[]).includes(job.operational_state)),
-    depositPaidCents: deposit?.verified ?? 0,
-    depositPendingCents: deposit?.pending ?? 0,
-    feeDisclosed: job !== undefined && TERMS_DISCLOSING_CANCELLATION_FEE.includes(job.terms_document_id),
-    markers,
+  return (await cancellationFactsOf(db, [v])).get(v.id) as CancellationFactsOf
+}
+
+/** The cancellation facts of several visits with a fixed number of statements (TSK-0105, the scheduling board). */
+export async function cancellationFactsOf(
+  db: Reader,
+  visits: readonly { id: string; purpose: string; job_id: string | null }[],
+): Promise<Map<string, CancellationFactsOf>> {
+  const out = new Map<string, CancellationFactsOf>()
+  if (visits.length === 0) return out
+  const markers = await workMarkersOf(db, visits)
+  const jobIds = [
+    ...new Set(visits.flatMap((v) => (isWorkVisitPurpose(v.purpose) && v.job_id !== null ? [v.job_id] : []))),
+  ]
+  const jobs = new Map(
+    jobIds.length
+      ? (
+          await db
+            .selectFrom('work.jobs as j')
+            .innerJoin('estimating.approvals as a', 'a.id', 'j.approval_id')
+            .select(['j.id', 'j.operational_state', 'a.terms_document_id'])
+            .where('j.id', 'in', jobIds)
+            .execute()
+        ).map((j) => [j.id, j])
+      : [],
+  )
+  const deposits = await depositAmountsOfJobs(db, jobIds)
+  for (const v of visits) {
+    const m = markers.get(v.id) as WorkMarkers
+    if (!isWorkVisitPurpose(v.purpose) || v.job_id === null) {
+      out.set(v.id, {
+        workStarted: false,
+        depositPaidCents: 0,
+        depositPendingCents: 0,
+        feeDisclosed: false,
+        markers: m,
+      })
+      continue
+    }
+    const job = jobs.get(v.job_id)
+    const deposit = deposits.get(v.job_id)
+    out.set(v.id, {
+      workStarted:
+        contractedWorkStarted(m) ||
+        (job !== undefined && (WORK_STARTED_JOB_STATES as readonly string[]).includes(job.operational_state)),
+      depositPaidCents: deposit?.verified ?? 0,
+      depositPendingCents: deposit?.pending ?? 0,
+      feeDisclosed: job !== undefined && TERMS_DISCLOSING_CANCELLATION_FEE.includes(job.terms_document_id),
+      markers: m,
+    })
   }
+  return out
 }
 
 export type FeeWaiver = {
@@ -1063,9 +1117,19 @@ export async function changeFacts(
     .execute()
   const refs = await names([...new Set(rows.flatMap((r) => [r.changed_by, ...r.from_workers, ...r.to_workers]))])
   const ref = (id: string) => refs.get(id) ?? { id, name: null }
+  // TSK-0105: the facts of every visit that shows an outcome are read together (a fixed number of statements).
+  const facts = await cancellationFactsOf(
+    db,
+    rules === null
+      ? []
+      : visits.filter(
+          (v) =>
+            open.some((x) => x.visit_id === v.id && x.kind === 'cancellation') ||
+            (v.state === 'confirmed' && mayCancel(actor, v.purpose)),
+        ),
+  )
   for (const v of visits) {
-    let read: CancellationFactsOf | null = null
-    const factsFor = async () => (read ??= await cancellationFacts(db, v))
+    const factsFor = async () => facts.get(v.id) ?? (await cancellationFacts(db, v))
     const outcomeAt = async (initiator: CancellationInitiator, at: Date) =>
       rules ? outcomeOf(v, await factsFor(), rules.rules, { initiator, at }) : null
     const r = open.find((x) => x.visit_id === v.id)

@@ -100,6 +100,11 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Build
         run: pnpm build
+      # TSK-0105 (HH-NFR-01, docs/perf/README.md): what the three builds ship and their heaviest first visits, in the job
+      # summary. A configured limit of docs/perf/budgets.json that is exceeded fails the job; null limits (NOT
+      # CONFIGURED, all of them today) are only reported.
+      - name: Bundle sizes and page weight (TSK-0105)
+        run: node tools/perf-bundles.mjs >> "$GITHUB_STEP_SUMMARY"
       # TSK-0109 (HH-SEC-04, docs/security/review-2026.md SEC-1): the secrets job scans the source only; what browsers
       # download is the built site, portal and staff app, so those bundles are scanned too, with the same pinned binary.
       - name: Secret scan of the built bundles (gitleaks 8.30.1, checksum verified)

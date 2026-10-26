@@ -25,7 +25,7 @@
 //   inherits one and it releases nothing. The packet answers where the caller's and each assigned worker's stands.
 import type { Db, Tx } from '@handyhub/db'
 import { withTx } from '@handyhub/db'
-import { packetChanges, PACKET_VISIT_STATES, type PacketContent } from '@handyhub/domain'
+import { acknowledgmentState, packetChanges, PACKET_VISIT_STATES, type PacketContent } from '@handyhub/domain'
 import { resolveStaffLocale, type StaffLocale } from '@handyhub/i18n'
 import { localDate } from '@handyhub/domain/request-form'
 import { decide, type StaffActor } from '@handyhub/policy'
@@ -37,7 +37,15 @@ import { loadConfig } from '../../platform/config/index.js'
 import { jobInScope } from '../../platform/data-scope.js'
 import { currentContext } from '../../platform/request-context.js'
 import type { ObjectStorage } from '../../providers/index.js'
-import { acknowledge, acknowledgmentStatus, assignedNow, teamAcknowledgments } from './acknowledgments.js'
+import {
+  acknowledge,
+  acknowledgmentStatus,
+  assignedNow,
+  assignedNowOf,
+  criticalVersionsOf,
+  latestAcknowledgmentsOf,
+  teamAcknowledgments,
+} from './acknowledgments.js'
 import {
   customerFirstName,
   DAY_ENDS,
@@ -48,7 +56,7 @@ import {
   type PacketAccess,
 } from './access-window.js'
 import { jobAssignments, propertyVisitFacts } from './assignments.js'
-import { packetVersion, refreshJobPacket, type PacketRow } from './content.js'
+import { packetVersion, packetVersionsOf, refreshJobPacket, refreshJobPackets, type PacketRow } from './content.js'
 import { renderPacketPdf } from './pdf.js'
 import {
   ACKNOWLEDGE_BODY,
@@ -64,7 +72,7 @@ import {
   VERSIONS_VIEW,
   VIEW_RECORDED,
 } from './schemas.js'
-import { lastViewed, packetView } from './view.js'
+import { lastViewed, lastViewedOf, packetView } from './view.js'
 
 export {
   acknowledgmentStatus,
@@ -479,21 +487,43 @@ export function packetsModule(deps: PacketsDeps = {}): ApiModule {
         .execute()
       const jobs = [...new Set(rows.map((r) => r.job_id as string))]
       const now = new Date()
-      const assigned: string[] = []
-      for (const jobId of jobs) if ((await assignedNow(ctx.db, jobId, now)).includes(actor.userId)) assigned.push(jobId)
+      // TSK-0105: every step reads or refreshes all the caller's jobs at once (a fixed number of statements, not a
+      // set per job); each job's answer is the one the single-job reads give.
+      const assignedTo = await assignedNowOf(ctx.db, jobs, now)
+      const assigned = jobs.filter((jobId) => (assignedTo.get(jobId) ?? []).includes(actor.userId))
+      const current = await refreshJobPackets(ctx.db, jobs)
+      const views = await lastViewedOf(ctx.db, jobs, actor.userId)
+      const viewedBefore = await packetVersionsOf(
+        ctx.db,
+        jobs.flatMap((jobId) => {
+          const seen = views.get(jobId)
+          const row = current.get(jobId)
+          return seen && row && seen.version !== row.version ? [{ jobId, version: seen.version }] : []
+        }),
+      )
+      const acknowledged = await latestAcknowledgmentsOf(ctx.db, jobs, actor.userId)
+      const criticalOf = await criticalVersionsOf(ctx.db, jobs)
       const packets = []
       for (const jobId of jobs) {
-        const row = await refreshJobPacket(ctx.db, jobId)
+        const row = current.get(jobId)
         if (!row) continue
-        const seen = await lastViewed(ctx.db, jobId, actor.userId)
+        const seen = views.get(jobId) ?? null
         let critical = false
         if (seen && seen.version !== row.version) {
-          const before = await packetVersion(ctx.db, jobId, seen.version)
+          const before = viewedBefore.get(`${jobId}:${seen.version}`)
           critical = before
             ? packetChanges(before.content as PacketContent, row.content).some((c) => c.critical)
             : false
         }
-        const ack = await acknowledgmentStatus(ctx.db, row, actor.userId, assigned.includes(jobId))
+        const latest = acknowledged.get(jobId) ?? null
+        const ack = {
+          state: acknowledgmentState({
+            assigned: assigned.includes(jobId),
+            latest: latest ? { version: latest.version, invalidated: latest.invalidation !== null } : null,
+            criticalVersions: criticalOf.get(jobId) ?? [],
+          }),
+          acknowledgment: latest,
+        }
         packets.push({
           jobId,
           projectReference: row.content.identity.projectReference,
