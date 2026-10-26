@@ -154,6 +154,10 @@ export const CONFIG_KEYS = {
   // TSK-0130 (final owner amendments 2026-10-22 to OWN-DEC-173): a discretionary credit from this amount needs the
   // Owner's approval. No amount is decided for "material": PROPOSED 1 cent, so every discretionary credit (proposed).
   'owner_approval.discretionary_credit': shape({ materialFromCents: int(1) }),
+  // TSK-0131 (FACT-MARGIN-TARGET, OWN-DEC-189; migration 0116): the target gross margin per job in basis points (3000:
+  // 30%). A job whose final margin is below it is flagged on the Owner Dashboard: advisory, never a block. The Owner
+  // changes it (policy_values.change, audited).
+  'job_margin.target': shape({ targetBps: int(1, 9999) }),
   'payment.term_default': shape({ term: oneOf(['due_on_receipt']) }),
   'payment.methods': shape({
     methods: listOf(oneOf(['square_payment_link', 'square_tap_to_pay', 'cash', 'check', 'zelle', 'cash_app', 'chime'])),

@@ -11,8 +11,10 @@
 // - Periods are calendar dates in the business time zone, from the local midnight of the first date to the local
 //   midnight after the last. Date columns (received on, incurred on, paid out on, visit date) compare as dates.
 // - Missing data is never zero: a share or an average of nothing is unavailable; job costs are incomplete while any
-//   cost line is (labor and burden cost are NOT CONFIGURED, TSK-0131); return-work costs are recorded so far, never
+//   cost line is (labor and burden from the Owner-entered rates, TSK-0131); return-work costs are recorded so far, never
 //   final; the write-off presentation is NOT CONFIGURED (the CPA's or the Owner's decision).
+// - Gross margin (TSK-0131, OWN-DEC-189): the same jobs counted by whether their margin is final, and flagged below
+//   job_margin.target only when it is (advisory); with no target configured the flag is NOT CONFIGURED.
 // - Cases show counts, kinds, states and assignees only: what happened, medical details and notes stay on the case.
 // PROPOSED (OQ-DASHBOARD-DETAILS): what each figure counts and which date places a record in a period.
 import type { Db, Tx } from '@handyhub/db'
@@ -36,6 +38,8 @@ import { sql } from 'kysely'
 import { requestDeadlines } from '../privacy/deadlines.js'
 import { responseReport } from '../requests/response-clock.js'
 import { jobCostsView } from '../job-costs/store.js'
+import { marginTarget } from '../job-margin/margin.js'
+import { loadConfig } from '../../platform/config/index.js'
 
 type Reader = Db | Tx
 
@@ -409,6 +413,10 @@ export async function nowSources(db: Reader, now: Date, zone: string) {
     ),
   )
 
+  // The target gross margin in force (TSK-0131): basis points, or NOT CONFIGURED.
+  const target = marginTarget(await loadConfig(db)).targetBps
+  out.set('costs.margin_target', { rows: [], value: target === null ? NOT_CONFIGURED : known(target) })
+
   return { sources: out, assignees: [...assignees.values()] }
 }
 
@@ -734,11 +742,24 @@ export async function periodSources(db: Reader, actor: StaffActor, range: Range,
 
   // Job costs of the jobs completed in the period: complete only once every cost line is (never zero for unknown).
   const costRows: DrillRow[] = []
+  const marginRows: (DrillRow & { flag: string; reviewed: boolean })[] = []
   let allComplete = true
   for (const job of completed) {
     const v = await jobCostsView(db, actor, job.id)
     const actual = v.totals.actual
     if (actual.state !== 'complete') allComplete = false
+    marginRows.push({
+      ...row({
+        id: job.id,
+        reference: job.reference,
+        on: job.on,
+        state: v.margin.actual.state === 'complete' ? v.margin.flag : 'incomplete',
+        cents: v.margin.actual.grossProfitCents,
+        link: { screen: 'job-costs', id: job.id },
+      }),
+      flag: v.margin.flag,
+      reviewed: v.margin.reviewed,
+    })
     costRows.push(
       row({
         id: job.id,
@@ -784,5 +805,17 @@ export async function periodSources(db: Reader, actor: StaffActor, range: Range,
     rows: returnRows,
     value: incomplete(returnRows.reduce((s, r) => s + (r.cents ?? 0), 0)),
   })
+
+  // Gross margin of the same jobs (TSK-0131): flagged below the target only when the margin is final (advisory).
+  const plain = (rows: typeof marginRows): DrillRow[] => rows.map(({ flag: _f, reviewed: _r, ...r }) => r)
+  const finalRows = marginRows.filter((r) => r.state !== 'incomplete')
+  const below = marginRows.filter((r) => r.flag === 'below_target')
+  out.set('costs.margin_final', count(plain(finalRows)))
+  out.set('costs.margin_incomplete', count(plain(marginRows.filter((r) => r.state === 'incomplete'))))
+  const targetSet = marginTarget(await loadConfig(db)).targetBps !== null
+  const flagged = (rows: typeof marginRows): Source =>
+    targetSet ? count(plain(rows)) : { rows: [], value: NOT_CONFIGURED }
+  out.set('costs.below_target', flagged(below))
+  out.set('costs.below_target_unreviewed', flagged(below.filter((r) => !r.reviewed)))
   return out
 }

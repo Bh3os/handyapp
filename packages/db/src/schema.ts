@@ -836,6 +836,35 @@ export interface FinanceJobCostsTable {
   voided_at: Timestamp | null
 }
 
+export interface FinanceJobMarginReviewsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  job_id: string
+  project_id: string
+  reason: string
+  note: string | null
+  revenue_cents: Int8
+  cost_cents: Int8
+  gross_profit_cents: Int8
+  margin_bps: number | null
+  target_bps: number
+  recorded_by: string
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface FinanceLaborCostRatesTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  staff_user_id: string
+  effective_on: string
+  rate_cents: number
+  burden_cents: number | null
+  currency: Generated<string>
+  reason: string
+  entered_by: string
+  entered_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface FinancePaymentAdjustmentsTable {
   id: Generated<string>
   payment_id: string
@@ -3150,6 +3179,8 @@ export interface Database {
   'finance.invoices': FinanceInvoicesTable
   'finance.job_cost_events': FinanceJobCostEventsTable
   'finance.job_costs': FinanceJobCostsTable
+  'finance.job_margin_reviews': FinanceJobMarginReviewsTable
+  'finance.labor_cost_rates': FinanceLaborCostRatesTable
   'finance.payment_adjustments': FinancePaymentAdjustmentsTable
   'finance.payment_allocations': FinancePaymentAllocationsTable
   'finance.payment_receipts': FinancePaymentReceiptsTable

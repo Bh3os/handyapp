@@ -1,9 +1,11 @@
-// A job's estimated versus actual costs (TSK-0095; HH-FIN-17, HH-DATA-10, HH-QA-08, T73, RULE-MONEY-CENTS). The API is
-// a synthetic stand-in; every name, note, amount and reference is synthetic (RULE-SYNTHETIC-DATA).
+// A job's estimated versus actual costs and its gross margin (TSK-0095, TSK-0131; HH-FIN-17, HH-FIN-20, HH-DATA-10,
+// HH-QA-08, T73, RULE-MONEY-CENTS). The API is a synthetic stand-in; every name, note, amount and reference is
+// synthetic (RULE-SYNTHETIC-DATA).
 import { staffTranslator, type StaffLocale } from '@handyhub/i18n'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { JobCostsPage, type Figure, type JobCostsData } from '../src/JobCosts'
+import type { MarginData } from '../src/JobMargin'
 
 afterEach(() => {
   cleanup()
@@ -16,6 +18,41 @@ const json = (status: number, body: unknown) =>
 const f = (state: Figure['state'], cents: number | null = null): Figure => ({ state, cents })
 const LINES = ['labor', 'burden', 'materials', 'purchase', 'subcontractor', 'rental', 'disposal', 'other'] as const
 const CATEGORY = (l: string) => l !== 'labor' && l !== 'burden'
+
+const NOT_FINAL = { revenueCents: null, costCents: null, grossProfitCents: null, marginBps: null }
+function margin(over: Partial<MarginData> = {}): MarginData {
+  return {
+    targetBps: 3000,
+    targetVersion: 1,
+    estimatedPriceCents: 60_000,
+    revenue: {
+      state: 'not_invoiced',
+      cents: null,
+      invoicedCents: 0,
+      refundsCents: 0,
+      creditsCents: 0,
+      gaps: ['not_invoiced'],
+    },
+    estimated: {
+      state: 'complete',
+      revenueCents: 60_000,
+      costCents: 50_000,
+      grossProfitCents: 10_000,
+      marginBps: 1667,
+      gaps: [],
+    },
+    actual: { state: 'incomplete', ...NOT_FINAL, gaps: ['not_invoiced', 'costs_incomplete'] },
+    varianceBps: null,
+    profitVarianceCents: null,
+    flag: 'incomplete',
+    estimatedFlag: 'below_target',
+    reviewed: false,
+    reviews: [],
+    report: 'job_margin',
+    actions: { review: false },
+    ...over,
+  }
+}
 
 function data(over: Partial<JobCostsData> = {}): JobCostsData {
   return {
@@ -48,6 +85,7 @@ function data(over: Partial<JobCostsData> = {}): JobCostsData {
       minutes: 95,
       minutesComplete: false,
       unknownTimes: 1,
+      workDone: false,
       times: [
         {
           visitId: 'v1',
@@ -57,6 +95,9 @@ function data(over: Partial<JobCostsData> = {}): JobCostsData {
           name: 'Synthetic Ann',
           minutes: 95,
           flagged: false,
+          rated: true,
+          laborCents: 3_958,
+          burdenCents: null,
         },
         {
           visitId: 'v1',
@@ -66,6 +107,9 @@ function data(over: Partial<JobCostsData> = {}): JobCostsData {
           name: 'Synthetic Ben',
           minutes: null,
           flagged: true,
+          rated: false,
+          laborCents: null,
+          burdenCents: null,
         },
       ],
     },
@@ -85,6 +129,7 @@ function data(over: Partial<JobCostsData> = {}): JobCostsData {
     returnWork: { cost: f('incomplete', 1_250), entries: 1, caseIds: ['c1'] },
     history: [],
     report: { id: 'job_costs', basis: 'job_costs', unknown: 'incomplete' },
+    margin: margin(),
     actions: { record: true },
     ...over,
   }
@@ -115,10 +160,11 @@ describe('[HH-FIN-17][HH-DATA-10][T73] the job cost page', () => {
     for (const l of LINES) expect(row(l).textContent).not.toContain('$0.00')
     expect(within(page).getByTestId('job-cost-total').textContent).toContain('$123.45 so far (incomplete)')
     expect(within(page).getByTestId('job-costs-sources').textContent).toMatch(/not revenue or money received/)
-    expect(within(page).getByText(/no margin is shown/)).toBeTruthy()
-    expect(within(page).getByTestId('job-costs-labor').textContent).toMatch(
-      /95 minutes known so far; 1 worker's time is missing or not finished/,
-    )
+    expect(within(page).getByText(/stays incomplete until the job is operationally complete/)).toBeTruthy()
+    const labor = within(page).getByTestId('job-costs-labor')
+    expect(labor.textContent).toMatch(/95 minutes known so far; 1 worker's time is missing or not finished/)
+    expect(labor.textContent).toContain('labor $39.58, burden not known')
+    expect(labor.textContent).toContain('No labor cost rate')
     expect(within(page).getByTestId('job-costs-return-work').textContent).toContain('$12.50 so far (incomplete)')
   })
 
@@ -191,6 +237,68 @@ describe('[HH-FIN-17][HH-DATA-10][T73] the job cost page', () => {
     expect(within(page).queryByRole('button')).toBeNull()
     expect(within(page).getByTestId('job-cost-line-labor').textContent).toContain('No configurado')
     expect(within(page).getByTestId('job-cost-line-materials').textContent).toContain('hasta ahora (incompleto)')
+  })
+
+  it('[HH-FIN-20] shows no margin percentage until it is final, and names why', async () => {
+    mount('en', vi.fn(async () => json(200, data())) as unknown as typeof fetch)
+    const section = await screen.findByTestId('job-margin')
+    expect(within(section).getByTestId('job-margin-target').textContent).toContain('Target: 30.00% (advisory')
+    expect(within(section).getByTestId('job-margin-flag').textContent).toBe('Margin not final')
+    const actual = within(section).getByTestId('job-margin-actual')
+    expect(actual.textContent).toContain('Not invoiced yet')
+    expect(actual.textContent).toMatch(/Not final: No final invoice issued yet.*Some costs are not final/)
+    expect(actual.textContent).not.toMatch(/\d+\.\d{2}%/)
+    expect(within(section).getByText('16.67%')).toBeTruthy()
+    expect(within(section).getByTestId('job-margin-variance').textContent).toContain('not available')
+    expect(within(section).queryByRole('form')).toBeNull()
+  })
+
+  it('[HH-FIN-20] flags a final margin below the target as advisory and records the reason', async () => {
+    const flagged = data({
+      margin: margin({
+        revenue: {
+          state: 'complete',
+          cents: 60_000,
+          invoicedCents: 65_000,
+          refundsCents: 5_000,
+          creditsCents: 0,
+          gaps: [],
+        },
+        actual: {
+          state: 'complete',
+          revenueCents: 60_000,
+          costCents: 48_000,
+          grossProfitCents: 12_000,
+          marginBps: 2000,
+          gaps: [],
+        },
+        varianceBps: 333,
+        profitVarianceCents: 2_000,
+        flag: 'below_target',
+        actions: { review: true },
+      }),
+    })
+    const posts: { url: string; body: unknown }[] = []
+    const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') {
+        posts.push({ url, body: JSON.parse(String(init.body)) })
+        return json(201, flagged)
+      }
+      return json(200, flagged)
+    })
+    mount('en', fetchImpl as unknown as typeof fetch)
+    const section = await screen.findByTestId('job-margin')
+    expect(within(section).getByTestId('job-margin-flag').textContent).toBe('Below the target margin')
+    expect(within(section).getByText(/Advisory only/)).toBeTruthy()
+    expect(within(section).getByTestId('job-margin-actual').textContent).toMatch(
+      /\$600\.00.*\$480\.00.*\$120\.00.*20\.00%/,
+    )
+    expect(within(section).getByTestId('job-margin-variance').textContent).toContain('3.33% ($20.00 gross profit)')
+    const form = within(section).getByRole('form', { name: 'Record the reason' })
+    fireEvent.change(within(form).getByLabelText('Reason'), { target: { value: 'material_overrun' } })
+    fireEvent.click(within(form).getByRole('button', { name: 'Record the reason' }))
+    await waitFor(() => expect(posts).toHaveLength(1))
+    expect(posts[0]).toEqual({ url: `/api/v1/staff/jobs/${JOB}/margin-reviews`, body: { reason: 'material_overrun' } })
   })
 
   it('says when only the Owner may see it', async () => {

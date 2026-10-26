@@ -41,7 +41,15 @@ function record(over: Partial<ApprovalRecord> = {}): ApprovalRecord {
     thresholdCents: 250_000,
     thresholdVersion: 1,
     linked: [],
-    costs: { laborCents: 150_000, materialCents: 50_000, complete: true, grossProfitCents: 100_000, marginBps: 3333 },
+    costs: {
+      laborCents: 150_000,
+      materialCents: 50_000,
+      complete: true,
+      grossProfitCents: 100_000,
+      marginBps: 3333,
+      targetBps: 3000,
+      targetFlag: 'at_or_above_target',
+    },
     requestedBy: ESTIMATOR,
     requestedAt: '2026-10-22T15:00:00.000Z',
     decidedBy: null,
@@ -157,6 +165,8 @@ describe('EstimateOwnerApproval (TSK-0130, HH-EST-16)', () => {
                 complete: false,
                 grossProfitCents: null,
                 marginBps: null,
+                targetBps: 3000,
+                targetFlag: 'incomplete',
               },
             }),
           ],
@@ -189,6 +199,10 @@ describe('PublicationApprovalQueue (TSK-0130, HH-EST-16)', () => {
     expect(rows).toHaveLength(2)
     expect(within(rows[0] as HTMLElement).getByRole('link', { name: 'HH-SYN1-E1 version 1 (HH-SYN1)' })).toBeTruthy()
     expect(within(rows[0] as HTMLElement).getByText('33.33%')).toBeTruthy()
+    // TSK-0131 (HH-FIN-20): the estimated margin against the target, advisory only.
+    expect(within(rows[0] as HTMLElement).getByTestId('approval-margin-flag').textContent).toBe(
+      'At or above the target margin (30.00%, advisory)',
+    )
     expect(within(rows[1] as HTMLElement).getAllByText('No costs entered')).toHaveLength(2)
     expect(within(rows[1] as HTMLElement).getByText('$300.00')).toBeTruthy()
     expect(within(rows[1] as HTMLElement).getByText('Synthetic Estimator')).toBeTruthy()

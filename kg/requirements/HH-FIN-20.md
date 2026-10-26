@@ -15,6 +15,8 @@ links:
 source: "OWN-DEC-189 (new behaviour; no guide id)"
 ---
 - Each job shows price, direct costs, gross profit, gross margin and the variance from its estimated margin; estimated and actual figures are kept apart.
-- Net revenue includes approved discounts, change orders, credits and refunds; deposits count only once recognized, never twice. Direct costs: labor (from an Owner-entered cost rate; none exists yet), employee burden where known, materials, subcontractors, rentals, disposal and other directly attributable expenses.
+- Net revenue includes approved discounts, change orders, credits and refunds; deposits count only once recognized, never twice. Direct costs: labor (from an Owner-entered cost rate; NOT CONFIGURED until entered), employee burden where known, materials, subcontractors, rentals, disposal and other directly attributable expenses.
 - A job below [[FACT-MARGIN-TARGET]] is flagged on the Owner Dashboard (advisory); the Owner records a reason. Incomplete cost data is labelled incomplete; zero revenue, losses and negative margins compute safely.
 - Overhead and business net profit are never mixed into job gross margin.
+
+**Built by [[TSK-0131]] (2026-10-26):** each job shows its price (estimated: the contract price; actual: final invoices less refunds and credits), direct costs, gross profit, gross margin in basis points and the variance from the estimated margin, each final only when every part is (otherwise labelled with why, never a percentage); labor from the rate the Owner enters per worker; the advisory flag below `job_margin.target` on the job and the Owner Dashboard, with the Owner's reasons; overhead never included. Details in [[OQ-JOB-MARGIN-DETAILS]].

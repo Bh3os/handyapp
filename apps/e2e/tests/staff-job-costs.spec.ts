@@ -3,7 +3,7 @@
 // This spec's Estimator publishes a $600.00 estimate (no deposit) whose line carries an internal material cost of
 // $200.00 and a labor cost of $300.00, and its customer approves it. The Owner opens the job's costs: the estimate is
 // read from the approved version; nothing actual is recorded, so every actual figure says not recorded or not
-// configured (labor and burden need rates nobody configured), never $0.00, and the page states its sources. The
+// configured (labor and burden need rates nobody entered), never $0.00, and the page states its sources. The
 // Owner records a materials cost in cents (incomplete until confirmed) and confirms the category (final), and the
 // actual total stays incomplete. The page is scanned with axe. No estimate terms version is in effect for real
 // customers: a synthetic "approved and attorney-reviewed" v1.0 is recorded for this run only and NOT CONFIGURED
@@ -350,7 +350,8 @@ test.describe('Estimated versus actual job costs (TSK-0095)', () => {
       await expect(costs.getByTestId('job-costs-table')).not.toContainText('$0.00')
       await expect(costs.getByTestId('job-cost-total')).toContainText('$500.00')
       await expect(costs.getByTestId('job-cost-total')).toContainText('Not recorded')
-      await expect(costs.getByText(/no margin is shown/)).toBeVisible()
+      // TSK-0131: no labor cost rate is entered for anyone on this job, so labor stays NOT CONFIGURED.
+      await expect(costs.getByText(/stays incomplete until the job is operationally complete/)).toBeVisible()
       await axe(o)
 
       // A materials cost in cents: incomplete until the Owner confirms the category.

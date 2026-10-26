@@ -30,6 +30,8 @@
 //   PROPOSED: flagged documents wait for the same approval before publishing).
 // - The threshold NOT CONFIGURED (no active value): every publication needs the Owner (fail closed, PROPOSED).
 
+import { marginBps } from './job-margin.js'
+
 /** Why a document needs the Owner's approval before it is published. */
 export const PUBLICATION_APPROVAL_REASONS = [
   'threshold_not_configured',
@@ -153,20 +155,13 @@ export function marginOf(priceCents: number, costs: CostFacts): Margin | null {
   const cost = safe(costs.laborCents, 'labor') + safe(costs.materialCents, 'material')
   if (costs.laborCents < 0 || costs.materialCents < 0) throw new RangeError('costs are never negative')
   const profit = priceCents - cost
-  let marginBps: number | null = null
-  if (costs.complete && priceCents > 0) {
-    // Half-up to the basis point, exact in BigInt: floor((2 * profit * 10000 + price) / (2 * price)).
-    const num = 2n * BigInt(profit) * 10_000n + BigInt(priceCents)
-    const den = 2n * BigInt(priceCents)
-    const q = num / den
-    marginBps = Number(num % den !== 0n && num < 0n ? q - 1n : q)
-  }
   return {
     laborCents: costs.laborCents,
     materialCents: costs.materialCents,
     complete: costs.complete,
     grossProfitCents: costs.complete ? profit : null,
-    marginBps,
+    // Half-up to the basis point, exact in BigInt (the job margin's own computation, TSK-0131).
+    marginBps: costs.complete ? marginBps(profit, priceCents) : null,
     // The known costs alone exceeding the price is a negative margin even before every cost is known.
     negative: profit < 0,
   }

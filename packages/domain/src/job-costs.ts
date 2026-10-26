@@ -8,12 +8,13 @@
 //   estimated"; an approved change order adds scope without a cost estimate, so it leaves the estimate incomplete.
 // - Actual costs are entries in integer cents per category; a category is final only once the Owner confirms it holds
 //   every cost (an explicit $0.00 is a confirmed category with no entry). Labor is the elapsed Arrived-to-Finished time
-//   per worker (OWN-DEC-69); its cost needs a labor cost rate and burden needs the employer's rate, and neither is
-//   configured (TSK-0131 adds the Owner-entered rate), so both stay NOT CONFIGURED and the actual total incomplete.
+//   per worker (OWN-DEC-69); its cost needs a labor cost rate and burden needs the employer's rate. TSK-0131 computes
+//   both from the Owner-entered rates (job-margin.ts laborCostOf) and passes them in; without them both stay NOT
+//   CONFIGURED and the actual total incomplete.
 // - Missing cost is never zero: a figure is complete, incomplete (with the part known), not recorded, not estimated or
 //   not configured. A total is complete only when every line in it is; a variance exists only between two complete
 //   figures. Return-work costs are reported apart from the job's own (HH-QA-08).
-// - No margin, profit or target here: gross margin and the 30% advisory flag are TSK-0131's.
+// - No margin, profit or target here: gross margin and the 30% advisory flag are job-margin.ts (TSK-0131).
 // PROPOSED (OQ-JOB-COST-DETAILS): the entry categories, the confirmation step, the entry limit and the date rule.
 
 /** Categories recorded as cost entries (PROPOSED names for the OWN-DEC-189 kinds). */
@@ -71,6 +72,8 @@ export type JobCostFacts = {
   readonly confirmed: readonly JobCostCategory[]
   /** Elapsed time per worker on the job's own visits that started (never return visits). */
   readonly times: readonly WorkerTime[]
+  /** The labor and burden cost from the Owner-entered rates (TSK-0131); absent: NOT CONFIGURED. */
+  readonly laborCost?: { readonly labor: CostFigure; readonly burden: CostFigure }
 }
 
 const sum = (xs: readonly number[]) => xs.reduce((s, x) => s + x, 0)
@@ -153,11 +156,11 @@ export function summarizeJobCosts(f: JobCostFacts): JobCostSummary {
         f.estimateLines.map((l) => l.laborCents),
         f.changeOrders,
       )
-      // Time is recorded; its cost needs the labor cost rate, which is NOT CONFIGURED (TSK-0131).
-      actual = { state: 'not_configured' }
+      // Time is recorded; its cost needs the Owner-entered labor cost rate (TSK-0131), else NOT CONFIGURED.
+      actual = f.laborCost?.labor ?? { state: 'not_configured' }
     } else if (line === 'burden') {
       estimated = { state: 'not_estimated' }
-      actual = { state: 'not_configured' }
+      actual = f.laborCost?.burden ?? { state: 'not_configured' }
     } else {
       estimated =
         line === 'materials'

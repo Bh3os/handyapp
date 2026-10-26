@@ -466,5 +466,6 @@ export * from './site-checks.js'
 export * from './visit-access.js'
 // TSK-0095 (HH-FIN-17, HH-DATA-10): estimated versus actual job costs; report definitions with their source states.
 export * from './job-costs.js'
+export * from './job-margin.js'
 export * from './report-sources.js'
 export * from './owner-dashboard.js'

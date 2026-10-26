@@ -1,6 +1,6 @@
 // JSON schemas of the job-cost routes (TSK-0095; HH-API-01, HH-ARC-04, HH-FIN-17, HH-DATA-10). Input objects refuse
-// unknown fields: there is no labor, burden, rate, margin or target to send. Response objects list every field; a
-// figure is its state and, when known, its cents (never a zero standing for "unknown").
+// unknown fields: no labor or burden amount is entered (they come from the Owner-entered rates, TSK-0131). Response
+// objects list every field; a figure is its state and, when known, its cents (never a zero standing for "unknown").
 import {
   JOB_COST_CATEGORIES,
   JOB_COST_EVENTS,
@@ -9,6 +9,7 @@ import {
   REPORT_BASES,
   REPORT_DEFINITIONS,
 } from '@handyhub/domain'
+import { MARGIN_VIEW } from '../job-margin/schemas.js'
 
 const UUID_PATTERN = '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
 const UUID = { type: 'string', pattern: UUID_PATTERN } as const
@@ -98,11 +99,12 @@ export const JOB_COSTS_VIEW = obj({
     varianceCents: INT_OR_NULL,
     incompleteLines: arr(en(JOB_COST_LINES)),
   }),
-  /** Elapsed minutes per worker and visit (OWN-DEC-69); their cost needs a labor rate that is NOT CONFIGURED. */
+  /** Elapsed minutes per worker and visit (OWN-DEC-69), each costed at the Owner-entered rate when there is one. */
   labor: obj({
     minutes: INT,
     minutesComplete: BOOL,
     unknownTimes: INT,
+    workDone: BOOL,
     times: arr(
       obj({
         visitId: STR,
@@ -112,6 +114,9 @@ export const JOB_COSTS_VIEW = obj({
         name: STR_OR_NULL,
         minutes: INT_OR_NULL,
         flagged: BOOL,
+        rated: BOOL,
+        laborCents: INT_OR_NULL,
+        burdenCents: INT_OR_NULL,
       }),
     ),
   }),
@@ -140,5 +145,6 @@ export const JOB_COSTS_VIEW = obj({
     }),
   ),
   report: REPORT,
+  margin: MARGIN_VIEW,
   actions: obj({ record: BOOL }),
 })
