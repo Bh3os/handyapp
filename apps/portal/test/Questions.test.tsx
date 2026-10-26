@@ -43,6 +43,7 @@ const overview = (status: Record<string, unknown> = {}) => ({
   ],
   appointment: null,
   payment: { state: 'none' },
+  invoiceBalanceCents: 0,
   refreshedAt: NOW,
   refreshSeconds: 0,
 })

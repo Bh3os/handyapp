@@ -103,6 +103,11 @@ export function pendingStopCount(): number {
   return readPending().length
 }
 
+/** TSK-0115: whether a stop of this job waits on this phone (the offline checklist stays closed until it is sent). */
+export function stopSavedFor(jobId: string): boolean {
+  return readPending().some((p) => p.jobId === jobId)
+}
+
 /** Sends every stop saved on this phone (on load and whenever the phone is back online). */
 export async function flushPendingStops(fetchImpl: Fetch): Promise<number> {
   let sent = 0

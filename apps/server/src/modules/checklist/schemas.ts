@@ -129,4 +129,7 @@ export const CHECKLIST_VIEW = obj({
   ),
   workers: arr(STAFF_REF),
   actions: obj({ handoff: BOOL }),
+  // TSK-0115 (HH-OFF-08): the step events the caller's phone may save offline (none until the Owner turns them on) and
+  // the visit of the caller's latest Start Work on the job, which those events name.
+  offline: obj({ events: arr(STR), visitId: UUID_OR_NULL }),
 })

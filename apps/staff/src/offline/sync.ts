@@ -8,7 +8,10 @@
 //   waiting. Without a connection or a session it stops and keeps everything; nothing unsynced is ever erased.
 // - The Owner may upload what another account's phone holds (a disabled or reassigned worker's drafts): the server
 //   keeps it for review only.
-import { call, type Fetch } from '../api'
+// - TSK-0115: checklist steps saved offline (offline/checklist.ts) go in the same queue, in the order they were saved,
+//   as checklist_step events. A server that has not turned them on refuses the upload (OFFLINE_ACTION_NOT_ENABLED):
+//   the draft stays on the phone as "Upload failed", never erased.
+import { call, setCsrfToken, type Fetch } from '../api'
 import type { OfflineStore, StoredDraft } from './store'
 
 const TYPE_OF: Record<string, string> = {
@@ -94,7 +97,7 @@ async function run(
     if (!isUnsynced(d) && d.settledAt && now().getTime() - new Date(d.settledAt).getTime() > SETTLED_KEEP_MS)
       await store.deleteDraft(d.id).catch(() => undefined)
   const queue = drafts
-    .filter((d) => isUnsynced(d) && d.kind === 'tap')
+    .filter((d) => isUnsynced(d) && (d.kind === 'tap' || d.kind === 'step'))
     .filter((d) => (ownerOf(d, signedIn) === signedIn) !== Boolean(options.recover))
     .sort((a, b) => a.deviceRecordedAt.localeCompare(b.deviceRecordedAt))
   let stopped = false
@@ -104,7 +107,7 @@ async function run(
       continue
     }
     const clientId = clientIdOf(d)
-    const type = TYPE_OF[String(d.payload['tap'])]
+    const type = d.kind === 'step' ? 'checklist_step' : TYPE_OF[String(d.payload['tap'])]
     if (!clientId || !type || !d.visitId) {
       await store.putDraft({ ...d, state: 'failed', problem: 'NOT_UPLOADABLE' }).catch(() => undefined)
       out.failed++
@@ -113,19 +116,31 @@ async function run(
     const attempt = (d.attempts ?? 0) + 1
     await store.putDraft({ ...d, state: 'pending_upload', attempts: attempt }).catch(() => undefined)
     const owner = ownerOf(d, signedIn)
-    const r = await call<Answer>(fetchImpl, '/staff/field-events', {
-      method: 'POST',
-      // One key per attempt: the event's UUID is what makes a resent event the same event.
-      headers: { 'idempotency-key': `${clientId}-${attempt}` },
-      body: {
-        clientId,
-        type,
-        visitId: d.visitId,
-        deviceRecordedAt: d.deviceRecordedAt,
-        attempt,
-        ...(owner !== signedIn ? { actorId: owner } : {}),
-      },
-    })
+    const send = () =>
+      call<Answer>(fetchImpl, '/staff/field-events', {
+        method: 'POST',
+        // One key per attempt: the event's UUID is what makes a resent event the same event.
+        headers: { 'idempotency-key': `${clientId}-${attempt}` },
+        body: {
+          clientId,
+          type,
+          visitId: d.visitId,
+          deviceRecordedAt: d.deviceRecordedAt,
+          attempt,
+          ...(owner !== signedIn ? { actorId: owner } : {}),
+          ...(d.kind === 'step' ? { step: d.payload } : {}),
+        },
+      })
+    let r = await send()
+    if (!r.ok && r.status === 403 && r.error.code === 'CSRF_TOKEN_INVALID') {
+      // TSK-0115: a page opened without a connection has no CSRF token yet (the session could not be read then). The
+      // session is read again now that the server answers, and the same attempt is sent once more.
+      const s = await call<{ csrfToken?: string }>(fetchImpl, '/staff/auth/session')
+      if (s.ok && s.data.csrfToken) {
+        setCsrfToken(s.data.csrfToken)
+        r = await send()
+      }
+    }
     if (r.ok) {
       const review = r.data.state !== 'synchronized'
       await store

@@ -3,7 +3,14 @@
 // 0005 from the fact and decision nodes they cite. Every row read from the database is validated strictly against
 // its key's shape; an unknown key, an unknown field or a wrong type fails closed. Money is integer cents.
 
-import { CALENDAR_WEEKDAYS, FEDERAL_HOLIDAYS, isLocalDate, isSupportedZone, LAUNCH_PHASES } from '@handyhub/domain'
+import {
+  CALENDAR_WEEKDAYS,
+  FEDERAL_HOLIDAYS,
+  isLocalDate,
+  isSupportedZone,
+  LAUNCH_PHASES,
+  OFFLINE_ACTIONS,
+} from '@handyhub/domain'
 
 export class ConfigShapeError extends Error {
   override name = 'ConfigShapeError'
@@ -425,6 +432,10 @@ export const CONFIG_KEYS = {
   // recorded as failed (sms_disabled) for staff to see. The local and ci fakes and the staging log sender are test
   // interceptors, not carriers, so they are not held by it.
   'sms.live_delivery': shape({ enabled: bool }),
+  // TSK-0115 (HH-OFF-08; migration 0128): the actions a phone may save offline beyond the minimal set. Version 1 turns
+  // nothing on; only the Owner turns an action on, with a reason, after walking the offline controls on staging (the
+  // database refuses anything else as well).
+  'field.offline_actions': shape({ actions: anyListOf(oneOf(OFFLINE_ACTIONS), OFFLINE_ACTIONS.length) }),
   // RULE-AI-WAVE2: only `false` is a valid value; the database refuses anything else as well.
   'ai.module': shape({ enabled: exactly(false) }),
 } as const satisfies Record<string, Parser<unknown>>

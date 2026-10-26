@@ -102,9 +102,11 @@ describe('seeded legal document versions (TSK-0024, ENT-PolicyVersion, HH-PRIV-0
     expect(PRIVACY_NOTICE.values['requestDraftDays']).toBe(
       requireConfigured(config.get('session.timings')).value.requestDraftDays,
     )
-    // The SMS terms say "up to two" estimate, question and invoice reminders: from TSK-0121 one automatic estimate and
-    // one question reminder (OWN-DEC-153); from TSK-0091 two automatic invoice reminders (OWN-DEC-210).
+    // The SMS terms (sms-terms-2, TSK-0133) say one automatic estimate and one question reminder (OWN-DEC-153, the
+    // release is automatic); the unpaid-invoice reminders are email only, so the SMS terms leave them out (OWN-DEC-210).
     const cadences = requireConfigured(config.get('reminders.cadences')).value
+    expect(cadences.unansweredEstimate).toMatchObject({ release: 'automatic' })
+    expect(cadences.unansweredQuestion).toMatchObject({ release: 'automatic' })
     expect(cadences.unansweredEstimate.afterDeliveryHours).toBeGreaterThan(0)
     expect(cadences.unansweredQuestion.afterDeliveryHours).toBeGreaterThan(0)
     expect(cadences.unpaidInvoice.secondDaysAfterDue).toBeGreaterThan(cadences.unpaidInvoice.firstDaysAfterDue)

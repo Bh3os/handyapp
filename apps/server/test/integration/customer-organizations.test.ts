@@ -274,6 +274,12 @@ describe('organization accounts (TSK-0118, HH-ID-13)', () => {
     // The member reads the project, but its payments, conversation and questions stay the customer's own.
     const overview = await call('GET', `/customer/projects/${admin.s.reference}/overview`, { cookie: member.cookie })
     expect(overview.json<{ payment: unknown }>().payment).toEqual({ state: 'not_shared' })
+    // TSK-0150 (OWN-DEC-199): no invoice balance and no action the member would be refused (pay, choose, reply).
+    const memberStatus = overview.json<{ invoiceBalanceCents: number; status: { nextAction: string } }>()
+    expect(memberStatus.invoiceBalanceCents).toBe(0)
+    expect(['pay_deposit', 'pay_invoice', 'choose_visit_window', 'choose_work_appointment', 'reply']).not.toContain(
+      memberStatus.status.nextAction,
+    )
     expect(await opens(member.cookie, admin.s.reference, 'documents')).toBe(200)
     expect(await opens(member.cookie, admin.s.reference, 'payments')).toBe(404)
     expect(await opens(member.cookie, admin.s.reference, 'messages')).toBe(404)
@@ -282,7 +288,8 @@ describe('organization accounts (TSK-0118, HH-ID-13)', () => {
     expect(memberView).toEqual([
       expect.objectContaining({ name: 'scope Rentals', approve: false, pay: false, projects: [admin.s.reference] }),
     ])
-    // Members see neither each other nor the organization's other projects.
+    // Members see neither each other nor the organization's other projects (TSK-0150: portal.organizations.done.accepted
+    // and privilege.view, "except their messages").
     expect(JSON.stringify(memberView)).not.toContain(second.reference)
     expect((await orgs(member.cookie)).administered).toEqual([])
 

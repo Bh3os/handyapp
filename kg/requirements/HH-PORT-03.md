@@ -37,3 +37,5 @@ The Overview and timeline show the latest update and these customer labels, with
 - The timeline never shows risk scores, employee notes, internal photos or confidential incident or hazard details.
 
 **Changed by [[OWN-DEC-199]] (2026-10-21):** wording is approved only after it is checked against behaviour.
+
+**Checked by [[TSK-0150]] (2026-10-26):** a started job is "Work in progress", a job paused after its safety hold was released is "Update pending", and the payment summary names an unpaid invoice balance. Where the table's own words differ from what is built (care notes, preparation, shared updates, Arrived), PROPOSED changes wait in [[OQ-PORTAL-WORDING-DETAILS]].

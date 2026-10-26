@@ -72,6 +72,8 @@ export const CUSTOMER_STEPS = [
   'choose_work_appointment',
   'view_appointment',
   'arrival_update',
+  // TSK-0150 (OWN-DEC-199): the worker recorded "Arrived" and work has not started: never "is on the way" any more.
+  'arrival_recorded',
   'view_updates',
   'safety_review',
   'update_pending',
@@ -115,8 +117,11 @@ export type PortalFacts = {
   readonly depositDue?: boolean
   /** TSK-0066 / TSK-0063: work windows are offered for the customer to choose. */
   readonly workWindowsOffered?: boolean
-  /** TSK-0061 / TSK-0070: the current visit: confirmed, or an assigned worker recorded "On my way" (HH-PORT-07). */
-  readonly visit?: 'confirmed' | 'on_the_way'
+  /**
+   * TSK-0061 / TSK-0070: the current visit: confirmed, or an assigned worker recorded "On my way" (HH-PORT-07).
+   * TSK-0150: or recorded "Arrived" (the step then says so, never "on the way").
+   */
+  readonly visit?: 'confirmed' | 'on_the_way' | 'arrived'
   /** TSK-0075: work has started on site. */
   readonly workInProgress?: boolean
   /** TSK-0074 / TSK-0077: a hold on the job; a safety hold shows only the neutral safety wording (T48). */
@@ -156,7 +161,7 @@ export function customerSituation(f: PortalFacts): CustomerSituation {
   if (f.completion === 'follow_up') return 'follow_up_work'
   if (f.completion === 'quality_review') return 'completion_review'
   if (f.workInProgress) return 'work_in_progress'
-  if (f.visit === 'on_the_way') return 'on_the_way'
+  if (f.visit === 'on_the_way' || f.visit === 'arrived') return 'on_the_way'
   if (f.estimateApproved || f.projectState === 'approved') return f.visit === 'confirmed' ? 'scheduled' : 'approved'
   if (f.estimatePublished || f.requestState === 'estimated') return 'estimate_ready'
   if (f.requestState === 'needs_site_visit') return f.visit === 'confirmed' ? 'scheduled' : 'site_visit'
@@ -212,7 +217,7 @@ export function customerStatus(f: PortalFacts): CustomerStatus {
     case 'work_in_progress':
       return ours('view_updates')
     case 'on_the_way':
-      return ours('arrival_update')
+      return ours(f.visit === 'arrived' ? 'arrival_recorded' : 'arrival_update')
     case 'scheduled':
       return ours('view_appointment')
     case 'approved':

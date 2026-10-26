@@ -660,3 +660,196 @@ describe('[HH-WORK-11][HH-WORK-05][T47] the job checklist in six ordered stages'
     ).rejects.toThrow(/no hold is open/)
   })
 })
+
+// --- TSK-0115: checklist steps saved offline ----------------------------------------------------------------------------
+
+describe('[HH-OFF-08][HH-OFF-05][HH-OFF-06][RULE-SAFETY-GATES] checklist steps saved offline, once the Owner turns them on', () => {
+  let p: Project
+  let jobId: string
+  let wp: string
+  let visitId: string
+  type Synced = { clientId: string; state: string; outcome: string; detail: string | null; ingested: boolean }
+  const upload = (who: Person, step: Record<string, unknown>) =>
+    staffWrite(who, '/api/v1/staff/field-events', {
+      clientId: randomUUID(),
+      type: 'checklist_step',
+      visitId,
+      deviceRecordedAt: new Date().toISOString(),
+      step: { workPackageId: wp, ...step },
+    })
+  const setActions = (who: Person, actions: string[], version: number) =>
+    app.inject({
+      method: 'PUT',
+      url: '/api/v1/staff/settings/offline-actions',
+      payload: { actions, reason: 'Synthetic: the offline controls were walked on staging' },
+      headers: {
+        cookie: cookies[who],
+        'x-csrf-token': csrf[who],
+        'idempotency-key': key(),
+        'if-match': `"${version}"`,
+      },
+    })
+  const stepRow = (stepId: string) =>
+    t.db
+      .selectFrom('work.checklist_steps')
+      .select(['state', 'version', 'note'])
+      .where('work_package_id', '=', wp)
+      .where('step_id', '=', stepId)
+      .executeTakeFirst()
+
+  it('[HH-OFF-08] nothing is on until the Owner turns it on: the view offers none and an upload is refused', async () => {
+    p = await project()
+    jobId = await approve(p)
+    visitId = await fixtureVisit(p, jobId, ['ann'])
+    const version = await prepare('ann', visitId, jobId)
+    expect((await start('ann', visitId, version)).statusCode).toBe(201)
+    const view = (await staffGet('ann', `/api/v1/staff/jobs/${jobId}/checklist`)).json<
+      View & { offline: { events: string[]; visitId: string | null } }
+    >()
+    expect(view.offline).toEqual({ events: [], visitId })
+    wp = view.packages[0]?.workPackageId as string
+    const setting = await staffGet('owner', '/api/v1/staff/settings/offline-actions')
+    expect(setting.statusCode, setting.body).toBe(200)
+    expect(setting.json()).toMatchObject({ version: 1, actions: [], available: ['checklist_step'], reason: null })
+    for (const who of ['office', 'ann'] as const)
+      expect((await staffGet(who, '/api/v1/staff/settings/offline-actions')).statusCode).toBe(403)
+    const refused = await upload('ann', { stepId: '1.2', event: 'start', version: 0 })
+    expect(refused.statusCode).toBe(409)
+    expect(codesOf(refused)).toEqual(['OFFLINE_ACTION_NOT_ENABLED'])
+    expect(await stepRow('1.2')).toBeUndefined()
+    // The database accepts the switch only from the Owner, naming only the available actions.
+    await expect(
+      sql`INSERT INTO platform.policy_version (key, version, state, value, source_ids, changed_by, change_reason)
+          VALUES ('field.offline_actions', 9, 'configured', '{"actions": ["checklist_step"]}', ARRAY['HH-OFF-08'],
+                  ${ids.office}, 'x')`.execute(t.db),
+    ).rejects.toThrow(/only the Owner/)
+    await expect(
+      sql`INSERT INTO platform.policy_version (key, version, state, value, source_ids, changed_by, change_reason)
+          VALUES ('field.offline_actions', 9, 'configured', '{"actions": ["start_work"]}', ARRAY['HH-OFF-08'],
+                  ${ids.owner}, 'x')`.execute(t.db),
+    ).rejects.toThrow(/each available action/)
+  })
+
+  it('[HH-OFF-08] the Owner turns checklist steps on with a reason; Office cannot', async () => {
+    expect((await setActions('office', ['checklist_step'], 1)).statusCode).toBe(403)
+    expect((await setActions('owner', ['checklist_step'], 7)).statusCode).toBe(409)
+    const on = await setActions('owner', ['checklist_step'], 1)
+    expect(on.statusCode, on.body).toBe(200)
+    expect(on.json()).toMatchObject({
+      version: 2,
+      actions: ['checklist_step'],
+      reason: 'Synthetic: the offline controls were walked on staging',
+    })
+    const view = (await staffGet('ann', `/api/v1/staff/jobs/${jobId}/checklist`)).json<{
+      offline: { events: string[] }
+    }>()
+    expect(view.offline.events).toEqual(['start', 'pause', 'resume', 'complete'])
+  })
+
+  it('[HH-OFF-05] a step saved offline is applied once, as the online route applies it', async () => {
+    const body = {
+      clientId: randomUUID(),
+      type: 'checklist_step',
+      visitId,
+      deviceRecordedAt: new Date().toISOString(),
+      step: { workPackageId: wp, stepId: '1.2', event: 'start', version: 0 },
+    }
+    const first = await staffWrite('ann', '/api/v1/staff/field-events', body)
+    expect(first.statusCode, first.body).toBe(200)
+    expect(first.json<Synced>()).toMatchObject({ state: 'synchronized', outcome: 'applied', ingested: true })
+    const again = await staffWrite('ann', '/api/v1/staff/field-events', { ...body, attempt: 2 })
+    expect(again.json<Synced>()).toMatchObject({ state: 'synchronized', outcome: 'applied', ingested: false })
+    expect(await stepRow('1.2')).toMatchObject({ state: 'in_progress', version: 1 })
+    // The same UUID for another step is the phone's error, never a second event.
+    const reused = await staffWrite('ann', '/api/v1/staff/field-events', {
+      ...body,
+      step: { ...body.step, stepId: '1.3' },
+    })
+    expect(reused.statusCode).toBe(409)
+    expect(codesOf(reused)).toEqual(['CLIENT_ID_REUSED'])
+    // A checklist_step event names its step.
+    const bare = { clientId: randomUUID(), type: body.type, visitId, deviceRecordedAt: body.deviceRecordedAt }
+    expect(codesOf(await staffWrite('ann', '/api/v1/staff/field-events', bare))).toEqual(['STEP_REQUIRED'])
+    const done = await upload('ann', { stepId: '1.2', event: 'complete', version: 1, note: 'Synthetic: done offline' })
+    expect(done.json<Synced>()).toMatchObject({ state: 'synchronized', outcome: 'applied' })
+    expect(await stepRow('1.2')).toMatchObject({ state: 'completed', version: 2, note: 'Synthetic: done offline' })
+    const history = await t.db
+      .selectFrom('work.checklist_step_events as e')
+      .innerJoin('work.checklist_steps as s', 's.id', 'e.step_row_id')
+      .select(['e.event', 'e.worker_id'])
+      .where('s.work_package_id', '=', wp)
+      .where('s.step_id', '=', '1.2')
+      .orderBy('e.seq')
+      .execute()
+    expect(history).toEqual([
+      { event: 'start', worker_id: ids.ann },
+      { event: 'complete', worker_id: ids.ann },
+    ])
+  })
+
+  it('[HH-OFF-06][RULE-SAFETY-GATES] what the server refuses now is kept for the Owner’s review, never applied', async () => {
+    // The stage order holds offline too.
+    const early = await upload('ann', { stepId: '2.1', event: 'start', version: 0 })
+    expect(early.json<Synced>()).toMatchObject({
+      state: 'needs_review',
+      outcome: 'conflict',
+      detail: 'EARLIER_STAGE_OPEN',
+    })
+    expect(await stepRow('2.1')).toBeUndefined()
+    // A version moved since the phone saw it (a tap online): never last-write-wins.
+    expect((await act('ann', jobId, 'start', { workPackageId: wp, stepId: '1.3', version: 0 })).statusCode).toBe(200)
+    const stale = await upload('ann', { stepId: '1.3', event: 'complete', version: 0 })
+    expect(stale.json<Synced>()).toMatchObject({ outcome: 'conflict', detail: 'STALE_VERSION' })
+    expect(await stepRow('1.3')).toMatchObject({ state: 'in_progress', version: 1 })
+    // A worker not assigned to the visit when the phone recorded it.
+    const ben = await upload('ben', { stepId: '1.3', event: 'pause', version: 1 })
+    expect(ben.json<Synced>()).toMatchObject({ outcome: 'not_assigned', detail: 'NOT_ASSIGNED_THEN' })
+    // A hold raised while the phone was offline: the step waits for the hold, whatever the phone saved.
+    await criticalHold(p, jobId, 'office')
+    const held = await upload('ann', { stepId: '1.3', event: 'complete', version: 1 })
+    const out = held.json<Synced>()
+    expect(out).toMatchObject({ state: 'needs_review', outcome: 'conflict', detail: 'HOLD_OPEN' })
+    expect(await stepRow('1.3')).toMatchObject({ state: 'in_progress', version: 1 })
+    // The Owner reads the step the phone saved and records what was done; the step stays as it is.
+    const view = await staffGet('owner', `/api/v1/staff/field-events/${out.clientId}`)
+    expect(view.statusCode, view.body).toBe(200)
+    expect(view.json()).toMatchObject({
+      type: 'checklist_step',
+      outcome: 'conflict',
+      detail: 'HOLD_OPEN',
+      step: { workPackageId: wp, stepId: '1.3', event: 'complete', version: 1, note: null, photoIds: [] },
+      actions: { review: true },
+    })
+    const reviewed = await staffWrite('owner', `/api/v1/staff/field-events/${out.clientId}/review`, {
+      note: 'Synthetic: the worker records it again once the hold is released',
+    })
+    expect(reviewed.statusCode, reviewed.body).toBe(200)
+    expect(await stepRow('1.3')).toMatchObject({ state: 'in_progress', version: 1 })
+  })
+
+  it('[HH-OFF-08] turned off again, the next upload is refused; the database refuses one applied past the server', async () => {
+    const off = await setActions('owner', [], 2)
+    expect(off.statusCode, off.body).toBe(200)
+    expect(off.json()).toMatchObject({ version: 3, actions: [] })
+    expect(codesOf(await upload('ann', { stepId: '1.5', event: 'start', version: 0 }))).toEqual([
+      'OFFLINE_ACTION_NOT_ENABLED',
+    ])
+    const row = await t.db
+      .selectFrom('work.field_events')
+      .selectAll()
+      .where('type', '=', 'checklist_step')
+      .where('outcome', '=', 'applied')
+      .executeTakeFirstOrThrow()
+    await expect(
+      t.db
+        .insertInto('work.field_events')
+        .values({
+          ...row,
+          client_id: randomUUID(),
+          payload: JSON.stringify(row.payload),
+          attachment_refs: JSON.stringify(row.attachment_refs),
+        })
+        .execute(),
+    ).rejects.toThrow(/not turned on/)
+  })
+})

@@ -3,6 +3,8 @@
 import {
   ACKNOWLEDGMENT_STATES,
   MY_DAY_NEXT,
+  OFFLINE_ACTIONS,
+  OFFLINE_CHECKLIST_EVENTS,
   STAMP_STATUSES,
   TIME_STAMP_KINDS,
   VISIT_OUTCOME_KINDS,
@@ -218,7 +220,10 @@ export const FOLLOW_UP_BODY = {
 } as const
 
 // TSK-0080 (HH-OFF-05, HH-OFF-06): one field event a phone uploads, and what the server did with it.
-const FIELD_EVENT_TYPE = { type: 'string', enum: ['tap_on_my_way', 'tap_arrived', 'tap_finished'] } as const
+const FIELD_EVENT_TYPE = {
+  type: 'string',
+  enum: ['tap_on_my_way', 'tap_arrived', 'tap_finished', 'checklist_step'],
+} as const
 const FIELD_EVENT_STATE = { type: 'string', enum: ['synchronized', 'needs_review', 'reviewed'] } as const
 const FIELD_EVENT_OUTCOME = {
   type: 'string',
@@ -237,6 +242,21 @@ export const FIELD_EVENT_BODY = {
     baseVersion: { type: 'integer', minimum: 1 },
     deviceRecordedAt: TIME,
     attempt: { type: 'integer', minimum: 1, maximum: 10000 },
+    // TSK-0115: the checklist step a checklist_step event records (the online route's body, with its event).
+    step: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['workPackageId', 'stepId', 'event', 'version'],
+      properties: {
+        workPackageId: UUID,
+        stepId: { type: 'string', pattern: '^[1-6]\\.[0-9]{1,3}$' },
+        event: { type: 'string', enum: OFFLINE_CHECKLIST_EVENTS },
+        version: { type: 'integer', minimum: 0 },
+        measurement: { type: 'string', maxLength: 200 },
+        note: { type: 'string', maxLength: 2000 },
+        photoIds: { type: 'array', items: UUID, maxItems: 20 },
+      },
+    },
   },
 } as const
 export const FIELD_EVENT_RESULT = obj({
@@ -263,7 +283,40 @@ export const FIELD_EVENT_VIEW = obj({
   state: FIELD_EVENT_STATE,
   outcome: FIELD_EVENT_OUTCOME,
   detail: STR_OR_NULL,
+  // TSK-0115: the checklist step a checklist_step event names (null for a tap).
+  step: {
+    anyOf: [
+      { type: 'null' },
+      obj({
+        workPackageId: STR,
+        stepId: STR,
+        event: STR,
+        version: INT,
+        measurement: STR_OR_NULL,
+        note: STR_OR_NULL,
+        photoIds: arr(STR),
+      }),
+    ],
+  },
   review: { anyOf: [{ type: 'null' }, obj({ by: STAFF_REF, at: TIME, note: STR })] },
   actions: obj({ review: BOOL }),
 })
 export const FIELD_EVENT_REVIEW_BODY = FOLLOW_UP_BODY
+
+// TSK-0115 (HH-OFF-08): the offline actions the Owner turned on, and the change.
+export const OFFLINE_ACTIONS_SETTING = obj({
+  version: INT,
+  actions: arr({ type: 'string', enum: OFFLINE_ACTIONS }),
+  available: arr({ type: 'string', enum: OFFLINE_ACTIONS }),
+  changedAt: TIME,
+  reason: STR_OR_NULL,
+})
+export const OFFLINE_ACTIONS_BODY = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['actions', 'reason'],
+  properties: {
+    actions: { type: 'array', items: { type: 'string', enum: OFFLINE_ACTIONS }, uniqueItems: true },
+    reason: { type: 'string', minLength: 1, maxLength: 1000, pattern: '\\S' },
+  },
+} as const

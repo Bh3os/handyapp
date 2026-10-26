@@ -71,6 +71,7 @@ const overview = (appointment: unknown) => ({
   timeline: [{ kind: 'received', at: SENT, text: null }],
   appointment,
   payment: { state: 'none' },
+  invoiceBalanceCents: 0,
   refreshedAt: NOW,
   refreshSeconds: 0,
 })

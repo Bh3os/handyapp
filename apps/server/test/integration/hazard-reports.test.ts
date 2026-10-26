@@ -591,6 +591,10 @@ describe('[HH-WORK-09][RULE-SAFETY-GATES][T48] Stop Work / Report Hazard succeed
     const version = await prepare('ann', visitId, jobId)
     expect((await start('ann', visitId, version)).statusCode).toBe(201)
     expect(await jobState(jobId)).toBe('in_progress')
+    // TSK-0150 (OWN-DEC-199): a started job is "Work in progress" for the customer, never still "On the way".
+    expect((await customerGet(p)).json()).toMatchObject({
+      status: { situation: 'work_in_progress', step: 'view_updates', waitingOn: 'handyhub', nextAction: 'none' },
+    })
     // Other holds and failures already exist: a job-level Hold set by Office, and ben has not arrived.
     const jh = await staffWrite('office', `/api/v1/staff/jobs/${jobId}/job-holds`, {
       category: 'permit_licensing',

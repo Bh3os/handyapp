@@ -174,7 +174,7 @@ test.describe('the customer project workspace frame (TSK-0038)', () => {
     await expect(status.getByText('Waiting on HandyHub')).toBeVisible()
     await expect(status.getByText('HandyHub will review the details.')).toBeVisible()
     await expect(page.getByText('Services: Patching & Repair')).toBeVisible()
-    await expect(page.getByRole('region', { name: 'Appointment' }).getByText('No appointment yet')).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Appointment' }).getByText('No upcoming appointment')).toBeVisible()
     await expect(page.getByRole('region', { name: 'Payments' }).getByText('Nothing to pay yet')).toBeVisible()
     await expect(page.getByText(/^Updated /)).toBeVisible()
     await axe(page)

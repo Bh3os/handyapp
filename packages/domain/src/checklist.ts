@@ -82,6 +82,25 @@ export const CHECKLIST_STEP_MACHINE = defineMachine({
 })
 export type ChecklistStepEvent = (typeof CHECKLIST_STEP_MACHINE.transitions)[number]['event']
 
+/**
+ * TSK-0115 (HH-OFF-08, OWN-DEC-121): the actions a phone may save offline beyond the minimal set (On my way, Arrived,
+ * Finished, Stop Work), each off until the Owner turns it on (field.offline_actions) after the offline controls are
+ * proven on staging. PROPOSED (OQ-OFFLINE-ACTIONS-DETAILS): the list.
+ */
+export const OFFLINE_ACTIONS = ['checklist_step'] as const
+export type OfflineAction = (typeof OFFLINE_ACTIONS)[number]
+/**
+ * The checklist events a phone saves offline once checklist_step is on. Skipping and reopening keep needing a
+ * connection (PROPOSED): each is a judgement the server and the reviewer read at once.
+ */
+export const OFFLINE_CHECKLIST_EVENTS = [
+  'start',
+  'pause',
+  'resume',
+  'complete',
+] as const satisfies readonly ChecklistStepEvent[]
+export type OfflineChecklistEvent = (typeof OFFLINE_CHECKLIST_EVENTS)[number]
+
 /** The evidence kinds a step asks for that are not recorded. */
 export function evidenceMissing(
   asked: readonly SopEvidenceKind[],

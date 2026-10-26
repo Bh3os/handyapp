@@ -169,7 +169,7 @@ test.describe('organization accounts (TSK-0118)', () => {
     await axe(member)
     await invitation.getByRole('button', { name: 'Accept the invitation from Synthetic Rentals E2E' }).click()
     await expect(
-      member.getByText('You joined Synthetic Rentals E2E. Its shared projects are on your projects page.'),
+      member.getByText('You joined Synthetic Rentals E2E. The projects it shares with you are on your projects page.'),
     ).toBeVisible()
 
     // Exactly the project in scope, marked as shared; the administrator's other project never.

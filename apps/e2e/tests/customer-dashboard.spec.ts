@@ -461,7 +461,7 @@ test.describe('the permanent customer dashboard and verified project claiming (T
     await expect(done.getByText('1 document')).toBeVisible()
     await expect(active.getByRole('listitem')).toHaveCount(2)
     await expect(page.getByRole('region', { name: 'Cancelled and archived' })).toContainText(
-      'Cancelled and closed projects appear here.',
+      'Cancelled projects, and projects closed before any work was completed, appear here.',
     )
     await axe(page)
 
