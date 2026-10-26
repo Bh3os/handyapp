@@ -11,7 +11,6 @@
 // Every visitor, address, account and name is synthetic (RULE-SYNTHETIC-DATA).
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { ESTIMATE_TERMS } from '@handyhub/domain/legal'
 import { localDateOf, resolveWindow } from '@handyhub/domain/local-time'
@@ -20,10 +19,10 @@ import { accessTokenFor, codeFor } from '../codes.js'
 import { verifyCountyOf } from '../county.js'
 import { verifyPropertyZone } from '../zones.js'
 import { passSecondFactor } from '../mfa.js'
+import { expectAccessible, tabTo } from '../a11y.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
 const port = process.env['E2E_PORT'] ?? '4310'
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 // This spec's own synthetic client address (RFC 5737): the request form and the sign-in limits count per network.
 const HEADERS = { 'x-forwarded-for': '198.51.100.172' }
 test.use({ extraHTTPHeaders: HEADERS })
@@ -39,8 +38,7 @@ const NO_ETA = /\bETA\b|estimated arrival|minutes away|arriving in/i
 const run = Date.now().toString(36)
 
 async function axe(page: Page) {
-  const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
-  expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+  await expectAccessible(page)
 }
 
 async function withDb<T>(fn: (db: ReturnType<typeof createDb>) => Promise<T>): Promise<T> {
@@ -440,11 +438,15 @@ test.describe('My Day: On my way, Arrived and Finished (TSK-0070)', () => {
       expect(await w.locator('main').innerText()).not.toMatch(NO_ETA)
       await axe(w)
 
-      // On my way: the visit is on the way; Arrived is next.
-      await onMyWay.click()
+      // On my way: the visit is on the way; Arrived is next. TSK-0104 (HH-A11Y-01): tapped with the keyboard alone;
+      // what was recorded is announced and focus stays on the next action.
+      await tabTo(w, onMyWay)
+      await w.keyboard.press('Enter')
       await expect(card.getByText('On the way', { exact: true })).toBeVisible()
       const arrived = card.getByRole('button', { name: 'Arrived' })
       await expect(arrived).toBeVisible()
+      await expect(arrived).toBeFocused()
+      await expect(card.getByRole('status').filter({ has: w.getByTestId('myday-mine') })).toContainText('On my way at')
       await expect(card.getByTestId('myday-mine')).toContainText('On my way at')
       await axe(w)
 
@@ -478,7 +480,7 @@ test.describe('My Day: On my way, Arrived and Finished (TSK-0070)', () => {
       // TSK-0080 (HH-OFF-03, HH-OFF-05, HH-OFF-07, T50, T51): tapped without a connection, Arrived is saved on this
       // phone and shown as not uploaded; once the connection returns it uploads by itself, once, and shows Synced.
       await w.context().setOffline(true)
-      await arrived.click()
+      await w.keyboard.press('Enter')
       await expect(card.getByTestId('myday-drafts')).toContainText('Saved on this phone')
       await expect(w.getByTestId('sync-waiting')).toContainText('1 item not uploaded yet')
       await w.context().setOffline(false)
@@ -502,7 +504,8 @@ test.describe('My Day: On my way, Arrived and Finished (TSK-0070)', () => {
       await expect(timeline.getByText('Arrived', { exact: true })).toBeVisible()
 
       // Finished: the visit is completed; nothing more to record.
-      await finished.click()
+      await tabTo(w, finished)
+      await w.keyboard.press('Enter')
       await expect(card.getByText('Completed', { exact: true })).toBeVisible()
       await expect(card.getByTestId('myday-next')).toHaveText('Everything you record on this visit is recorded.')
       await expect(card.getByTestId('myday-actions').getByRole('button')).toHaveCount(0)

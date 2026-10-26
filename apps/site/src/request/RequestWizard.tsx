@@ -212,6 +212,12 @@ export default function RequestWizard() {
   const [openCategory, setOpenCategory] = useState<string>(CATEGORIES[0])
   const [limitHit, setLimitHit] = useState(false)
   const [phase, setPhase] = useState<Phase>('loading')
+  // TSK-0104 (HH-A11Y-02): the continue dialog's opener is replaced while the dialog is open, so once it is dismissed
+  // focus goes to the button that opens it again (never back to the top of the page).
+  const dismissedActions = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (phase === 'dismissed') dismissedActions.current?.querySelector('button')?.focus()
+  }, [phase])
   /** TSK-0036: the visitor chose Create an Account; the form says how the account is made after sending. */
   const [accountIntent, setAccountIntent] = useState(false)
   /** TSK-0113: the form started from one of the account's projects (its reference); null for any other request. */
@@ -675,7 +681,7 @@ export default function RequestWizard() {
         {banner?.kind === 'success' ? <StateView kind="success" title={banner.message} /> : null}
         {choose}
         {phase === 'dismissed' ? (
-          <div className="hh-request__actions">
+          <div className="hh-request__actions" ref={dismissedActions}>
             <Button onClick={() => setPhase('choose')}>{t('request.continue.reopen')}</Button>
             <a className="hh-button hh-button--quiet" href="/">
               {t('request.home')}

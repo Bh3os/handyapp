@@ -7,21 +7,19 @@
 // The administrator removes the member, and the member's next request reaches nothing. The codes are read back from the
 // database and derived with the e2e servers' synthetic code key (codes.ts). Every visitor, address and name is
 // synthetic (RULE-SYNTHETIC-DATA).
-import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 import { codeFor } from '../codes.js'
+import { expectAccessible } from '../a11y.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const SENT = /^If these details belong to a HandyHub account, we sent a code to them\./
 // This spec's own synthetic client address (RFC 5737), so its limits never meet another spec's.
 const HEADERS = { 'x-forwarded-for': '198.51.100.118' }
 test.use({ extraHTTPHeaders: HEADERS })
 
 async function axe(page: Page) {
-  const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
-  expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+  await expectAccessible(page)
 }
 
 async function withDb<T>(fn: (db: ReturnType<typeof createDb>) => Promise<T>): Promise<T> {

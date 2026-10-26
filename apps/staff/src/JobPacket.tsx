@@ -27,7 +27,7 @@
 //   The server leaves the rest out; the screen says so, and that removing access cannot erase screenshots or copies.
 import type { OwnerContact } from '@handyhub/domain/escalation'
 import type { StaffKey, StaffLocale } from '@handyhub/i18n'
-import { Button, StateView, StatusBadge } from '@handyhub/ui'
+import { Button, ScrollArea, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { call, type Fetch } from './api'
 import {
@@ -878,7 +878,7 @@ export function JobPacketPage({
                 source: codeLabel(t, 'scopeSource', v.scope.source ?? ''),
               })}
             </p>
-            <div className="staff-sop__table">
+            <ScrollArea className="staff-sop__table" label={t('packet.scopeLines')}>
               <table>
                 <thead>
                   <tr>
@@ -899,7 +899,7 @@ export function JobPacketPage({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollArea>
             {Object.entries(v.scope.texts)
               .filter(([, items]) => items.length > 0)
               .map(([k, items]) => (

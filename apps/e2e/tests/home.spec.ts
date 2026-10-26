@@ -4,11 +4,10 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { AxeBuilder } from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
+import { expectAccessible } from '../a11y.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const wording = JSON.parse(readFileSync(new URL('../fixtures/home-wording.json', import.meta.url), 'utf8')) as {
   title: string
   trustFacts: string[]
@@ -20,8 +19,7 @@ const wording = JSON.parse(readFileSync(new URL('../fixtures/home-wording.json',
 const siteDist = fileURLToPath(new URL('../../site/dist', import.meta.url))
 
 async function axe(page: Page) {
-  const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
-  expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+  await expectAccessible(page)
 }
 
 async function noHorizontalScroll(page: Page) {

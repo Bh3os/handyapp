@@ -69,8 +69,9 @@ jobs:
     runs-on: ubuntu-24.04
     # Mandatory staff MFA (TSK-0154, OWN-DEC-202) never accepts one authenticator code twice, so repeated sign-ins of
     # one synthetic account wait for the next 30-second step; the serial suite ran 22 to 35 minutes on CI, so the limit
-    # is 60 (HANDOFF.md) rather than running specs that share a database in parallel.
-    timeout-minutes: 60
+    # is 60 (HANDOFF.md) rather than running specs that share a database in parallel. TSK-0104: every axe check is now
+    # the accessibility sweep (both themes, 320 px, 200% text), about 40% more time locally, so the limit is 90.
+    timeout-minutes: 90
     # A fresh PostgreSQL 16 for the database-backed flows (staff sign-in, TSK-0014); synthetic data only.
     services:
       postgres:

@@ -2,20 +2,18 @@
 // HH-ID-03, HH-INT-14, HH-ID-06, HH-INT-22, T16, T18, T20). The code a test enters is read back from the database and
 // derived with the e2e servers' synthetic code key (codes.ts); every visitor, address and number is synthetic
 // (RULE-SYNTHETIC-DATA).
-import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { expect, test, type Page } from '@playwright/test'
 import { codeFor } from '../codes.js'
+import { expectAccessible } from '../a11y.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const future = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10)
 const SMS_LABEL =
   'I agree to receive text messages from HandyHub about my service requests, estimates, appointments, and project updates at the phone number provided.'
 
 async function axe(page: Page) {
-  const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
-  expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+  await expectAccessible(page)
 }
 
 async function withDb<T>(fn: (db: ReturnType<typeof createDb>) => Promise<T>): Promise<T> {

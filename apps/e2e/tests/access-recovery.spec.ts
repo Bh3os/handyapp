@@ -3,13 +3,12 @@
 // servers' synthetic code key (codes.ts); every visitor, address and number is synthetic (RULE-SYNTHETIC-DATA).
 // TSK-0120: the access message is the owner's secure_access_link with its values wired, so asking for a new link is
 // accepted with the same neutral answer for every contact alike; a new link goes only to a known contact.
-import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 import { accessTokenFor, codeFor } from '../codes.js'
+import { expectAccessible } from '../a11y.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const future = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10)
 // This spec's own synthetic client address (RFC 5737), so its limits never meet another spec's.
 const HEADERS = { 'x-forwarded-for': '198.51.100.36' }
@@ -19,8 +18,7 @@ const DONE =
   'Thanks. If these details match a HandyHub request, a new secure link is on its way to the contact details on that request. It opens your project only after a one-time code.'
 
 async function axe(page: Page) {
-  const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
-  expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+  await expectAccessible(page)
 }
 
 async function withDb<T>(fn: (db: ReturnType<typeof createDb>) => Promise<T>): Promise<T> {

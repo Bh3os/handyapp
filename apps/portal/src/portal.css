@@ -24,6 +24,11 @@
   gap: var(--hh-space-4);
 }
 
+/* Focus moves to the main region on a page change (TSK-0104); the region itself is not a control, so no ring. */
+.portal__main:focus {
+  outline: none;
+}
+
 /* Grid items never grow past the column (TSK-0039, HH-A11Y-02): at 320 px with 200% text the long project
    reference in the page heading wraps instead of widening the page. */
 .portal__main > * {
@@ -506,4 +511,9 @@
 .portal-organizations__history ol {
   margin: var(--hh-space-2) 0 0;
   padding-left: var(--hh-space-4);
+}
+
+/* TSK-0104: the approval answer takes focus after Approve Estimate; it is a message, not a control, so no ring. */
+.portal-estimate__answer:focus {
+  outline: none;
 }

@@ -26,7 +26,7 @@
 import { estimateTermsDocument } from '@handyhub/domain/legal'
 import type { CustomerKey } from '@handyhub/i18n'
 import { cents, formatUsd } from '@handyhub/money'
-import { Button, Field, StateView, StatusBadge, type StatusTone } from '@handyhub/ui'
+import { Button, Field, ScrollArea, StateView, StatusBadge, type StatusTone } from '@handyhub/ui'
 import { useEffect, useId, useRef, useState } from 'react'
 import {
   idempotencyKey,
@@ -147,7 +147,7 @@ function Lines({ lines, caption }: { lines: EstimateLine[]; caption: string }) {
     l.kind === 'alternate' ? t('estimatePdf.kind.alternate') : l.kind === 'add_on' ? t('estimatePdf.kind.add_on') : null
   const missing = t('estimatePdf.notProvided')
   return (
-    <div className="portal-estimate__table">
+    <ScrollArea className="portal-estimate__table" label={caption}>
       <table>
         <caption className="hh-visually-hidden">{caption}</caption>
         <thead>
@@ -172,7 +172,7 @@ function Lines({ lines, caption }: { lines: EstimateLine[]; caption: string }) {
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollArea>
   )
 }
 
@@ -536,13 +536,21 @@ function Approval({
   onDone: () => Promise<void>
 }) {
   const approved = e.approval.approved
+  // TSK-0104 (WCAG 2.4.3): approving removes the form the customer was in, so focus moves to the answer that
+  // replaces it (only after an approval made on this page, never when an approved estimate is opened).
+  const answer = useRef<HTMLDivElement>(null)
+  const formShown = useRef(false)
+  if (!approved && e.approval.available) formShown.current = true
+  useEffect(() => {
+    if (approved && formShown.current) answer.current?.focus()
+  }, [approved?.at])
   return (
     <section className="portal-section" aria-labelledby="portal-estimate-approval" data-testid="estimate-approval">
       <h3 id="portal-estimate-approval" className="hh-h3">
         {t('portal.estimate.approval.title')}
       </h3>
       {approved ? (
-        <>
+        <div ref={answer} tabIndex={-1} className="portal-estimate__answer">
           <StateView
             kind="success"
             title={t(e.approval.nextStep ? NEXT_STEP[e.approval.nextStep] : 'portal.estimate.approve.done')}
@@ -551,7 +559,7 @@ function Approval({
           </StateView>
           <SelectionTotals s={approved} e={e} />
           <ApprovalReceipt receipt={e.approval.receipt} />
-        </>
+        </div>
       ) : e.approval.available ? (
         <ApproveForm e={e} fetchImpl={fetchImpl} onDone={onDone} />
       ) : e.status === 'approved' ? null : (

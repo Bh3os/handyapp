@@ -2,11 +2,10 @@
 // HH-A11Y-02, OWN-DEC-72, OWN-DEC-147, T76). The checklist below is the A2P 10DLC website list of OWN-DEC-147, typed
 // out independently of the site catalog. With E2E_DATABASE_URL the support contact is read from configuration; it is
 // NOT CONFIGURED (OWN-DEC-131), so it shows labelled placeholders that are never links.
-import { AxeBuilder } from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
+import { expectAccessible } from '../a11y.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const ENTITY = 'HandyHub is the brand name of ODD JOBS & MORE LLC, a Kentucky limited liability company.'
 const NO_SHARING =
   'Mobile numbers and SMS opt-in data are never shared with or sold to third parties for marketing purposes.'
@@ -17,8 +16,7 @@ const PAGES = [
 ]
 
 async function axe(page: Page) {
-  const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
-  expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+  await expectAccessible(page)
 }
 
 async function noHorizontalScroll(page: Page) {

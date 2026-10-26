@@ -12,6 +12,7 @@
 //   /portal/organizations  the signed-in account's organizations, memberships and invitations (TSK-0118)
 // Every read is authorized and scoped on the server; the page only shows what the customer views return.
 import { customerTranslator } from '@handyhub/i18n'
+import { useRouteFocus } from '@handyhub/ui'
 import { useCallback, useEffect, useState } from 'react'
 import { REFERENCE, WORKSPACE_TABS, type Fetch, type WorkspaceTab } from './api'
 import { PreferencesPage } from './Preferences'
@@ -68,6 +69,25 @@ export function routeOf(pathname: string): PortalRoute {
   return { page: 'projects' }
 }
 
+/** The document title of a page (TSK-0104, WCAG 2.4.2): the page's heading, then the portal's name. */
+export function pageTitle(t: ReturnType<typeof customerTranslator>['t'], route: PortalRoute): string {
+  const name =
+    route.page === 'project'
+      ? t('portal.project.title', { reference: route.reference })
+      : route.page === 'projects'
+        ? t('portal.projects.title')
+        : route.page === 'privacy'
+          ? t('portal.privacy.title')
+          : route.page === 'properties'
+            ? t('portal.properties.title')
+            : route.page === 'preferences'
+              ? t('portal.preferences.title')
+              : route.page === 'organizations'
+                ? t('portal.organizations.title')
+                : null
+  return name === null ? t('portal.title') : `${name} – ${t('portal.title')}`
+}
+
 const browserFetch: Fetch = (input, init) => fetch(input, init)
 
 export function App({ path, fetchImpl = browserFetch }: { path?: string; fetchImpl?: Fetch }) {
@@ -84,12 +104,15 @@ export function App({ path, fetchImpl = browserFetch }: { path?: string; fetchIm
     setCurrent(to)
   }, [])
   const route = routeOf(current)
+  // TSK-0104 (HH-A11Y-01): a page change names the page in the title and moves focus to the main region (a tab the
+  // customer is on keeps its focus).
+  useRouteFocus(current, 'portal-main', pageTitle(t, route))
   return (
     <div className="portal" lang="en">
       <header className="portal__bar">
         <p className="portal__brand">{t('portal.title')}</p>
       </header>
-      <main lang="en" className="portal__main">
+      <main id="portal-main" lang="en" className="portal__main" tabIndex={-1}>
         {route.page === 'properties' ? (
           <SavedPropertiesPage fetchImpl={fetchImpl} />
         ) : route.page === 'preferences' ? (

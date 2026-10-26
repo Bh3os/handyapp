@@ -10,7 +10,7 @@
 // Every control is one the server offered or allows; the server checks each write again.
 import type { StaffKey } from '@handyhub/i18n'
 import { cents, centsFromDecimal, formatUsd } from '@handyhub/money'
-import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
+import { Button, Field, ScrollArea, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useState, type FormEvent } from 'react'
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
 import { ReauthForm, useOwnerWrite } from './OwnerWrite'
@@ -155,7 +155,7 @@ export function JobMarginSection({
         </StatusBadge>{' '}
         {m.flag === 'below_target' ? <span className="staff-request__hint">{t('jobMargin.advisory')}</span> : null}
       </p>
-      <div className="staff-job-costs__wrap">
+      <ScrollArea className="staff-job-costs__wrap" label={t('jobMargin.columns')}>
         <section aria-labelledby={`${ids}-estimated`}>
           <h3 id={`${ids}-estimated`}>{t('jobMargin.estimated')}</h3>
           <MarginColumn
@@ -175,7 +175,7 @@ export function JobMarginSection({
             })}
           </p>
         </section>
-      </div>
+      </ScrollArea>
       <p data-testid="job-margin-variance">
         {m.varianceBps === null
           ? t('jobMargin.noVariance')
@@ -413,7 +413,7 @@ export function LaborRatesSetting({ t, fetchImpl }: { t: T; fetchImpl: Fetch }) 
         {t('laborRates.title')}
       </h2>
       <p className="staff-request__hint">{t('laborRates.hint')}</p>
-      <div className="staff-job-costs__wrap">
+      <ScrollArea className="staff-job-costs__wrap" label={t('laborRates.caption', { date: data.today })}>
         <table className="staff-invoice__lines">
           <caption className="staff-request__hint">{t('laborRates.caption', { date: data.today })}</caption>
           <thead>
@@ -446,7 +446,7 @@ export function LaborRatesSetting({ t, fetchImpl }: { t: T; fetchImpl: Fetch }) 
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollArea>
       <form className="staff-loadout__form" onSubmit={(e) => void save(e)} aria-label={t('laborRates.enter')}>
         <div className="hh-field">
           <label className="hh-field__label" htmlFor={`${ids}-who`}>

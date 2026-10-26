@@ -37,7 +37,8 @@ export default defineConfig({
   // No retries: a test that passes only on a retry is not stable enough to count as evidence.
   retries: 0,
   forbidOnly: Boolean(process.env['CI']),
-  timeout: 60_000,
+  // TSK-0104: each axe check is the accessibility sweep (apps/e2e/a11y.ts), which takes a few seconds per state.
+  timeout: 90_000,
   reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],
   outputDir: 'test-results',
   use: {

@@ -2,12 +2,11 @@
 // HH-INT-18, HH-INT-22, HH-COM-12, OWN-DEC-190, T10, T76). The label and the disclosure below are the owner's opt-in
 // point A of OWN-DEC-190, typed out independently of the site catalog. Every visitor, address and number is synthetic
 // (RULE-SYNTHETIC-DATA); the support contact is NOT CONFIGURED (OWN-DEC-131), so it shows labelled placeholders.
-import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { expect, test, type Page } from '@playwright/test'
+import { expectAccessible } from '../a11y.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const future = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10)
 const SMS_LABEL =
   'I agree to receive text messages from HandyHub about my service requests, estimates, appointments, and project updates at the phone number provided.'
@@ -16,8 +15,7 @@ const DISCLOSURE =
 const MARKETING_LABEL = 'Yes, HandyHub may send me marketing messages.'
 
 async function axe(page: Page) {
-  const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
-  expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+  await expectAccessible(page)
 }
 
 async function toContact(page: Page, email: string, phone: string) {

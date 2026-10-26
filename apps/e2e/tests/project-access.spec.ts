@@ -1,21 +1,19 @@
 // The project access link and its landing in a real browser (TSK-0034; HH-ID-04, HH-ID-05, HH-ID-08, HH-INT-21,
 // HH-ID-03, T01, T17, T19, T20). The link token and the codes a test enters are derived from the database with the e2e
 // servers' synthetic code key (codes.ts); every visitor, address and number is synthetic (RULE-SYNTHETIC-DATA).
-import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 import { accessTokenFor, codeFor } from '../codes.js'
+import { expectAccessible } from '../a11y.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const future = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10)
 // This spec's own synthetic client address (RFC 5737): the request form allows 5 per network an hour.
 const HEADERS = { 'x-forwarded-for': '198.51.100.35' }
 test.use({ extraHTTPHeaders: HEADERS })
 
 async function axe(page: Page) {
-  const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
-  expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+  await expectAccessible(page)
 }
 
 async function withDb<T>(fn: (db: ReturnType<typeof createDb>) => Promise<T>): Promise<T> {

@@ -1,17 +1,15 @@
 // The request wizard shell in a real browser (TSK-0026; HH-INT-01, HH-INT-08, HH-INT-09, T01, T10, T69; TSK-0024,
 // HH-PRIV-04: the saved privacy policy version). The server runs with the migrated E2E_DATABASE_URL database (the
 // draft period comes from its configuration and requests are saved there); every visitor and value is synthetic.
-import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { expect, test, type Page } from '@playwright/test'
+import { expectAccessible } from '../a11y.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const future = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10)
 
 async function axe(page: Page) {
-  const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
-  expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+  await expectAccessible(page)
 }
 
 async function startAsGuest(page: Page) {

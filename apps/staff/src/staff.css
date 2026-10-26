@@ -16,6 +16,11 @@
   padding: var(--hh-space-8) var(--hh-gutter);
 }
 
+/* Focus moves to the main region on a screen change (TSK-0104); the region itself is not a control, so no ring. */
+.staff-app__main:focus {
+  outline: none;
+}
+
 .staff-auth {
   display: grid;
   gap: var(--hh-space-4);
@@ -30,6 +35,9 @@
    wrapping row on phones, so the page never scrolls sideways. Keyboard focus is always visible (HH-BASE-01). */
 .staff-shell__skip {
   position: absolute;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--hh-target);
   left: var(--hh-space-2);
   top: -10rem;
   padding: var(--hh-space-2) var(--hh-space-3);
@@ -55,6 +63,9 @@
 }
 
 .staff-shell__brand {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--hh-target);
   font-weight: 600;
   color: var(--hh-text);
   text-decoration: none;
@@ -134,7 +145,18 @@
   margin: 0 auto;
   padding: var(--hh-space-8) var(--hh-gutter);
   display: grid;
+  /* One column no wider than the screen (TSK-0104, WCAG 1.4.10): an implicit grid column grows to its widest
+     unbreakable content (a long select option, a heading) and pushed the page sideways at 320 px and 200% text. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--hh-space-4);
+}
+
+/* TSK-0104 (WCAG 1.4.10, 1.4.4): the screens are built from single-column grids whose one column is implicit, and an
+   implicit column grows to its widest unbreakable content (a long select option, a heading at 200% text), pushing the
+   page sideways. Inside the main region every implicit column is at most the width of its grid; a grid with its own
+   columns keeps them. */
+.staff-shell__main :where(*) {
+  grid-auto-columns: minmax(0, 1fr);
 }
 
 .staff-shell__main:focus {
@@ -164,6 +186,7 @@
 
 .staff-screen {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--hh-space-4);
 }
 
@@ -211,6 +234,12 @@
 .staff-queue__filters legend {
   font-weight: 600;
   padding: 0 var(--hh-space-1);
+}
+
+/* A filter never grows past the row: its select wraps below the label instead (TSK-0104). */
+.staff-queue__filters > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .staff-queue__filters .hh-field {
@@ -901,6 +930,12 @@
   gap: var(--hh-space-2);
   align-items: center;
   min-height: 44px;
+  max-width: 100%;
+}
+
+/* A photo picker goes below its label when the row is too narrow, never past the screen (TSK-0104, WCAG 1.4.10). */
+.staff-loadout__choice:has(input[type='file']) {
+  flex-wrap: wrap;
 }
 .staff-loadout__form {
   display: grid;
@@ -1178,4 +1213,9 @@
 .staff-offer__instructions,
 .staff-preparation__text {
   white-space: pre-line;
+}
+
+/* TSK-0104: the Start Work answer takes focus after the press; it is a message, not a control, so no ring. */
+.staff-start__answer:focus {
+  outline: none;
 }

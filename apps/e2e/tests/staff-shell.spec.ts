@@ -3,11 +3,10 @@
 // synthetic (RULE-SYNTHETIC-DATA); the server runs with the migrated E2E_DATABASE_URL database.
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { AxeBuilder } from '@axe-core/playwright'
 import { expect, test, type Browser, type Page } from '@playwright/test'
 import { passSecondFactor } from '../mfa.js'
+import { expectAccessible } from '../a11y.js'
 
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const databaseUrl = process.env['E2E_DATABASE_URL']
 // This spec's own synthetic network (RFC 5737): the staff sign-in, reset and link limits count per network, so the
 // suite must not share one address (playwright.config.ts trusts one forwarded hop on the main server).
@@ -57,8 +56,7 @@ async function signIn(page: Page, email: string, password: string, name: string)
 }
 const menu = (page: Page) => page.getByRole('navigation', { name: /^(Main|Principal)$/ }).getByRole('link')
 async function axe(page: Page) {
-  const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
-  expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+  await expectAccessible(page)
 }
 async function fresh(browser: Browser) {
   return (await browser.newContext({ extraHTTPHeaders: NETWORK })).newPage()
@@ -101,7 +99,11 @@ test.describe('staff app shell (TSK-0040, HH-STAFF-06, HH-OPS-04)', () => {
     await expect(page.getByRole('main')).toBeVisible()
     await axe(page)
 
-    // Keyboard: the first Tab reaches the skip link, which moves focus to the main content.
+    // Keyboard: the first Tab on a freshly loaded page reaches the skip link, which moves focus to the main content.
+    // (Signing in is a screen change, so it already put focus on the main region: TSK-0104.)
+    await expect(page.locator('#staff-main')).toBeFocused()
+    await page.reload()
+    await expect(page.getByRole('heading', { level: 1, name: 'Action queue' })).toBeVisible()
     await page.keyboard.press('Tab')
     await expect(page.getByRole('link', { name: 'Skip to main content' })).toBeFocused()
     await page.keyboard.press('Enter')

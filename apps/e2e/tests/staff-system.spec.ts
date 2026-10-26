@@ -4,12 +4,11 @@
 // refused by the server. Accounts and records are synthetic (RULE-SYNTHETIC-DATA).
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { expect, test, type Page } from '@playwright/test'
 import { passSecondFactor } from '../mfa.js'
+import { expectAccessible } from '../a11y.js'
 
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const databaseUrl = process.env['E2E_DATABASE_URL']
 // This spec's own synthetic network (RFC 5737): the staff sign-in, reset and link limits count per network, so the
 // suite must not share one address (playwright.config.ts trusts one forwarded hop on the main server).
@@ -53,8 +52,7 @@ async function signIn(page: Page, email: string, password: string) {
   await expect(page.getByRole('heading', { level: 1, name: 'Action queue' })).toBeVisible()
 }
 async function axe(page: Page) {
-  const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
-  expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+  await expectAccessible(page)
 }
 
 test.use({ extraHTTPHeaders: NETWORK })
