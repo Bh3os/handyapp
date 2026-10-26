@@ -345,3 +345,123 @@ describe('[HH-SCH-11][OWN-DEC-194] drafts, publication and replacement (TSK-0145
     )
   })
 })
+
+describe('[HH-SCH-11][OWN-DEC-194] B7: offers start from the approved default; staff adjust it safely', () => {
+  const DEFAULT_TEXT = 'Synthetic default step one.\nSynthetic default step two.'
+
+  it('[OWN-DEC-194] the instructions are prefilled per service; services without a default are named', async () => {
+    const calls: { url: string; init?: RequestInit }[] = []
+    const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push({ url, ...(init ? { init } : {}) })
+      if (url.startsWith('/api/v1/staff/capacity')) return json(200, day)
+      if (url.endsWith('/preparation-default'))
+        return json(200, {
+          visitId: VISIT,
+          text: DEFAULT_TEXT,
+          tooLong: false,
+          services: [
+            { serviceId: 'SVC-DW-01', name: 'Synthetic Patching', state: 'approved', version: 2 },
+            { serviceId: 'SVC-HI-04', name: 'Synthetic Mounting', state: 'not_configured', version: null },
+          ],
+        })
+      return json(201, { visits: [] })
+    })
+    const onOffered = vi.fn()
+    const { t } = staffTranslator('en')
+    render(
+      <OfferWindows
+        t={t}
+        locale="en"
+        fetchImpl={fetchImpl as never}
+        visit={visit}
+        policy={policy}
+        onOffered={onOffered}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Offer windows to the customer' }))
+    const form = await screen.findByTestId('offer-windows')
+    const field = within(form).getByLabelText(/Preparation instructions/) as HTMLTextAreaElement
+    await waitFor(() => expect(field.value).toBe(DEFAULT_TEXT))
+    expect(calls.some((c) => c.url === `/api/v1/staff/visits/${VISIT}/preparation-default`)).toBe(true)
+    expect(within(form).getByTestId('offer-preparation-default').textContent).toContain('Synthetic Patching')
+    expect(within(form).getByTestId('offer-preparation-missing').textContent).toContain(
+      'No approved default for Synthetic Mounting (not configured)',
+    )
+    // Staff adjust it, may start again from the default, and the edited text is what is sent.
+    fireEvent.change(field, { target: { value: 'Synthetic default step one.' } })
+    fireEvent.click(within(form).getByRole('button', { name: 'Start again from the default' }))
+    expect(field.value).toBe(DEFAULT_TEXT)
+    fireEvent.change(field, { target: { value: 'Synthetic default step one.' } })
+    const second = within(form).getAllByTestId('offer-window')[1] as HTMLElement
+    fireEvent.change(within(second).getByLabelText(/^Arrival window starts/), { target: { value: '13:00' } })
+    fireEvent.change(within(second).getByLabelText(/^Arrival window ends/), { target: { value: '14:00' } })
+    await within(form).findByText(/Synthetic Ann/)
+    fireEvent.click(within(form).getByLabelText(/Synthetic Ann/))
+    fireEvent.click(within(form).getByRole('button', { name: 'Offer and hold these windows' }))
+    await waitFor(() => expect(onOffered).toHaveBeenCalled())
+    const post = calls.find((c) => c.url.endsWith('/offers'))
+    expect(JSON.parse(String(post?.init?.body)).preparationInstructions).toBe('Synthetic default step one.')
+  })
+
+  it('[OWN-DEC-194][HH-CUS-02] unsafe instructions are flagged while typing and the refusal is named (Spanish)', async () => {
+    const fetchImpl = vi.fn(async (url: string) => {
+      if (url.startsWith('/api/v1/staff/capacity')) return json(200, day)
+      if (url.endsWith('/preparation-default'))
+        return json(200, { visitId: VISIT, text: null, tooLong: false, services: [] })
+      return json(400, {
+        error: {
+          code: 'VALIDATION_FAILED',
+          message: '',
+          requestId: 'r',
+          retryable: false,
+          fieldErrors: [{ field: 'body.preparationInstructions', code: 'UNSAFE_HAZARDOUS_MATERIALS', message: '' }],
+        },
+      })
+    })
+    const { t } = staffTranslator('es')
+    render(
+      <OfferWindows
+        t={t}
+        locale="es"
+        fetchImpl={fetchImpl as never}
+        visit={visit}
+        policy={policy}
+        onOffered={vi.fn()}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Ofrecer ventanas al cliente' }))
+    const form = await screen.findByTestId('offer-windows')
+    const field = within(form).getByLabelText(/Instrucciones de preparación/) as HTMLTextAreaElement
+    fireEvent.change(field, { target: { value: 'Synthetic: scrape the lead paint off the trim.' } })
+    expect(within(form).getByTestId('offer-preparation').textContent).toContain(
+      'Materiales peligrosos (asbesto, plomo, moho): “scrape the lead paint”',
+    )
+    const [, start, end] = within(within(form).getAllByTestId('offer-window')[1] as HTMLElement).getAllByDisplayValue(
+      /.*/,
+    ) as HTMLInputElement[]
+    fireEvent.change(start as HTMLInputElement, { target: { value: '13:00' } })
+    fireEvent.change(end as HTMLInputElement, { target: { value: '14:00' } })
+    await within(form).findByText(/Synthetic Ann/)
+    fireEvent.click(within(form).getByLabelText(/Synthetic Ann/))
+    fireEvent.click(within(form).getByRole('button', { name: 'Ofrecer y reservar estas ventanas' }))
+    await within(form).findByText('Las ventanas no se ofrecieron')
+    expect(form.textContent).toContain('Las instrucciones piden al cliente manipular materiales peligrosos')
+  })
+
+  it('[OWN-DEC-194] each offer shows how its instructions stand against the default', () => {
+    const { t } = staffTranslator('en')
+    render(
+      <VisitOffers
+        t={t}
+        locale="en"
+        fetchImpl={vi.fn() as never}
+        offers={[offer({ preparationBasis: 'edited' })]}
+        when={(iso) => iso}
+        onChanged={vi.fn()}
+      />,
+    )
+    expect(screen.getByTestId('offer-preparation-basis').textContent).toBe(
+      'Preparation: edited from the approved default',
+    )
+  })
+})

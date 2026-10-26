@@ -36,6 +36,10 @@
 //   the customer is told only that the time cannot be confirmed yet (SCHEDULING_NOT_READY), with the deposit when it
 //   is due, never a hold or a staff detail. PROPOSED: offering windows also needs the approval and no blocking hold,
 //   so a customer is never offered times that cannot be confirmed.
+// - TSK-0146 (OWN-DEC-194 B7): the preparation instructions start from the Owner-approved defaults of the visit's
+//   services (preparation.ts); the offer keeps the text staff sent with its basis (default, edited, staff, none) and
+//   the default versions it started from. Unsafe instructions (hazardous preparation, a hazard inspection) are refused
+//   when the offer is saved and again when it is published.
 import type { Db, Tx } from '@handyhub/db'
 import {
   isWorkVisitPurpose,
@@ -72,6 +76,7 @@ import { findProject } from '../records/index.js'
 import { customerRequestsOf } from './changes.js'
 import { unmetGates, type WorkVisitGate } from './gates.js'
 import { flagCancellationPattern } from './patterns.js'
+import { offerPreparation, unsafeProblems } from './preparation.js'
 import { approvalProblems, blockingHoldProblems, confirmationPreconditions, customerRefusal } from './preconditions.js'
 import { siteCheckProblems } from './site-checks.js'
 import { factsOf, mayPlanWorkVisits, resolveEntry, storedWindow, type WindowEntry } from './visits.js'
@@ -166,7 +171,8 @@ export type OfferInput = {
   readonly workerIds: readonly string[]
   /** One item for every equipment entry of the visit. */
   readonly equipmentIds?: readonly string[]
-  /** Customer-facing preparation instructions, shown with the confirmed visit. */
+  /** Customer-facing preparation instructions, shown with the confirmed visit; TSK-0146: the offer form starts them from
+   * the approved defaults of the visit's services, and what is sent here is kept (with its basis). */
   readonly preparationInstructions?: string
   /** TSK-0145 (B1): save the offer as a draft only; nothing is held and no clock runs until it is published. */
   readonly draft?: boolean
@@ -284,6 +290,9 @@ export async function saveOfferDraft(
       invalid.push(...prefixed(`body.windows[${i}]`, err.options.fieldErrors ?? []))
     }
   })
+  // TSK-0146 (B7): the instructions against the defaults of the visit's services, and the unsafe-instruction rules.
+  const preparation = await offerPreparation(tx, v, input.preparationInstructions)
+  invalid.push(...preparation.problems)
   if (invalid.length) throw new ApiError('VALIDATION_FAILED', { fieldErrors: invalid })
   const facts = factsOf(v)
   const ranges = windows.map((w) => reservedRange(w, facts))
@@ -299,7 +308,9 @@ export async function saveOfferDraft(
       hold_hours: policy.holdHours,
       policy_version: policyVersion,
       offered_by: actor.userId,
-      preparation_instructions: input.preparationInstructions?.trim() || null,
+      preparation_instructions: preparation.instructions,
+      preparation_basis: preparation.basis,
+      preparation_default_ids: preparation.defaultIds,
       worker_ids: workerIds,
       equipment_ids: equipmentIds,
     })
@@ -402,6 +413,8 @@ export async function publishOffer(
   // TSK-0127, TSK-0126: no times are offered before the three site checks are recorded (the address and county, the
   // authorized site contact, the accepted coverage), since the selection could not confirm them.
   problems.push(...(await siteCheckProblems(tx, v.project_id)))
+  // TSK-0146 (B7): the instructions pass the unsafe-instruction rules when published too (a draft saved before them).
+  problems.push(...unsafeProblems(o.preparation_instructions, 'preparationInstructions'))
   if (v.expected_duration_minutes === null || v.required_workers === null)
     throw new ApiError('CONFLICT', { fieldErrors: problems })
 
@@ -1061,6 +1074,8 @@ export type StaffOfferView = {
   expiresAt: string | null
   holdHours: number
   preparationInstructions: string | null
+  /** TSK-0146 (B7): how the instructions stand against the defaults they started from; null before 0123. */
+  preparationBasis: string | null
   windows: { position: number; window: WindowShown; reservedRange: { startsAt: string; endsAt: string } }[]
   /** The team a draft holds when published (null for offers made before drafts existed: their holds name it). */
   team: { workerIds: string[]; equipmentIds: string[] } | null
@@ -1133,6 +1148,7 @@ export async function staffOffers(
       expiresAt: expires ? expires.toISOString() : null,
       holdHours: o.hold_hours,
       preparationInstructions: o.preparation_instructions,
+      preparationBasis: o.preparation_basis,
       windows: options
         .filter((p) => p.offer_id === o.id)
         .map((p) => ({

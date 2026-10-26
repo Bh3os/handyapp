@@ -12,6 +12,11 @@
 //   is published or discarded from its entry. The hold runs from the publication. Over a published offer the form
 //   replaces it with a reason, and the customer gets the new offer's notice once. A withdrawal sends no notice of its
 //   own (its wording is not approved): the request asks staff to offer new times.
+// - TSK-0146 (OWN-DEC-194 B7): the preparation instructions start from the Owner-approved defaults of the visit's
+//   services (a service without one is named NOT CONFIGURED); staff may change them, and the unsafe-instruction rules
+//   are shown while they type (the server refuses the same). Each offer shows how its instructions stand against the
+//   default: kept, edited, written by staff or none.
+import { preparationProblems } from '@handyhub/domain/preparation'
 import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
@@ -41,6 +46,8 @@ export type Offer = {
   expiresAt: string | null
   holdHours: number
   preparationInstructions: string | null
+  /** TSK-0146: default, edited, staff or none; null for offers saved before it was recorded. */
+  preparationBasis?: string | null
   windows: {
     position: number
     window: { localDate: string; start: string; end: string; timeZone: string; startsAt: string; endsAt: string }
@@ -95,6 +102,68 @@ export function NoticeLine({ t, notice }: { t: T; notice: Notice }) {
 }
 
 type WindowErrors = { fields: Record<string, string>[]; general: string[] }
+
+/** TSK-0146: the Owner-approved default the visit's offer starts from (GET /staff/visits/:id/preparation-default). */
+type PreparationDefault = {
+  text: string | null
+  tooLong: boolean
+  services: { serviceId: string; name: string; state: 'approved' | 'not_configured'; version: number | null }[]
+}
+
+/** The instructions field: prefilled from the default, its sources, and the unsafe-instruction rules as staff type. */
+function PreparationField({
+  t,
+  value,
+  onChange,
+  prep,
+}: {
+  t: T
+  value: string
+  onChange: (v: string) => void
+  prep: PreparationDefault | null
+}) {
+  const unsafe = preparationProblems(value)
+  const approved = prep?.services.filter((s) => s.state === 'approved') ?? []
+  const missing = prep?.services.filter((s) => s.state === 'not_configured') ?? []
+  return (
+    <div data-testid="offer-preparation">
+      <Field
+        label={t('offers.form.instructions')}
+        multiline
+        rows={5}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      {approved.length ? (
+        <p className="staff-request__hint" data-testid="offer-preparation-default">
+          {t('offers.prep.fromDefault', { services: approved.map((s) => s.name).join(', ') })}
+        </p>
+      ) : null}
+      {missing.length ? (
+        <p className="staff-request__hint" data-testid="offer-preparation-missing">
+          {t('offers.prep.notConfigured', { services: missing.map((s) => s.name).join(', ') })}
+        </p>
+      ) : null}
+      {prep?.tooLong ? <p className="staff-request__hint">{t('offers.prep.tooLong')}</p> : null}
+      {prep?.text && value !== prep.text ? (
+        <div className="hh-button-row">
+          <Button variant="secondary" onClick={() => onChange(prep.text ?? '')}>
+            {t('offers.prep.reset')}
+          </Button>
+        </div>
+      ) : null}
+      {unsafe.length ? (
+        <StateView
+          kind="error"
+          title={t('offers.prep.unsafe')}
+          reasons={unsafe.map((u) =>
+            t('offers.prep.unsafeMatch', { rule: codeLabel(t, 'preparationRule', u.rule), match: u.match }),
+          )}
+        />
+      ) : null}
+    </div>
+  )
+}
 
 /** The refusal as messages per window field, plus those about the team, each window or the whole offer. */
 function offerErrors(
@@ -167,6 +236,8 @@ export function OfferWindows<V>({
   const [workers, setWorkers] = useState<string[]>([])
   const [items, setItems] = useState<string[]>([])
   const [instructions, setInstructions] = useState('')
+  const [prep, setPrep] = useState<PreparationDefault | null>(null)
+  const touched = useRef(false)
   const [replaceReason, setReplaceReason] = useState('')
   const [errors, setErrors] = useState<WindowErrors>({ fields: [], general: [] })
   const [alternatives, setAlternatives] = useState<Alternatives | null>(null)
@@ -180,6 +251,21 @@ export function OfferWindows<V>({
   useEffect(() => {
     if (open) void load()
   }, [open, load])
+  // TSK-0146: the form starts from the approved defaults, unless staff already changed the instructions.
+  useEffect(() => {
+    if (!open) return
+    let live = true
+    void call<PreparationDefault>(fetchImpl, `/staff/visits/${encodeURIComponent(visit.id)}/preparation-default`).then(
+      (r) => {
+        if (!live || !r.ok || !Array.isArray(r.data?.services)) return
+        setPrep(r.data)
+        if (r.data.text && !touched.current) setInstructions(r.data.text)
+      },
+    )
+    return () => {
+      live = false
+    }
+  }, [open, fetchImpl, visit.id])
   if (!open)
     return (
       <div className="hh-button-row">
@@ -302,12 +388,14 @@ export function OfferWindows<V>({
           </div>
         </fieldset>
       ) : null}
-      <Field
-        label={t('offers.form.instructions')}
-        multiline
-        rows={3}
+      <PreparationField
+        t={t}
         value={instructions}
-        onChange={(e) => setInstructions(e.target.value)}
+        onChange={(v) => {
+          touched.current = true
+          setInstructions(v)
+        }}
+        prep={prep}
       />
       {replace ? (
         <Field
@@ -545,7 +633,14 @@ export function VisitOffers<V>({
               ))}
             </ul>
             {o.preparationInstructions ? (
-              <p className="staff-request__hint">{t('offers.instructions', { text: o.preparationInstructions })}</p>
+              <p className="staff-request__hint staff-offer__instructions">
+                {t('offers.instructions', { text: o.preparationInstructions })}
+              </p>
+            ) : null}
+            {o.preparationBasis ? (
+              <p className="staff-request__hint" data-testid="offer-preparation-basis">
+                {codeLabel(t, 'preparationBasis', o.preparationBasis)}
+              </p>
             ) : null}
             {o.customerNote ? (
               <p data-testid="offer-customer-note">{t('offers.customerNote', { note: o.customerNote })}</p>

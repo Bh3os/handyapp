@@ -168,6 +168,12 @@ export const TABLES = {
     categories: [SH],
     protectedEvidence: true,
   },
+  // TSK-0146 (0123, OWN-DEC-194 B7): the Owner-approved default preparation instructions per service, versioned.
+  'catalog.preparation_defaults': {
+    holds: 'Owner-approved default preparation instructions per service for window offers, with every version',
+    classes: ['configuration'],
+    categories: [SH],
+  },
   'catalog.services': {
     holds: 'The 26 services and their published version',
     classes: ['configuration'],

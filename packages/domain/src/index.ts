@@ -476,3 +476,5 @@ export * from './job-costs.js'
 export * from './job-margin.js'
 export * from './report-sources.js'
 export * from './owner-dashboard.js'
+// TSK-0146 (OWN-DEC-194 B7): reviewed default preparation instructions and the unsafe-instruction check.
+export * from './preparation.js'

@@ -143336,6 +143336,348 @@
         }
       }
     },
+    "/api/v1/staff/preparation-defaults": {
+      "get": {
+        "operationId": "listPreparationDefaults",
+        "summary": "Every service's default preparation instructions for offers",
+        "description": "The Owner only (service_content.approve). For each of the 26 services: the reviewed \"Getting ready\" steps of its approved page version (TSK-0132, OWN-DEC-180; one step per line, with the unsafe-instruction rules they meet, none for reviewed content), the default in force (null: NOT CONFIGURED, nothing is offered as a default), its version (0 for none) and every version approved, newest first.",
+        "tags": [
+          "visits"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "services"
+                  ],
+                  "properties": {
+                    "services": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "serviceId",
+                          "code",
+                          "category",
+                          "name",
+                          "servicePage",
+                          "current",
+                          "version",
+                          "history"
+                        ],
+                        "properties": {
+                          "serviceId": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          },
+                          "category": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "servicePage": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "version",
+                                  "text",
+                                  "problems"
+                                ],
+                                "properties": {
+                                  "version": {
+                                    "type": "integer"
+                                  },
+                                  "text": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "problems": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "enum": [
+                                        "hazardous_materials",
+                                        "licensed_trade",
+                                        "structural",
+                                        "heights_and_confined_spaces",
+                                        "hazard_inspection"
+                                      ]
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "current": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "id",
+                                  "version",
+                                  "text",
+                                  "basis",
+                                  "serviceVersion",
+                                  "reason",
+                                  "approvedBy",
+                                  "approvedAt"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "version": {
+                                    "type": "integer"
+                                  },
+                                  "text": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "basis": {
+                                    "type": "string",
+                                    "enum": [
+                                      "service_page",
+                                      "edited",
+                                      "removed"
+                                    ]
+                                  },
+                                  "serviceVersion": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ]
+                                  },
+                                  "reason": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "approvedBy": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "id",
+                                      "name"
+                                    ],
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "approvedAt": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                  }
+                                }
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "history": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "id",
+                                "version",
+                                "text",
+                                "basis",
+                                "serviceVersion",
+                                "reason",
+                                "approvedBy",
+                                "approvedAt"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "version": {
+                                  "type": "integer"
+                                },
+                                "text": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "basis": {
+                                  "type": "string",
+                                  "enum": [
+                                    "service_page",
+                                    "edited",
+                                    "removed"
+                                  ]
+                                },
+                                "serviceVersion": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ]
+                                },
+                                "reason": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "approvedBy": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": [
+                                        "string",
+                                        "null"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "approvedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "service_content.approve",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/preparation-defaults.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/privacy-requests": {
       "get": {
         "operationId": "listPrivacyRequests",
@@ -155599,6 +155941,7 @@
                                 "expiresAt",
                                 "holdHours",
                                 "preparationInstructions",
+                                "preparationBasis",
                                 "windows",
                                 "team",
                                 "selectedPosition",
@@ -155708,6 +156051,19 @@
                                   "type": [
                                     "string",
                                     "null"
+                                  ]
+                                },
+                                "preparationBasis": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "enum": [
+                                    "default",
+                                    "edited",
+                                    "staff",
+                                    "none",
+                                    null
                                   ]
                                 },
                                 "windows": {
@@ -158124,6 +158480,7 @@
                                 "expiresAt",
                                 "holdHours",
                                 "preparationInstructions",
+                                "preparationBasis",
                                 "windows",
                                 "team",
                                 "selectedPosition",
@@ -158233,6 +158590,19 @@
                                   "type": [
                                     "string",
                                     "null"
+                                  ]
+                                },
+                                "preparationBasis": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "enum": [
+                                    "default",
+                                    "edited",
+                                    "staff",
+                                    "none",
+                                    null
                                   ]
                                 },
                                 "windows": {
@@ -185354,6 +185724,236 @@
         }
       }
     },
+    "/api/v1/staff/services/{serviceId}/preparation-defaults": {
+      "post": {
+        "operationId": "approvePreparationDefault",
+        "summary": "Approve a service's default preparation instructions for offers",
+        "description": "The Owner only (service_content.approve; OWN-DEC-194 B7). Records the next version of the service’s default: source service_page takes the reviewed \"Getting ready\" steps of its approved page version as they are (SERVICE_PAGE_NOT_REVIEWED when there are none); source text is the Owner’s own text (TEXT_REQUIRED, TEXT_TOO_LONG over 1,000 characters); source none removes the default, so the service is NOT CONFIGURED again (NO_DEFAULT when there is none). currentVersion is the version the Owner saw (0 for none; STALE_VERSION otherwise). Every text passes the unsafe-instruction rules (VALIDATION_FAILED UNSAFE_<RULE>: hazardous materials, licensed trade work, structural work, heights and confined spaces, a hazard inspection; PROPOSED); the same text again is DEFAULT_UNCHANGED. An optional reason is kept. Offers saved afterwards start from it; offers already saved keep their instructions.",
+        "tags": [
+          "visits"
+        ],
+        "parameters": [
+          {
+            "name": "serviceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^SVC-[A-Z]{2}-[0-9]{2}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "source",
+                  "currentVersion"
+                ],
+                "properties": {
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "service_page",
+                      "text",
+                      "none"
+                    ]
+                  },
+                  "text": {
+                    "type": "string",
+                    "maxLength": 1000
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "currentVersion": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "serviceId",
+                    "version",
+                    "basis",
+                    "serviceVersion"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "serviceId": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "basis": {
+                      "type": "string",
+                      "enum": [
+                        "service_page",
+                        "edited",
+                        "removed"
+                      ]
+                    },
+                    "serviceVersion": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "service_content.approve",
+          "kind": "write",
+          "idempotency": "required",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "required_with_staff_session",
+          "audit": "visit.approve_preparation_default",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/preparation-defaults.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/settings/approval-threshold": {
       "get": {
         "operationId": "getApprovalThreshold",
@@ -193180,6 +193780,7 @@
                                 "expiresAt",
                                 "holdHours",
                                 "preparationInstructions",
+                                "preparationBasis",
                                 "windows",
                                 "team",
                                 "selectedPosition",
@@ -193289,6 +193890,19 @@
                                   "type": [
                                     "string",
                                     "null"
+                                  ]
+                                },
+                                "preparationBasis": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "enum": [
+                                    "default",
+                                    "edited",
+                                    "staff",
+                                    "none",
+                                    null
                                   ]
                                 },
                                 "windows": {
@@ -197157,6 +197771,7 @@
                                 "expiresAt",
                                 "holdHours",
                                 "preparationInstructions",
+                                "preparationBasis",
                                 "windows",
                                 "team",
                                 "selectedPosition",
@@ -197266,6 +197881,19 @@
                                   "type": [
                                     "string",
                                     "null"
+                                  ]
+                                },
+                                "preparationBasis": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "enum": [
+                                    "default",
+                                    "edited",
+                                    "staff",
+                                    "none",
+                                    null
                                   ]
                                 },
                                 "windows": {
@@ -199651,6 +200279,7 @@
                                 "expiresAt",
                                 "holdHours",
                                 "preparationInstructions",
+                                "preparationBasis",
                                 "windows",
                                 "team",
                                 "selectedPosition",
@@ -199760,6 +200389,19 @@
                                   "type": [
                                     "string",
                                     "null"
+                                  ]
+                                },
+                                "preparationBasis": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "enum": [
+                                    "default",
+                                    "edited",
+                                    "staff",
+                                    "none",
+                                    null
                                   ]
                                 },
                                 "windows": {
@@ -203086,6 +203728,7 @@
                                 "expiresAt",
                                 "holdHours",
                                 "preparationInstructions",
+                                "preparationBasis",
                                 "windows",
                                 "team",
                                 "selectedPosition",
@@ -203195,6 +203838,19 @@
                                   "type": [
                                     "string",
                                     "null"
+                                  ]
+                                },
+                                "preparationBasis": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "enum": [
+                                    "default",
+                                    "edited",
+                                    "staff",
+                                    "none",
+                                    null
                                   ]
                                 },
                                 "windows": {
@@ -205582,6 +206238,7 @@
                                 "expiresAt",
                                 "holdHours",
                                 "preparationInstructions",
+                                "preparationBasis",
                                 "windows",
                                 "team",
                                 "selectedPosition",
@@ -205691,6 +206348,19 @@
                                   "type": [
                                     "string",
                                     "null"
+                                  ]
+                                },
+                                "preparationBasis": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "enum": [
+                                    "default",
+                                    "edited",
+                                    "staff",
+                                    "none",
+                                    null
                                   ]
                                 },
                                 "windows": {
@@ -206864,7 +207534,7 @@
       "post": {
         "operationId": "offerVisitWindows",
         "summary": "Offer windows of a tentative visit to the customer, held for its team",
-        "description": "Staff with visit.offer_windows (Owner, Office; an Estimator: estimate visits only, PROPOSED), with If-Match: the visit version shown (HH-SCH-11, HH-LEAD-07, OWN-DEC-144, OWN-DEC-194). Names the windows (local date and arrival window in the visit's zone, with the reading of a repeated hour when needed), the visit's whole team (exactly its number of workers, the lead first, and an item for each equipment entry) and optional customer-facing preparation instructions. The number of windows is the configured policy (scheduling.window_offers: 2-3, OWN-DEC-99 and OWN-DEC-105; NOT CONFIGURED while unset), their reserved ranges may not overlap (OFFER_WINDOWS_OVERLAP) and each must start in the future. TSK-0145: with draft true the offer is only saved as a draft (B1): nothing is held, no number is given and no clock runs (one draft per visit, OFFER_DRAFT_EXISTS). Otherwise it is published at once, as publishWindowOffer does: the conditions of the visit's purpose (A2: an estimate visit needs no approved job; a work visit its approval, the job's gates and, on a completed job, its follow-up authorization; every visit no blocking hold, A1, and the site checks) and every window like a confirmation (the team's working hours, time off, eligibility and existing reservations or holds, the on-site part inside the visit hours), each window then held for the team until the offer expires: the configured hold hours from the publication, by the database clock (24 hours, OWN-DEC-144). A concurrent offer or confirmation of the same capacity gets CONFLICT naming every unmet requirement per window (windows[i].workers.<id>, ...) with alternatives, and nothing partial is written. One open offer per visit: over it, a replaceReason replaces it (B4; OFFER_OPEN without one). Publishing writes the committed event of the automatic options notice (estimate_visit.windows_published #5, work_visit.windows_published #11) and schedules the expiry. Nothing is confirmed here. Returns the project's visits.",
+        "description": "Staff with visit.offer_windows (Owner, Office; an Estimator: estimate visits only, PROPOSED), with If-Match: the visit version shown (HH-SCH-11, HH-LEAD-07, OWN-DEC-144, OWN-DEC-194). Names the windows (local date and arrival window in the visit's zone, with the reading of a repeated hour when needed), the visit's whole team (exactly its number of workers, the lead first, and an item for each equipment entry) and optional customer-facing preparation instructions (TSK-0146, OWN-DEC-194 B7: the form starts them from the Owner-approved defaults of the visit’s services; the offer keeps the text sent, with its basis default, edited, staff or none; unsafe instructions are refused, VALIDATION_FAILED UNSAFE_<RULE> on body.preparationInstructions, and checked again when a draft is published). The number of windows is the configured policy (scheduling.window_offers: 2-3, OWN-DEC-99 and OWN-DEC-105; NOT CONFIGURED while unset), their reserved ranges may not overlap (OFFER_WINDOWS_OVERLAP) and each must start in the future. TSK-0145: with draft true the offer is only saved as a draft (B1): nothing is held, no number is given and no clock runs (one draft per visit, OFFER_DRAFT_EXISTS). Otherwise it is published at once, as publishWindowOffer does: the conditions of the visit's purpose (A2: an estimate visit needs no approved job; a work visit its approval, the job's gates and, on a completed job, its follow-up authorization; every visit no blocking hold, A1, and the site checks) and every window like a confirmation (the team's working hours, time off, eligibility and existing reservations or holds, the on-site part inside the visit hours), each window then held for the team until the offer expires: the configured hold hours from the publication, by the database clock (24 hours, OWN-DEC-144). A concurrent offer or confirmation of the same capacity gets CONFLICT naming every unmet requirement per window (windows[i].workers.<id>, ...) with alternatives, and nothing partial is written. One open offer per visit: over it, a replaceReason replaces it (B4; OFFER_OPEN without one). Publishing writes the committed event of the automatic options notice (estimate_visit.windows_published #5, work_visit.windows_published #11) and schedules the expiry. Nothing is confirmed here. Returns the project's visits.",
         "tags": [
           "visits"
         ],
@@ -208135,6 +208805,7 @@
                                 "expiresAt",
                                 "holdHours",
                                 "preparationInstructions",
+                                "preparationBasis",
                                 "windows",
                                 "team",
                                 "selectedPosition",
@@ -208244,6 +208915,19 @@
                                   "type": [
                                     "string",
                                     "null"
+                                  ]
+                                },
+                                "preparationBasis": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "enum": [
+                                    "default",
+                                    "edited",
+                                    "staff",
+                                    "none",
+                                    null
                                   ]
                                 },
                                 "windows": {
@@ -210754,6 +211438,181 @@
         }
       }
     },
+    "/api/v1/staff/visits/{visitId}/preparation-default": {
+      "get": {
+        "operationId": "visitPreparationDefault",
+        "summary": "The preparation instructions a visit's offer starts from",
+        "description": "Staff with visit.offer_windows (Owner, Office; an Estimator PROPOSED). The Owner-approved default preparation instructions of the visit's services (OWN-DEC-194 B7): the job's work packages for a work visit, the project's work packages (else the request’s services) for an estimate visit. text combines them (one service: its default; several: each under its service name, PROPOSED) and is null while none has an approved default; each service says approved (with its default version) or not_configured. tooLong: the combination is over the 1,000 characters an offer keeps, so staff shorten it. Staff may change the text before offering; the offer keeps what they send.",
+        "tags": [
+          "visits"
+        ],
+        "parameters": [
+          {
+            "name": "visitId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "visitId",
+                    "text",
+                    "tooLong",
+                    "services"
+                  ],
+                  "properties": {
+                    "visitId": {
+                      "type": "string"
+                    },
+                    "text": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "tooLong": {
+                      "type": "boolean"
+                    },
+                    "services": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "serviceId",
+                          "name",
+                          "state",
+                          "version"
+                        ],
+                        "properties": {
+                          "serviceId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "approved",
+                              "not_configured"
+                            ]
+                          },
+                          "version": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "staff"
+          ],
+          "permission": "visit.offer_windows",
+          "kind": "read",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": "none",
+          "freshAuthMinutes": null,
+          "secondFactor": "required",
+          "csrf": "not_required",
+          "audit": "none",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/preparation-defaults.test.ts"
+        }
+      }
+    },
     "/api/v1/staff/visits/{visitId}/reassign": {
       "post": {
         "operationId": "reassignVisit",
@@ -211971,6 +212830,7 @@
                                 "expiresAt",
                                 "holdHours",
                                 "preparationInstructions",
+                                "preparationBasis",
                                 "windows",
                                 "team",
                                 "selectedPosition",
@@ -212080,6 +212940,19 @@
                                   "type": [
                                     "string",
                                     "null"
+                                  ]
+                                },
+                                "preparationBasis": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "enum": [
+                                    "default",
+                                    "edited",
+                                    "staff",
+                                    "none",
+                                    null
                                   ]
                                 },
                                 "windows": {
@@ -217390,6 +218263,7 @@
                                 "expiresAt",
                                 "holdHours",
                                 "preparationInstructions",
+                                "preparationBasis",
                                 "windows",
                                 "team",
                                 "selectedPosition",
@@ -217499,6 +218373,19 @@
                                   "type": [
                                     "string",
                                     "null"
+                                  ]
+                                },
+                                "preparationBasis": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "enum": [
+                                    "default",
+                                    "edited",
+                                    "staff",
+                                    "none",
+                                    null
                                   ]
                                 },
                                 "windows": {
@@ -220693,6 +221580,7 @@
                                 "expiresAt",
                                 "holdHours",
                                 "preparationInstructions",
+                                "preparationBasis",
                                 "windows",
                                 "team",
                                 "selectedPosition",
@@ -220802,6 +221690,19 @@
                                   "type": [
                                     "string",
                                     "null"
+                                  ]
+                                },
+                                "preparationBasis": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "enum": [
+                                    "default",
+                                    "edited",
+                                    "staff",
+                                    "none",
+                                    null
                                   ]
                                 },
                                 "windows": {
@@ -223168,6 +224069,7 @@
                                 "expiresAt",
                                 "holdHours",
                                 "preparationInstructions",
+                                "preparationBasis",
                                 "windows",
                                 "team",
                                 "selectedPosition",
@@ -223277,6 +224179,19 @@
                                   "type": [
                                     "string",
                                     "null"
+                                  ]
+                                },
+                                "preparationBasis": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "enum": [
+                                    "default",
+                                    "edited",
+                                    "staff",
+                                    "none",
+                                    null
                                   ]
                                 },
                                 "windows": {
@@ -225646,6 +226561,7 @@
                                 "expiresAt",
                                 "holdHours",
                                 "preparationInstructions",
+                                "preparationBasis",
                                 "windows",
                                 "team",
                                 "selectedPosition",
@@ -225755,6 +226671,19 @@
                                   "type": [
                                     "string",
                                     "null"
+                                  ]
+                                },
+                                "preparationBasis": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "enum": [
+                                    "default",
+                                    "edited",
+                                    "staff",
+                                    "none",
+                                    null
                                   ]
                                 },
                                 "windows": {

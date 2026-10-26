@@ -26,6 +26,18 @@ export interface CatalogLoadoutVersionsTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface CatalogPreparationDefaultsTable {
+  id: Generated<string>
+  service_id: string
+  version: number
+  text: string | null
+  basis: string
+  service_version: number | null
+  reason: string | null
+  approved_by: string
+  approved_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface CatalogServiceVersionsTable {
   service_id: string
   version: number
@@ -3100,6 +3112,8 @@ export interface WorkWindowOffersTable {
   replaced_by: string | null
   worker_ids: string[] | null
   equipment_ids: string[] | null
+  preparation_basis: string | null
+  preparation_default_ids: string[] | null
 }
 
 export interface WorkWorkPackageLoadoutsTable {
@@ -3192,6 +3206,7 @@ export interface WorkWorkingHoursTable {
 
 export interface Database {
   'catalog.loadout_versions': CatalogLoadoutVersionsTable
+  'catalog.preparation_defaults': CatalogPreparationDefaultsTable
   'catalog.service_versions': CatalogServiceVersionsTable
   'catalog.services': CatalogServicesTable
   'catalog.sop_spanish_versions': CatalogSopSpanishVersionsTable

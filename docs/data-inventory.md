@@ -137,6 +137,7 @@ Data owner for every category: the Owner, who decides each deletion-review entry
 | Table | Holds | Classes | Retention categories | End of life | Vendors |
 | --- | --- | --- | --- | --- | --- |
 | `catalog.loadout_versions` | Imported loadout lists per service: the vault inventory groups, items and review notes, verbatim | Configuration and content | `settings_history` | Archive, Void or audited correction; never ordinary deletion | Render |
+| `catalog.preparation_defaults` | Owner-approved default preparation instructions per service for window offers, with every version | Configuration and content | `settings_history` | Kept while retained records depend on it; unreferenced history only after the Owner's review | Render |
 | `catalog.service_versions` | Approved service content versions (descriptions, intake questions, SOP link) | Configuration and content | `settings_history` | Archive, Void or audited correction; never ordinary deletion | Render |
 | `catalog.services` | The 26 services and their published version | Configuration and content | `settings_history` | Kept while retained records depend on it; unreferenced history only after the Owner's review | Render |
 | `catalog.sop_spanish_versions` | Spanish SOP versions with the separate comparison against their English version and its release status | Configuration and content | `settings_history` | Archive, Void or audited correction; never ordinary deletion | Render |

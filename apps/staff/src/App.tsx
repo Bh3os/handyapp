@@ -52,6 +52,7 @@ import { JobSafety, SafetyHoldPage, flushPendingStops } from './StopWork'
 import { OwnerEscalationPhone, flushPendingEscalations, rememberOwnerContact } from './Escalation'
 import { StagingTools } from './StagingTools'
 import { LaunchPhaseSetting } from './LaunchPhase'
+import { PreparationDefaultsSetting } from './PreparationDefaults'
 import { ConfigurationScreen, HealthScreen } from './System'
 import { VisitTimesPage } from './VisitTimes'
 import { VisitAccessPage } from './VisitAccess'
@@ -458,6 +459,8 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
                 onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
               />
               <LegalDocumentsView t={t} fetchImpl={doFetch} />
+              {/* TSK-0146: the Owner-approved default preparation instructions offers start from. */}
+              <PreparationDefaultsSetting t={t} locale={locale} fetchImpl={doFetch} />
             </>
           ) : (route.page === 'screen' || route.page === 'record') && shown === 'staff' && allowed ? (
             // TSK-0151: an Owner Decisions permission review opens the person's record (/staff/<id>).
