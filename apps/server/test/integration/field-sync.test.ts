@@ -291,13 +291,13 @@ async function approve(p: Project): Promise<string> {
 
 /** An estimate published and withdrawn on the project: never accepted, so nothing blocks its deletion. */
 
-const SLOT_MINUTES = 30
+const SLOT_MINUTES = 10
 /** Slots taken per local date and worker, so one worker's fixtures never overlap. */
 const taken = new Map<string, Set<number>>()
 /**
- * The first free 30-minute slot after local midnight of `date` for the whole team: a 15-minute window and its
- * 15-minute covering reservation. Slots count real minutes from midnight (a DST day skips the slot it cannot
- * express), so even the fifth visit of one worker starts within two hours of midnight: On my way (three hours
+ * The first free 10-minute slot after local midnight of `date` for the whole team: a 5-minute window and its
+ * 5-minute covering reservation. Slots count real minutes from midnight (a DST day skips the slot it cannot
+ * express), so even the twelfth visit of one worker starts within two hours of midnight: On my way (three hours
  * before the window, OWN-DEC-107) is open whenever the suite runs on that local day, at any hour (HH-SCH-08, T47).
  */
 function fixtureWindow(date: string, team: Person[]) {

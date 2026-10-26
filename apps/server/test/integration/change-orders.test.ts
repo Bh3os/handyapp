@@ -15,7 +15,14 @@ import {
   type Db,
 } from '@handyhub/db'
 import { createTestDatabase, type TestDatabase } from '@handyhub/db/testing'
-import { localClockOf, localDateOf, offsetMinutesAt, resolveLocalTime, resolveWindow } from '@handyhub/domain'
+import {
+  addLocalDays,
+  localClockOf,
+  localDateOf,
+  offsetMinutesAt,
+  resolveLocalTime,
+  resolveWindow,
+} from '@handyhub/domain'
 import { ESTIMATE_TERMS } from '@handyhub/domain/legal'
 import type { FastifyInstance } from 'fastify'
 import { sql } from 'kysely'
@@ -859,10 +866,11 @@ describe('[HH-CHG-02][OWN-DEC-168][OWN-DEC-173] publishing a change order: Owner
     expect(res.statusCode, res.body).toBe(200)
     const out = res.json<{ state: string; validUntil: string; ownerApproval: unknown; reference: string }>()
     expect(out).toMatchObject({ state: 'issued', ownerApproval: null, reference: `${p.reference}-C${co.number}` })
-    // Seven calendar days, to the end of the day in the business time zone.
-    const days = (new Date(out.validUntil).getTime() - Date.now()) / 86_400_000
-    expect(days).toBeGreaterThan(7)
-    expect(days).toBeLessThanOrEqual(8)
+    // Seven calendar days, to the end of the day in the business time zone. Checked as local dates, not as 24-hour
+    // days: a week that crosses a daylight-saving change has a 23- or 25-hour day.
+    const validUntil = new Date(out.validUntil).getTime()
+    expect(localDateOf(new Date(validUntil - 1), ZONE)).toBe(addLocalDays(today(), 7))
+    expect(localDateOf(new Date(validUntil + 1_000), ZONE)).toBe(addLocalDays(today(), 8))
     const row = await versionRow(co.id)
     expect(row).toMatchObject({ state: 'issued', issued_by: ids.estimator })
     expect(row.content_sha256).toMatch(/^[0-9a-f]{64}$/)
