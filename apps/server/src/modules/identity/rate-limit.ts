@@ -1,6 +1,9 @@
 // Sign-in, reset and link rate limits (TSK-0014; HH-STAFF-01, HH-SEC-02, HH-INT-11). Fixed windows counted in
 // PostgreSQL, so every server instance shares them; keys are SHA-256 hashes, never raw emails or addresses. A count is
 // added in one statement and the answer follows that count, so parallel guesses cannot all pass below the limit.
+// TSK-0109 (docs/security/review-2026.md AUTH-1): sign-in, the second factor and re-authentication count each attempt
+// before the password or code is checked (`hit`) and give a successful one back (`release`); reading the count first
+// and adding to it only after a failure let parallel guesses all pass the read.
 import type { Db, Tx } from '@handyhub/db'
 import { sql } from 'kysely'
 import { ApiError } from '../../api/errors.js'
@@ -27,19 +30,6 @@ function limited(rule: RateRule, start: Date, now: Date): ApiError {
   return new ApiError('RATE_LIMITED', { headers: { 'retry-after': String(retryAfter) } })
 }
 
-/** Refuses with RATE_LIMITED when the window already holds `limit` hits, without counting this request. */
-export async function check(db: Db | Tx, rule: RateRule, key: string, now = new Date()): Promise<void> {
-  const start = windowStart(rule, now)
-  const row = await db
-    .selectFrom('identity.rate_limits')
-    .select('hits')
-    .where('bucket', '=', rule.bucket)
-    .where('key_hash', '=', hashToken(`${rule.bucket}|${key}`))
-    .where('window_start', '=', start)
-    .executeTakeFirst()
-  if ((row?.hits ?? 0) >= rule.limit) throw limited(rule, start, now)
-}
-
 /** Counts one hit and refuses with RATE_LIMITED (Retry-After) once the window's limit is passed. */
 export async function hit(db: Db | Tx, rule: RateRule, key: string, now = new Date()): Promise<void> {
   const start = windowStart(rule, now)
@@ -50,6 +40,17 @@ export async function hit(db: Db | Tx, rule: RateRule, key: string, now = new Da
     RETURNING hits`.execute(db)
   const hits = row.rows[0]?.hits ?? 0
   if (hits > rule.limit) throw limited(rule, start, now)
+}
+
+/** Gives back the hit of an attempt that succeeded (counted by `hit` at `now`): only failures stay counted. */
+export async function release(db: Db | Tx, rule: RateRule, key: string, now: Date): Promise<void> {
+  await db
+    .updateTable('identity.rate_limits')
+    .set({ hits: sql<number>`greatest(hits - 1, 0)` })
+    .where('bucket', '=', rule.bucket)
+    .where('key_hash', '=', hashToken(`${rule.bucket}|${key}`))
+    .where('window_start', '=', windowStart(rule, now))
+    .execute()
 }
 
 /** The client network: an IPv4 address, or an IPv6 /64. */

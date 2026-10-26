@@ -17,3 +17,5 @@ source: "guide 25.1"
 - A compromised credential is rotated through the provider's own controls.
 - There is no publicly shared database or object-storage admin key.
 - A secret scanner runs on every commit; secret-looking test values are built at runtime.
+
+**Built by [[TSK-0109]] (2026-10-26):** the request log masks staff invite and reset tokens in paths, logged database errors lose the fields that quote statement values, the 404 answer echoes no query, and CI scans the built site, portal and staff bundles for secrets (`docs/security/review-2026.md` LINK-1, LOG-2, LOG-3, SEC-1).

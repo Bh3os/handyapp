@@ -195,6 +195,13 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
     setCurrent(target)
   }
   const route = routeOf(current, appBase)
+  // TSK-0109 (docs/security/review-2026.md LINK-1): a set-password link's token leaves the address bar and the browser
+  // history as soon as the page has read it; the page keeps it in memory only. Reloading asks for the link again.
+  const linkToken = route.page === 'set-password' ? route.token : null
+  useEffect(() => {
+    if (linkToken === null || route.page !== 'set-password' || path !== undefined) return
+    window.history.replaceState(null, '', href(`/${route.purpose}`))
+  }, [linkToken])
   const needsSession = signedInPage(route)
   const [session, setSessionState] = useState<Session | null | undefined>(needsSession ? undefined : null)
   const [signingOut, setSigningOut] = useState(false)

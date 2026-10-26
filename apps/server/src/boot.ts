@@ -3,7 +3,7 @@
 // With a database: the provider webhooks (/webhooks/bird, /webhooks/resend) and the in-process job worker run too;
 // the worker stops and the pool closes when the app closes.
 import { randomUUID } from 'node:crypto'
-import { createDb, databaseIdentity, recordEnvironmentMark, withTx } from '@handyhub/db'
+import { createDb, databaseIdentity, recordEnvironmentMark, SERVER_POOL_CONNECT_TIMEOUT_MS, withTx } from '@handyhub/db'
 import type { FastifyInstance } from 'fastify'
 import { buildApp } from './app.js'
 import { buildAutomations } from './automations.js'
@@ -49,6 +49,7 @@ export async function boot(env: Readonly<Record<string, string | undefined>>, op
   const db = config.databaseUrl
     ? createDb(config.databaseUrl, {
         applicationName: 'handyapp-server',
+        connectionTimeoutMillis: SERVER_POOL_CONNECT_TIMEOUT_MS,
         onConnectionLost: (err) =>
           late.log?.warn({ code: err.code ?? null }, 'database connection lost; it is replaced'),
       })

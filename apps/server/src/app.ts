@@ -8,7 +8,7 @@ import fastifyStatic from '@fastify/static'
 import Fastify, { type FastifyBaseLogger, type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify'
 import { accessGateHook, FailureLimiter } from './access-gate.js'
 import { stagingToolsEnvironment, type Config } from './config.js'
-import { createDb, isPublicServiceSlug, publicServices, type Db } from '@handyhub/db'
+import { createDb, isPublicServiceSlug, publicServices, SERVER_POOL_CONNECT_TIMEOUT_MS, type Db } from '@handyhub/db'
 import { REFERENCE_PATTERN } from '@handyhub/domain/request-form'
 import { registerApi, type SurfaceResolvers } from './api/register.js'
 import type { ApiModule, ResolveActor } from './api/route.js'
@@ -22,7 +22,7 @@ import type { ObjectStorage } from './providers/index.js'
 import { staffSessionResolver } from './modules/identity/actor.js'
 import { customerSessionResolver } from './modules/identity/customer-sessions.js'
 import type { CodeKeySettings } from './modules/identity/keys.js'
-import { createLogger, type Logger } from './platform/logger.js'
+import { createLogger, loggablePath, type Logger } from './platform/logger.js'
 import { registerRequestContext, requestIdFrom } from './platform/request-context.js'
 
 export interface AppOptions {
@@ -124,6 +124,7 @@ export async function buildApp({
     (config.databaseUrl
       ? createDb(config.databaseUrl, {
           applicationName: 'handyapp-api',
+          connectionTimeoutMillis: SERVER_POOL_CONNECT_TIMEOUT_MS,
           // TSK-0107: a lost connection is replaced; only its code is logged.
           onConnectionLost: (err) =>
             app.log.warn({ code: err.code ?? null }, 'database connection lost; it is replaced'),
@@ -208,9 +209,16 @@ export async function buildApp({
           .send(status === 503 ? 'Unavailable' : 'Internal Server Error')
   app.setNotFoundHandler(async (req, reply) => {
     if (sitePageRequest(req) && site && fileIn(site, '/404.html')) return sitePage(reply, 404, '404.html')
-    return reply
-      .status(404)
-      .send({ message: `Route ${req.method}:${req.url} not found`, error: 'Not Found', statusCode: 404 })
+    return (
+      reply
+        .status(404)
+        // The path only, without its query and any link token (TSK-0109 LOG-3): never a code echoed back.
+        .send({
+          message: `Route ${req.method}:${loggablePath(req.url)} not found`,
+          error: 'Not Found',
+          statusCode: 404,
+        })
+    )
   })
   app.setErrorHandler(async (err: { statusCode?: number }, req, reply) => {
     const status = typeof err.statusCode === 'number' && err.statusCode >= 400 ? err.statusCode : 500

@@ -6,7 +6,7 @@ import pg from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { boot } from '../../src/boot.js'
 import { ConfigError } from '../../src/config.js'
-import { basic, GATE_USERS, gatePassword } from '../fixtures/env.js'
+import { basic, GATE_USERS, gatePassword, PRODUCTION_SHAPE } from '../fixtures/env.js'
 
 let testDb: TestDatabase
 let app: FastifyInstance
@@ -115,13 +115,13 @@ describe('boot refuses a missing required variable (TSK-0003, RULE-SYNTHETIC-DAT
   it('[HH-OPS-05] a production server records its environment mark, or does not start (TSK-0141)', async () => {
     const dead = new URL(testDb.url)
     dead.port = '1'
-    await expect(boot({ HANDYHUB_ENV: 'production', DATABASE_URL: dead.toString(), PORT: '0' })).rejects.toThrow(
+    await expect(boot({ ...PRODUCTION_SHAPE, DATABASE_URL: dead.toString(), PORT: '0' })).rejects.toThrow(
       /production server refused to start/,
     )
     // A migrated database is marked production at boot, for good (a staging reset is then refused on it).
     const prod = await createTestDatabase()
     try {
-      const started = await boot({ HANDYHUB_ENV: 'production', DATABASE_URL: prod.url, PORT: '0' }, { worker: false })
+      const started = await boot({ ...PRODUCTION_SHAPE, DATABASE_URL: prod.url, PORT: '0' }, { worker: false })
       await started.app.close()
       const marks = await prod.db.selectFrom('staging.environment_marks').select('environment').execute()
       expect(marks.map((m) => m.environment)).toEqual(['production'])
