@@ -267,6 +267,18 @@ export const TABLES = {
     classes: ['service_address'],
     categories: [C, R],
   },
+  'crm.project_coverage_acceptances': {
+    holds:
+      'Staff acceptance of a project’s service-area coverage on a county check, or the Owner’s exception with its reason (TSK-0126)',
+    classes: ['service_address'],
+    categories: [C, R],
+  },
+  'crm.project_site_contacts': {
+    holds:
+      'The authorized site contact of a project: name, role, phone or email, the authority staff confirmed, source (TSK-0126)',
+    classes: ['contact', 'service_address'],
+    categories: [C, R],
+  },
   'crm.property_county_verifications': {
     holds: 'Staff verification of a property address version and its county, with an optional note (TSK-0127)',
     classes: ['service_address'],
