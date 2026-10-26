@@ -49,7 +49,12 @@ describe('data scopes (TSK-0037, HH-DATA-01)', () => {
     for (const role of ['owner', 'office', 'estimator'] as const)
       expect(dataScope(staff([role]), 'request.view', now)).toEqual({ kind: 'all' })
     expect(dataScope(staff(['worker']), 'request.view', now)).toBe(NO_SCOPE)
-    expect(dataScope(staff(['worker']), 'message.reply', now)).toEqual({ kind: 'assigned', staffUserId: 'staff-1' })
+    // TSK-0155 (OWN-DEC-211): a worker never replies to a customer; they propose a reply from an assigned job.
+    expect(dataScope(staff(['worker']), 'message.reply', now)).toBe(NO_SCOPE)
+    expect(dataScope(staff(['worker']), 'message.propose_reply', now)).toEqual({
+      kind: 'assigned',
+      staffUserId: 'staff-1',
+    })
     expect(dataScope(staff(['estimator']), 'message.reply', now)).toEqual({ kind: 'own', staffUserId: 'staff-1' })
     // Several roles: the widest grant counts.
     expect(dataScope(staff(['worker', 'office']), 'message.reply', now)).toEqual({ kind: 'all' })

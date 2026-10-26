@@ -83,6 +83,8 @@ export const LABEL_FAMILIES = {
     'candidate_match',
     'inbox_needs_linking',
     'customer_replied',
+    // TSK-0155: a worker's proposed customer reply waiting for the Owner or Office.
+    'reply_proposal',
     'question_replied',
     'question_reminder',
     'deposit_due',
@@ -203,6 +205,9 @@ export const LABEL_FAMILIES = {
     'possible_duplicate',
     'message_needs_linking',
     'customer_replied',
+    // TSK-0155: a proposed reply submitted, or the worker answered the reviewer's question.
+    'reply_proposed',
+    'clarification_answered',
     'question_replied',
     'reopened_by_reply',
     'question_reminder_first',
@@ -302,8 +307,20 @@ export const LABEL_FAMILIES = {
     'review_permissions',
     'help_access',
     'close_job',
+    // TSK-0155: review a worker's proposed reply.
+    'review_proposal',
   ],
   // TSK-0078 (HH-SCH-09): the outcomes a worker records on a visit, and why one is refused.
+  /** TSK-0155 (HH-COM-16): a worker's proposed reply as the worker and the reviewer see it. */
+  proposalStatus: ['draft', 'awaiting_review', 'sent', 'rejected'],
+  proposalEvent: ['submitted', 'clarification_requested', 'clarification_answered', 'rejected', 'sent'],
+  proposalRefusal: [
+    'empty',
+    'PROPOSAL_NOT_DRAFT',
+    'NO_OPEN_CLARIFICATION',
+    'PROPOSAL_NOT_AWAITING_REVIEW',
+    'CLARIFICATION_OPEN',
+  ],
   visitOutcomeKind: ['delay', 'no_access', 'customer_absent', 'weather', 'missing_resources', 'readiness_issue'],
   visitOutcomeRefusal: ['VISIT_NOT_OPEN', 'WORK_STARTED', 'NOTE_REQUIRED', 'NOTE_TOO_LONG', 'ALREADY_FOLLOWED_UP'],
   /**
@@ -931,6 +948,12 @@ export const LABEL_FAMILIES = {
     'RETURN_WORK_NOT_DECIDED',
     'NOTE_REQUIRED',
     'REQUIRED',
+    // TSK-0146 (OWN-DEC-194 B7): unsafe preparation instructions (@handyhub/domain preparation.ts unsafeCode).
+    'UNSAFE_HAZARDOUS_MATERIALS',
+    'UNSAFE_LICENSED_TRADE',
+    'UNSAFE_STRUCTURAL',
+    'UNSAFE_HEIGHTS_AND_CONFINED_SPACES',
+    'UNSAFE_HAZARD_INSPECTION',
   ],
   /** The outcome of a final cancellation under FACT-CANCELLATION-RULES (TSK-0066; @handyhub/domain/cancellation). */
   cancellationOutcome: [
@@ -2593,6 +2616,38 @@ export const LABEL_FAMILIES = {
     'REMINDERS_OFF',
     'NOT_ON_SCHEDULE',
     'OCCURRENCE_SKIPPED',
+  ],
+  /** TSK-0146 (OWN-DEC-194 B7): the unsafe-instruction rule families (@handyhub/domain PREPARATION_RULES). */
+  preparationRule: [
+    'hazardous_materials',
+    'licensed_trade',
+    'structural',
+    'heights_and_confined_spaces',
+    'hazard_inspection',
+  ],
+  /** TSK-0146: how an offer's instructions stand against the default (@handyhub/domain PREPARATION_BASES). */
+  preparationBasis: ['default', 'edited', 'staff', 'none'],
+  /** TSK-0146: what a default version is (catalog.preparation_defaults.basis). */
+  preparationDefaultBasis: ['service_page', 'edited', 'removed'],
+  /** TSK-0146: why the Owner's default was not approved (apps/server/src/modules/visits/preparation.ts). */
+  preparationProblem: [
+    'UNSAFE_HAZARDOUS_MATERIALS',
+    'UNSAFE_LICENSED_TRADE',
+    'UNSAFE_STRUCTURAL',
+    'UNSAFE_HEIGHTS_AND_CONFINED_SPACES',
+    'UNSAFE_HAZARD_INSPECTION',
+    'TEXT_REQUIRED',
+    'TEXT_TOO_LONG',
+    'SERVICE_PAGE_NOT_REVIEWED',
+    'DEFAULT_UNCHANGED',
+    'NO_DEFAULT',
+    'STALE_VERSION',
+    'FORBIDDEN',
+    'NOT_FOUND',
+    'VALIDATION_FAILED',
+    'CONFLICT',
+    'INTERNAL',
+    'UNAVAILABLE',
   ],
 } as const satisfies Record<string, readonly string[]>
 

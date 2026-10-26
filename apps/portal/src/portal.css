@@ -475,3 +475,8 @@
   display: grid;
   gap: var(--hh-space-3);
 }
+
+/* TSK-0146: preparation instructions keep their lines (one step per line). */
+.portal-appointment__preparation {
+  white-space: pre-line;
+}

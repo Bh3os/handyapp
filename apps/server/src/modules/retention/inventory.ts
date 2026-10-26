@@ -168,6 +168,12 @@ export const TABLES = {
     categories: [SH],
     protectedEvidence: true,
   },
+  // TSK-0146 (0123, OWN-DEC-194 B7): the Owner-approved default preparation instructions per service, versioned.
+  'catalog.preparation_defaults': {
+    holds: 'Owner-approved default preparation instructions per service for window offers, with every version',
+    classes: ['configuration'],
+    categories: [SH],
+  },
   'catalog.services': {
     holds: 'The 26 services and their published version',
     classes: ['configuration'],
@@ -206,6 +212,17 @@ export const TABLES = {
     classes: ['contact', 'request_details'],
     categories: [R, J, NS],
     vendors: ['bird', 'resend'],
+  },
+  // TSK-0155 (0122): workers' proposed replies (internal, never sent as written) and their review history.
+  'comms.reply_proposal_events': {
+    holds: "A proposed reply's history: submission, clarification questions and answers, rejection reason, sending",
+    classes: ['request_details'],
+    categories: [R, J, NS],
+  },
+  'comms.reply_proposals': {
+    holds: 'Customer replies workers proposed (Spanish or English) for Owner or Office review, with the sent reply',
+    classes: ['request_details'],
+    categories: [R, J, NS],
   },
   'comms.project_reply_tokens': {
     holds: "A project's reply token for the plus-addressed reply-to of its emails (grants no access)",

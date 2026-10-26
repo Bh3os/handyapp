@@ -68,6 +68,11 @@
       "@handyhub/source": "./src/escalation.ts",
       "types": "./dist/escalation.d.ts",
       "default": "./dist/escalation.js"
+    },
+    "./preparation": {
+      "@handyhub/source": "./src/preparation.ts",
+      "types": "./dist/preparation.d.ts",
+      "default": "./dist/preparation.js"
     }
   },
   "scripts": {

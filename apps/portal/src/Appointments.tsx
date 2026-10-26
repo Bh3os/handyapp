@@ -117,7 +117,7 @@ export function AppointmentCard({ a }: { a: Appointment }) {
         {a.preparationInstructions ? (
           <div>
             <dt>{t('portal.appointment.preparation')}</dt>
-            <dd>{a.preparationInstructions}</dd>
+            <dd className="portal-appointment__preparation">{a.preparationInstructions}</dd>
           </div>
         ) : null}
       </dl>

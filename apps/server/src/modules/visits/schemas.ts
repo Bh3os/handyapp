@@ -7,6 +7,9 @@ import {
   CUSTOMER_CIRCUMSTANCES,
   FOLLOW_UP_BASES,
   HANDYHUB_CAUSES,
+  PREPARATION_BASES,
+  PREPARATION_MAX_LENGTH,
+  PREPARATION_RULES,
   SITE_CONTACT_AUTHORITIES,
   SITE_CONTACT_DESIGNATIONS,
   STAFF_DETAIL_SOURCES,
@@ -312,6 +315,7 @@ const OFFER = {
     'expiresAt',
     'holdHours',
     'preparationInstructions',
+    'preparationBasis',
     'windows',
     'team',
     'selectedPosition',
@@ -339,6 +343,8 @@ const OFFER = {
     expiresAt: { type: ['string', 'null'] },
     holdHours: { type: 'integer' },
     preparationInstructions: NULLABLE_STRING,
+    // TSK-0146 (OWN-DEC-194 B7): how the instructions stand against the defaults they started from (null before 0123).
+    preparationBasis: { type: ['string', 'null'], enum: [...PREPARATION_BASES, null] },
     windows: {
       type: 'array',
       items: {
@@ -1326,5 +1332,121 @@ export const SCHEDULE_BOARD = {
       },
     },
     visits: { type: 'array', items: BOARD_VISIT },
+  },
+} as const
+
+/** TSK-0146 (OWN-DEC-194 B7): the default a visit's offer form starts from. */
+export const VISIT_PREPARATION_DEFAULT = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['visitId', 'text', 'tooLong', 'services'],
+  properties: {
+    visitId: { type: 'string' },
+    text: NULLABLE_STRING,
+    tooLong: { type: 'boolean' },
+    services: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['serviceId', 'name', 'state', 'version'],
+        properties: {
+          serviceId: { type: 'string' },
+          name: { type: 'string' },
+          state: { type: 'string', enum: ['approved', 'not_configured'] },
+          version: NULLABLE_INT,
+        },
+      },
+    },
+  },
+} as const
+
+export const SERVICE_PARAMS = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['serviceId'],
+  properties: { serviceId: { type: 'string', pattern: '^SVC-[A-Z]{2}-[0-9]{2}$' } },
+} as const
+
+/** TSK-0146: the Owner approves a service's default: the reviewed page steps, the Owner's text, or its removal. */
+export const PREPARATION_DEFAULT_BODY = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['source', 'currentVersion'],
+  properties: {
+    source: { type: 'string', enum: ['service_page', 'text', 'none'] },
+    text: { type: 'string', maxLength: PREPARATION_MAX_LENGTH },
+    reason: { type: 'string', minLength: 1, maxLength: 500 },
+    currentVersion: { type: 'integer', minimum: 0 },
+  },
+} as const
+
+const DEFAULT_VERSION = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['id', 'version', 'text', 'basis', 'serviceVersion', 'reason', 'approvedBy', 'approvedAt'],
+  properties: {
+    id: { type: 'string' },
+    version: { type: 'integer' },
+    text: NULLABLE_STRING,
+    basis: { type: 'string', enum: ['service_page', 'edited', 'removed'] },
+    serviceVersion: NULLABLE_INT,
+    reason: NULLABLE_STRING,
+    approvedBy: STAFF_REF,
+    approvedAt: { type: 'string', format: 'date-time' },
+  },
+} as const
+
+/** TSK-0146: the Owner's review of every service's default. */
+export const PREPARATION_DEFAULTS = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['services'],
+  properties: {
+    services: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['serviceId', 'code', 'category', 'name', 'servicePage', 'current', 'version', 'history'],
+        properties: {
+          serviceId: { type: 'string' },
+          code: { type: 'string' },
+          category: { type: 'string' },
+          name: { type: 'string' },
+          servicePage: {
+            anyOf: [
+              {
+                type: 'object',
+                additionalProperties: false,
+                required: ['version', 'text', 'problems'],
+                properties: {
+                  version: { type: 'integer' },
+                  text: NULLABLE_STRING,
+                  problems: { type: 'array', items: { type: 'string', enum: [...PREPARATION_RULES] } },
+                },
+              },
+              { type: 'null' },
+            ],
+          },
+          current: { anyOf: [DEFAULT_VERSION, { type: 'null' }] },
+          version: { type: 'integer' },
+          history: { type: 'array', items: DEFAULT_VERSION },
+        },
+      },
+    },
+  },
+} as const
+
+export const PREPARATION_DEFAULT_RESULT = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['id', 'serviceId', 'version', 'basis', 'serviceVersion'],
+  properties: {
+    id: { type: 'string' },
+    serviceId: { type: 'string' },
+    version: { type: 'integer' },
+    basis: { type: 'string', enum: ['service_page', 'edited', 'removed'] },
+    serviceVersion: NULLABLE_INT,
   },
 } as const

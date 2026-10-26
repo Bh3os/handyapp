@@ -73,6 +73,11 @@ export const THREAD_MESSAGE = obj({
    * Null for every other message.
    */
   delivery: nobj({ id: S, state: S, errorCode: NS, sendAt: NS, retry: B }),
+  /**
+   * TSK-0155 (OWN-DEC-211 5): a staff reply sent from a worker's proposed reply carries the worker's original text,
+   * kept internally for context and audit (staff only; the customer reads only the reply). Null for every other message.
+   */
+  proposal: nobj({ id: S, originalText: S, author: obj({ id: S, name: NS }) }),
 })
 
 export const CONVERSATION = obj({
@@ -209,4 +214,90 @@ export const REPLY_RESULT = obj({
   id: S,
   conversationId: S,
   delivery: obj({ id: S, channel: S, state: S, sendAt: S, heldForTextHours: B }),
+})
+
+// Worker notes and proposed replies (TSK-0155; HH-COM-16, OWN-DEC-211).
+export const PROPOSAL_STATES = ['draft', 'awaiting_review', 'sent', 'rejected'] as const
+export const PROPOSAL_EVENT_KINDS = [
+  'submitted',
+  'clarification_requested',
+  'clarification_answered',
+  'rejected',
+  'sent',
+] as const
+/** The worker's text, a clarification question or answer, in Spanish or English as written. */
+const PROPOSAL_TEXT = { type: 'string', minLength: 1, maxLength: REPLY_MAX_LENGTH, pattern: '\\S' } as const
+
+export const JOB_PARAMS = obj({ jobId: UUID })
+export const PROPOSAL_PARAMS = obj({ proposalId: UUID })
+
+export const WORKER_NOTE_BODY = obj({ body: { type: 'string', minLength: 1, maxLength: 5000, pattern: '\\S' } })
+export const WORKER_NOTE = obj({ id: S, body: S, at: S })
+export const PROPOSE_BODY = obj({
+  text: PROPOSAL_TEXT,
+  /** true: send it for review now; false: keep it as a draft the worker may still change. */
+  submit: B,
+})
+export const TEXT_BODY = obj({ text: PROPOSAL_TEXT })
+export const EMPTY_BODY = obj({}, [])
+export const REJECT_BODY = obj({ reason: REASON })
+export const PROPOSAL_SEND_BODY = obj({
+  /** The English customer message the reviewer wrote. */
+  body: { type: 'string', minLength: 1, maxLength: REPLY_MAX_LENGTH, pattern: '\\S' },
+  channel: state(REPLY_CHANNELS),
+  /** The reviewer's explicit approval: this is the reviewed English customer message (OWN-DEC-211 4, 6). */
+  approveEnglish: { const: true },
+})
+
+const PROPOSAL_EVENT = obj({ kind: state(PROPOSAL_EVENT_KINDS), by: obj({ id: S, name: NS }), text: NS, at: S })
+
+/** A worker's own proposal as the worker sees it: its status and the question asked, never the sent message. */
+export const OWN_PROPOSAL = obj({
+  id: S,
+  version: I,
+  jobId: S,
+  reference: S,
+  status: state(PROPOSAL_STATES),
+  text: S,
+  /** The reviewer's open question, until the worker answers it. */
+  clarification: nobj({ question: S, askedAt: S }),
+  rejectReason: NS,
+  createdAt: S,
+  submittedAt: NS,
+  decidedAt: NS,
+  events: arr(PROPOSAL_EVENT),
+  actions: obj({ edit: B, submit: B, answer: B }),
+})
+export const OWN_PROPOSALS = obj({ items: arr(OWN_PROPOSAL), limit: I, maxLength: I })
+
+export const JOB_NOTES = obj({
+  jobId: S,
+  reference: S,
+  /** The caller's own internal notes on the job's project (staff-only; never sent). */
+  notes: arr(WORKER_NOTE),
+  proposals: arr(OWN_PROPOSAL),
+  maxLength: I,
+})
+
+/** A proposal as the Owner or Office reviews it. */
+export const PROPOSAL_REVIEW = obj({
+  id: S,
+  version: I,
+  status: state(PROPOSAL_STATES),
+  clarificationOpen: B,
+  project: PROJECT,
+  customer: CUSTOMER,
+  jobId: S,
+  author: obj({ id: S, name: NS }),
+  /** The worker's text exactly as written: internal, for context; never sent. */
+  originalText: S,
+  createdAt: S,
+  submittedAt: NS,
+  rejectReason: NS,
+  decided: nobj({ by: obj({ id: S, name: NS }), at: S }),
+  /** The English reply sent from it (its text and delivery are on the project's conversation). */
+  sentMessage: nobj({ id: S, conversationId: S }),
+  events: arr(PROPOSAL_EVENT),
+  actions: obj({ clarify: B, reject: B, send: B }),
+  maxLength: I,
 })

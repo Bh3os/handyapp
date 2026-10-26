@@ -26,6 +26,18 @@ export interface CatalogLoadoutVersionsTable {
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
 }
 
+export interface CatalogPreparationDefaultsTable {
+  id: Generated<string>
+  service_id: string
+  version: number
+  text: string | null
+  basis: string
+  service_version: number | null
+  reason: string | null
+  approved_by: string
+  approved_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
 export interface CatalogServiceVersionsTable {
   service_id: string
   version: number
@@ -164,6 +176,34 @@ export interface CommsProjectReplyTokensTable {
   project_id: string
   token: string
   created_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CommsReplyProposalEventsTable {
+  id: Generated<string>
+  seq: GeneratedAlways<string>
+  proposal_id: string
+  kind: string
+  staff_id: string
+  text: string | null
+  recorded_at: ColumnType<Date, Date | string | undefined, Date | string>
+}
+
+export interface CommsReplyProposalsTable {
+  id: Generated<string>
+  project_id: string
+  job_id: string
+  author_staff_id: string
+  original_text: string
+  state: Generated<string>
+  clarification_open: Generated<boolean>
+  submitted_at: Timestamp | null
+  decided_by: string | null
+  decided_at: Timestamp | null
+  reject_reason: string | null
+  sent_message_id: string | null
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>
+  updated_at: ColumnType<Date, Date | string | undefined, Date | string>
+  version: Generated<number>
 }
 
 export interface CrmAccessCodeRevealsTable {
@@ -3170,6 +3210,8 @@ export interface WorkWindowOffersTable {
   replaced_by: string | null
   worker_ids: string[] | null
   equipment_ids: string[] | null
+  preparation_basis: string | null
+  preparation_default_ids: string[] | null
 }
 
 export interface WorkWorkPackageLoadoutsTable {
@@ -3262,6 +3304,7 @@ export interface WorkWorkingHoursTable {
 
 export interface Database {
   'catalog.loadout_versions': CatalogLoadoutVersionsTable
+  'catalog.preparation_defaults': CatalogPreparationDefaultsTable
   'catalog.service_versions': CatalogServiceVersionsTable
   'catalog.services': CatalogServicesTable
   'catalog.sop_spanish_versions': CatalogSopSpanishVersionsTable
@@ -3270,6 +3313,8 @@ export interface Database {
   'comms.message_links': CommsMessageLinksTable
   'comms.messages': CommsMessagesTable
   'comms.project_reply_tokens': CommsProjectReplyTokensTable
+  'comms.reply_proposal_events': CommsReplyProposalEventsTable
+  'comms.reply_proposals': CommsReplyProposalsTable
   'crm.access_code_reveals': CrmAccessCodeRevealsTable
   'crm.access_instruction_secrets': CrmAccessInstructionSecretsTable
   'crm.candidate_match_events': CrmCandidateMatchEventsTable

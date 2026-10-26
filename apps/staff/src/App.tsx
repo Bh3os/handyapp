@@ -22,6 +22,7 @@ import { JobDepositPage } from './JobDeposit'
 import { JobPacketPage } from './JobPacket'
 import { LoadoutPage } from './Loadout'
 import { MyDay } from './MyDay'
+import { JobNotesPage, ReplyProposalPage } from './ReplyProposals'
 import { OwnerDashboard } from './OwnerDashboard'
 import { QualityReviewPage } from './QualityReview'
 import { ChangeOrdersPage, ChangeOrderVersionLink } from './ChangeOrders'
@@ -53,6 +54,7 @@ import { JobSafety, SafetyHoldPage, flushPendingStops } from './StopWork'
 import { OwnerEscalationPhone, flushPendingEscalations, rememberOwnerContact } from './Escalation'
 import { StagingTools } from './StagingTools'
 import { LaunchPhaseSetting } from './LaunchPhase'
+import { PreparationDefaultsSetting } from './PreparationDefaults'
 import { ConfigurationScreen, HealthScreen } from './System'
 import { VisitTimesPage } from './VisitTimes'
 import { VisitAccessPage } from './VisitAccess'
@@ -460,6 +462,8 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
                 onSession={(s) => setSession({ ...session, ...(s as Partial<Session>) })}
               />
               <LegalDocumentsView t={t} fetchImpl={doFetch} />
+              {/* TSK-0146: the Owner-approved default preparation instructions offers start from. */}
+              <PreparationDefaultsSetting t={t} locale={locale} fetchImpl={doFetch} />
             </>
           ) : (route.page === 'screen' || route.page === 'record') && shown === 'staff' && allowed ? (
             // TSK-0151: an Owner Decisions permission review opens the person's record (/staff/<id>).
@@ -516,6 +520,19 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
               <JobSafety key={`safety-${route.id}`} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} issues />
               <JobPacketPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} href={href} />
             </>
+          ) : route.page === 'record' && route.screen === 'job-notes' ? (
+            // TSK-0155: a job's internal notes and proposed customer replies (the assigned worker).
+            <JobNotesPage key={route.id} t={t} locale={locale} fetchImpl={doFetch} jobId={route.id} href={href} />
+          ) : route.page === 'record' && route.screen === 'reply-proposals' ? (
+            // TSK-0155: the Owner's and Office's review of a proposed reply (the reply_proposal queue item's link).
+            <ReplyProposalPage
+              key={route.id}
+              t={t}
+              locale={locale}
+              fetchImpl={doFetch}
+              proposalId={route.id}
+              href={href}
+            />
           ) : route.page === 'record' && route.screen === 'loadouts' ? (
             // A job's loadout (TSK-0071), from its packet or the Owner's loadout_shortage queue item.
             <>

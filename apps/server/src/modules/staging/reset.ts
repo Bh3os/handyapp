@@ -187,6 +187,9 @@ export const CLEARED_CATEGORIES = {
   ],
   conversations: [
     'comms.conversations',
+    // TSK-0155 (0122): workers' proposed replies and their review history.
+    'comms.reply_proposal_events',
+    'comms.reply_proposals',
     'comms.messages',
     'comms.message_links',
     'comms.project_reply_tokens',
@@ -365,6 +368,8 @@ export const KEPT_TABLES = [
   'platform.audit_retention_operations',
   // TSK-0152 (0118): the Owner's reviews of the table-to-retention mapping, kept like configuration.
   'privacy.mapping_reviews',
+  // TSK-0146 (0123): the Owner-approved default preparation instructions per service, kept like configuration.
+  'catalog.preparation_defaults',
 ] as const
 /** Kept categories that may grow during a reset (the reset itself is audited). */
 const MAY_GROW: ReadonlySet<PreservedCategory> = new Set(['audit_events', 'staff_sessions'])

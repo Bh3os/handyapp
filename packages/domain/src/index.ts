@@ -478,3 +478,5 @@ export * from './report-sources.js'
 export * from './owner-dashboard.js'
 // TSK-0114 (HH-SCH-10, OWN-DEC-113, OWN-DEC-148): the customer-agreed repeat-service schedule and its reminders.
 export * from './repeat-service.js'
+// TSK-0146 (OWN-DEC-194 B7): reviewed default preparation instructions and the unsafe-instruction check.
+export * from './preparation.js'
