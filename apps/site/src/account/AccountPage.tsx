@@ -9,6 +9,8 @@
 // - TSK-0149 (OWN-DEC-198 F2, F4): Sign out everywhere ends every session of the account at once. While texts cannot
 //   be used the sign-in says so for every phone and the account page says the phone cannot be used to get back in;
 //   the sign-in offers asking HandyHub for help (the secure alternative) to every visitor alike.
+// - TSK-0124 (HH-ID-14): Open your dashboard leads to the portal's permanent dashboard (/portal/: Active, Project
+//   History, Cancelled and archived, and Add a project).
 import { customerTranslator, type CustomerKey } from '@handyhub/i18n'
 import { Button, Field, StateView } from '@handyhub/ui'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
@@ -381,6 +383,12 @@ function Account({
           </ul>
         )}
         <div ref={projectRef}>{shown ? <ProjectGlanceView glance={shown} level={3} /> : null}</div>
+        {/* TSK-0124 (HH-ID-14): the permanent dashboard, its Project History and Add a project. */}
+        <p>
+          <a className="hh-button hh-button--secondary" href="/portal/">
+            {t('account.projects.dashboard')}
+          </a>
+        </p>
       </section>
       <ChangeEmail
         account={account}

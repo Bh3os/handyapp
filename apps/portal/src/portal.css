@@ -139,6 +139,37 @@
   color: var(--hh-link);
 }
 
+/* TSK-0124: the dashboard sections (Active, Project History, Cancelled and archived) and Add a project. */
+.portal-dashboard__section {
+  display: grid;
+  gap: var(--hh-space-3);
+}
+
+.portal-dashboard__section > h2,
+.portal-dashboard__section > p,
+.portal-dashboard__actions {
+  margin: 0;
+}
+
+.portal-claim {
+  display: grid;
+  gap: var(--hh-space-3);
+}
+
+.portal-claim > * {
+  margin: 0;
+}
+
+.portal-claim__form {
+  display: grid;
+  gap: var(--hh-space-3);
+  justify-items: start;
+}
+
+.portal-claim__form .hh-field {
+  width: 100%;
+}
+
 /* The workspace tabs (TSK-0039): the tab list wraps on phones (no sideways scroll), Overview first. */
 .portal-tab {
   display: grid;

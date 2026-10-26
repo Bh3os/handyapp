@@ -20,8 +20,10 @@ import {
   CUSTOMER_SITUATIONS,
   CUSTOMER_STEPS,
   CUSTOMER_TIMELINE_KINDS,
+  DASHBOARD_SECTIONS,
   WAITING_ON,
   type CustomerStatus,
+  type DashboardSection,
 } from '@handyhub/domain'
 import type { JsonSchema } from '../../api/route.js'
 import { DISPOSITIONS, PLAN_CATEGORIES, RETAIN_REASONS } from '../privacy/plan.js'
@@ -220,7 +222,11 @@ const status = (s: StatusRecord) => ({
   since: s.since.toISOString(),
 })
 
-/** One project of the caller's scope in the projects list: reference, services and status (TSK-0038). */
+/**
+ * One project of the caller's scope in the projects list: reference, services and status (TSK-0038). TSK-0124
+ * (HH-ID-14): its dashboard section (Active, Completed for the Project History, or Cancelled/Archived) and how many
+ * documents its Documents tab lists (the estimate versions received and the issued invoices), as a count only.
+ */
 export const PROJECT_SUMMARY = customerView(
   'project.summary',
   'Project',
@@ -230,27 +236,50 @@ export const PROJECT_SUMMARY = customerView(
     notSure: { type: 'boolean' },
     submittedAt: DATE,
     status: object(STATUS_FIELDS),
+    section: enumOf(DASHBOARD_SECTIONS),
+    documents: { type: 'integer', minimum: 0 },
   },
-  (p: { reference: string; services: string[]; notSure: boolean; submittedAt: Date; status: StatusRecord }) => ({
+  (p: {
+    reference: string
+    services: string[]
+    notSure: boolean
+    submittedAt: Date
+    status: StatusRecord
+    section: DashboardSection
+    documents: number
+  }) => ({
     reference: p.reference,
     services: [...p.services],
     notSure: p.notSure,
     submittedAt: p.submittedAt.toISOString(),
     status: status(p.status),
+    section: p.section,
+    documents: p.documents,
   }),
 )
 
-/** The projects list (/portal): every project of the caller's scope, and when to refresh it (HH-ARC-10). */
+/**
+ * The projects list (/portal): every project of the caller's scope, and when to refresh it (HH-ARC-10). TSK-0124: how
+ * the caller came in (an account's dashboard, or a single project's guest link), so the page offers the account's
+ * Add a project only to an account.
+ */
 export const PROJECT_LIST = customerView(
   'project.list',
   'Project',
   {
     projects: { type: 'array', items: PROJECT_SUMMARY.schema },
+    access: enumOf(['account', 'project_link']),
     refreshedAt: DATE,
     refreshSeconds: { type: 'integer', minimum: 0 },
   },
-  (l: { projects: Parameters<typeof PROJECT_SUMMARY.project>[0][]; refreshedAt: Date; refreshSeconds: number }) => ({
+  (l: {
+    projects: Parameters<typeof PROJECT_SUMMARY.project>[0][]
+    access: 'account' | 'project_link'
+    refreshedAt: Date
+    refreshSeconds: number
+  }) => ({
     projects: l.projects.map((p) => PROJECT_SUMMARY.project(p)),
+    access: l.access,
     refreshedAt: l.refreshedAt.toISOString(),
     refreshSeconds: l.refreshSeconds,
   }),
@@ -955,6 +984,22 @@ export const ENROLLMENT_CHANNEL = customerView(
   'Customer',
   { channel: CHANNEL, destination: STRING },
   (c: { channel: 'email' | 'phone'; destination: string }) => ({ channel: c.channel, destination: c.destination }),
+)
+
+// TSK-0124 (HH-ID-14, HH-ID-03, OWN-DEC-160): claiming a guest project into the signed-in account. The answer to a
+// code request is the same whether or not the reference, the contact or a match exists (so it names nothing: the
+// configured code lifetime only); a claimed project is named by its reference.
+export const ACCOUNT_CLAIM_ACCEPTED = customerView(
+  'account.claim_accepted',
+  'CustomerAccount',
+  { accepted: { type: 'boolean' }, codeMinutes: { type: 'integer' } },
+  (r: { codeMinutes: number }) => ({ accepted: true, codeMinutes: r.codeMinutes }),
+)
+export const ACCOUNT_CLAIMED = customerView(
+  'account.claimed',
+  'CustomerAccount',
+  { project: PROJECT_REFERENCE.schema },
+  (r: { reference: string }) => ({ project: PROJECT_REFERENCE.project(r) }),
 )
 
 // The customer estimate view (TSK-0056; HH-EST-06, HH-EST-09, HH-EST-13, HH-PORT-10, OWN-DEC-103). The customer-facing
@@ -2050,6 +2095,8 @@ export const CUSTOMER_VIEWS: ReadonlyMap<string, CustomerView<never>> = new Map(
     ACCOUNT_SIGNED_IN,
     ACCOUNT_CODE_SENT,
     ENROLLMENT_CHANNEL,
+    ACCOUNT_CLAIM_ACCEPTED,
+    ACCOUNT_CLAIMED,
     CUSTOMER_ESTIMATE,
     CUSTOMER_ESTIMATE_RESPONSE,
     CUSTOMER_ESTIMATE_SELECTION,

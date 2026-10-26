@@ -75,6 +75,9 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
         'customerSignOut',
         // TSK-0149: Sign out everywhere (OWN-DEC-198 F2).
         'customerSignOutEverywhere',
+        // TSK-0124: claiming a guest project into the account with a code to its verified contact.
+        'sendProjectClaimCode',
+        'claimProject',
         // TSK-0039: the workspace tabs beside the Overview.
         'getCustomerProjectMessages',
         'getCustomerProjectDocuments',
@@ -213,8 +216,11 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
       refreshedAt: '2026-10-21T12:00:00.000Z',
       refreshSeconds: 30,
     })
+    // TSK-0124: the dashboard section and the documents count; how the caller came in.
     const list = PROJECT_LIST.project({
-      projects: [{ ...record, status: { ...status, since: at } }],
+      projects: [{ ...record, status: { ...status, since: at }, section: 'active', documents: 2 }],
+      access: 'account',
+      accountId: 'account-1',
       refreshedAt: at,
       refreshSeconds: 30,
     } as unknown as Parameters<typeof PROJECT_LIST.project>[0])
@@ -226,8 +232,11 @@ describe('customer projections (TSK-0037, HH-ARC-04, T24)', () => {
           notSure: false,
           submittedAt: '2026-10-21T12:00:00.000Z',
           status: { ...status, since: '2026-10-21T12:00:00.000Z' },
+          section: 'active',
+          documents: 2,
         },
       ],
+      access: 'account',
       refreshedAt: '2026-10-21T12:00:00.000Z',
       refreshSeconds: 30,
     })

@@ -542,7 +542,8 @@ export function invoiceRoutes(deps: InvoiceRouteDeps): RouteDef[] {
         'The project’s verified customer (payment.view, ROLE-MATRIX "V"; HH-PORT-10, HH-PRIV-06): a short-lived ' +
         'signed link (DOCUMENT_URL_SECONDS) issued now, after the record and visibility checks, to the issued ' +
         'invoice’s English PDF. A draft, another project’s invoice and an unknown number are NOT_FOUND (T19); a PDF ' +
-        'still being prepared is CONFLICT DOCUMENT_PREPARING; storage NOT CONFIGURED is NOT_CONFIGURED.',
+        'still being prepared is CONFLICT DOCUMENT_PREPARING; storage NOT CONFIGURED is NOT_CONFIGURED. Each issued ' +
+        'link is recorded in the audit log (invoice_document.customer_download, TSK-0124).',
       permission: 'payment.view',
       projection: INVOICE_DOWNLOADS,
       resource: async ({ req, db }) => {
@@ -569,7 +570,7 @@ export function invoiceRoutes(deps: InvoiceRouteDeps): RouteDef[] {
         const row = await ctx.db
           .selectFrom('finance.invoices as i')
           .leftJoin('finance.invoice_documents as d', 'd.invoice_id', 'i.id')
-          .select(['i.number', 'i.state', 'd.object_key', 'd.byte_size'])
+          .select(['i.id', 'i.number', 'i.state', 'd.object_key', 'd.byte_size'])
           .where('i.project_id', '=', project.id)
           .where('i.number', '=', p.number)
           .where('i.state', '<>', 'draft')
@@ -581,6 +582,12 @@ export function invoiceRoutes(deps: InvoiceRouteDeps): RouteDef[] {
             fieldErrors: [{ field: 'document', code: 'DOCUMENT_PREPARING', message: '' }],
           })
         const now = new Date()
+        // TSK-0124 (HH-ID-14, OWN-DEC-160 "maintain access logs"): each issued download link is logged (staff only).
+        await ctx.auditAlways({
+          action: 'invoice_document.customer_download',
+          target: { type: 'invoice', id: row.id },
+          summary: { number: row.number },
+        })
         return {
           body: INVOICE_DOWNLOADS.project({
             reference: project.reference,

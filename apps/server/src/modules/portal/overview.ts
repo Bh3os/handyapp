@@ -16,22 +16,28 @@
 //   instructions (visits/offers.ts appointmentsOf, the same customer view as the Appointments tab).
 // - TSK-0077: an open or under-review critical safety hold of the project makes the status "Work is paused for safety
 //   review." and nothing more: the hazard, its report and every staff detail stay on the server.
+// - TSK-0124 (HH-ID-14, OWN-DEC-160): each summary of the projects list names its dashboard section (Active, Completed
+//   for the Project History, Cancelled/Archived) and counts the documents its Documents tab lists.
 import type { Db, Tx } from '@handyhub/db'
 import {
   customerCompletion,
   type QualityReviewState,
   customerStatus,
+  dashboardSection,
   type CustomerStatus,
   type CustomerTimelineKind,
+  type DashboardSection,
   type PortalFacts,
   type ProjectState,
   type RequestState,
 } from '@handyhub/domain'
 import type { DataScope } from '@handyhub/policy'
 import { loadConfig } from '../../platform/config/index.js'
+import { customerEstimateList } from '../estimates/customer.js'
 import { approvalFacts } from '../estimates/receipt.js'
 import { openVisitOutcome } from '../field/outcomes.js'
 import { customerDeposit, type CustomerDeposit } from '../finance/index.js'
+import { customerInvoiceList } from '../finance/invoices.js'
 import { findProject } from '../records/repository.js'
 import { replyWindow } from '../questions/model.js'
 import { notAFitCustomerMessage } from '../requests/staff-record.js'
@@ -73,6 +79,10 @@ export type ProjectOverview = {
 
 export type ProjectSummary = Pick<ProjectOverview, 'reference' | 'services' | 'notSure' | 'submittedAt'> & {
   status: CustomerStatus & { since: Date }
+  /** TSK-0124: Active, Completed (Project History) or Cancelled/Archived. */
+  section: DashboardSection
+  /** TSK-0124: the estimate versions received and the issued invoices its Documents tab lists. */
+  documents: number
 }
 
 /** How often an open project view refreshes itself (HH-ARC-10); 0 while NOT CONFIGURED. */
@@ -229,7 +239,35 @@ export async function projectOverview(
   return o ? { ...o, refreshSeconds: await refreshSeconds(db) } : null
 }
 
-/** Every project the caller's scope names (a guest link: one; an account: its linked projects), as summaries. */
+/**
+ * TSK-0124 (HH-ID-14, OWN-DEC-160): the project's dashboard section, from its lifecycle state and whether its job
+ * reached operational completion (the Owner's quality review passed), and how many documents its Documents tab lists.
+ */
+async function dashboardFacts(
+  db: Reader,
+  scope: DataScope,
+  project: { id: string; reference: string },
+  now: Date,
+): Promise<{ section: DashboardSection; documents: number }> {
+  const row = await db
+    .selectFrom('crm.projects as p')
+    .leftJoin('work.jobs as j', 'j.project_id', 'p.id')
+    .select(['p.state', 'j.operational_state'])
+    .where('p.id', '=', project.id)
+    .executeTakeFirstOrThrow()
+  const jobCompleted = row.operational_state === 'operationally_complete' || row.operational_state === 'closed'
+  const estimates = (await customerEstimateList(db, scope, project.reference, now)) ?? []
+  const invoices = await customerInvoiceList(db, project.id)
+  return {
+    section: dashboardSection(row.state as ProjectState, jobCompleted),
+    documents: estimates.length + invoices.length,
+  }
+}
+
+/**
+ * Every project the caller's scope names (a guest link: one; an account: its linked projects), as summaries, each with
+ * its dashboard section (TSK-0124). The section depends on the project only: a link's expiry never moves or hides it.
+ */
 export async function projectSummaries(db: Reader, scope: DataScope, now = new Date()): Promise<ProjectSummary[]> {
   if (scope.kind !== 'projects') return []
   const out: ProjectSummary[] = []
@@ -250,6 +288,7 @@ export async function projectSummaries(db: Reader, scope: DataScope, now = new D
           nextAction: o.status.nextAction,
           since: o.status.since,
         },
+        ...(await dashboardFacts(db, scope, project, now)),
       })
   }
   return out

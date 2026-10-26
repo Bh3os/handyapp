@@ -293,7 +293,8 @@ export function privacyModule(deps: PrivacyDeps = {}): ApiModule {
       'withdrawn; HH-PRIV-06): short-lived signed links (DOCUMENT_URL_SECONDS) issued now, after the record and ' +
       'visibility checks, to the customer PDF as published and, for an uploaded estimate, the customer document it was ' +
       'confirmed for. Never a private original or an internal document. A draft, another project’s estimate and an ' +
-      'unknown version are NOT_FOUND (T19, T68); storage NOT CONFIGURED is NOT_CONFIGURED.',
+      'unknown version are NOT_FOUND (T19, T68); storage NOT CONFIGURED is NOT_CONFIGURED. Each issue of links is ' +
+      'recorded in the audit log (estimate_document.customer_download, TSK-0124).',
     permission: 'request.view',
     projection: DOCUMENT_DOWNLOADS,
     schema: {
@@ -319,6 +320,12 @@ export function privacyModule(deps: PrivacyDeps = {}): ApiModule {
       )
       if (out === null) throw new ApiError('NOT_FOUND')
       if (out === 'not_configured') throw new ApiError('NOT_CONFIGURED')
+      // TSK-0124 (HH-ID-14, OWN-DEC-160 "maintain access logs"): each issue of download links is logged (staff only).
+      await ctx.auditAlways({
+        action: 'estimate_document.customer_download',
+        target: { type: 'estimate_version', id: out.versionId },
+        summary: { number: out.number, version: out.version, documents: out.documents.length },
+      })
       return { body: DOCUMENT_DOWNLOADS.project(out) }
     },
   }

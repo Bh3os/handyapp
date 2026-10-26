@@ -307,6 +307,385 @@
         }
       }
     },
+    "/api/v1/customer/account/claims": {
+      "post": {
+        "operationId": "claimProject",
+        "summary": "Add a project to the account: enter the code",
+        "description": "The code last sent for this claim. A match, checked again now, links that one project to the account with the code as its evidence (claim_code): it opens at once in the account’s dashboard, in its section; the project and every other record keep their IDs and nothing is copied (T20). A wrong, expired or used code and a claim that matches nothing are the same neutral 400 (body.code, invalid_code); the attempt is counted and kept. Malformed input is a 400 as for the code; 503 while NOT CONFIGURED.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reference",
+                  "contact",
+                  "code"
+                ],
+                "properties": {
+                  "reference": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "contact": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 320
+                  },
+                  "code": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "project"
+                  ],
+                  "properties": {
+                    "project": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "reference"
+                      ],
+                      "properties": {
+                        "reference": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "account-claim",
+            "limit": 30,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.claim",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-dashboard.test.ts",
+          "projection": "account.claimed"
+        }
+      }
+    },
+    "/api/v1/customer/account/claims/codes": {
+      "post": {
+        "operationId": "sendProjectClaimCode",
+        "summary": "Add a project to the account: send the code",
+        "description": "For a live account session (HH-ID-14, OWN-DEC-160): the body names a guest project by its request reference and gives the email or mobile phone on that request. When a code already verified exactly that value for the request’s contact (the phone only by text, with its current SMS permission), a one-time code (purpose account_sign_in, the automatic message contact.verification_code) goes to it; never to anything else, and a matching name, email or phone alone links nothing (HH-ID-03). Every well-formed request gets the same 202 {accepted, codeMinutes} whether or not the project exists, the contact matches or is verified, the project is already in the account, a link to it was revoked by staff (staff restore access, OWN-DEC-198 F5) or a per-code limit was reached. A malformed reference (invalid_reference) or contact (invalid_contact) is a 400; a phone while texting is not available a 400 (texts_unavailable) for every phone, decided before any record is read; a network over its limit a 429; while the code key, session.timings or verification.limits is NOT CONFIGURED, 503. A guest-link session is NOT_FOUND; no session is 401.",
+        "tags": [
+          "accounts"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reference",
+                  "contact"
+                ],
+                "properties": {
+                  "reference": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "contact": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 320
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "accepted",
+                    "codeMinutes"
+                  ],
+                  "properties": {
+                    "accepted": {
+                      "type": "boolean"
+                    },
+                    "codeMinutes": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "x-handyhub": {
+          "actors": [
+            "customer"
+          ],
+          "permission": "authentication",
+          "kind": "write",
+          "idempotency": "none",
+          "expectedVersion": "none",
+          "rateLimit": {
+            "bucket": "account-claim-code",
+            "limit": 10,
+            "windowSeconds": 3600
+          },
+          "freshAuthMinutes": null,
+          "csrf": "required_with_staff_session",
+          "audit": "customer_account.claim_code",
+          "pagination": false,
+          "cache": "private, no-store",
+          "test": "test/integration/customer-dashboard.test.ts",
+          "projection": "account.claim_accepted"
+        }
+      }
+    },
     "/api/v1/customer/account/email": {
       "post": {
         "operationId": "changeAccountEmail",
@@ -1462,8 +1841,8 @@
     "/api/v1/customer/projects": {
       "get": {
         "operationId": "listCustomerProjects",
-        "summary": "The projects this session opens, with their status",
-        "description": "For a live customer session: every project it opens (a guest link session: exactly one; an account: its linked projects), each with its reference, services and customer status: the situation, its next step, who is waiting and the one next action. Without a session, 401. Nothing about any other project.",
+        "summary": "The projects this session opens, with their status and dashboard section",
+        "description": "For a live customer session: every project it opens (a guest link session: exactly one; an account: its linked projects), each with its reference, services and customer status: the situation, its next step, who is waiting and the one next action. TSK-0124 (HH-ID-14, OWN-DEC-160): each project’s dashboard section (active; completed, the Project History; archived, cancelled or closed without completed work) and the number of documents its Documents tab lists; and how the session came in (account, or project_link for a guest link). Without a session, 401. Nothing about any other project.",
         "tags": [
           "portal"
         ],
@@ -1478,6 +1857,7 @@
                   "additionalProperties": false,
                   "required": [
                     "projects",
+                    "access",
                     "refreshedAt",
                     "refreshSeconds"
                   ],
@@ -1492,7 +1872,9 @@
                           "services",
                           "notSure",
                           "submittedAt",
-                          "status"
+                          "status",
+                          "section",
+                          "documents"
                         ],
                         "properties": {
                           "reference": {
@@ -1593,9 +1975,28 @@
                                 "format": "date-time"
                               }
                             }
+                          },
+                          "section": {
+                            "type": "string",
+                            "enum": [
+                              "active",
+                              "completed",
+                              "archived"
+                            ]
+                          },
+                          "documents": {
+                            "type": "integer",
+                            "minimum": 0
                           }
                         }
                       }
+                    },
+                    "access": {
+                      "type": "string",
+                      "enum": [
+                        "account",
+                        "project_link"
+                      ]
                     },
                     "refreshedAt": {
                       "type": "string",
@@ -5983,7 +6384,7 @@
       "get": {
         "operationId": "getCustomerEstimateDownloads",
         "summary": "Download links of an estimate version",
-        "description": "For an estimate version the customer received (current, approved, declined, expired, superseded or withdrawn; HH-PRIV-06): short-lived signed links (DOCUMENT_URL_SECONDS) issued now, after the record and visibility checks, to the customer PDF as published and, for an uploaded estimate, the customer document it was confirmed for. Never a private original or an internal document. A draft, another project’s estimate and an unknown version are NOT_FOUND (T19, T68); storage NOT CONFIGURED is NOT_CONFIGURED.",
+        "description": "For an estimate version the customer received (current, approved, declined, expired, superseded or withdrawn; HH-PRIV-06): short-lived signed links (DOCUMENT_URL_SECONDS) issued now, after the record and visibility checks, to the customer PDF as published and, for an uploaded estimate, the customer document it was confirmed for. Never a private original or an internal document. A draft, another project’s estimate and an unknown version are NOT_FOUND (T19, T68); storage NOT CONFIGURED is NOT_CONFIGURED. Each issue of links is recorded in the audit log (estimate_document.customer_download, TSK-0124).",
         "tags": [
           "privacy"
         ],
@@ -6923,7 +7324,7 @@
       "get": {
         "operationId": "getCustomerInvoiceDownload",
         "summary": "Download link of an issued invoice",
-        "description": "The project’s verified customer (payment.view, ROLE-MATRIX \"V\"; HH-PORT-10, HH-PRIV-06): a short-lived signed link (DOCUMENT_URL_SECONDS) issued now, after the record and visibility checks, to the issued invoice’s English PDF. A draft, another project’s invoice and an unknown number are NOT_FOUND (T19); a PDF still being prepared is CONFLICT DOCUMENT_PREPARING; storage NOT CONFIGURED is NOT_CONFIGURED.",
+        "description": "The project’s verified customer (payment.view, ROLE-MATRIX \"V\"; HH-PORT-10, HH-PRIV-06): a short-lived signed link (DOCUMENT_URL_SECONDS) issued now, after the record and visibility checks, to the issued invoice’s English PDF. A draft, another project’s invoice and an unknown number are NOT_FOUND (T19); a PDF still being prepared is CONFLICT DOCUMENT_PREPARING; storage NOT CONFIGURED is NOT_CONFIGURED. Each issued link is recorded in the audit log (invoice_document.customer_download, TSK-0124).",
         "tags": [
           "finance"
         ],
@@ -43331,13 +43732,9 @@
                           "section": {
                             "type": "string",
                             "enum": [
-                              "overview",
-                              "response",
-                              "estimates",
-                              "quality",
-                              "payments",
-                              "costs",
-                              "cases"
+                              "active",
+                              "completed",
+                              "archived"
                             ]
                           },
                           "unit": {

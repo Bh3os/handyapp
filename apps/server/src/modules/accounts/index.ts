@@ -13,6 +13,8 @@
 //   POST /customer/session/sign-out              Sign Out (any customer session)
 // TSK-0149 (OWN-DEC-198 F2, F4, F5, F6): the account's Sign out everywhere, the public request for help signing in or
 // getting a new link, and the Owner's security work on customer access (security-routes.ts).
+// TSK-0124 (HH-ID-14, OWN-DEC-160): Add a project, the verified claiming of a guest project into the signed-in account
+// with a code to that project's verified contact (claim-routes.ts, claims.ts).
 // Enrollment and sign-in establish who the caller is, so they are authentication routes (like the staff sign-in and
 // the access link exchange). The receipt routes need the Receipt-Capability header of the tab that sent the request;
 // the guest-link routes need a live session started from that project's access grant; an unknown, expired or revoked
@@ -51,9 +53,12 @@ import {
   type EnrollmentSource,
   type SendResult,
 } from './accounts.js'
+import { claimRoutes } from './claim-routes.js'
 import { securityRoutes } from './security-routes.js'
 
 export * from './accounts.js'
+export * from './claims.js'
+export { CLAIM_CODE_RATE_LIMIT, CLAIM_RATE_LIMIT } from './claim-routes.js'
 export * from './help.js'
 export * from './notice.js'
 export * from './security.js'
@@ -707,6 +712,8 @@ export function accountsModule(deps: AccountsDeps): ApiModule {
       emailChange,
       signOut,
       ...securityRoutes(deps),
+      // TSK-0124: Add a project to the account with a code to its verified contact.
+      ...claimRoutes(deps),
     ],
   }
 }

@@ -5,6 +5,7 @@ import { AUTHENTICATION, routeProblems } from '../../src/api/route.js'
 import { isPrivatePath } from '../../src/hosts.js'
 import {
   accountRef,
+  claimSubject,
   CONTACT_CHANGED_EVENT,
   CONTACT_CHANGED_MESSAGE_KEY,
   emailChangeSubject,
@@ -17,9 +18,11 @@ import { messageType, messageTypeProblems } from '../../src/modules/notification
 
 const all = MODULES.find((m) => m.name === 'accounts')?.routes ?? []
 const SECURITY_TEST = 'test/integration/account-security.test.ts'
-// TSK-0036's routes; TSK-0149's account security routes are covered by their own file (below).
-const routes = all.filter((r) => r.test !== SECURITY_TEST)
+const CLAIM_TEST = 'test/integration/customer-dashboard.test.ts'
+// TSK-0036's routes; TSK-0149's account security routes and TSK-0124's claim routes are covered by their own files.
+const routes = all.filter((r) => r.test !== SECURITY_TEST && r.test !== CLAIM_TEST)
 const security = all.filter((r) => r.test === SECURITY_TEST)
+const claims = all.filter((r) => r.test === CLAIM_TEST)
 const route = (id: string) => {
   const r = all.find((x) => x.operationId === id)
   if (!r) throw new Error(id)
@@ -98,6 +101,26 @@ describe('the account routes (TSK-0036)', () => {
 
   it('[HH-ID-08] the account page is private under every name it can be fetched by', () => {
     for (const url of ['/account', '/account/', '/account.html']) expect(isPrivatePath('public', url), url).toBe(true)
+  })
+})
+
+describe('the project claim routes (TSK-0124, HH-ID-14, HH-ID-03)', () => {
+  it('[HH-ID-14][HH-ID-03][RULE-SERVER-AUTHZ] an account session claims a project; one fixed answer to the code request; limited per network', () => {
+    expect(claims.map((r) => `${r.method} ${r.path}`).sort()).toEqual([
+      'POST /customer/account/claims',
+      'POST /customer/account/claims/codes',
+    ])
+    for (const r of claims) {
+      expect(routeProblems(r), r.operationId).toEqual([])
+      expect(r.permission, r.operationId).toBe(AUTHENTICATION)
+      expect(r.actors, r.operationId).toEqual(['customer'])
+      expect(r.rateLimit, r.operationId).not.toBe('none')
+    }
+    const codes = route('sendProjectClaimCode')
+    expect(Object.keys(codes.schema.response)).toEqual(['202'])
+    expect(codes.schema.response[202]).toMatchObject({ required: ['accepted', 'codeMinutes'] })
+    // A claim code proves one project for one account, by one channel.
+    expect(claimSubject('a-1', 'p-1', 'email')).toBe('claim:a-1:p-1:email')
   })
 })
 

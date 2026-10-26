@@ -77,19 +77,30 @@ export function portalModule(
     ...read,
     path: '/customer/projects',
     operationId: 'listCustomerProjects',
-    summary: 'The projects this session opens, with their status',
+    summary: 'The projects this session opens, with their status and dashboard section',
     description:
       'For a live customer session: every project it opens (a guest link session: exactly one; an account: its ' +
       'linked projects), each with its reference, services and customer status: the situation, its next step, ' +
-      'who is waiting and the one next action. Without a session, 401. Nothing about any other project.',
+      'who is waiting and the one next action. TSK-0124 (HH-ID-14, OWN-DEC-160): each project’s dashboard section ' +
+      '(active; completed, the Project History; archived, cancelled or closed without completed work) and the number ' +
+      'of documents its Documents tab lists; and how the session came in (account, or project_link for a guest ' +
+      'link). Without a session, 401. Nothing about any other project.',
     permission: AUTHENTICATION,
     projection: PROJECT_LIST,
     schema: { response: { 200: PROJECT_LIST.schema } },
     handler: async (ctx) => {
       const now = new Date()
       const projects = await projectSummaries(ctx.db, dataScope(ctx.actor, 'request.view', now), now)
+      // An account session's contact reference names the account (accounts/accounts.ts accountRef).
+      const access =
+        ctx.actor.kind === 'customer' && ctx.actor.contactId.startsWith('account:') ? 'account' : 'project_link'
       return {
-        body: PROJECT_LIST.project({ projects, refreshedAt: now, refreshSeconds: await refreshSeconds(ctx.db) }),
+        body: PROJECT_LIST.project({
+          projects,
+          access,
+          refreshedAt: now,
+          refreshSeconds: await refreshSeconds(ctx.db),
+        }),
       }
     },
   }

@@ -13,8 +13,8 @@
 //   automatic message project.access_link sends its link to that contact only (project.access_requested), never to
 //   anything the visitor typed. Other projects of the same customer, email or phone are never touched or named
 //   (HH-ID-09 "limited to that project"). Older grants keep their own expiry: a reissue never ends a session.
-// - Limits: per client network by the route (ACCESS_REISSUE_RATE_LIMIT, PROPOSED) and per project per day from
-//   access.recovery (PROPOSED, OQ-ACCESS-RECOVERY). A project whose newest grant staff revoked, or revoked for an
+// - Limits: per client network by the route (ACCESS_REISSUE_RATE_LIMIT) and per project per day from access.recovery,
+//   both decided as built by OWN-DEC-198 F5 (TSK-0124 recorded access.recovery version 2, no longer PROPOSED). A project whose newest grant staff revoked, or revoked for an
 //   account deletion, gets no link on request (PROPOSED: staff decide when access comes back).
 // - The contact value, the token and the reference are never logged or audited; the audit event says only whether a
 //   link was issued and, for a known project, which.
@@ -146,7 +146,10 @@ export async function requestReissue(tx: Tx, key: CodeKeySettings, input: Reissu
   return { status: 'issued', projectId, grantId: issued.grant.id }
 }
 
-/** PROPOSED (no owner value): per client network and hour, on top of the per-project limit of access.recovery. */
+/**
+ * Per client network and hour, on top of the per-project limit of access.recovery: decided as built by OWN-DEC-198 F5
+ * (10 per network per hour), recorded with access.recovery version 2 by TSK-0124.
+ */
 export const ACCESS_REISSUE_RATE_LIMIT = { bucket: 'public-access-reissue', limit: 10, windowSeconds: 3600 } as const
 
 /** The one answer to every accepted reissue request, matched or not. */
