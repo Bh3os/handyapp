@@ -3,12 +3,11 @@
 // all 26 pages are shown; the 404 rule is checked by moving one service back to a draft inside its own test. Every
 // value entered is synthetic.
 import { readFileSync } from 'node:fs'
-import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { expect, test, type Page } from '@playwright/test'
+import { expectAccessible } from '../a11y.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const CATEGORY = {
   home_improvement: 'Home Improvement',
   drywall: 'Drywall',
@@ -48,8 +47,7 @@ const SECTIONS = [
 ]
 
 async function axe(page: Page) {
-  const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
-  expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+  await expectAccessible(page)
 }
 
 async function noHorizontalScroll(page: Page) {

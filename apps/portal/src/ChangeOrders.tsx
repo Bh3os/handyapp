@@ -10,7 +10,7 @@
 // English only, from the customer catalog; the wording no decision gives is PROPOSED (OQ-PORTAL-WORDING).
 import type { CustomerKey } from '@handyhub/i18n'
 import { cents, formatUsd } from '@handyhub/money'
-import { Button, Field, StateView, StatusBadge, type StatusTone } from '@handyhub/ui'
+import { Button, Field, ScrollArea, StateView, StatusBadge, type StatusTone } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import {
   idempotencyKey,
@@ -58,7 +58,7 @@ const FAILURE: Record<DecisionFailure, CustomerKey> = {
 function Lines({ c }: { c: ChangeOrder }) {
   const missing = t('estimatePdf.notProvided')
   return (
-    <div className="portal-estimate__table">
+    <ScrollArea className="portal-estimate__table" label={t('portal.changeOrders.lines', { reference: c.reference })}>
       <table>
         <caption className="hh-visually-hidden">{t('portal.changeOrders.lines', { reference: c.reference })}</caption>
         <thead>
@@ -85,7 +85,7 @@ function Lines({ c }: { c: ChangeOrder }) {
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollArea>
   )
 }
 

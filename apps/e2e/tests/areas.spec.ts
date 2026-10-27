@@ -4,11 +4,10 @@
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { AxeBuilder } from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
+import { expectAccessible } from '../a11y.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const root = fileURLToPath(new URL('../../../', import.meta.url))
 
 // FACT-SERVICE-AREA (OWN-DEC-37), typed out from the fact: anchor, name, the towns the fact names.
@@ -34,8 +33,7 @@ const registry = (
 ).services
 
 async function axe(page: Page) {
-  const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
-  expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+  await expectAccessible(page)
 }
 
 const locs = (xml: string) => [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1] ?? '').pathname)

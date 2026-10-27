@@ -383,7 +383,7 @@ export function JobPhotosPage({
   if (state === 'loading') return <StateView kind="loading" title={t('photos.loading')} />
   if (state === 'unavailable' || !view) return <StateView kind="error" title={t('photos.unavailable')} />
   return (
-    <main className="staff-start" aria-labelledby="job-photos-title">
+    <section className="staff-start" aria-labelledby="job-photos-title">
       <h1 id="job-photos-title">{t('photos.title', { reference: view.projectReference })}</h1>
       <p>{t('photos.intro')}</p>
       {view.uploadVisits.map((v) => (
@@ -416,6 +416,6 @@ export function JobPhotosPage({
           </section>
         )
       })}
-    </main>
+    </section>
   )
 }

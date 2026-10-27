@@ -11,7 +11,7 @@
 //   server asks for it); the accountant's files also need a reason. Both are saved as files and audited by the server.
 import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { cents, formatUsd } from '@handyhub/money'
-import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
+import { Button, Field, ScrollArea, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useState, type FormEvent, type MouseEvent } from 'react'
 import { AiAssistOff } from './AiAssist'
 import { call, type Fetch } from './api'
@@ -304,7 +304,7 @@ function Records({
   if (data.rows.length === 0) return <p className="staff-system__none">{t('dashboard.recordsNone')}</p>
   const link = (l: { screen: string; id: string | null }) => `/${l.screen}${l.id ? `/${l.id}` : ''}`
   return (
-    <div className="staff-dashboard__records">
+    <ScrollArea className="staff-dashboard__records" label={name}>
       {data.truncated ? (
         <p className="staff-request__hint">
           {t('dashboard.recordsTruncated', { shown: data.rows.length, total: data.total })}
@@ -363,7 +363,7 @@ function Records({
           </tfoot>
         ) : null}
       </table>
-    </div>
+    </ScrollArea>
   )
 }
 

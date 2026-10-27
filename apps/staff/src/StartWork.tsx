@@ -396,6 +396,13 @@ export function StartWorkPage({
   const [pending, setPending] = useState(false)
   const [isOnline, setOnline] = useState(online())
   const key = useRef<string | null>(null)
+  // TSK-0104 (WCAG 2.4.3): the press removes or disables Start Work, so focus moves to what the press led to: the
+  // started message, or the refusal.
+  const answer = useRef<HTMLDivElement>(null)
+  const [answered, setAnswered] = useState(0)
+  useEffect(() => {
+    if (answered > 0) answer.current?.focus()
+  }, [answered])
   const load = useCallback(async () => {
     const r = await call<StartGateView>(fetchImpl, `/staff/visits/${encodeURIComponent(visitId)}/start-gate`)
     // TSK-0079 (HH-OFF-04): without a connection there is no gate to read and no start: said so, never assumed.
@@ -428,10 +435,11 @@ export function StartWorkPage({
     key.current = null
     setRefusal(r.ok ? null : r.error.code === 'CONFLICT' ? t('start.refused') : t('start.failed'))
     await load()
+    setAnswered((n) => n + 1)
   }
 
   return (
-    <main className="staff-start" aria-labelledby="start-title">
+    <section className="staff-start" aria-labelledby="start-title">
       {/* TSK-0129: Call 911 first, then Call Owner; the taps are recorded on the job once the gate names it. */}
       <EmergencyCall t={t} fetchImpl={fetchImpl} jobId={gate?.jobId ?? null} visitId={visitId} />
       {gate?.jobId ? (
@@ -466,7 +474,9 @@ export function StartWorkPage({
             <span className="staff-request__hint">{t('start.checkedAt', { time: when(gate.checkedAt, locale) })}</span>
           </p>
           {gate.started && !resuming ? (
-            <StateView kind="empty" title={t('start.started', { time: when(gate.started.startedAt, locale) })} />
+            <div ref={refusal ? undefined : answer} tabIndex={-1} className="staff-start__answer">
+              <StateView kind="empty" title={t('start.started', { time: when(gate.started.startedAt, locale) })} />
+            </div>
           ) : null}
           <ol className="staff-start__items" data-testid="start-items">
             {gate.items.map((i) => (
@@ -576,13 +586,15 @@ export function StartWorkPage({
             <ReturnWorkItems key={gate.checkedAt} t={t} fetchImpl={fetchImpl} jobId={gate.jobId} />
           ) : null}
           {refusal ? (
-            <p role="alert" className="hh-field__error" data-testid="start-refusal">
-              {refusal}
-            </p>
+            <div ref={answer} tabIndex={-1} className="staff-start__answer">
+              <p role="alert" className="hh-field__error" data-testid="start-refusal">
+                {refusal}
+              </p>
+            </div>
           ) : null}
         </>
       ) : null}
-    </main>
+    </section>
   )
 }
 
@@ -916,7 +928,7 @@ export function StartReviewPage({
   if (state === 'loading') return <StateView kind="loading" title={t('start.review.loading')} />
   if (state === 'unavailable' || !view) return <StateView kind="error" title={t('start.review.unavailable')} />
   return (
-    <main className="staff-start" aria-labelledby="start-review-title">
+    <section className="staff-start" aria-labelledby="start-review-title">
       <h1 id="start-review-title">{t('start.review.title', { reference: view.projectReference })}</h1>
       {href ? (
         <p>
@@ -983,6 +995,6 @@ export function StartReviewPage({
           </ul>
         </>
       ) : null}
-    </main>
+    </section>
   )
 }

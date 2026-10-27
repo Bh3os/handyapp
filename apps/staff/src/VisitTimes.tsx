@@ -7,7 +7,7 @@
 //   Arrived. The export saves the CSV for the accountant (times only: nothing here computes pay, overtime or
 //   deductions; payroll stays outside the software).
 import type { StaffKey, StaffLocale } from '@handyhub/i18n'
-import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
+import { Button, Field, ScrollArea, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { call, idempotencyKey, type Fetch } from './api'
 import { codeLabel } from './Requests'
@@ -108,7 +108,7 @@ export function VisitTimesPage({
       {view.workers.length === 0 ? (
         <StateView kind="empty" title={t('times.noWorkers')} />
       ) : (
-        <div className="staff-times">
+        <ScrollArea className="staff-times" label={t('times.caption')}>
           <table data-testid="visit-times-table">
             <caption className="hh-visually-hidden">{t('times.caption')}</caption>
             <thead>
@@ -164,7 +164,7 @@ export function VisitTimesPage({
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollArea>
       )}
       {view.actions.correct && view.workers.length > 0 ? (
         <CorrectionForm t={t} fetchImpl={fetchImpl} view={view} onSaved={setView} />

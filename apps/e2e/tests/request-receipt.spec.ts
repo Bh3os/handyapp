@@ -8,12 +8,11 @@
 // per browser tab and the page says so.
 // Every visitor, address, number and image is synthetic (RULE-SYNTHETIC-DATA).
 import { deflateSync } from 'node:zlib'
-import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { expect, test, type Page } from '@playwright/test'
+import { expectAccessible } from '../a11y.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const future = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10)
 const SENT = '**/api/v1/public/requests'
 const OWNER_NEXT =
@@ -22,8 +21,7 @@ const OWNER_NEXT =
 const SEPARATE = 'Your request is received. Pricing and your appointment will be confirmed separately.'
 
 async function axe(page: Page) {
-  const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
-  expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+  await expectAccessible(page)
 }
 
 function crc32(buf: Buffer): number {

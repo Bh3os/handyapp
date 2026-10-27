@@ -88,6 +88,29 @@ body {
   outline-offset: 2px;
 }
 
+/* A form control never grows past its column: a select sizes itself to its longest option and a file input to its
+   button and file name, which pushed the page sideways at 320 px (TSK-0104, WCAG 1.4.10). */
+:where(input, select, textarea) {
+  max-width: 100%;
+}
+
+/* Form controls without a style of their own (a select in a row, a file picker) are main controls too: at least
+   44 px tall (HH-A11Y-03). Check boxes and radio buttons take their label as part of the target. */
+:where(
+  select,
+  textarea,
+  input:not([type='checkbox'], [type='radio'], [type='hidden'], [type='range'], [type='color'])
+) {
+  min-height: var(--hh-target);
+}
+
+/* A disclosure's summary is a control: at least the 44 px target of the main controls (HH-A11Y-03). */
+:where(summary) {
+  min-height: var(--hh-target);
+  padding-block: var(--hh-space-2);
+  cursor: pointer;
+}
+
 [hidden] {
   display: none !important;
 }

@@ -14,7 +14,6 @@
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { deflateSync } from 'node:zlib'
-import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { ESTIMATE_TERMS } from '@handyhub/domain/legal'
 import { localDateOf, resolveWindow } from '@handyhub/domain/local-time'
@@ -23,10 +22,10 @@ import { accessTokenFor, codeFor } from '../codes.js'
 import { verifyCountyOf } from '../county.js'
 import { verifyPropertyZone } from '../zones.js'
 import { passSecondFactor } from '../mfa.js'
+import { expectAccessible, tabTo } from '../a11y.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
 const port = process.env['E2E_PORT'] ?? '4310'
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 // This spec's own synthetic client address (RFC 5737): the request form and the sign-in limits count per network.
 const HEADERS = { 'x-forwarded-for': '198.51.100.176' }
 test.use({ extraHTTPHeaders: HEADERS })
@@ -41,8 +40,7 @@ const ZONE = 'America/Kentucky/Louisville'
 const run = Date.now().toString(36)
 
 async function axe(page: Page) {
-  const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
-  expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+  await expectAccessible(page)
 }
 
 async function withDb<T>(fn: (db: ReturnType<typeof createDb>) => Promise<T>): Promise<T> {
@@ -476,7 +474,8 @@ test.describe('Start Work: the server-side gate and the job-level Hold (TSK-0073
       await card.getByRole('button', { name: 'Arrived' }).click()
       await expect(card.getByRole('button', { name: 'Finished' })).toBeVisible()
       await expect(card.getByRole('button', { name: 'Start Work' })).toHaveCount(0)
-      await card.getByTestId('myday-start').click()
+      await tabTo(w, card.getByTestId('myday-start'))
+      await w.keyboard.press('Enter')
 
       // The briefing: Call 911 first, then every prerequisite with what is missing and who resolves it.
       const call = w.getByRole('link', { name: 'Call 911 — Immediate Emergency' })
@@ -494,12 +493,20 @@ test.describe('Start Work: the server-side gate and the job-level Hold (TSK-0073
       await axe(w)
 
       // The site check and a before photo on the page.
+      // TSK-0104 (HH-A11Y-01): with the keyboard alone.
       const check = w.getByRole('form', { name: 'Site check' })
-      await check.getByLabel('The property and site are the ones in the packet').check()
-      await check.getByLabel('I can access the work areas').check()
-      await check.getByLabel('The customer or an authorized representative is here').check()
-      await check.getByLabel('I reviewed the hazards and controls in the packet').check()
-      await check.getByRole('button', { name: 'Record the site check' }).click()
+      for (const label of [
+        'The property and site are the ones in the packet',
+        'I can access the work areas',
+        'The customer or an authorized representative is here',
+        'I reviewed the hazards and controls in the packet',
+      ]) {
+        await tabTo(w, check.getByLabel(label))
+        await w.keyboard.press('Space')
+        await expect(check.getByLabel(label)).toBeChecked()
+      }
+      await tabTo(w, check.getByRole('button', { name: 'Record the site check' }))
+      await w.keyboard.press('Enter')
       await expect(items.getByText('Record the site check.')).toHaveCount(0)
       await w
         .getByTestId('start-photo-package')
@@ -568,13 +575,16 @@ test.describe('Start Work: the server-side gate and the job-level Hold (TSK-0073
         category: 'permit_licensing',
         note: 'Synthetic: the owner checks whether a permit is needed.',
       })
-      await start.click()
+      await tabTo(w, start)
+      await w.keyboard.press('Enter')
       await expect(w.getByTestId('start-refusal')).toHaveText(
         'Start Work was refused: the list above shows what is missing now.',
       )
       await expect(items.getByText('The job is on Hold until the Owner sets Ready.')).toBeVisible()
       await expect(w.getByTestId('start-outcome')).toHaveText('Blocked')
       await expect(start).toBeDisabled()
+      // Start Work is off now, so focus moves to the refusal that says why (WCAG 2.4.3).
+      await expect(w.locator('.staff-start__answer')).toBeFocused()
       const job = await withDb((db) =>
         db.selectFrom('work.jobs').select('operational_state').where('id', '=', jobId).executeTakeFirstOrThrow(),
       )
@@ -615,8 +625,10 @@ test.describe('Start Work: the server-side gate and the job-level Hold (TSK-0073
       await reviewPacket()
       await w.reload()
       await expect(w.getByTestId('start-outcome')).toHaveText('Ready to start')
-      await start.click()
+      await tabTo(w, start)
+      await w.keyboard.press('Enter')
       await expect(w.getByText(/^Work started at /)).toBeVisible()
+      await expect(w.locator('.staff-start__answer')).toBeFocused()
       await expect(w.getByRole('button', { name: 'Start Work' })).toHaveCount(0)
       await expect(w.getByRole('link', { name: 'Call 911 — Immediate Emergency' })).toBeVisible()
       await axe(w)

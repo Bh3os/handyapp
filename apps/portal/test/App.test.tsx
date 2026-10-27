@@ -3,7 +3,8 @@
 // (RULE-SYNTHETIC-DATA).
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
-import { App, routeOf } from '../src/App'
+import { customerTranslator } from '@handyhub/i18n'
+import { App, pageTitle, routeOf } from '../src/App'
 import { parseOverview, type Fetch, type ProjectOverview } from '../src/api'
 
 afterEach(cleanup)
@@ -476,5 +477,16 @@ describe('refresh, polling and truthful failure states (TSK-0038, HH-ARC-10, HH-
     expect(parseOverview({ ...overview(), payment: { state: 'paid' } })).toBeNull()
     expect(parseOverview({ ...overview(), timeline: [{ kind: 'note', at: NOW, text: 'x' }] })).toBeNull()
     expect(parseOverview(null)).toBeNull()
+  })
+})
+
+describe('page titles (TSK-0104, HH-A11Y-01)', () => {
+  it('[HH-A11Y-01] names the page, then the portal', () => {
+    const { t } = customerTranslator()
+    expect(pageTitle(t, routeOf(`/portal/p/${REF}/messages`))).toBe(`Project ${REF} – HandyHub customer portal`)
+    expect(pageTitle(t, routeOf(`/portal/p/${REF}/privacy`))).toBe(
+      'Your data and privacy requests – HandyHub customer portal',
+    )
+    expect(pageTitle(t, routeOf('/portal/terms/estimate-terms-1'))).toBe('HandyHub customer portal')
   })
 })

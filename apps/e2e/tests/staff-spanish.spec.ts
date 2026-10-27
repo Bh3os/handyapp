@@ -8,11 +8,10 @@
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { AxeBuilder } from '@axe-core/playwright'
 import { expect, test, type Browser, type Page } from '@playwright/test'
 import { passSecondFactor } from '../mfa.js'
+import { expectAccessible } from '../a11y.js'
 
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const databaseUrl = process.env['E2E_DATABASE_URL']
 // This spec's own synthetic network (RFC 5737): the sign-in and link limits count per network.
 const NETWORK = { 'x-forwarded-for': '198.51.100.102' }
@@ -75,8 +74,7 @@ async function signIn(page: Page, email: string, password: string, name: string)
 }
 const menu = (page: Page) => page.getByRole('navigation', { name: /^(Main|Principal)$/ }).getByRole('link')
 async function axe(page: Page) {
-  const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
-  expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+  await expectAccessible(page)
 }
 async function fresh(browser: Browser) {
   return (await browser.newContext({ extraHTTPHeaders: NETWORK })).newPage()

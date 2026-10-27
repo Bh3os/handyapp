@@ -2,13 +2,12 @@
 // HH-INT-13, HH-INT-22, ENT-ConsentPreference). The code a test enters is read back from the database and derived with
 // the e2e servers' synthetic code key (codes.ts); every visitor, address and number is synthetic
 // (RULE-SYNTHETIC-DATA). Assertions read only the records these tests create (the database is shared by every spec).
-import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { expect, test, type Page } from '@playwright/test'
 import { codeFor } from '../codes.js'
+import { expectAccessible } from '../a11y.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const future = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10)
 // The owner's wording (OWN-DEC-190 opt-in point B and the disclosure beside each checkbox).
 const CODE_LABEL = 'I agree to receive a one-time SMS verification code from HandyHub at the phone number provided.'
@@ -16,8 +15,7 @@ const DISCLOSURE =
   'Message frequency varies. Message and data rates may apply. Reply STOP to opt out or HELP for assistance. Consent is not required to purchase services.'
 
 async function axe(page: Page) {
-  const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
-  expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+  await expectAccessible(page)
 }
 
 async function withDb<T>(fn: (db: ReturnType<typeof createDb>) => Promise<T>): Promise<T> {

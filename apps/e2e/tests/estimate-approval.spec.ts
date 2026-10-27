@@ -9,16 +9,15 @@
 // owner's sign-off. Every visitor, address, account, name and amount is synthetic (RULE-SYNTHETIC-DATA).
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { ESTIMATE_TERMS } from '@handyhub/domain/legal'
 import { expect, test, type APIRequestContext, type Browser, type Page } from '@playwright/test'
 import { accessTokenFor, codeFor } from '../codes.js'
 import { passSecondFactor } from '../mfa.js'
+import { expectAccessible, tabTo } from '../a11y.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
 const port = process.env['E2E_PORT'] ?? '4310'
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 // This spec's own synthetic client address (RFC 5737): the request form and the sign-in limits count per network.
 const HEADERS = { 'x-forwarded-for': '198.51.100.157' }
 test.use({ extraHTTPHeaders: HEADERS })
@@ -29,8 +28,7 @@ const ESTIMATOR = 'e2e-estimate-approval-estimator@example.test'
 const pw = ['synthetic', 'staff', 'estimate', 'approval', 'passphrase', '57'].join(' ')
 
 async function axe(page: Page) {
-  const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
-  expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+  await expectAccessible(page)
 }
 
 async function withDb<T>(fn: (db: ReturnType<typeof createDb>) => Promise<T>): Promise<T> {
@@ -344,14 +342,20 @@ test.describe('Approve Estimate: exact version, fresh verification, one job (TSK
       await expect(approval.getByText('Approving does not book an appointment or pay a deposit.')).toBeVisible()
 
       // Selecting the add-on: the server's total and deposit ($1,295.00; 20% = $259.00, FACT-DEPOSIT-RULE).
-      await approval.getByRole('checkbox', { name: 'Synthetic: prime the patched area ($45.00)' }).check()
+      // TSK-0104 (HH-A11Y-01): the approval is made with the keyboard alone, from the top of the page.
+      await tabTo(page, approval.getByRole('checkbox', { name: 'Synthetic: prime the patched area ($45.00)' }))
+      await page.keyboard.press('Space')
       const totals = approval.getByTestId('approval-totals')
       await expect(totals.getByText('$1,295.00').first()).toBeVisible()
       await expect(totals.getByText('$259.00')).toBeVisible()
-      await box.check()
-      await approval.getByLabel('Your full name', { exact: true }).fill('Test Approval Customer')
+      await tabTo(page, box)
+      await page.keyboard.press('Space')
+      await expect(box).toBeChecked()
+      await tabTo(page, approval.getByLabel('Your full name', { exact: true }))
+      await page.keyboard.type('Test Approval Customer')
       await axe(page)
-      await approval.getByRole('button', { name: 'Approve Estimate' }).click()
+      await tabTo(page, approval.getByRole('button', { name: 'Approve Estimate' }))
+      await page.keyboard.press('Enter')
       await expect(
         approval.getByText("For your security, confirm it's you again with a new code, then try again."),
       ).toBeVisible()
@@ -370,7 +374,8 @@ test.describe('Approve Estimate: exact version, fresh verification, one job (TSK
 
       // Approve Estimate: the exact version, once.
       const answer = page.waitForResponse((r) => r.url().endsWith('/approve') && r.request().method() === 'POST')
-      await approval.getByRole('button', { name: 'Approve Estimate' }).click()
+      await tabTo(page, approval.getByRole('button', { name: 'Approve Estimate' }))
+      await page.keyboard.press('Enter')
       const sent = await answer
       expect(sent.status()).toBe(201)
       const body = sent.request().postDataJSON() as Record<string, unknown>
@@ -378,6 +383,8 @@ test.describe('Approve Estimate: exact version, fresh verification, one job (TSK
       await expect(view.getByText('Estimate approved—pay your deposit to proceed with scheduling.')).toBeVisible()
       await expect(view.getByText('Version 1: Approved')).toBeVisible()
       await expect(view.getByRole('button', { name: 'Approve Estimate' })).toHaveCount(0)
+      // The form is gone, so focus moves to the answer that replaced it (WCAG 2.4.3).
+      await expect(approval.locator('.portal-estimate__answer')).toBeFocused()
       await axe(page)
       expect(await counts(link.projectId)).toEqual({ approvals: 1, jobs: 1, tasks: 1 })
 

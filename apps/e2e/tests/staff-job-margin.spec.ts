@@ -12,17 +12,16 @@
 // (RULE-SYNTHETIC-DATA). Assertions read this spec's own job and worker only.
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { ESTIMATE_TERMS } from '@handyhub/domain/legal'
 import { expect, test, type APIRequestContext, type Browser, type Page } from '@playwright/test'
 import { accessTokenFor, codeFor } from '../codes.js'
 import { passSecondFactor } from '../mfa.js'
 import { verifyPropertyZone } from '../zones.js'
+import { expectAccessible } from '../a11y.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
 const port = process.env['E2E_PORT'] ?? '4310'
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 // This spec's own synthetic client address (RFC 5737): the request form and the sign-in limits count per network.
 const HEADERS = { 'x-forwarded-for': '198.51.100.131' }
 test.use({ extraHTTPHeaders: HEADERS })
@@ -35,8 +34,7 @@ const OWNER = 'e2e-owner@example.test'
 const pw = ['synthetic', 'staff', 'job', 'margin', 'passphrase', '131'].join(' ')
 
 async function axe(page: Page) {
-  const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
-  expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+  await expectAccessible(page)
 }
 
 async function withDb<T>(fn: (db: ReturnType<typeof createDb>) => Promise<T>): Promise<T> {

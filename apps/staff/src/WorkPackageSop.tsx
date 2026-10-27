@@ -15,7 +15,7 @@
 //   human review; nothing on this screen clears a hold or decides that work is safe.
 // - The Owner records the competent reviewer's sign-off (sop.sign_off_review) when the server offers it.
 // The checklist is read-only here: running it on site is TSK-0075.
-import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
+import { Button, Field, ScrollArea, StateView, StatusBadge } from '@handyhub/ui'
 import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { Fragment, useId, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
@@ -147,7 +147,7 @@ function Item({ t, item, lang }: { t: T; item: SopItemView; lang: Lang }) {
   if (item.kind === 'table' && item.table)
     return (
       <li className="staff-sop__item staff-sop__item--table" data-item={item.id}>
-        <div className="staff-sop__table">
+        <ScrollArea className="staff-sop__table" label={t('sop.itemId', { id: item.id })}>
           <table lang={lang}>
             <thead>
               <tr>
@@ -170,7 +170,7 @@ function Item({ t, item, lang }: { t: T; item: SopItemView; lang: Lang }) {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollArea>
         <p className="staff-sop__meta">
           <Source t={t} line={item.line} />
         </p>

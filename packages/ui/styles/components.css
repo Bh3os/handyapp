@@ -48,6 +48,7 @@
 }
 
 .hh-button--quiet {
+  min-width: var(--hh-target);
   min-height: var(--hh-target);
   padding-inline: var(--hh-space-1);
   border-color: transparent;
@@ -351,7 +352,11 @@ textarea.hh-field__control {
   font-size: var(--hh-text-label);
   font-weight: 600;
   line-height: 1.5;
-  white-space: nowrap;
+  /* A badge keeps its width in a row (it never shrinks), and a status longer than the line wraps inside the badge
+     instead of pushing the page sideways (TSK-0104, WCAG 1.4.10). */
+  flex-shrink: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .hh-badge::before {
@@ -460,6 +465,15 @@ textarea.hh-field__control {
   border-right-color: transparent;
   color: var(--hh-info);
   animation: hh-spin 0.9s linear infinite;
+}
+
+/* Reduced motion (TSK-0104, HH-A11Y-01): the pending and loading markers stand still; their words say what is
+   happening. */
+@media (prefers-reduced-motion: reduce) {
+  .hh-button[aria-busy='true']::after,
+  .hh-state--loading .hh-state__marker {
+    animation: none;
+  }
 }
 
 .hh-state--error {

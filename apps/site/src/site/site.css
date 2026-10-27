@@ -21,6 +21,9 @@
   top: var(--hh-space-2);
   left: var(--hh-space-2);
   z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--hh-target);
   padding: var(--hh-space-2) var(--hh-space-4);
   background: var(--hh-surface);
   color: var(--hh-link);

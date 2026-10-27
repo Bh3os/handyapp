@@ -13,7 +13,7 @@
 // - Return-work costs are shown apart; the report states its sources.
 import type { StaffKey, StaffLocale } from '@handyhub/i18n'
 import { cents, centsFromDecimal, formatUsd } from '@handyhub/money'
-import { Button, Field, StateView, StatusBadge } from '@handyhub/ui'
+import { Button, Field, ScrollArea, StateView, StatusBadge } from '@handyhub/ui'
 import { useCallback, useEffect, useId, useState, type FormEvent } from 'react'
 import { call, idempotencyKey, type ApiErrorBody, type Fetch } from './api'
 import { JobMarginSection, type MarginData } from './JobMargin'
@@ -216,7 +216,7 @@ export function JobCostsPage({
         <p className="staff-request__hint">{t('jobCosts.changeOrders', { count: view.changeOrders })}</p>
       ) : null}
 
-      <div className="staff-job-costs__wrap">
+      <ScrollArea className="staff-job-costs__wrap" label={t('jobCosts.tableCaption')}>
         <table className="staff-invoice__lines" data-testid="job-costs-table">
           <caption className="staff-request__hint">{t('jobCosts.tableCaption')}</caption>
           <thead>
@@ -256,7 +256,7 @@ export function JobCostsPage({
             </tr>
           </tfoot>
         </table>
-      </div>
+      </ScrollArea>
       {view.totals.incompleteLines.length ? (
         <p data-testid="job-costs-incomplete">
           {t('jobCosts.incompleteLines', { lines: view.totals.incompleteLines.map(lineName).join(', ') })}

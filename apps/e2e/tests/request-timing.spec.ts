@@ -2,12 +2,11 @@
 // HH-INT-03, T09, T24, T37, T41). TSK-0139 (OWN-DEC-170, FACT-WINDOW-HOURS): the decided window hours and the owner's
 // notice below the choices. Preferences only: nothing on the page or the receipt claims a slot, a booking or a
 // fee. Every visitor, address and number is synthetic (RULE-SYNTHETIC-DATA).
-import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { expect, test, type Page } from '@playwright/test'
+import { expectAccessible } from '../a11y.js'
 
 const databaseUrl = process.env['E2E_DATABASE_URL']
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const ZONE = 'America/Kentucky/Louisville'
 const STREET = '300 Synthetic Court'
 /** The owner's notice below the preferred times, exactly (OWN-DEC-170). */
@@ -48,8 +47,7 @@ const SLOT_CLAIM =
   /\$|\bbooked\b|\bslot\b|scheduled for|appointment is (set|booked|on|at)|confirmed for|visit fee|same-day (charge|fee)/i
 
 async function axe(page: Page) {
-  const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
-  expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+  await expectAccessible(page)
 }
 
 // This spec's own synthetic client address (RFC 5737): the request-form limit counts per network, and every spec

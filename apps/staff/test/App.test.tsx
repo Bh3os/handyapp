@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { App, routeOf, runtimeBase } from '../src/App'
+import { staffTranslator } from '@handyhub/i18n'
+import { App, routeOf, runtimeBase, screenTitle } from '../src/App'
 
 afterEach(cleanup)
 
@@ -201,5 +202,20 @@ describe('mandatory MFA and CSRF in the staff app (TSK-0015, TSK-0154, HH-STAFF-
     fireEvent.change(screen.getByLabelText(/^Password/), { target: { value: 'a long enough passphrase' } })
     fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
     await waitFor(() => expect(screen.getByText(/MFA_ENCRYPTION_KEY/)).toBeTruthy())
+  })
+})
+
+describe('page titles (TSK-0104, HH-A11Y-01)', () => {
+  it('[HH-A11Y-01] names the screen, then the app, in English and Spanish', () => {
+    const en = staffTranslator('en').t
+    const es = staffTranslator('es').t
+    expect(screenTitle(en, routeOf('/staff/requests', '/staff/'))).toBe('Requests – HandyHub staff')
+    expect(
+      screenTitle(en, routeOf(`/staff/customers/${'a'.repeat(8)}-aaaa-aaaa-aaaa-${'a'.repeat(12)}`, '/staff/')),
+    ).toBe('Customers – HandyHub staff')
+    expect(screenTitle(en, routeOf('/staff/', '/staff/'), 'queue')).toBe('Action queue – HandyHub staff')
+    expect(screenTitle(en, routeOf('/staff/sign-in', '/staff/'))).toBe('Staff sign-in – HandyHub staff')
+    expect(screenTitle(en, routeOf('/staff/packets/x', '/staff/'))).toBe('HandyHub staff')
+    expect(screenTitle(es, routeOf('/staff/my-day', '/staff/'))).toBe('Mi día – HandyHub para el personal')
   })
 })

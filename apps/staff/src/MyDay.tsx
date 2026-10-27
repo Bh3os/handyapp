@@ -455,7 +455,8 @@ function VisitCard({
               ) : null}
             </p>
           ) : null}
-          {mine.length > 0 ? <p data-testid="myday-mine">{mine.join(' · ')}</p> : null}
+          {/* TSK-0104 (WCAG 4.1.3): what was just recorded is announced; focus stays on the next action. */}
+          <div role="status">{mine.length > 0 ? <p data-testid="myday-mine">{mine.join(' · ')}</p> : null}</div>
           <div className="staff-myday__actions" data-testid="myday-actions">
             {primary ? (
               <Button className="staff-myday__action" pending={pending === primary} onClick={() => void tap(primary)}>

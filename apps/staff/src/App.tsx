@@ -4,8 +4,8 @@
 // Sign out (TSK-0053: the estimates list and the estimate builder; TSK-0065: the scheduling board; TSK-0098: the audit log; TSK-0119: message delivery and templates; TSK-0099: the retention reviews; TSK-0100: Delete or Archive, the deletion log and privacy requests; TSK-0069: the job packet and the worker's packet list on My Day; TSK-0071: the job loadout; TSK-0070: My Day and the visit times; TSK-0073, TSK-0074: the Start Work briefing and gate and the review of holds and exceptions). Text comes from the staff catalogs (HH-LANG-02); the signed-in staff member's stored locale replaces the
 // default once the session is known, and switching it keeps every open form as it is (HH-OPS-04).
 import { staffTranslator, type StaffKey, type StaffLocale } from '@handyhub/i18n'
-import { Button, Card, Field, StateView } from '@handyhub/ui'
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Button, Card, Field, StateView, useRouteFocus } from '@handyhub/ui'
+import { useEffect, useRef, useState, type FormEvent, type RefObject } from 'react'
 import { call, setCsrfToken, type ApiErrorBody, type Fetch } from './api'
 import { AuditLogScreen } from './AuditLog'
 import { MessagesScreen } from './Messages'
@@ -46,7 +46,7 @@ import { RequestsScreen } from './Requests'
 import { PrivacyScreen } from './Privacy'
 import { RetentionScreen } from './Retention'
 import { ScheduleBoard } from './Schedule'
-import { SearchScreen, Screen, Shell, type Navigation } from './Shell'
+import { NAV_LABELS, SearchScreen, Screen, Shell, type Navigation } from './Shell'
 import { StaffScreen } from './StaffManagement'
 import { JobPhotosPage } from './JobPhotos'
 import { StartReviewPage, StartWorkPage } from './StartWork'
@@ -221,6 +221,9 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
   useEffect(() => {
     document.documentElement.lang = locale
   }, [locale])
+
+  // TSK-0104 (HH-A11Y-01): a screen change names the screen in the title and moves focus to the main region.
+  useRouteFocus(current, 'staff-main', screenTitle(t, route, session?.navigation?.home))
 
   // The browser's back and forward buttons move between screens too.
   useEffect(() => {
@@ -700,7 +703,7 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
       <header className="staff-app__bar">
         <p className="staff-app__brand">{t('app.title')}</p>
       </header>
-      <main className="staff-app__main">
+      <main id="staff-main" className="staff-app__main" tabIndex={-1}>
         {route.page === 'sign-in' ? (
           <SignIn t={t} fetchImpl={doFetch} onSignedIn={(s) => (setSession(s), go('/'))} />
         ) : route.page === 'set-password' ? (
@@ -721,11 +724,37 @@ export function App({ locale: initialLocale = 'en', path, base, fetchImpl, navig
 
 type T = ReturnType<typeof useT>
 
+/** The document title of a route (TSK-0104, WCAG 2.4.2): the screen's menu name, then the app's name. */
+export function screenTitle(t: T, route: Route, home?: string | null): string {
+  const app = t('app.title')
+  const id =
+    route.page === 'screen'
+      ? route.id
+      : route.page === 'record' || route.page === 'record-step'
+        ? route.screen
+        : route.page === 'home'
+          ? (home ?? null)
+          : null
+  const name =
+    route.page === 'sign-in'
+      ? t('signIn.heading')
+      : route.page === 'account'
+        ? t('nav.account')
+        : route.page === 'search'
+          ? t('search.label')
+          : id !== null && Object.hasOwn(NAV_LABELS, id)
+            ? t(NAV_LABELS[id as keyof typeof NAV_LABELS])
+            : null
+  return name === null ? app : `${name} – ${app}`
+}
+
 function SignIn({ t, fetchImpl, onSignedIn }: { t: T; fetchImpl: Fetch; onSignedIn: (s: Session) => void }) {
   const [mode, setMode] = useState<'sign-in' | 'forgot' | 'sent' | 'mfa' | 'enroll'>('sign-in')
   const [useRecovery, setUseRecovery] = useState(false)
   const [error, setError] = useState<ApiErrorBody | null>(null)
   const [pending, setPending] = useState(false)
+  const formArea = useRef<HTMLElement>(null)
+  useErrorFocus(error, formArea)
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -815,7 +844,7 @@ function SignIn({ t, fetchImpl, onSignedIn }: { t: T; fetchImpl: Fetch; onSigned
     )
 
   return (
-    <section className="staff-auth">
+    <section className="staff-auth" ref={formArea}>
       <h1 className="hh-h3">{mode === 'forgot' ? t('forgot.heading') : t('signIn.heading')}</h1>
       {mode === 'forgot' ? <p>{t('forgot.intro')}</p> : null}
       {error && error.fieldErrors.some((f) => f.code === 'MFA_NOT_CONFIGURED') ? (
@@ -857,6 +886,18 @@ function SignIn({ t, fetchImpl, onSignedIn }: { t: T; fetchImpl: Fetch; onSigned
 
 const optional = (error: string | undefined) => (error === undefined ? {} : { error })
 
+/**
+ * TSK-0104 (HH-A11Y-01, WCAG 3.3.1): after a refused submit, focus moves to the first field with an error, so its
+ * message (linked with aria-describedby) is read and the person can correct it at once. An error without a field is an
+ * alert and is announced where it is.
+ */
+function useErrorFocus(error: ApiErrorBody | null, ref: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    if (!error) return
+    ref.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
+  }, [error])
+}
+
 function SetPassword({
   t,
   fetchImpl,
@@ -873,6 +914,8 @@ function SetPassword({
   const [error, setError] = useState<ApiErrorBody | null>(null)
   const [pending, setPending] = useState(false)
   const [done, setDone] = useState(false)
+  const formArea = useRef<HTMLElement>(null)
+  useErrorFocus(error, formArea)
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -913,7 +956,7 @@ function SetPassword({
       </section>
     )
   return (
-    <section className="staff-auth">
+    <section className="staff-auth" ref={formArea}>
       <h1 className="hh-h3">{heading}</h1>
       {error && error.fieldErrors.length === 0 ? <StateView kind="error" title={errorText(t, error)} /> : null}
       <form className="staff-auth__form" onSubmit={(e) => void submit(e)} noValidate>

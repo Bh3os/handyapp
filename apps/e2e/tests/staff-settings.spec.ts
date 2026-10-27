@@ -8,13 +8,12 @@
 // Office is refused by the server.
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { AxeBuilder } from '@axe-core/playwright'
 import { createDb } from '@handyhub/db'
 import { ESTIMATE_TERMS_V1_RECORD } from '@handyhub/domain/legal'
 import { expect, test, type Page } from '@playwright/test'
 import { passSecondFactor } from '../mfa.js'
+import { expectAccessible } from '../a11y.js'
 
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
 const databaseUrl = process.env['E2E_DATABASE_URL']
 const port = process.env['E2E_PORT'] ?? '4310'
 const cli = fileURLToPath(new URL('../../server/dist/cli/staff-access.js', import.meta.url))
@@ -41,8 +40,7 @@ function staffAccess(...args: string[]): string {
   return new URL(out.split('\n')[0] as string).pathname
 }
 async function axe(page: Page) {
-  const scan = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
-  expect(scan.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+  await expectAccessible(page)
 }
 async function setPassword(page: Page, link: string, password: string) {
   await page.goto(link)
