@@ -86,7 +86,7 @@ describe('the consent texts of the package are published versions (TSK-0133, ENT
     const res = await app.inject({
       method: 'POST',
       url: '/api/v1/public/requests',
-      headers: { 'idempotency-key': 'synthetic-tendlc-key-0001', 'x-forwarded-for': '198.51.100.71' },
+      headers: { 'idempotency-key': 'synthetic-tendlc-request-0001', 'x-forwarded-for': '198.51.100.71' },
       payload: {
         formVersion: 'test-1',
         privacyNoticeVersion: PRIVACY_NOTICE.documentId,

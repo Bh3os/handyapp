@@ -74,16 +74,23 @@ async function recordVersion(key: string, value: unknown, sourceIds: string[]) {
 }
 
 /** The latest code sent for a subject, as the delivery job would derive it. */
-const latestCode = (subject: string) =>
-  withDb((db) =>
-    db
-      .selectFrom('identity.verification_codes')
-      .select(['id', 'nonce'])
-      .where('subject_ref', '=', subject)
-      .orderBy('created_at', 'desc')
-      .limit(1)
-      .executeTakeFirstOrThrow(),
-  )
+/** The newest code for the subject; the click that sends it returns before the row is written, so wait for it. */
+async function latestCode(subject: string) {
+  for (let attempt = 0; attempt < 50; attempt++) {
+    const code = await withDb((db) =>
+      db
+        .selectFrom('identity.verification_codes')
+        .select(['id', 'nonce'])
+        .where('subject_ref', '=', subject)
+        .orderBy('created_at', 'desc')
+        .limit(1)
+        .executeTakeFirst(),
+    )
+    if (code) return code
+    await new Promise((r) => setTimeout(r, 200))
+  }
+  throw new Error(`no verification code for ${subject}`)
+}
 
 /** This spec's Estimator, signed in through the staff app in a browser of its own; writes go through the staff API. */
 async function estimatorSession(browser: Browser) {
