@@ -322,7 +322,8 @@ describe('the SMS opt-in beside the request-form checkbox (TSK-0029, TSK-0133, H
     expect(SMS_TERMS_V1.documentId).toBe('sms-terms-1')
     const terms = createHash('sha256').update(legalContent(SMS_TERMS_V1, customer), 'utf8').digest('hex')
     expect(terms).toBe(SMS_TERMS_V1.contentSha256)
-    expect(SMS_TERMS).toMatchObject({ documentId: 'sms-terms-2', version: 2, configKey: SMS_TERMS_V1.configKey })
+    expect(SMS_TERMS).toMatchObject({ documentId: 'sms-terms-2', version: 2 })
+    expect(SMS_TERMS.configKey).toBe(SMS_TERMS_V1.configKey)
   })
 
   it('[OWN-DEC-190][HH-INT-22][T76] the label and the disclosure are the owner’s opt-in point A, word for word', () => {

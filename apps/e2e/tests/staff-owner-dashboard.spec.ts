@@ -147,8 +147,8 @@ test.describe('The Owner Dashboard (TSK-0096)', () => {
       // The days around today in the business zone, so a run across midnight still holds this spec's records.
       const from = businessDate(-1)
       const to = businessDate(1)
-      await dash.getByLabel('From').fill(from)
-      await dash.getByLabel('To').fill(to)
+      await dash.getByLabel('From', { exact: true }).fill(from)
+      await dash.getByLabel('To', { exact: true }).fill(to)
       await dash.getByRole('button', { name: 'Show', exact: true }).click()
       await expect(dash.getByText(`From ${from} to ${to} (3 days)`, { exact: false })).toBeVisible()
       await expect(dash.getByText(/Last updated/)).toBeVisible()
