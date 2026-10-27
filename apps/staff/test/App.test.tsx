@@ -69,6 +69,22 @@ describe('staff sign-in screens (TSK-0014, HH-STAFF-01)', () => {
     await waitFor(() => expect(screen.getByText(/If that email belongs to a staff account/)).toBeTruthy())
   })
 
+  it('[HH-SEC-04][HH-SEC-02] the link token leaves the address bar and history once read; the form keeps working (TSK-0109 LINK-1)', async () => {
+    const token = ['synthetic', 'link', 'token', 'X1'].join('_')
+    window.history.replaceState(null, '', `/staff/invite/${token}`)
+    const fetchImpl = vi.fn().mockResolvedValueOnce(json(410, { error: { code: 'LINK_INVALID', fieldErrors: [] } }))
+    render(<App base="/staff/" fetchImpl={fetchImpl} />)
+    expect(screen.getByRole('heading', { level: 1, name: 'Set your password' })).toBeTruthy()
+    await waitFor(() => expect(window.location.pathname).toBe('/staff/invite'))
+    expect(window.location.href).not.toContain(token)
+    fireEvent.change(screen.getByLabelText(/New password/), { target: { value: 'a long enough passphrase here' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save password' }))
+    await waitFor(() => expect(fetchImpl).toHaveBeenCalled())
+    const [, init] = fetchImpl.mock.calls[0] as [string, RequestInit]
+    expect(JSON.parse(String(init.body))).toMatchObject({ token })
+    window.history.replaceState(null, '', '/')
+  })
+
   it('[HH-STAFF-01] an expired link says so and offers the way back', async () => {
     const fetchImpl = vi.fn().mockResolvedValueOnce(json(410, { error: { code: 'LINK_INVALID', fieldErrors: [] } }))
     render(<App path="/staff/reset/expired-token" base="/staff/" fetchImpl={fetchImpl} navigate={vi.fn()} />)

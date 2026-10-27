@@ -11,7 +11,7 @@ import { AUTHENTICATION, type ApiModule, type RouteDef } from '../../api/route.j
 import { accountForSignIn, createStaffUser, DuplicateStaffEmailError, setPasswordHash } from './accounts.js'
 import { consumeLink, issueLink } from './links.js'
 import { checkPassword, hashPassword, needsRehash, PASSWORD_MIN_LENGTH, verifyPassword } from './passwords.js'
-import { check, hit, networkOf, RATE_RULES } from './rate-limit.js'
+import { hit, networkOf, RATE_RULES, release } from './rate-limit.js'
 import type { Secret } from '../../providers/types.js'
 import { mfaNotConfigured, MFA_NOT_CONFIGURED_LOG, mfaState, useTotp } from './mfa.js'
 import { securityRoutes } from './security.js'
@@ -87,16 +87,16 @@ export function identityModule(deps: IdentityDeps): ApiModule {
           throw mfaNotConfigured()
         }
         const { email, password } = req.body as { email: string; password: string }
-        // Failures are counted; a network or account over its limit is refused even with the right password.
+        // Failures are counted; a network or account over its limit is refused even with the right password. Each
+        // attempt is counted before the password is checked, and a successful one is given back (TSK-0109 AUTH-1).
         const network = clientNetwork(req)
         const key = normalizeEmail(email)
-        await check(db, RATE_RULES.signInNetwork, network)
-        await check(db, RATE_RULES.signInAccount, key)
+        const attemptAt = new Date()
+        await hit(db, RATE_RULES.signInNetwork, network, attemptAt)
+        await hit(db, RATE_RULES.signInAccount, key, attemptAt)
         const account = await accountForSignIn(db, email)
         const verified = await verifyPassword(account?.passwordHash ?? null, password)
         if (!account || !verified || account.status !== 'active') {
-          await hit(db, RATE_RULES.signInNetwork, network)
-          await hit(db, RATE_RULES.signInAccount, key)
           await auditAlways({
             result: 'denied',
             reason: 'invalid_credentials',
@@ -104,6 +104,8 @@ export function identityModule(deps: IdentityDeps): ApiModule {
           })
           throw new ApiError('INVALID_CREDENTIALS')
         }
+        await release(db, RATE_RULES.signInNetwork, network, attemptAt)
+        await release(db, RATE_RULES.signInAccount, key, attemptAt)
         const trx = tx as NonNullable<typeof tx>
         if (account.passwordHash && needsRehash(account.passwordHash))
           await trx
@@ -233,7 +235,8 @@ export function identityModule(deps: IdentityDeps): ApiModule {
       handler: async ({ req, db, tx, audit, auditAlways }) => {
         const session = req.staffSession
         if (!session || !tx) throw new ApiError('UNAUTHENTICATED')
-        await check(db, RATE_RULES.signInAccount, session.email)
+        const attemptAt = new Date()
+        await hit(db, RATE_RULES.signInAccount, session.email, attemptAt)
         const body = req.body as { password?: string; code?: string }
         const account = await accountForSignIn(db, session.email)
         const ok =
@@ -241,7 +244,6 @@ export function identityModule(deps: IdentityDeps): ApiModule {
             ? deps.mfaKey !== null && (await useTotp(tx, deps.mfaKey, session.staffUserId, body.code))
             : await verifyPassword(account?.passwordHash ?? null, body.password ?? '')
         if (!ok) {
-          await hit(db, RATE_RULES.signInAccount, session.email)
           await auditAlways({
             result: 'denied',
             reason: 'invalid_credentials',
@@ -249,6 +251,7 @@ export function identityModule(deps: IdentityDeps): ApiModule {
           })
           throw new ApiError('INVALID_CREDENTIALS')
         }
+        await release(db, RATE_RULES.signInAccount, session.email, attemptAt)
         const rotated = await rotateSession(tx, session.sessionId, { state: 'complete', authenticated: true })
         if (!rotated) throw new ApiError('UNAUTHENTICATED')
         await audit({

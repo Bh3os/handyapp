@@ -12,7 +12,7 @@ import {
   SELECTIVE_TABLES,
 } from '../../src/modules/staging/index.js'
 import { KEPT_TABLES, REMOVED_CATEGORIES } from '../../src/modules/staging/reset.js'
-import { GATE_USERS } from '../fixtures/env.js'
+import { GATE_USERS, PRODUCTION_SHAPE } from '../fixtures/env.js'
 
 const DB = 'postgres://synthetic@127.0.0.1/none'
 
@@ -36,7 +36,7 @@ describe('STAGING_TOOLS (TSK-0141, HH-OPS-05)', () => {
     expect(stagingToolsEnvironment(staging).identified).toBe(true)
     expect(stagingToolsEnvironment({ ...staging, accessGate: { enabled: false } }).identified).toBe(false)
     expect(stagingToolsEnvironment({ ...staging, stagingTools: false }).identified).toBe(false)
-    const production = loadConfig({ HANDYHUB_ENV: 'production', DATABASE_URL: DB })
+    const production = loadConfig({ ...PRODUCTION_SHAPE, DATABASE_URL: DB })
     expect(stagingToolsEnvironment({ ...production, stagingTools: true }).identified).toBe(false)
   })
 

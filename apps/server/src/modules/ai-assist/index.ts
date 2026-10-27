@@ -14,6 +14,9 @@
 // - A suggestion, once one could exist, is reviewed by a person holding the use's review action
 //   (platform/ai/review.ts reviewSuggestion) and is never applied by the server; no route reviews one yet, since none
 //   can be produced.
+// - Rate limited per staff member (TSK-0109, docs/security/review-2026.md AI-1): every refusal writes an append-only
+//   audit entry kept seven years, so an unlimited route let one session fill the audit log. PROPOSED engineering limit
+//   (OQ-SECURITY-REVIEW-DETAILS); a refused or limited request is still never sent anywhere.
 import type { StaffActor } from '@handyhub/policy'
 import { ApiError } from '../../api/errors.js'
 import type { ApiContext, ApiModule, RouteDef } from '../../api/route.js'
@@ -25,6 +28,9 @@ function staff(ctx: ApiContext): StaffActor {
   if (ctx.actor.kind !== 'staff') throw new ApiError('FORBIDDEN')
   return ctx.actor
 }
+
+/** PROPOSED (OQ-SECURITY-REVIEW-DETAILS): 60 requests per staff member per hour across every use. */
+export const AI_ASSIST_RATE_LIMIT = { bucket: 'ai_assist', limit: 60, windowSeconds: 3600 } as const
 
 const REFUSED = {
   type: 'object',
@@ -65,7 +71,7 @@ function suggestionRoute(use: AiUse): RouteDef {
     kind: 'write',
     idempotency: 'none',
     expectedVersion: 'none',
-    rateLimit: 'none',
+    rateLimit: AI_ASSIST_RATE_LIMIT,
     audit: 'ai.assist',
     pagination: false,
     test: TEST,

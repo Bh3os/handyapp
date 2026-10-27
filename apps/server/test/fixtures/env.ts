@@ -17,3 +17,14 @@ export function basic(name: string, password: string): string {
 export function testConfig(env: Record<string, string> = {}): Config {
   return loadConfig({ HANDYHUB_ENV: 'ci', MFA_ENCRYPTION_KEY: TEST_MFA_KEY_TEXT, ...env })
 }
+
+/**
+ * The variables production needs besides its secrets (TSK-0109 CONF-1, CONF-2): two hosts (OWN-DEC-133) and the
+ * measured proxy hops. Synthetic hosts; add DATABASE_URL and anything a test is about.
+ */
+export const PRODUCTION_SHAPE = {
+  HANDYHUB_ENV: 'production',
+  PUBLIC_ORIGIN: 'https://www.example.test',
+  STAFF_ORIGIN: 'https://staff.example.test',
+  TRUST_PROXY_HOPS: '1',
+} as const

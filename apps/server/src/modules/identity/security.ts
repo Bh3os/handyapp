@@ -15,7 +15,7 @@ import { AUTHENTICATION, type JsonSchema, type RouteDef } from '../../api/route.
 import type { IdentityDeps } from './index.js'
 import { freshView } from './views.js'
 import { mfaState, newRecoveryCodes, RECOVERY_CODE_COUNT, startEnrolment, useRecoveryCode, useTotp } from './mfa.js'
-import { check, hit, RATE_RULES } from './rate-limit.js'
+import { hit, RATE_RULES, release } from './rate-limit.js'
 import { clearedSessionCookie, revokeAllSessions, revokeSession, rotateSession, sessionCookie } from './sessions.js'
 
 const none = { type: 'null' } as const
@@ -147,9 +147,10 @@ export function securityRoutes(deps: IdentityDeps, shared: { test: string; sessi
         const session = enrolling(req)
         if (!tx) throw new ApiError('UNAUTHENTICATED')
         const key = requireKey()
-        await check(db, RATE_RULES.signInAccount, `mfa:${session.email}`)
+        // Counted before the code is checked, so parallel guesses cannot pass together (TSK-0109 AUTH-1).
+        const attemptAt = new Date()
+        await hit(db, RATE_RULES.signInAccount, `mfa:${session.email}`, attemptAt)
         if (!(await useTotp(tx, key, session.staffUserId, (req.body as { code: string }).code, { pending: true }))) {
-          await hit(db, RATE_RULES.signInAccount, `mfa:${session.email}`)
           await auditAlways({
             result: 'denied',
             reason: 'invalid_code',
@@ -157,6 +158,7 @@ export function securityRoutes(deps: IdentityDeps, shared: { test: string; sessi
           })
           throw new ApiError('INVALID_CREDENTIALS')
         }
+        await release(db, RATE_RULES.signInAccount, `mfa:${session.email}`, attemptAt)
         const recoveryCodes = await newRecoveryCodes(tx, session.staffUserId)
         await revokeAllSessions(tx, session.staffUserId, 'mfa_changed', session.sessionId)
         const rotated = await rotateSession(tx, session.sessionId, { state: 'complete', authenticated: true })
@@ -204,14 +206,14 @@ export function securityRoutes(deps: IdentityDeps, shared: { test: string; sessi
         if (!pending || pending.state !== 'mfa_pending' || !tx) throw new ApiError('UNAUTHENTICATED')
         const key = requireKey()
         const limitKey = `mfa:${pending.email}`
-        await check(db, RATE_RULES.signInAccount, limitKey)
+        const attemptAt = new Date()
+        await hit(db, RATE_RULES.signInAccount, limitKey, attemptAt)
         const body = req.body as { code?: string; recoveryCode?: string }
         const ok =
           body.code !== undefined
             ? await useTotp(tx, key, pending.staffUserId, body.code)
             : await useRecoveryCode(tx, pending.staffUserId, body.recoveryCode ?? '')
         if (!ok) {
-          await hit(db, RATE_RULES.signInAccount, limitKey)
           await auditAlways({
             result: 'denied',
             reason: 'invalid_code',
@@ -219,6 +221,7 @@ export function securityRoutes(deps: IdentityDeps, shared: { test: string; sessi
           })
           throw new ApiError('INVALID_CREDENTIALS')
         }
+        await release(db, RATE_RULES.signInAccount, limitKey, attemptAt)
         const rotated = await rotateSession(tx, pending.sessionId, { state: 'complete', authenticated: true })
         if (!rotated) throw new ApiError('UNAUTHENTICATED')
         await audit({

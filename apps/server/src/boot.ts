@@ -3,7 +3,7 @@
 // With a database: the provider webhooks (/webhooks/bird, /webhooks/resend) and the in-process job worker run too;
 // the worker stops and the pool closes when the app closes.
 import { randomUUID } from 'node:crypto'
-import { createDb, databaseIdentity, recordEnvironmentMark, withTx } from '@handyhub/db'
+import { createDb, databaseIdentity, recordEnvironmentMark, SERVER_POOL_CONNECT_TIMEOUT_MS, withTx } from '@handyhub/db'
 import type { FastifyInstance } from 'fastify'
 import { buildApp } from './app.js'
 import { buildAutomations } from './automations.js'
@@ -43,7 +43,12 @@ export async function boot(env: Readonly<Record<string, string | undefined>>, op
   const portalDir = config.portalDir ?? options.defaultPortalDir
   // One pool for the API, the webhooks and the worker. The API caller comes from the staff or the customer session
   // cookie (TSK-0014, TSK-0016; buildApp's default resolver).
-  const db = config.databaseUrl ? createDb(config.databaseUrl, { applicationName: 'handyapp-server' }) : undefined
+  const db = config.databaseUrl
+    ? createDb(config.databaseUrl, {
+        applicationName: 'handyapp-server',
+        connectionTimeoutMillis: SERVER_POOL_CONNECT_TIMEOUT_MS,
+      })
+    : undefined
   // Object storage needs no logger; the senders below get the app's (their destination guard logs suppressions).
   const storage = createProviders(providers).storage
   const app: FastifyInstance = await buildApp({
