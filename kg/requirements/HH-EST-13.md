@@ -22,3 +22,5 @@ source: "OWN-DEC-127 (new behaviour; no guide id)"
 - On staging, v1.0 is the current terms version with the banner "TEST — wording pending owner approval for real customer use". Real-customer approvals require the owner's recorded approval of the final wording through the legal-document sign-off.
 
 **Changed by [[OWN-DEC-187]], [[OWN-DEC-161]] (2026-10-21):** the owner approved v1.0 for real customer approvals (sign-off recorded by [[TSK-0144]]); the next version adds the late-cancellation rules after attorney review.
+
+**Limitation (process requirement; reviewer: attorney):** Estimate terms v1.0 are owner-approved but not attorney-reviewed ([[OQ-ATTORNEY-TERMS]]); the clauses left out of them, late-cancellation enforcement ([[OWN-DEC-161]]) among them, wait for that review.

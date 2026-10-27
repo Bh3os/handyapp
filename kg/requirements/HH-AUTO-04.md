@@ -19,3 +19,5 @@ When AI is enabled:
 - authorization and validated tool arguments live outside the model;
 - model and tool steps, cost, retries, privacy destinations (what data may go to which provider) and allowed output actions are bounded;
 - a deterministic or manual fallback exists for every AI-assisted step.
+
+**Limitation (owner decision; reviewer: Owner):** AI stays off ([[RULE-AI-WAVE2]], `ai.module` disabled): the guardrails are built and tested, but no model input is ever processed in this release.

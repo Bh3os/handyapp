@@ -31,3 +31,5 @@ Security review before real customer data ([[OWN-DEC-136]]): AI agents run a ful
 **Changed by [[OWN-DEC-202]] (2026-10-22):** staff password sign-in with mandatory MFA for every active staff account.
 
 **Reviewed by [[TSK-0109]] (2026-10-26):** the threat model above is mapped to server controls, negative tests, monitoring and residual risk in `docs/security/review-2026.md`; the review was done by AI agents ([[OWN-DEC-136]]) and every finding is fixed or recorded as a PROPOSED item in [[OQ-SECURITY-REVIEW-DETAILS]].
+
+**Limitation (owner decision; reviewer: Owner):** The security review was done by AI only ([[OWN-DEC-136]], [[TSK-0109]], `docs/security/review-2026.md`); no person has run a penetration test, and the residual risk is accepted only by the Owner's production go decision ([[OQ-GO-DECISION]]).

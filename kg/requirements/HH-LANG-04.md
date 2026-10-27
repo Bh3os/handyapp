@@ -21,3 +21,5 @@ source: "guide 26.1; OWN-DEC-79 amended (supersedes the human-reviewer requireme
 - A human review record can be added later as a separate, optional status.
 - The English competent-review rule ([[OWN-DEC-17]]) and every safety, legal and Start Work hold stay unchanged.
 - Original free text (worker notes, customer messages) is kept; a translated summary names its source and never replaces the original evidence.
+
+**Limitation (owner decision; reviewer: Owner):** Spanish safety texts are released as "AI-reviewed" after the automated comparison only ([[OWN-DEC-79]]); no person has reviewed them, and the Spanish emergency instruction is part of the safety review ([[OQ-SAFETY-REVIEW]]).

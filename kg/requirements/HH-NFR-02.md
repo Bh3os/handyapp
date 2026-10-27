@@ -25,3 +25,5 @@ Observable without exposing secrets or personal data:
 - backup status and the last restore drill.
 
 Important operational exceptions (delivery failures, permanent failures, callback failures, conflicts) reach the owner and office as action-queue items ([[OWN-DEC-115]]), and the owner dashboard links to them ([[OWN-DEC-125]]).
+
+**Limitation (process requirement; reviewer: Owner):** Backups, the restore-drill schedule and error tracking show as unknown or NOT CONFIGURED on the system page: they belong to the production hosting, which is not set up ([[OQ-GO-DECISION]]).

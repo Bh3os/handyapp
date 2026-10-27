@@ -144,10 +144,14 @@ jobs:
           node-version-file: .nvmrc
       - name: Graph lint (0 problems)
         run: node tools/kg.mjs index && node tools/kg.mjs lint
-      - name: Traceability report and baseline failures
+      # TSK-0110 (HH-TEST-01): strict mode fails on a P0 requirement or acceptance test with neither tagged test
+      # evidence nor a stated limitation, a done task whose implemented ids no test names, an operational document that
+      # flags a conflict without a question node, and a docs/traceability-report.md that is out of date
+      # (regenerate it with `pnpm trace:doc`).
+      - name: Traceability report, baseline failures and the Definition of Done check (strict)
         run: |
           status=0
-          node tools/trace.mjs --quiet || status=$?
+          node tools/trace.mjs --strict --quiet || status=$?
           cat reports/traceability.md >> "$GITHUB_STEP_SUMMARY"
           exit $status
       - name: Upload the traceability report

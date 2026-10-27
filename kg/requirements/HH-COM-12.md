@@ -32,3 +32,7 @@ Rules:
 **Changed by [[OWN-DEC-190]], [[OWN-DEC-178]] (2026-10-21):** opt-in at the request form and on the receipt with the owner's wording and disclosure; verification, ongoing transactional and marketing consents kept separate; the registration package is prepared now ([[TSK-0133]]).
 
 **Built by [[TSK-0133]] (2026-10-26):** the request form's SMS opt-in is the owner's opt-in point A (`sms-disclosure-2`), and the SMS Terms version 2 (`sms-terms-2`) list the customer messages the registry may text and both opt-in points (migration 0126). The Brand and Campaign package for Bird is `docs/10dlc/registration.md`, with screenshots of both opt-in points. Tests keep its quotes equal to the live texts and the released text templates. Nothing was submitted. PROPOSED details: [[OQ-10DLC-PACKAGE-DETAILS]].
+
+**Limitation (process requirement; reviewer: Owner):** The A2P 10DLC brand and campaign registration in Bird is prepared (`docs/10dlc/registration.md`) but not submitted ([[OQ-BIRD-10DLC]]), and live texts are off (`sms.live_delivery`, [[OWN-DEC-190]]). The website elements are tested; carrier-side delivery, STOP and HELP are not.
+
+**Limitation (owner input; reviewer: Owner and attorney):** The HELP reply text is NOT CONFIGURED (`sms.help_reply`, [[OQ-ATTORNEY-PRIVACY]]): a HELP keyword is recorded and changes nothing, but no help text is sent back.

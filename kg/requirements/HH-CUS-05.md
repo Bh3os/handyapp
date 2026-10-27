@@ -20,3 +20,5 @@ source: "guide 5.1 HH-CUS-05; OWN-DEC-43, OWN-DEC-47, OWN-DEC-126, OWN-DEC-72, O
 - Customer private routes (`/access/...`, `/project/...`, `/account...`) are excluded from search indexing and the sitemap, and they require server-side authorization regardless of indexing settings.
 - Staging is behind the access gate for the owner and authorized testers and is excluded from search indexing; only a minimal health check is public.
 - Customer pages are English only; former Spanish public URLs answer 301 to the English page.
+
+**Limitation (owner input; reviewer: Owner):** The public phone number and email are NOT CONFIGURED (`business.public_contact`, [[FACT-PUBLIC-CONTACT]]): the site, receipts and invoices show labelled placeholders and no Call button. The owner must supply them before launch; the accessible alternative contact of [[OWN-DEC-181]] depends on them.

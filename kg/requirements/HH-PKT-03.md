@@ -18,3 +18,5 @@ source: "guide 15.1 HH-PKT-03; OWN-DEC-108"
 - Uncertain or hazardous work (licensed electrical, plumbing, HVAC, gas, structural, asbestos, lead, mold) gets no procedure; it routes to a hold and escalation.
 - Imported SOP versions are "pending competent review". On private staging the checklist may run on them with a "Pending competent review" banner on every step screen. Production use requires the reviewer sign-off and activation path, which stays intact.
 - Applicable manufacturer instructions are referenced where they are stored; none are invented.
+
+**Limitation (process requirement; reviewer: qualified safety professional):** The SOPs, hazard templates and hold rules are imported verbatim in review state "pending competent review" ([[OWN-DEC-17]], [[OQ-SAFETY-REVIEW]]); their inline open questions and conflicts are listed in [[OQ-SOP-INLINE-FLAGS]]. No checklist is signed off for real jobs.

@@ -43,3 +43,5 @@ Release and rollback (guide 29.2, 29.3):
 - Production exposes no debug tools, sample credentials, fake reviews, test staff or private seed records; domain, certificate and cookie settings are verified for the real origins, `handyhub247.com` and `staff.handyhub247.com` ([[FACT-DOMAIN]]).
 
 **Built by [[TSK-0107]] (2026-10-26):** database unavailable mid-operation: the server keeps running when PostgreSQL ends its connections (a restart, a failover); the lost connection is replaced, the interrupted write commits nothing and answers a retryable error, and the retry under the same key succeeds once.
+
+**Limitation (process requirement; reviewer: Owner):** Outages are drilled in tests against fake providers and a local PostgreSQL, and the restore rehearsal uses a local `pg_dump`; a drill against the real Render, Resend, Bird and R2 services and a production restore are production-only checks not run yet (`docs/runbooks/`).

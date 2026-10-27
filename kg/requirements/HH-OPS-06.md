@@ -20,3 +20,5 @@ source: "OWN-DEC-191 (new behaviour; no guide id)"
 - Each phase switch is a configuration change the Owner approves and that is audited; manual accessibility tests stay UNVERIFIED; the readiness report separates critical blockers from optional improvements.
 
 **Changed by [[OWN-DEC-212]] (2026-10-22):** before each merge, beyond CI: security and migration review, interaction tests with merged features, no duplicate messaging, conflicting rule versions or incompatible database changes, a check against the final owner decisions; integration tests again after related branches merge. The readiness report never claims a professional or manual review that did not happen.
+
+**Limitation (owner decision; reviewer: Owner):** The launch phase is 1 (private staging). Phase 2 or 3 needs the Owner's explicit approval after Owner Acceptance Testing, which has not been walked; production texting also waits for A2P 10DLC ([[OQ-BIRD-10DLC]], [[OQ-GO-DECISION]]).
