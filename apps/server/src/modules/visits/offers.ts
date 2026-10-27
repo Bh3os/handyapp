@@ -24,10 +24,10 @@
 //   estimate_visit.confirmed (#6); a reserved work visit appointment.confirmed (#12). Their wording is the owner's
 //   (migration 0065) and TSK-0120 supplies its values, so the emails are sent once each; a confirmation is sent only
 //   after the reservation committed. Texts have no wording until A2P 10DLC and are recorded as template_not_configured.
-// - PROPOSED (no owner rule): staff withdraw an open offer with a reason; a work visit's windows pass the job's
-//   scheduling gates when offered and again when selected (WORK_VISIT_GATES, the deposit gate of TSK-0059 first);
-//   selecting at or after the hold time is refused as expired, the customer is told the times are no longer held and
-//   staff get a queue item to offer new ones.
+// - Decided as built (OWN-DEC-192 B5, B2): staff withdraw an open offer with a written reason, which releases its
+//   holds; selecting at or after the hold time is refused as expired, the customer is told the times are no longer
+//   held and staff get a queue item to offer new ones. A work visit's windows pass the job's scheduling gates when
+//   offered and again when selected (WORK_VISIT_GATES, the deposit gate of TSK-0059 first).
 // - TSK-0059 (HH-SCH-06, HH-FIN-02, RULE-SAFETY-GATES): selecting a work-visit window confirms the visit, so the
 //   selection runs the deposit gate itself in its transaction, whatever gates the module was given, exactly as a staff
 //   confirmation does (visits.ts confirmVisit); an estimate visit never waits for a deposit.
@@ -94,7 +94,10 @@ export const APPOINTMENT_RESERVED_EVENT = 'appointment.reserved'
 export const OFFER_NOTICE = { estimate: 'estimate_visit.options', work: 'work_visit.options' } as const
 export const CONFIRMED_NOTICE = { estimate: 'estimate_visit.confirmed', work: 'appointment.confirmed' } as const
 
-/** PROPOSED input bounds (no owner value). */
+/**
+ * Input bounds. The customer's note with a request for other times is at most 500 characters (OWN-DEC-192 B6); the
+ * other bounds are PROPOSED (no owner value).
+ */
 export const OFFER_LIMITS = { windows: 10, instructions: 1000, reason: 500, note: 500 } as const
 
 /** The offer policy in force (scheduling.window_offers), or NOT CONFIGURED: never assumed. */

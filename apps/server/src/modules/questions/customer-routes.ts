@@ -10,7 +10,8 @@
 // - The customer's text is kept exactly as written (never trimmed, rewritten or translated); card numbers are refused.
 // - A reply answers its one question (other questions stay open, OWN-DEC-98) and stops its reminders at once (drafts
 //   and released ones not yet sent are cancelled; a send-time recheck catches the rest). When it answers the last open
-//   question of a request waiting on the customer, the request goes back to HandyHub's review. A reply to a "Closed—no
+//   question of a request waiting on the customer, the request goes back to HandyHub's review (OWN-DEC-192 E3: decided
+//   as built, as is anything more going in Messages). A reply to a "Closed—no
 //   response" request within the reopen period reopens the same request (and its project) for review with its history;
 //   nothing else is restored (no expired estimate or appointment). After the period it is refused
 //   (REOPEN_PERIOD_ENDED): a new request is the way (FACT-REOPEN-PERIOD, PROPOSED handling), unless staff reopen it
@@ -90,7 +91,7 @@ const MESSAGE_BODY = {
   properties: { text: { type: 'string', minLength: 1, maxLength: REPLY_MAX_LENGTH } },
 } as const
 
-/** PROPOSED (no owner value): 30 reply photo capabilities and 60 portal messages per client network per hour. */
+/** OWN-DEC-192 E6: 30 reply photo capabilities and 60 portal messages per client network per hour. */
 export const REPLY_UPLOAD_RATE_LIMIT = { bucket: 'customer-reply-upload', limit: 30, windowSeconds: 3600 } as const
 export const PORTAL_MESSAGE_RATE_LIMIT = { bucket: 'customer-portal-message', limit: 60, windowSeconds: 3600 } as const
 

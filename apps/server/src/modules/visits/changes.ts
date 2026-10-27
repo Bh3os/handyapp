@@ -50,9 +50,10 @@
 // - TSK-0140 (OWN-DEC-163 7): an estimate visit booked for a customer whose short-notice cancellations and no-shows
 //   reach cancellation.repeat_review (NOT CONFIGURED: nothing is flagged until the Owner sets it) opens the Owner's
 //   cancellation_pattern_review item; it never charges or blocks the booking.
-// - PROPOSED (no owner rule; OQ-VISIT-CHANGE-DETAILS): one open request per visit; a reassignment keeps the visit's
-//   window and runs every confirmation precondition like a reschedule; the scheduling task is left as it is when a
-//   visit is canceled (staff plan a new visit).
+// - Decided as built (OWN-DEC-192 C8, C7, C9): one open request per visit, closed on its own when the visit leaves
+//   "confirmed" some other way; a reassignment keeps the visit's window and runs every confirmation precondition like
+//   a reschedule; the scheduling task is left open when a visit is canceled (staff plan a new visit). A reason is
+//   required for every reschedule, reassignment, cancellation and declined request (C1).
 import type { Db, Tx } from '@handyhub/db'
 import {
   cancellationFee,

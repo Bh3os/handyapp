@@ -252,8 +252,9 @@ export const QUEUE_ITEM_TYPES = [
   },
   // TSK-0063 (HH-SCH-11, OWN-DEC-144): the customer asked for other times, or an offer's hold ended with no window
   // selected; staff offer new windows. One item per request (the request record lists the visits and their offers),
-  // opened with the answer or the expiry and resolved when a new offer is made or a window is selected. Band, view
-  // action and screen are PROPOSED.
+  // opened with the answer or the expiry and resolved when a new offer is made or a window is selected. Decided as
+  // built (OWN-DEC-192 B2, B6): the item, its time-sensitive band and its view (Estimators see it too). The action
+  // and screen are PROPOSED.
   {
     id: 'window_offer_response',
     section: 'queue',
