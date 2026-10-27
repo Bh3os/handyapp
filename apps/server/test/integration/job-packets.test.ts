@@ -901,6 +901,29 @@ describe('[HH-PKT-01][HH-PKT-02][HH-PKT-07] the versioned job packet', () => {
     ).rejects.toThrow(/job_packets_no_secret/)
   })
 
+  it('[HH-PKT-02] a refresh waiting behind a job held for Start Work never deadlocks with that transaction', async () => {
+    const other = await approve(await project())
+    const versions = () => t.db.selectFrom('work.job_packets').select('version').where('job_id', '=', other).execute()
+    expect(await versions()).toEqual([])
+    const waiting = async () => {
+      const r = await sql<{ n: number }>`SELECT count(*)::int AS n FROM pg_stat_activity
+        WHERE datname = current_database() AND wait_event_type = 'Lock'`.execute(t.db)
+      return r.rows[0]?.n ?? 0
+    }
+    let concurrent: Promise<unknown> | undefined
+    const held = await t.db.transaction().execute(async (tx) => {
+      // Start Work's order: the job row FOR UPDATE, then the packet brought up to date.
+      await tx.selectFrom('work.jobs').select('id').where('id', '=', other).forUpdate().execute()
+      concurrent = refreshJobPacket(t.db, other)
+      while ((await waiting()) === 0) await new Promise((r) => setTimeout(r, 20))
+      return refreshJobPacket(tx, other)
+    })
+    const after = (await concurrent) as Awaited<ReturnType<typeof refreshJobPacket>>
+    expect(held?.version).toBe(1)
+    expect(after?.version).toBe(1)
+    expect(await versions()).toEqual([{ version: 1 }])
+  })
+
   it('[HH-PKT-02] packetChanges is the diff the routes store (domain and server agree)', async () => {
     const rows = await t.db
       .selectFrom('work.job_packets')
