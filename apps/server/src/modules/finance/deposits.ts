@@ -248,6 +248,35 @@ export async function depositAmountsOfJob(
   return r ? amounts(db, r.id) : null
 }
 
+/**
+ * The deposit money of several jobs in one statement (TSK-0105: the scheduling board's cancellation previews), by
+ * the same rules as depositAmountsOfJob; a job without a deposit requirement is left out.
+ */
+export async function depositAmountsOfJobs(
+  db: Reader,
+  jobIds: readonly string[],
+): Promise<Map<string, { verified: number; pending: number }>> {
+  const out = new Map<string, { verified: number; pending: number }>()
+  if (jobIds.length === 0) return out
+  const rows = await db
+    .selectFrom('finance.deposit_requirements as r')
+    .leftJoin('finance.payment_allocations as a', (j) =>
+      j.onRef('a.deposit_requirement_id', '=', 'r.id').on('a.reverses_allocation_id', 'is', null),
+    )
+    .leftJoin('finance.payments as p', 'p.id', 'a.payment_id')
+    .select(['r.job_id', 'a.amount_cents', 'p.state'])
+    .where('r.job_id', 'in', [...jobIds])
+    .execute()
+  for (const r of rows) {
+    const sum = out.get(r.job_id) ?? { verified: 0, pending: 0 }
+    out.set(r.job_id, sum)
+    if (r.state === null || r.amount_cents === null) continue
+    if (VERIFIED.has(r.state)) sum.verified += Number(r.amount_cents)
+    else if (PENDING.has(r.state)) sum.pending += Number(r.amount_cents)
+  }
+  return out
+}
+
 /** The staff view of a job's deposit, with the actions the server would allow this caller now. */
 export async function depositView(db: Reader, actor: StaffActor, jobId: string): Promise<DepositView | null> {
   const r = await requirementOfJob(db, jobId)

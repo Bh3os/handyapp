@@ -28,3 +28,13 @@ Engineering targets to validate (proposals, not measured results or customer pro
 - Nothing customer-facing advertises uptime, speed or recovery guarantees.
 - Pages avoid large hero assets, unbounded galleries, unnecessary map loads and heavy third-party scripts, while keeping the premium design.
 - Backups include the relational records and the private media (references and bytes) through documented, supported mechanisms. A successful backup notification is not proof of restore: restore drills record the restored version and time, integrity results, elapsed time, missing data and external transactions to reconcile.
+
+Measured capability ([[TSK-0105]], lab, 2026-10-26, `docs/perf/README.md`; details and proposals in [[OQ-PERF-BUDGET-DETAILS]]):
+- The budgets are written once, in `docs/perf/budgets.json`. CI enforces the staff-read and core-write p95 budgets on a small fixed synthetic dataset. CI also fails when a key read runs more statements as the data doubles. Budgets with no number are measured and reported, never enforced.
+- At 10,000 synthetic jobs with 20 concurrent staff, on a shared developer machine, not staging:
+  - core writes are within budget (p95 189 ms);
+  - staff key reads are within budget (p95 250 ms; every key read p95 ≤ 605 ms);
+  - before three fixes they were not (p95 1,565 ms): the schedule board and My job packets read their records one item at a time, and an index on work packages by job was missing (0134);
+  - the portal overview has p95 23 ms.
+- Page lab, behind compression as on Render: LCP ≤ 2.3 s on mobile for every measured page. CLS is over 0.1 on `/services` and mobile `/account`. INP is not measured in the lab.
+- Not done yet: the measurement on representative staging, field measurement, and Lighthouse itself.

@@ -1,0 +1,661 @@
+{
+  "kind": "lab",
+  "reports": {
+    "site": {
+      "js": {
+        "raw": 523950,
+        "gzip": 149398
+      },
+      "css": {
+        "raw": 30134,
+        "gzip": 6631
+      },
+      "sourceMaps": 0,
+      "largest": [
+        {
+          "file": "_astro/client.C7WjD2Pw.js",
+          "raw": 212848,
+          "wire": 65681
+        },
+        {
+          "file": "_astro/src.B8GPsoLV.js",
+          "raw": 146077,
+          "wire": 39224
+        },
+        {
+          "file": "_astro/Receipt.Dn4V4mZy.js",
+          "raw": 72710,
+          "wire": 15609
+        }
+      ],
+      "pages": [
+        {
+          "page": "request.html",
+          "files": 13,
+          "rawBytes": 686372,
+          "wireBytes": 309083,
+          "byKind": {
+            "html": 2505,
+            "css": 4926,
+            "js": 140780,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "request/received.html",
+          "files": 11,
+          "rawBytes": 653415,
+          "wireBytes": 299152,
+          "byKind": {
+            "html": 2509,
+            "css": 4926,
+            "js": 130845,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "account.html",
+          "files": 11,
+          "rawBytes": 599557,
+          "wireBytes": 288600,
+          "byKind": {
+            "html": 2517,
+            "css": 4926,
+            "js": 120285,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "access.html",
+          "files": 11,
+          "rawBytes": 590032,
+          "wireBytes": 286140,
+          "byKind": {
+            "html": 2521,
+            "css": 4926,
+            "js": 117821,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "areas.html",
+          "files": 12,
+          "rawBytes": 578249,
+          "wireBytes": 281315,
+          "byKind": {
+            "html": 4870,
+            "css": 5324,
+            "js": 110249,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "index.html",
+          "files": 12,
+          "rawBytes": 568122,
+          "wireBytes": 280710,
+          "byKind": {
+            "html": 4265,
+            "css": 5324,
+            "js": 110249,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "privacy.html",
+          "files": 8,
+          "rawBytes": 205291,
+          "wireBytes": 172882,
+          "byKind": {
+            "html": 5108,
+            "css": 5324,
+            "js": 1578,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/interior-painting.html",
+          "files": 9,
+          "rawBytes": 202997,
+          "wireBytes": 171799,
+          "byKind": {
+            "html": 3901,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/picture-hanging.html",
+          "files": 9,
+          "rawBytes": 202926,
+          "wireBytes": 171793,
+          "byKind": {
+            "html": 3895,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/deck-staining.html",
+          "files": 9,
+          "rawBytes": 202810,
+          "wireBytes": 171784,
+          "byKind": {
+            "html": 3886,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/hotel-housekeeping.html",
+          "files": 9,
+          "rawBytes": 202507,
+          "wireBytes": 171740,
+          "byKind": {
+            "html": 3842,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/trim-molding.html",
+          "files": 9,
+          "rawBytes": 202782,
+          "wireBytes": 171736,
+          "byKind": {
+            "html": 3838,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/routine-cleaning.html",
+          "files": 9,
+          "rawBytes": 202549,
+          "wireBytes": 171723,
+          "byKind": {
+            "html": 3825,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/fence-repair.html",
+          "files": 9,
+          "rawBytes": 202861,
+          "wireBytes": 171721,
+          "byKind": {
+            "html": 3823,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/brick-limewashing.html",
+          "files": 9,
+          "rawBytes": 202744,
+          "wireBytes": 171710,
+          "byKind": {
+            "html": 3812,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/wallpaper-removal.html",
+          "files": 9,
+          "rawBytes": 202470,
+          "wireBytes": 171704,
+          "byKind": {
+            "html": 3806,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/tv-mounting.html",
+          "files": 9,
+          "rawBytes": 202550,
+          "wireBytes": 171693,
+          "byKind": {
+            "html": 3795,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/deck-repair.html",
+          "files": 9,
+          "rawBytes": 202610,
+          "wireBytes": 171683,
+          "byKind": {
+            "html": 3785,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/grill-cleaning.html",
+          "files": 9,
+          "rawBytes": 202373,
+          "wireBytes": 171669,
+          "byKind": {
+            "html": 3771,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/airbnb-turnover.html",
+          "files": 9,
+          "rawBytes": 202312,
+          "wireBytes": 171648,
+          "byKind": {
+            "html": 3750,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/air-duct-cleaning.html",
+          "files": 9,
+          "rawBytes": 202608,
+          "wireBytes": 171642,
+          "byKind": {
+            "html": 3744,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/closet-shelving.html",
+          "files": 9,
+          "rawBytes": 202522,
+          "wireBytes": 171642,
+          "byKind": {
+            "html": 3744,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/drywall-patching.html",
+          "files": 9,
+          "rawBytes": 202382,
+          "wireBytes": 171637,
+          "byKind": {
+            "html": 3739,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/smart-locks.html",
+          "files": 9,
+          "rawBytes": 202468,
+          "wireBytes": 171631,
+          "byKind": {
+            "html": 3733,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/popcorn-removal.html",
+          "files": 9,
+          "rawBytes": 202991,
+          "wireBytes": 171610,
+          "byKind": {
+            "html": 3712,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/deep-cleaning.html",
+          "files": 9,
+          "rawBytes": 202254,
+          "wireBytes": 171597,
+          "byKind": {
+            "html": 3699,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/gutter-maintenance.html",
+          "files": 9,
+          "rawBytes": 202435,
+          "wireBytes": 171588,
+          "byKind": {
+            "html": 3690,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/move-in-out.html",
+          "files": 9,
+          "rawBytes": 202023,
+          "wireBytes": 171585,
+          "byKind": {
+            "html": 3687,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/post-construction.html",
+          "files": 9,
+          "rawBytes": 202332,
+          "wireBytes": 171580,
+          "byKind": {
+            "html": 3682,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/driveway-cleaning.html",
+          "files": 9,
+          "rawBytes": 201900,
+          "wireBytes": 171567,
+          "byKind": {
+            "html": 3669,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/attic-insulation.html",
+          "files": 9,
+          "rawBytes": 202493,
+          "wireBytes": 171565,
+          "byKind": {
+            "html": 3667,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/drywall-remodeling.html",
+          "files": 9,
+          "rawBytes": 202137,
+          "wireBytes": 171536,
+          "byKind": {
+            "html": 3638,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "terms.html",
+          "files": 8,
+          "rawBytes": 201050,
+          "wireBytes": 171442,
+          "byKind": {
+            "html": 3668,
+            "css": 5324,
+            "js": 1578,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services/new-construction.html",
+          "files": 9,
+          "rawBytes": 201751,
+          "wireBytes": 171413,
+          "byKind": {
+            "html": 3515,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "sms-terms.html",
+          "files": 8,
+          "rawBytes": 200373,
+          "wireBytes": 171195,
+          "byKind": {
+            "html": 3421,
+            "css": 5324,
+            "js": 1578,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "services.html",
+          "files": 9,
+          "rawBytes": 197955,
+          "wireBytes": 170374,
+          "byKind": {
+            "html": 2476,
+            "css": 5324,
+            "js": 1702,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "404.html",
+          "files": 7,
+          "rawBytes": 191621,
+          "wireBytes": 168735,
+          "byKind": {
+            "html": 1438,
+            "css": 5324,
+            "js": 1101,
+            "font": 160872,
+            "image": 0
+          }
+        },
+        {
+          "page": "500.html",
+          "files": 7,
+          "rawBytes": 191403,
+          "wireBytes": 168669,
+          "byKind": {
+            "html": 1372,
+            "css": 5324,
+            "js": 1101,
+            "font": 160872,
+            "image": 0
+          }
+        }
+      ]
+    },
+    "portal": {
+      "js": {
+        "raw": 546525,
+        "gzip": 146550
+      },
+      "css": {
+        "raw": 22319,
+        "gzip": 4816
+      },
+      "sourceMaps": 1,
+      "largest": [
+        {
+          "file": "assets/index-BKYOJh3Q.js",
+          "raw": 546525,
+          "wire": 146550
+        },
+        {
+          "file": "assets/index-0jeXTfwJ.css",
+          "raw": 22319,
+          "wire": 4816
+        }
+      ],
+      "pages": [
+        {
+          "page": "index.html",
+          "files": 5,
+          "rawBytes": 730192,
+          "wireBytes": 312533,
+          "byKind": {
+            "html": 295,
+            "css": 4816,
+            "js": 146550,
+            "font": 160872,
+            "image": 0
+          }
+        }
+      ]
+    },
+    "staff": {
+      "js": {
+        "raw": 2215782,
+        "gzip": 542596
+      },
+      "css": {
+        "raw": 33236,
+        "gzip": 6492
+      },
+      "sourceMaps": 1,
+      "largest": [
+        {
+          "file": "assets/index-CjvVzRUv.js",
+          "raw": 2212726,
+          "wire": 541245
+        },
+        {
+          "file": "assets/index-CQsK5RZT.css",
+          "raw": 33236,
+          "wire": 6492
+        },
+        {
+          "file": "sw.js",
+          "raw": 3056,
+          "wire": 1351
+        }
+      ],
+      "pages": [
+        {
+          "page": "index.html",
+          "files": 5,
+          "rawBytes": 2407298,
+          "wireBytes": 708898,
+          "byKind": {
+            "html": 289,
+            "css": 6492,
+            "js": 541245,
+            "font": 160872,
+            "image": 0
+          }
+        }
+      ]
+    }
+  },
+  "checks": [
+    {
+      "app": "site",
+      "key": "jsGzipBytes",
+      "value": 149398,
+      "limit": null,
+      "state": "not_configured"
+    },
+    {
+      "app": "site",
+      "key": "cssGzipBytes",
+      "value": 6631,
+      "limit": null,
+      "state": "not_configured"
+    },
+    {
+      "app": "site",
+      "key": "largestPageGzipBytes",
+      "value": 309083,
+      "limit": null,
+      "state": "not_configured"
+    },
+    {
+      "app": "portal",
+      "key": "jsGzipBytes",
+      "value": 146550,
+      "limit": null,
+      "state": "not_configured"
+    },
+    {
+      "app": "portal",
+      "key": "cssGzipBytes",
+      "value": 4816,
+      "limit": null,
+      "state": "not_configured"
+    },
+    {
+      "app": "staff",
+      "key": "jsGzipBytes",
+      "value": 542596,
+      "limit": null,
+      "state": "not_configured"
+    },
+    {
+      "app": "staff",
+      "key": "cssGzipBytes",
+      "value": 6492,
+      "limit": null,
+      "state": "not_configured"
+    }
+  ]
+}

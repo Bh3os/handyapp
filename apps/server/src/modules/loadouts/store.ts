@@ -23,14 +23,20 @@ type Reader = Db | Tx
 
 /** Pins the current loadout version on the job's work packages that have none; returns how many were pinned. */
 export async function ensureLoadoutPins(tx: Tx, jobId: string): Promise<number> {
+  return ensureLoadoutPinsOf(tx, [jobId])
+}
+
+/** ensureLoadoutPins() for several jobs in one statement (TSK-0105, the packet refresh of several jobs). */
+export async function ensureLoadoutPinsOf(tx: Tx, jobIds: readonly string[]): Promise<number> {
+  if (jobIds.length === 0) return 0
   const res = await sql<{ work_package_id: string }>`
     INSERT INTO work.work_package_loadouts (work_package_id, project_id, job_id, service_id, loadout_version_id)
     SELECT w.id, w.project_id, w.job_id, w.service_id, v.id
     FROM work.work_packages w
     JOIN catalog.loadout_versions v ON v.service_id = w.service_id AND v.superseded_at IS NULL
-    WHERE w.job_id = ${jobId}
+    WHERE w.job_id = ANY(${[...jobIds]}::uuid[])
       AND NOT EXISTS (SELECT 1 FROM work.work_package_loadouts l WHERE l.work_package_id = w.id)
-    ORDER BY w.position
+    ORDER BY w.job_id, w.position
     ON CONFLICT (work_package_id) DO NOTHING
     RETURNING work_package_id`.execute(tx)
   return res.rows.length
@@ -56,12 +62,20 @@ export type LoadoutPackage = {
 
 /** The job's work packages, in order, with the loadout version pinned on each (null: NOT CONFIGURED). */
 export async function loadoutPackages(db: Reader, jobId: string): Promise<LoadoutPackage[]> {
+  return (await loadoutPackagesOf(db, [jobId])).get(jobId) ?? []
+}
+
+/** loadoutPackages() for several jobs in one statement, by job (TSK-0105, the packet refresh of several jobs). */
+export async function loadoutPackagesOf(db: Reader, jobIds: readonly string[]): Promise<Map<string, LoadoutPackage[]>> {
+  const out = new Map<string, LoadoutPackage[]>()
+  if (jobIds.length === 0) return out
   const rows = await db
     .selectFrom('work.work_packages as w')
     .innerJoin('catalog.services as s', 's.id', 'w.service_id')
     .leftJoin('work.work_package_loadouts as l', 'l.work_package_id', 'w.id')
     .leftJoin('catalog.loadout_versions as v', 'v.id', 'l.loadout_version_id')
     .select([
+      'w.job_id',
       'w.id',
       'w.project_id',
       'w.service_id',
@@ -76,11 +90,34 @@ export async function loadoutPackages(db: Reader, jobId: string): Promise<Loadou
       'v.content_sha256',
       'v.content',
     ])
-    .where('w.job_id', '=', jobId)
+    .where('w.job_id', 'in', [...jobIds])
     .orderBy('w.position')
     .orderBy('w.id')
     .execute()
-  return rows.map((r) => ({
+  for (const r of rows) {
+    const list = out.get(r.job_id as string) ?? []
+    out.set(r.job_id as string, list)
+    list.push(loadoutPackageOf(r))
+  }
+  return out
+}
+
+function loadoutPackageOf(r: {
+  id: string
+  project_id: string
+  service_id: string
+  code: string
+  position: number
+  state: string
+  pinned_at: Date | null
+  version_id: string | null
+  inventory_id: string | null
+  version: number | null
+  source_file: string | null
+  content_sha256: string | null
+  content: unknown
+}): LoadoutPackage {
+  return {
     workPackageId: r.id,
     projectId: r.project_id,
     serviceId: r.service_id,
@@ -99,7 +136,7 @@ export async function loadoutPackages(db: Reader, jobId: string): Promise<Loadou
             content: r.content as unknown as LoadoutContent,
           }
         : null,
-  }))
+  }
 }
 
 export type LatestCheck = {
