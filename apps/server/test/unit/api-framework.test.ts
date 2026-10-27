@@ -216,11 +216,12 @@ describe('authorization at the enforcement point (TSK-0010, RULE-SERVER-AUTHZ)',
   it('[HH-STAFF-04][HH-ARC-03][T26] a caller the route never serves is refused before validation and before any record is read (TSK-0108)', async () => {
     // The fake database throws on any query, so a refusal here proves nothing was looked up.
     const a = await app()
+    const request = 'synthetic-key-0108'
     const send = (who: string, method: 'POST' | 'PATCH', url: string) =>
       a.inject({
         method,
         url,
-        headers: { 'x-test-actor': who, 'idempotency-key': 'synthetic-key-0108', 'if-match': '"1"' },
+        headers: { 'x-test-actor': who, 'idempotency-key': request, 'if-match': '"1"' },
         payload: { name: 'x'.repeat(41), extra: ['probe'] },
       })
     for (const [method, url] of [

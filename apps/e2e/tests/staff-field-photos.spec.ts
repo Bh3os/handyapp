@@ -526,6 +526,10 @@ test.describe('Field photos: internal by default, shared by staff, seen by the c
         await expect(shareIn('After photo 1').getByRole('button', { name: 'Share with the customer' })).toBeVisible({
           timeout: 1000,
         })
+        // Uploaded last, so processed last: wait for it too before the page stops reloading.
+        await expect(shareIn('After photo 2').getByRole('button', { name: 'Share with the customer' })).toBeVisible({
+          timeout: 1000,
+        })
       }).toPass({ timeout: 30_000 })
       for (const name of ['Before photo 1', 'After photo 1']) {
         await shareIn(name).getByRole('button', { name: 'Share with the customer' }).click()
