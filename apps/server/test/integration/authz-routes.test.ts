@@ -257,13 +257,14 @@ beforeAll(async () => {
   // A worker the Owner disables while their session is still open (T27): the earlier cookie is all they hold. The
   // stale Owner does it: disabling is never delayed by a fresh sign-in (ROLE-MATRIX "Y (never delayed)").
   const leaver = await signedIn('disabled', ['worker'])
+  const DISABLE_REQUEST = 'synthetic-authz-disable-0108'
   const off = await server.inject({
     method: 'POST',
     url: `/api/v1/staff/members/${ids['disabled']}/disable`,
     headers: {
       cookie: profiles.staleOwner.cookie as string,
-      'x-csrf-token': profiles.staleOwner.csrf as string,
-      'idempotency-key': 'synthetic-authz-disable-0108',
+      'x-csrf-token': String(profiles.staleOwner.csrf),
+      'idempotency-key': DISABLE_REQUEST,
     },
     payload: { reason: 'Synthetic offboarding in the authorization suite.' },
   })
