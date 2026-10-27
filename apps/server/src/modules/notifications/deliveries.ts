@@ -81,6 +81,7 @@ import { LAYOUT_VERSION, TemplateValueError, TemplateValuesError } from './layou
 import { messageCategory, messageType, type Channel } from './message-types.js'
 import { sendPermission } from './consent.js'
 import { automaticPolicy } from './policy.js'
+import { applyEarlierStatuses } from './status.js'
 import { contentLocale, currentTemplate, renderTemplate, unwiredVariables } from './templates.js'
 
 export type Destination = {
@@ -309,6 +310,9 @@ async function send(
         at: new Date(),
         cause: 'send',
       })
+    // TSK-0107: a provider status that arrived before this send committed applies now (status.ts).
+    if (typeof set['provider_message_id'] === 'string')
+      await applyEarlierStatuses(tx, { channel, providerMessageId: set['provider_message_id'] })
     return { state: set.state, errorCode: set.error_code }
   }
   const template = await currentTemplate(tx, row.message_key, channel, row.locale as 'en' | 'es')
