@@ -17,3 +17,6 @@ source: "guide 26.1; OWN-DEC-45"
 - Former Spanish public URLs (`/es/...`) answer with a 301 redirect to the matching English page ([[OWN-DEC-45]]). Historical records are never deleted or rewritten because of this.
 
 **Changed by [[OWN-DEC-162]] (2026-10-21):** confirmed by the owner on 2026-10-21.
+
+**Built by [[TSK-0102]] (2026-10-26):** `/es` and `/es/<path>` answer 301 with `/<path>`; the repository test checks that the site and portal never use the staff catalogs, mark every page English and that customer documents and messages use the customer translator only.
+

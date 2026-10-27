@@ -282,6 +282,14 @@ export async function buildApp({
       return spa(reply, portal, url.slice('/portal'.length))
     }
     if (!site) return reply.callNotFound()
+    // Former Spanish public URLs (TSK-0102; HH-LANG-01, HH-CUS-05, OWN-DEC-45): the public site is English only, so
+    // /es and /es/... answer 301 with the matching English path (the query kept). The target is always a path on this
+    // site: repeated slashes collapse, so /es//elsewhere never becomes another host.
+    if (under(url, '/es')) {
+      const english = (url.slice('/es'.length) || '/').replace(/^\/+/, '/')
+      const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''
+      return reply.redirect(`${english}${query}`, 301)
+    }
     // County URLs (TSK-0023; HH-CUS-04, OWN-DEC-57): a county's own page only with approved local content, otherwise a
     // 301 to its anchor on the Areas page; a slug that names no county of the area is not found.
     const countyUrl = /^\/areas\/([^/]+)\/?$/.exec(url)

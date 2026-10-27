@@ -175,7 +175,7 @@ describe('the case page (TSK-0093, HH-INC-02, OWN-DEC-143)', () => {
       target: { value: 'Synthetic wording' },
     })
     fireEvent.click(within(updates).getByRole('button', { name: 'Preparar la actualización' }))
-    expect((await within(updates).findByRole('alert')).textContent).toContain('el Dueño decide eso')
+    expect((await within(updates).findByRole('alert')).textContent).toContain('el Propietario decide eso')
   })
 })
 

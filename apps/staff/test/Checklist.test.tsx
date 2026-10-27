@@ -111,7 +111,7 @@ describe('ChecklistPage (TSK-0075)', () => {
     )
     render(<ChecklistPage t={t('es')} fetchImpl={fetchImpl} jobId={JOB} href={href} />)
     const blockers = await screen.findByTestId('checklist-blockers')
-    expect(blockers.textContent).toContain('No ha empezado el trabajo en este trabajo')
+    expect(blockers.textContent).toContain('No ha iniciado el trabajo en este trabajo: use primero Iniciar trabajo.')
     expect(screen.queryByRole('form', { name: 'Entregar' })).toBeNull()
   })
 
