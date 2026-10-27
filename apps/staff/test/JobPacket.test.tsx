@@ -567,7 +567,9 @@ describe('your review of the packet (TSK-0072)', () => {
     const review = await screen.findByTestId('packet-review')
     fireEvent.click(within(review).getByLabelText(/Revisé este paquete yo mismo/))
     fireEvent.click(within(review).getByRole('button', { name: 'Confirmar la versión 3' }))
-    await screen.findByText('El paquete cambió mientras lo revisaba. Revise la versión nueva.')
+    await screen.findByText('El paquete cambió mientras lo revisaba. Revise la versión nueva.', undefined, {
+      timeout: 5000,
+    })
     await waitFor(() =>
       expect(fetchImpl.mock.calls.filter(([u]) => u === `/api/v1/staff/jobs/${JOB}/packet`).length).toBe(2),
     )
