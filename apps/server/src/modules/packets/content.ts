@@ -544,6 +544,9 @@ export async function refreshJobPackets(
   const ids = [...new Set(jobIds)].sort()
   if (ids.length === 0) return new Map()
   return withTx(db, async (tx) => {
+    // The job rows first: Start Work and other writers hold a job row FOR UPDATE and then refresh its packet. Taking
+    // the advisory lock first and the row second (through the new version's foreign key) deadlocked against them.
+    await tx.selectFrom('work.jobs').select('id').where('id', 'in', ids).orderBy('id').forKeyShare().execute()
     await sql`SELECT pg_advisory_xact_lock(hashtextextended(k, 0))
       FROM unnest(${ids.map((id) => `work.job_packet:${id}`)}::text[]) AS k`.execute(tx)
     // TSK-0071: a package of a service with a loadout version gets it pinned before the packet names it.
