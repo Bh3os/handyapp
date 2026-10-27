@@ -212,6 +212,33 @@ describe('authorization at the enforcement point (TSK-0010, RULE-SERVER-AUTHZ)',
     expect(worker.json().error.code).toBe('FORBIDDEN')
     await a.close()
   })
+
+  it('[HH-STAFF-04][HH-ARC-03][T26] a caller the route never serves is refused before validation and before any record is read (TSK-0108)', async () => {
+    // The fake database throws on any query, so a refusal here proves nothing was looked up.
+    const a = await app()
+    const request = 'synthetic-key-0108'
+    const send = (who: string, method: 'POST' | 'PATCH', url: string) =>
+      a.inject({
+        method,
+        url,
+        headers: { 'x-test-actor': who, 'idempotency-key': request, 'if-match': '"1"' },
+        payload: { name: 'x'.repeat(41), extra: ['probe'] },
+      })
+    for (const [method, url] of [
+      ['POST', '/api/v1/staff/widgets'],
+      ['PATCH', '/api/v1/staff/widgets/no-such-widget'],
+    ] as const) {
+      // The Worker has no rule for customer.edit: FORBIDDEN, whatever is sent and whether or not the record exists.
+      const worker = await send('worker', method, url)
+      expect([url, worker.statusCode, worker.json().error.code]).toEqual([url, 403, 'FORBIDDEN'])
+      expect(worker.json().error.fieldErrors).toEqual([])
+      const guest = await send('guest', method, url)
+      expect([url, guest.statusCode, guest.json().error.code]).toEqual([url, 401, 'UNAUTHENTICATED'])
+      // The Owner passes that check, so the same input is then refused for what it is.
+      expect((await send('owner', method, url)).json().error.code).toBe('VALIDATION_FAILED')
+    }
+    await a.close()
+  })
 })
 
 describe('pagination and versions (TSK-0010, HH-API-04, HH-API-05)', () => {

@@ -548,10 +548,13 @@ describe('each staff role and altered IDs (TSK-0037, HH-TEST-02, HH-STAFF-04, T6
     expect((await get(`/staff/requests/${A.requestId}`, cookie)).statusCode).toBe(403)
     expect((await get(`/staff/requests/${A.requestId}/photos`, cookie)).statusCode).toBe(403)
     expect((await get('/staff/requests', cookie)).statusCode).toBe(403)
-    expect((await get(`/staff/requests/${randomUUID()}`, cookie)).statusCode).toBe(404)
+    // TSK-0108: refused before the lookup, so an altered ID answers exactly as an existing one does.
+    const altered = await get(`/staff/requests/${randomUUID()}`, cookie)
+    expect(altered.statusCode).toBe(403)
+    expect(strip(altered.body)).toBe(strip((await get(`/staff/requests/${A.requestId}`, cookie)).body))
   })
 
-  it('[T68][HH-TEST-02] a write with an altered ID is NOT_FOUND for every role and changes nothing', async () => {
+  it('[T68][HH-TEST-02] a write with an altered ID is NOT_FOUND for every role allowed to write notes, FORBIDDEN for the Worker, and changes nothing', async () => {
     const notes = async () => (await t.db.selectFrom('intake.request_notes').select('id').execute()).length
     const before = await notes()
     for (const role of ROLES) {
@@ -565,7 +568,8 @@ describe('each staff role and altered IDs (TSK-0037, HH-TEST-02, HH-STAFF-04, T6
         },
         payload: { body: 'Synthetic note on an altered ID.' },
       })
-      expect([role, res.statusCode]).toEqual([role, 404])
+      // TSK-0108: the Worker holds no request action, so it is refused before the ID is looked up.
+      expect([role, res.statusCode]).toEqual([role, role === 'worker' ? 403 : 404])
     }
     expect(await notes()).toBe(before)
   })
