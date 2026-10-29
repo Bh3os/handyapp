@@ -10,7 +10,31 @@ import SiteLayout from '../layouts/SiteLayout.astro'
 import { CATEGORIES, CATEGORY_LABEL, CATEGORY_TEXT } from '../site/services'
 
 const t = customerTranslator()
-const serviceCards = CATEGORIES.map((category, index) => ({ category, number: String(index + 1).padStart(2, '0') }))
+// Illustrative Pexels stock images, not photos of HandyHub's projects.
+// Links to the verified source photo and the Pexels license appear in the design documentation.
+const categoryPhotos: Record<(typeof CATEGORIES)[number], { src: string; alt: string }> = {
+  home_improvement: {
+    src: 'https://images.pexels.com/photos/6474458/pexels-photo-6474458.jpeg?auto=compress&cs=tinysrgb&w=900',
+    alt: 'Home-improvement tools arranged beside a renovation plan',
+  },
+  drywall: {
+    src: 'https://images.pexels.com/photos/4981812/pexels-photo-4981812.jpeg?auto=compress&cs=tinysrgb&w=900',
+    alt: 'A construction worker installing drywall',
+  },
+  painting: {
+    src: 'https://images.pexels.com/photos/5691471/pexels-photo-5691471.jpeg?auto=compress&cs=tinysrgb&w=900',
+    alt: 'A painter working on a wall inside a home',
+  },
+  cleaning: {
+    src: 'https://images.pexels.com/photos/27176671/pexels-photo-27176671.jpeg?auto=compress&cs=tinysrgb&w=900',
+    alt: 'A living room being cleaned with a vacuum',
+  },
+}
+const serviceCards = CATEGORIES.map((category, index) => ({
+  category,
+  number: String(index + 1).padStart(2, '0'),
+  photo: categoryPhotos[category],
+}))
 const trust = [t.t('home.trust.estimates'), t.t('home.trust.pricing'), t.t('home.trust.visits')]
 const why = [
   [t.t('home.why.clearPricing.label'), t.t('home.why.clearPricing.text')],
@@ -35,10 +59,18 @@ const why = [
             <a class="hh-home-hero__browse" href="/services">{t.t('site.nav.services')}</a>
           </div>
         </div>
-        <div class="hh-home-hero__art" aria-hidden="true">
-          <span class="hh-home-hero__art-top">HandyHub</span>
-          <span class="hh-home-hero__art-mark">H<span>H</span></span>
-          <span class="hh-home-hero__art-bottom">{t.t('home.why.subtitle')}</span>
+        <div class="hh-home-hero__art">
+          <img
+            class="hh-home-hero__photo"
+            src="https://images.pexels.com/photos/3616739/pexels-photo-3616739.jpeg?auto=compress&cs=tinysrgb&w=1400"
+            alt="A residential interior during a renovation, with tools and materials"
+            width="1400"
+            height="934"
+            loading="eager"
+            fetchpriority="high"
+            decoding="async"
+          />
+          <span class="hh-home-hero__photo-label">HandyHub</span>
         </div>
       </div>
       <ul class="hh-home-hero__facts" data-testid="trust-facts">
@@ -59,8 +91,9 @@ const why = [
         <a class="hh-home-services__all" href="/services">{t.t('site.nav.services')}</a>
       </div>
       <div class="hh-home-services__grid">
-        {serviceCards.map(({ category, number }) => (
+        {serviceCards.map(({ category, number, photo }) => (
           <a class="hh-home-services__card" href={'/services#category-' + category}>
+            <span class="hh-home-services__image"><img src={photo.src} alt={photo.alt} width="900" height="600" loading="lazy" decoding="async" /></span>
             <span class="hh-home-services__number" aria-hidden="true">{number}</span>
             <span class="hh-home-services__name">{t.t(CATEGORY_LABEL[category])}</span>
             <span class="hh-home-services__summary">{t.t(CATEGORY_TEXT[category])}</span>

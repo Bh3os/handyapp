@@ -602,3 +602,16 @@
   .hh-home-services__card { transition: none; }
   .hh-home-services__card:hover { transform: none; }
 }
+
+/* Source-verified stock photography: aesthetic only, not a claim of completed work. */
+.hh-home-hero__art { position: relative; min-height: 27rem; padding: 0; background: var(--hh-navy); overflow: hidden; }
+.hh-home-hero__photo { display: block; width: 100%; height: 100%; min-height: 27rem; object-fit: cover; }
+.hh-home-hero__photo-label { position: absolute; bottom: var(--hh-space-4); left: var(--hh-space-4); padding: var(--hh-space-2) var(--hh-space-4); background: var(--hh-navy); color: var(--hh-ivory); font-family: var(--hh-font-display); font-size: 1.5rem; }
+.hh-home-services__card { padding: 0 0 var(--hh-space-4); overflow: hidden; }
+.hh-home-services__image { display: block; aspect-ratio: 4 / 3; overflow: hidden; background: var(--hh-tint); }
+.hh-home-services__image img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform var(--hh-duration-base) var(--hh-easing); }
+.hh-home-services__card:hover .hh-home-services__image img { transform: scale(1.025); }
+.hh-home-services__card > :not(.hh-home-services__image) { margin-inline: var(--hh-space-4); }
+.hh-home-services__name { overflow-wrap: anywhere; }
+@media (max-width: 58rem) { .hh-home-hero__photo { min-height: 16rem; max-height: 26rem; } }
+@media (prefers-reduced-motion: reduce) { .hh-home-services__image img { transition: none; } .hh-home-services__card:hover .hh-home-services__image img { transform: none; } }
