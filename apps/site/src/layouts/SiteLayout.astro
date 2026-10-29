@@ -33,9 +33,13 @@ const t = customerTranslator()
     <a class="hh-site__skip" href="#main">{t.t('site.skipToContent')}</a>
     <header class="hh-site-header">
       <div class="hh-site__wrap hh-site-header__inner">
-        <a class="hh-site-header__brand" href="/" aria-label={t.t('site.homeLink')}>HandyHub</a>
+        <a class="hh-site-header__brand" href="/" aria-label={t.t('site.homeLink')}>
+          <span class="hh-site-header__mark" aria-hidden="true">H</span>
+          <span>HandyHub</span>
+        </a>
         <nav class="hh-site-header__nav" aria-label={t.t('site.nav.label')}>
-          <a class="hh-site-header__link" href="/services">{t.t('site.nav.services')}</a>
+          <a class="hh-site-header__link" href="/services" aria-current={Astro.url.pathname.startsWith('/services') ? 'page' : undefined}>{t.t('site.nav.services')}</a>
+          <a class="hh-site-header__link" href="/areas" aria-current={Astro.url.pathname.startsWith('/areas') ? 'page' : undefined}>{t.t('areas.title')}</a>
           <a class="hh-button hh-site-header__cta" href="/request">{t.t('site.cta.request')}</a>
         </nav>
       </div>

@@ -1219,3 +1219,72 @@
 .staff-start__answer:focus {
   outline: none;
 }
+
+/* Staff visual polish, without changing the role-filtered menu or safety gates. */
+.staff-shell__bar {
+  border-bottom: var(--hh-hairline-gold);
+  gap: var(--hh-space-4);
+}
+.staff-shell__brand {
+  font: 600 1.5rem/1.2 var(--hh-font-display);
+  letter-spacing: -0.02em;
+}
+.staff-shell__nav ul {
+  background: var(--hh-surface);
+  gap: var(--hh-space-1);
+}
+.staff-shell__nav a {
+  text-decoration: none;
+  font-weight: 600;
+}
+.staff-shell__nav a:hover,
+.staff-shell__nav a:focus-visible {
+  background: var(--hh-surface-2);
+}
+.staff-shell__nav a[aria-current='page'] {
+  border-left: 3px solid var(--hh-accent);
+  background: var(--hh-tint);
+}
+.staff-shell__main {
+  max-width: 64rem;
+  gap: var(--hh-space-6);
+  padding-block: var(--hh-space-12);
+}
+.staff-screen {
+  gap: var(--hh-space-6);
+}
+.staff-queue__item {
+  border-top: var(--hh-hairline-gold);
+  background: var(--hh-surface);
+  box-shadow: var(--hh-elevation-plate);
+}
+.staff-queue__filters {
+  background: var(--hh-surface);
+}
+.staff-queue__heading {
+  border-bottom: var(--hh-hairline);
+  padding-bottom: var(--hh-space-3);
+}
+@media (min-width: 64rem) {
+  .staff-shell__nav {
+    background: var(--hh-surface);
+    border-right: var(--hh-hairline);
+  }
+  .staff-shell__nav ul {
+    border-right: 0;
+  }
+}
+@media (max-width: 38rem) {
+  .staff-shell__bar {
+    align-items: stretch;
+  }
+  .staff-shell__user {
+    margin-left: 0;
+  }
+  .staff-shell__main {
+    padding-top: var(--hh-space-8);
+  }
+  .staff-shell__nav ul {
+    padding-inline: var(--hh-gutter);
+  }
+}

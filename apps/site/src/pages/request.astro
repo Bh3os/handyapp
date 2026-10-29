@@ -6,6 +6,7 @@
 // terms and the website terms (TSK-0024; HH-COM-12, OWN-DEC-147).
 import '@handyhub/ui/styles.css'
 import '../request/request.css'
+import '../site/site.css'
 import { customerTranslator } from '@handyhub/i18n'
 import RequestWizard from '../request/RequestWizard.tsx'
 import LegalLinks from '../components/LegalLinks.astro'
@@ -22,8 +23,15 @@ const title = t.t('request.title')
     <meta name="robots" content="noindex, nofollow" />
     <title>{title} | HandyHub</title>
   </head>
-  <body>
-    <main class="hh-request-page">
+  <body class="hh-request-standalone">
+    <a class="hh-site__skip" href="#request-main">{t.t('site.skipToContent')}</a>
+    <header class="hh-request-header">
+      <div class="hh-site__wrap hh-request-header__inner">
+        <a class="hh-site-header__brand" href="/" aria-label={t.t('site.homeLink')}>HandyHub</a>
+        <a class="hh-request-header__back" href="/services">{t.t('site.nav.services')}</a>
+      </div>
+    </header>
+    <main id="request-main" class="hh-request-page">
       <h1 class="hh-h1">{title}</h1>
       <RequestWizard client:only="react" />
     </main>

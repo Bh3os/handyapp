@@ -17,7 +17,7 @@ const states = areaByState(t)
 const work = CATEGORIES.map((c) => ({ href: `/services#category-${c}`, label: t.t(CATEGORY_LABEL[c]) }))
 ---
 
-<SiteLayout title={`${t.t('areas.title')} | HandyHub`}>
+<SiteLayout title={`${t.t('areas.title')} | HandyHub`} description={t.t('areas.intro')}>
   <script type="application/ld+json" is:inline set:html={areaStructuredData(t, 'HandyHub')} />
   <section class="hh-areas" aria-labelledby="areas-title">
     <div class="hh-site__wrap">

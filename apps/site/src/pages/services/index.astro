@@ -11,16 +11,20 @@ const t = customerTranslator()
 const services = siteServices()
 ---
 
-<SiteLayout title={`${t.t('services.title')} | HandyHub`}>
+<SiteLayout title={`${t.t('services.title')} | HandyHub`} description={t.t('services.intro')}>
   <section class="hh-services" aria-labelledby="services-title">
     <div class="hh-site__wrap">
-      <h1 class="hh-display hh-services__title" id="services-title">{t.t('services.title')}</h1>
+      <div class="hh-services__heading">
+        <h1 class="hh-display hh-services__title" id="services-title">{t.t('services.title')}</h1>
+        <a class="hh-button" href="/request">{t.t('site.cta.requestFree')}</a>
+      </div>
       <p class="hh-lead hh-services__intro">{t.t('services.intro')}</p>
       <div class="hh-services__grid" data-service-listing data-unavailable={t.t('error.UNAVAILABLE')}>
         <p class="hh-small" data-listing-status role="status">{t.t('site.footer.loading')}</p>
         {
           CATEGORIES.map((c) => (
             <section class="hh-card hh-card--plate hh-services__category" aria-labelledby={`category-${c}`} data-listing-group>
+              <span class="hh-services__category-index" aria-hidden="true">{String(CATEGORIES.indexOf(c) + 1).padStart(2, '0')}</span>
               <h2 class="hh-h2 hh-services__category-title" id={`category-${c}`}>
                 {t.t(CATEGORY_LABEL[c])}
               </h2>
