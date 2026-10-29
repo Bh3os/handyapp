@@ -7,8 +7,10 @@ import { customerTranslator } from '@handyhub/i18n'
 import CoverageChecker from '../coverage/CoverageChecker.tsx'
 import '../coverage/coverage.css'
 import SiteLayout from '../layouts/SiteLayout.astro'
+import { CATEGORIES, CATEGORY_LABEL, CATEGORY_TEXT } from '../site/services'
 
 const t = customerTranslator()
+const serviceCards = CATEGORIES.map((category, index) => ({ category, number: String(index + 1).padStart(2, '0') }))
 const trust = [t.t('home.trust.estimates'), t.t('home.trust.pricing'), t.t('home.trust.visits')]
 const why = [
   [t.t('home.why.clearPricing.label'), t.t('home.why.clearPricing.text')],
@@ -20,21 +22,54 @@ const why = [
 ]
 ---
 
-<SiteLayout title={t.t('home.title')}>
+<SiteLayout title={t.t('home.title')} description={t.t('home.why.subtitle')}>
   <section class="hh-home-hero" aria-labelledby="home-title">
     <div class="hh-site__wrap">
-      <h1 class="hh-display hh-home-hero__title" id="home-title">{t.t('home.title')}</h1>
+      <div class="hh-home-hero__grid">
+        <div class="hh-home-hero__copy">
+          <p class="hh-home-hero__eyebrow">{t.t('home.why.heading')}</p>
+          <h1 class="hh-display hh-home-hero__title" id="home-title">{t.t('home.title')}</h1>
+          <p class="hh-home-hero__lead">{t.t('home.why.subtitle')}</p>
+          <div class="hh-home-hero__actions">
+            <a class="hh-button" href="/request">{t.t('site.cta.requestFree')}</a>
+            <a class="hh-home-hero__browse" href="/services">{t.t('site.nav.services')}</a>
+          </div>
+        </div>
+        <div class="hh-home-hero__art" aria-hidden="true">
+          <span class="hh-home-hero__art-top">HandyHub</span>
+          <span class="hh-home-hero__art-mark">H<span>H</span></span>
+          <span class="hh-home-hero__art-bottom">{t.t('home.why.subtitle')}</span>
+        </div>
+      </div>
       <ul class="hh-home-hero__facts" data-testid="trust-facts">
         {trust.map((fact) => <li>{fact}</li>)}
       </ul>
-      <p class="hh-home-hero__action">
-        <a class="hh-button" href="/request">{t.t('site.cta.requestFree')}</a>
-      </p>
     </div>
   </section>
   <div class="hh-site__wrap hh-home-coverage">
     <CoverageChecker client:load />
   </div>
+  <section class="hh-home-services" aria-labelledby="home-services">
+    <div class="hh-site__wrap">
+      <div class="hh-home-services__heading">
+        <div>
+          <h2 class="hh-h2" id="home-services">{t.t('services.title')}</h2>
+          <p class="hh-muted">{t.t('services.intro')}</p>
+        </div>
+        <a class="hh-home-services__all" href="/services">{t.t('site.nav.services')}</a>
+      </div>
+      <div class="hh-home-services__grid">
+        {serviceCards.map(({ category, number }) => (
+          <a class="hh-home-services__card" href={'/services#category-' + category}>
+            <span class="hh-home-services__number" aria-hidden="true">{number}</span>
+            <span class="hh-home-services__name">{t.t(CATEGORY_LABEL[category])}</span>
+            <span class="hh-home-services__summary">{t.t(CATEGORY_TEXT[category])}</span>
+            <span class="hh-home-services__arrow" aria-hidden="true">↗</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
   <section class="hh-home-why" aria-labelledby="home-why">
     <div class="hh-site__wrap">
       <h2 class="hh-h2" id="home-why">{t.t('home.why.heading')}</h2>
@@ -48,6 +83,15 @@ const why = [
           ))
         }
       </ul>
+    </div>
+  </section>
+  <section class="hh-home-final" aria-labelledby="home-final-title">
+    <div class="hh-site__wrap hh-home-final__inner">
+      <div>
+        <h2 class="hh-h2" id="home-final-title">{t.t('services.notSure.action')}</h2>
+        <p>{t.t('services.notSure.text')}</p>
+      </div>
+      <a class="hh-button" href="/request">{t.t('site.cta.requestFree')}</a>
     </div>
   </section>
 </SiteLayout>

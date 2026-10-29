@@ -57,6 +57,18 @@ describe('site shell (TSK-0020, HH-CUS-05, RULE-LANGUAGES)', () => {
   })
 })
 
+describe('premium public navigation and homepage structure', () => {
+  it('keeps approved claims while linking to services, areas and the estimate form', () => {
+    expect(page).toContain('CATEGORY_LABEL[category]')
+    expect(page).toContain('CATEGORY_TEXT[category]')
+    expect(page).toContain('href="/services"')
+    expect(page).toContain('href="/request"')
+    expect(page).toContain("description={t.t('home.why.subtitle')}")
+    expect(layout).toContain('href="/areas"')
+    expect(read('pages/request.astro')).toContain('href="#request-main"')
+  })
+})
+
 describe('homepage wording (TSK-0020, HH-CUS-06, OWN-DEC-86)', () => {
   it('[HH-CUS-06] the catalog holds exactly the approved trust facts and Why HandyHub items', () => {
     expect([customer['home.trust.estimates'], customer['home.trust.pricing'], customer['home.trust.visits']]).toEqual(
