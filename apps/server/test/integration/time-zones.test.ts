@@ -453,6 +453,8 @@ describe('[OWN-DEC-159][T41] Central and Eastern properties, DST gaps and repeat
       .select(['starts_at', 'start_offset_minutes', 'time_zone'])
       .where('project_id', '=', central.projectId)
       .where('local_date', '=', d.fallDate)
+      // The gap test's visit three days out lands on the fall-back date when run three days before it.
+      .where('window_start', '=', d.repeated)
       .executeTakeFirstOrThrow()
     expect(row.time_zone).toBe(CENTRAL)
     expect(row.start_offset_minutes).toBe(d.fall.offsetAfter)
