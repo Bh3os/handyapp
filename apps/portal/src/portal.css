@@ -519,27 +519,102 @@
 }
 
 /* Project-first portal hierarchy: all existing operations and guards remain intact. */
-.portal__bar { border-bottom: var(--hh-hairline-gold); padding-block: var(--hh-space-4); }
-.portal__brand { font: 600 1.75rem/1.2 var(--hh-font-display); letter-spacing: -.02em; color: var(--hh-text); }
-.portal__main { max-width: 56rem; gap: var(--hh-space-6); padding-top: var(--hh-space-12); }
-.portal__main > .hh-h2 { margin: 0; font-family: var(--hh-font-display); }
-.portal-overview { gap: var(--hh-space-6); }
-.portal-section, .portal-projects__item { border: var(--hh-hairline); border-top: var(--hh-hairline-gold); background: var(--hh-surface); padding: clamp(1rem, 3vw, 1.75rem); box-shadow: var(--hh-elevation-plate); }
-.portal-section--stale { border-style: dashed; border-color: var(--hh-line-strong); }
-.portal-projects { gap: var(--hh-space-4); }
-.portal-projects__item h3 { margin-bottom: var(--hh-space-3); font-family: var(--hh-font-display); }
-.portal-dashboard__section { gap: var(--hh-space-4); }
-.portal-dashboard__section > h2 { padding-bottom: var(--hh-space-3); border-bottom: var(--hh-hairline-gold); }
-.portal-account__links { padding: var(--hh-space-3) var(--hh-space-4); background: var(--hh-surface); border: var(--hh-hairline); }
-.portal-account__links a { display: inline-flex; min-height: var(--hh-target); align-items: center; font-weight: 600; }
-.portal-next { padding: var(--hh-space-4); border-left: 3px solid var(--hh-accent); background: var(--hh-surface-2); }
-.portal-timeline { gap: 0; }
-.portal-timeline__item { padding: 0 0 var(--hh-space-6) var(--hh-space-6); border-left: 2px solid var(--hh-accent); position: relative; }
-.portal-timeline__item:before { content: ''; position: absolute; left: -.38rem; top: .3rem; width: .6rem; height: .6rem; border: 2px solid var(--hh-accent); background: var(--hh-surface); border-radius: 50%; }
-.portal .hh-tabs__list { gap: var(--hh-space-2); }
-.portal .hh-tabs__tab { padding-inline: var(--hh-space-4); }
+.portal__bar {
+  border-bottom: var(--hh-hairline-gold);
+  padding-block: var(--hh-space-4);
+}
+.portal__brand {
+  font: 600 1.75rem/1.2 var(--hh-font-display);
+  letter-spacing: -0.02em;
+  color: var(--hh-text);
+}
+.portal__main {
+  max-width: 56rem;
+  gap: var(--hh-space-6);
+  padding-top: var(--hh-space-12);
+}
+.portal__main > .hh-h2 {
+  margin: 0;
+  font-family: var(--hh-font-display);
+}
+.portal-overview {
+  gap: var(--hh-space-6);
+}
+.portal-section,
+.portal-projects__item {
+  border: var(--hh-hairline);
+  border-top: var(--hh-hairline-gold);
+  background: var(--hh-surface);
+  padding: clamp(1rem, 3vw, 1.75rem);
+  box-shadow: var(--hh-elevation-plate);
+}
+.portal-section--stale {
+  border-style: dashed;
+  border-color: var(--hh-line-strong);
+}
+.portal-projects {
+  gap: var(--hh-space-4);
+}
+.portal-projects__item h3 {
+  margin-bottom: var(--hh-space-3);
+  font-family: var(--hh-font-display);
+}
+.portal-dashboard__section {
+  gap: var(--hh-space-4);
+}
+.portal-dashboard__section > h2 {
+  padding-bottom: var(--hh-space-3);
+  border-bottom: var(--hh-hairline-gold);
+}
+.portal-account__links {
+  padding: var(--hh-space-3) var(--hh-space-4);
+  background: var(--hh-surface);
+  border: var(--hh-hairline);
+}
+.portal-account__links a {
+  display: inline-flex;
+  min-height: var(--hh-target);
+  align-items: center;
+  font-weight: 600;
+}
+.portal-next {
+  padding: var(--hh-space-4);
+  border-left: 3px solid var(--hh-accent);
+  background: var(--hh-surface-2);
+}
+.portal-timeline {
+  gap: 0;
+}
+.portal-timeline__item {
+  padding: 0 0 var(--hh-space-6) var(--hh-space-6);
+  border-left: 2px solid var(--hh-accent);
+  position: relative;
+}
+.portal-timeline__item:before {
+  content: '';
+  position: absolute;
+  left: -0.38rem;
+  top: 0.3rem;
+  width: 0.6rem;
+  height: 0.6rem;
+  border: 2px solid var(--hh-accent);
+  background: var(--hh-surface);
+  border-radius: 50%;
+}
+.portal .hh-tabs__list {
+  gap: var(--hh-space-2);
+}
+.portal .hh-tabs__tab {
+  padding-inline: var(--hh-space-4);
+}
 @media (max-width: 38rem) {
-  .portal__main { padding-top: var(--hh-space-8); }
-  .portal-account__links a { flex: 1 1 9rem; }
-  .portal .hh-tabs__tab { flex: 1 1 auto; }
+  .portal__main {
+    padding-top: var(--hh-space-8);
+  }
+  .portal-account__links a {
+    flex: 1 1 9rem;
+  }
+  .portal .hh-tabs__tab {
+    flex: 1 1 auto;
+  }
 }

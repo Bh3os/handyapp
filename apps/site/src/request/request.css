@@ -362,27 +362,95 @@
 }
 
 /* Branded estimate journey: readable progress and selection states. */
-.hh-request-standalone { min-height: 100vh; background: var(--hh-canvas); }
-.hh-request-header { border-bottom: var(--hh-hairline-gold); background: var(--hh-surface); }
-.hh-request-header__inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--hh-space-4); padding-block: var(--hh-space-3); }
-.hh-request-header__back { display: inline-flex; align-items: center; min-height: var(--hh-target); color: var(--hh-link); font-weight: 600; }
-.hh-request-page { max-width: 50rem; padding-block: var(--hh-space-12) var(--hh-space-16); }
-.hh-request-page > .hh-h1 { font-family: var(--hh-font-display); letter-spacing: -.02em; }
-.hh-request__progress { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr)); gap: var(--hh-space-2); margin-bottom: var(--hh-space-4); }
-.hh-request__progress li { padding: var(--hh-space-3) var(--hh-space-2); border-top: 3px solid var(--hh-line); background: var(--hh-surface); overflow-wrap: anywhere; }
-.hh-request__progress li[aria-current='step'] { border-top-color: var(--hh-action); text-decoration: none; background: var(--hh-surface-2); }
-.hh-request__card { border-top: 2px solid var(--hh-accent); transition: background var(--hh-duration-fast) var(--hh-easing); }
-.hh-request__card:hover { background: var(--hh-surface-2); }
-.hh-request__card[aria-pressed='true'] { background: var(--hh-info-tint); }
-.hh-request__actions { padding-top: var(--hh-space-4); border-top: var(--hh-hairline); }
-.hh-request__review { padding: var(--hh-space-4); border: var(--hh-hairline); background: var(--hh-surface); }
-.hh-request__photo { padding: var(--hh-space-3); border: var(--hh-hairline); background: var(--hh-surface); }
-.hh-request-legal { border-top: var(--hh-hairline); padding-top: var(--hh-space-6); }
+.hh-request-standalone {
+  min-height: 100vh;
+  background: var(--hh-canvas);
+}
+.hh-request-header {
+  border-bottom: var(--hh-hairline-gold);
+  background: var(--hh-surface);
+}
+.hh-request-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--hh-space-4);
+  padding-block: var(--hh-space-3);
+}
+.hh-request-header__back {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--hh-target);
+  color: var(--hh-link);
+  font-weight: 600;
+}
+.hh-request-page {
+  max-width: 50rem;
+  padding-block: var(--hh-space-12) var(--hh-space-16);
+}
+.hh-request-page > .hh-h1 {
+  font-family: var(--hh-font-display);
+  letter-spacing: -0.02em;
+}
+.hh-request__progress {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));
+  gap: var(--hh-space-2);
+  margin-bottom: var(--hh-space-4);
+}
+.hh-request__progress li {
+  padding: var(--hh-space-3) var(--hh-space-2);
+  border-top: 3px solid var(--hh-line);
+  background: var(--hh-surface);
+  overflow-wrap: anywhere;
+}
+.hh-request__progress li[aria-current='step'] {
+  border-top-color: var(--hh-action);
+  text-decoration: none;
+  background: var(--hh-surface-2);
+}
+.hh-request__card {
+  border-top: 2px solid var(--hh-accent);
+  transition: background var(--hh-duration-fast) var(--hh-easing);
+}
+.hh-request__card:hover {
+  background: var(--hh-surface-2);
+}
+.hh-request__card[aria-pressed='true'] {
+  background: var(--hh-info-tint);
+}
+.hh-request__actions {
+  padding-top: var(--hh-space-4);
+  border-top: var(--hh-hairline);
+}
+.hh-request__review {
+  padding: var(--hh-space-4);
+  border: var(--hh-hairline);
+  background: var(--hh-surface);
+}
+.hh-request__photo {
+  padding: var(--hh-space-3);
+  border: var(--hh-hairline);
+  background: var(--hh-surface);
+}
+.hh-request-legal {
+  border-top: var(--hh-hairline);
+  padding-top: var(--hh-space-6);
+}
 @media (max-width: 38rem) {
-  .hh-request-page { padding-top: var(--hh-space-8); }
-  .hh-request__progress { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .hh-request__actions > .hh-button { flex: 1 1 auto; }
+  .hh-request-page {
+    padding-top: var(--hh-space-8);
+  }
+  .hh-request__progress {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .hh-request__actions > .hh-button {
+    flex: 1 1 auto;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .hh-request__card { transition: none; }
+  .hh-request__card {
+    transition: none;
+  }
 }
